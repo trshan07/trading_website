@@ -1,0 +1,2 @@
+// Pagination.js
+

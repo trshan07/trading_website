@@ -1,0 +1,2 @@
+// Settings.js
+

@@ -1,0 +1,2 @@
+// frontend/src/index.js
+
