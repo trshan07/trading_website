@@ -1,6 +1,7 @@
 // frontend/src/components/common/Footer.jsx
 import React from 'react';
 import { Link } from 'react-router-dom';
+
 import { FaFacebookF, FaTwitter, FaLinkedinIn, FaInstagram, FaYoutube } from 'react-icons/fa';
 import { HiOutlineChartBar } from 'react-icons/hi';
 
