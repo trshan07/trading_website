@@ -1,40 +1,51 @@
-// frontend/tailwind.config.js
 /** @type {import('tailwindcss').Config} */
-module.exports = {
+export default {
   content: [
-    "./src/**/*.{js,jsx,ts,tsx}",
-    "./public/index.html"
+    "./index.html",
+    "./src/**/*.{js,ts,jsx,tsx}",
   ],
   theme: {
     extend: {
       colors: {
         navy: {
-          50: '#E6E9F0',
-          100: '#CCD3E1',
-          200: '#99A7C3',
-          300: '#667BA5',
-          400: '#334F87',
-          500: '#002366',
-          600: '#001F5C',
-          700: '#001A4D',
-          800: '#00143D',
-          900: '#000F2E',
+          DEFAULT: '#0A192F',
+          light: '#112240',
+          dark: '#020C1B',
         },
         gold: {
-          50: '#FDF8E6',
-          100: '#FBF1CC',
-          200: '#F7E399',
-          300: '#F3D566',
-          400: '#EFC733',
-          500: '#EBB900',
-          600: '#D4A700',
-          700: '#B88F00',
-          800: '#9C7700',
-          900: '#7F5F00',
+          DEFAULT: '#D4AF37',
+          light: '#F9E2AF',
+          dark: '#996515',
+          glow: 'rgba(212, 175, 55, 0.4)',
         },
       },
       fontFamily: {
-        'raleway': ['Raleway', 'sans-serif'],
+        sans: ['Inter', 'sans-serif'],
+        display: ['Outfit', 'sans-serif'],
+      },
+      backgroundImage: {
+        'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
+        'gold-gradient': 'linear-gradient(135deg, #D4AF37 0%, #F9E2AF 50%, #996515 100%)',
+      },
+      boxShadow: {
+        'gold-glow': '0 0 20px rgba(212, 175, 55, 0.4)',
+        'gold-glow-sm': '0 0 15px rgba(212, 175, 55, 0.2)',
+      },
+      animation: {
+        'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+        'glow': 'glow 2s ease-in-out infinite alternate',
+        'float': 'float 6s ease-in-out infinite',
+        'float-delayed': 'float 6s ease-in-out 3s infinite',
+      },
+      keyframes: {
+        glow: {
+          '0%': { boxShadow: '0 0 5px rgba(212, 175, 55, 0.2)' },
+          '100%': { boxShadow: '0 0 20px rgba(212, 175, 55, 0.6)' },
+        },
+        float: {
+          '0%, 100%': { transform: 'translateY(0)' },
+          '50%': { transform: 'translateY(-20px)' },
+        }
       },
     },
   },
