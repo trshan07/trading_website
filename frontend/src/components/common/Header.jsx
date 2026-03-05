@@ -1,7 +1,8 @@
 // frontend/src/components/common/Header.jsx
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { FaChartLine, FaUser, FaBars, FaTimes } from 'react-icons/fa';
+import { motion } from 'framer-motion';  // Make sure this import is present
+import { FaBars, FaTimes } from 'react-icons/fa';
 import { HiOutlineChartBar } from 'react-icons/hi';
 
 const Header = () => {
