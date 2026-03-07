@@ -14,9 +14,21 @@ import RiskDisclaimerPage from '../pages/public/RiskDisclaimerPage';
 import ForgotPasswordPage from '../pages/public/ForgotPasswordPage';
 import PromotionsPage from '../pages/public/PromotionsPage';
 
+// Admin Pages
+import AdminDashboardPage from '../pages/admin/AdminDashboardPage';
+import UsersPage from '../pages/admin/UsersPage';
+import FundingRequestsPage from '../pages/admin/FundingRequestsPage';
+import TradesPage from '../pages/admin/TradesPage';
+import ReportsPage from '../pages/admin/ReportsPage';
+import AuditPage from '../pages/admin/AuditPage';
+import AdminSettingsPage from '../pages/admin/SettingsPage';
+import KYCManagementPage from '../pages/admin/KYCManagementPage';
+import TransactionsPage from '../pages/admin/TransactionsPage';
+
 const AppRoutes = () => {
     return (
         <Routes>
+                  {/* Public Routes */}
             <Route path="/" element={<HomePage />} />
             <Route path="/about" element={<AboutPage />} />
             <Route path="/contact" element={<ContactPage />} />
@@ -31,8 +43,28 @@ const AppRoutes = () => {
             <Route path="/register" element={<RegisterPage />} />
             <Route path="/forgot-password" element={<ForgotPasswordPage />} />
             <Route path="*" element={<HomePage />} />
+            
+
+            {/* Admin Routes */}
+            <Route path="/admin" element={<AdminDashboardPage />} />
+            <Route path="/admin/users" element={<UsersPage />} />
+            <Route path="/admin/funding" element={<FundingRequestsPage />} />
+            <Route path="/admin/trades" element={<TradesPage />} />
+            <Route path="/admin/reports" element={<ReportsPage />} />
+            <Route path="/admin/audit" element={<AuditPage />} />
+            <Route path="/admin/settings" element={<AdminSettingsPage />} />
+            <Route path="/admin/kyc" element={<KYCManagementPage />} />
+            <Route path="/admin/transactions" element={<TransactionsPage />} />
+
+      
+
         </Routes>
+
+        
+
+        
     );
+    
 };
 
 export default AppRoutes;

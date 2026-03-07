@@ -1,5 +1,5 @@
 // frontend/src/context/NotificationContext.js
-import React, { createContext, useState, useContext } from 'react';
+import React, { createContext, useContext } from 'react';
 import toast from 'react-hot-toast';
 
 const NotificationContext = createContext();
@@ -31,5 +31,9 @@ export const NotificationProvider = ({ children }) => {
     showInfo
   };
 
-  return <NotificationContext.Provider value={value}>{children}</NotificationContext.Provider>;
+  return (
+    <NotificationContext.Provider value={value}>
+      {children}
+    </NotificationContext.Provider>
+  );
 };
