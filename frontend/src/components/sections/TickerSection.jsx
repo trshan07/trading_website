@@ -17,7 +17,7 @@ const TickerSection = () => {
     const duplicatedPrices = [...prices, ...prices];
 
     return (
-        <div className="bg-navy-dark border-y border-white/5 py-4 overflow-hidden select-none">
+        <div className="bg-navy/40 backdrop-blur-md border-y border-white/5 py-4 overflow-hidden select-none">
             <motion.div
                 animate={{ x: [0, -100 * prices.length] }}
                 transition={{

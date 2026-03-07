@@ -57,14 +57,20 @@ const ForgotPasswordPage = () => {
              <motion.path d="M650,300 L750,150" stroke="rgba(255, 255, 255, 0.05)" strokeWidth="1" fill="none" />
 
              {/* Ping Nodes */}
-             <motion.circle cx="350" cy="250" r="3" fill="#22c55e" 
-                animate={{ opacity: [0.2, 1, 0.2], r: [2, 4, 2] }} transition={{ duration: 3, repeat: Infinity }}
+             <motion.circle cx="350" cy="250" fill="#22c55e" 
+                initial={{ opacity: 0.2, r: 2 }}
+                animate={{ opacity: [0.2, 1, 0.2], r: [2, 4, 2] }} 
+                transition={{ duration: 3, repeat: Infinity }}
              />
-             <motion.circle cx="500" cy="400" r="4" fill="#d4af37" 
-                animate={{ opacity: [0.2, 1, 0.2], r: [3, 6, 3] }} transition={{ duration: 4, repeat: Infinity, delay: 1 }}
+             <motion.circle cx="500" cy="400" fill="#d4af37" 
+                initial={{ opacity: 0.2, r: 3 }}
+                animate={{ opacity: [0.2, 1, 0.2], r: [3, 6, 3] }} 
+                transition={{ duration: 4, repeat: Infinity, delay: 1 }}
              />
-             <motion.circle cx="650" cy="300" r="3" fill="#22c55e" 
-                animate={{ opacity: [0.2, 1, 0.2], r: [2, 4, 2] }} transition={{ duration: 2.5, repeat: Infinity, delay: 2 }}
+             <motion.circle cx="650" cy="300" fill="#22c55e" 
+                initial={{ opacity: 0.2, r: 2 }}
+                animate={{ opacity: [0.2, 1, 0.2], r: [2, 4, 2] }} 
+                transition={{ duration: 2.5, repeat: Infinity, delay: 2 }}
              />
              
              {/* Scanning Line sweep */}

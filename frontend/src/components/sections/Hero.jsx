@@ -7,10 +7,9 @@ import dashboardImg from '../../assets/images/hero-dashboard.png';
 
 const Hero = () => {
     return (
-        <section className="relative min-h-screen flex items-center pt-24 pb-20 overflow-hidden bg-navy">
+        <section className="relative min-h-screen flex items-center pt-32 pb-20 overflow-hidden">
             {/* Architectural Background */}
             <div className="absolute inset-0 z-0 overflow-hidden">
-                <div className="absolute inset-0 bg-grid-slim opacity-40" />
                 <div className="scan-line" />
 
                 {/* Ambient Orbs */}
