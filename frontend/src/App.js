@@ -10,10 +10,12 @@ import { NotificationProvider } from './context/NotificationContext';
 
 // Routes
 import AppRoutes from './router/AppRoutes';
+import ScrollToTop from './components/common/ScrollToTop';
 
 function App() {
   return (
     <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+      <ScrollToTop />
       <AuthProvider>
         <ThemeProvider>
           <NotificationProvider>

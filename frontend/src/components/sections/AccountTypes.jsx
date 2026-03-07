@@ -1,5 +1,4 @@
 import React from 'react';
-import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import Container from '../layout/Container';
 import SectionTitle from '../ui/SectionTitle';
@@ -13,23 +12,25 @@ const AccountTypes = () => {
             name: 'Standard Account',
             popular: false,
             features: [
-                { label: 'Min Deposit', value: '$100' },
-                { label: 'Spreads', value: 'From 0.2 pips' },
-                { label: 'Commission', value: '$0' },
-                { label: 'Leverage', value: 'Up to 1:400' },
+                { label: 'Minimum Deposit', value: '$100' },
+                { label: 'Spread', value: 'From 0.2 pips' },
+                { label: 'Commission', value: 'No commission' },
+                { label: 'Maximum Leverage', value: '1:400' },
+                { label: 'Instruments', value: 'Forex, metals, cryptocurrencies, energies, stocks, indices' },
             ],
-            description: 'Ideal for retail traders looking for no-commission trading with competitive spreads.',
+            description: 'Whether you are just starting out or refining your strategy, our Standard Account keeps things simple. You get feature-rich trading without the worry of added commissions. Join the majority of our community and see why this is our go-to account type.',
         },
         {
             name: 'Raw Account',
             popular: true,
             features: [
-                { label: 'Min Deposit', value: '$500' },
-                { label: 'Spreads', value: 'From 0.0 pips' },
-                { label: 'Commission', value: 'Fixed per lot' },
-                { label: 'Leverage', value: 'Up to 1:400' },
+                { label: 'Minimum Deposit', value: '$500' },
+                { label: 'Spread', value: 'From 0.3 pips' },
+                { label: 'Commission', value: 'No commission' },
+                { label: 'Maximum Leverage', value: '1:400' },
+                { label: 'Instruments', value: 'Forex, metals, cryptocurrencies' },
             ],
-            description: 'Designed for professionals and high-frequency traders needing deep liquidity.',
+            description: 'Designed for scalpers, high-volume traders, and anyone who needs razor-sharp pricing. Experience ultra-low latency and raw market spreads. You pay what the market pays, plus a fixed commission, giving you a professional-grade trading environment without the fluff.',
         },
     ];
 
@@ -42,7 +43,7 @@ const AccountTypes = () => {
                 />
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto">
-                    {accounts.map((account, index) => (
+                    {accounts.map((account) => (
                         <Card
                             key={account.name}
                             className={`relative flex flex-col ${account.popular ? 'border-gold/50 !bg-navy-light/80' : ''
@@ -55,13 +56,13 @@ const AccountTypes = () => {
                             )}
 
                             <h3 className="text-2xl font-display font-bold mb-4">{account.name}</h3>
-                            <p className="text-white/50 text-sm mb-8">{account.description}</p>
+                            <p className="text-white/50 text-sm mb-8 leading-relaxed">{account.description}</p>
 
                             <div className="space-y-6 mb-10 flex-grow">
                                 {account.features.map((feature) => (
                                     <div key={feature.label} className="flex justify-between items-center border-b border-white/5 pb-4">
                                         <span className="text-white/60">{feature.label}</span>
-                                        <span className="font-bold text-gold">{feature.value}</span>
+                                        <span className="font-bold text-gold text-right max-w-[65%]">{feature.value}</span>
                                     </div>
                                 ))}
                             </div>

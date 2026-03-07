@@ -5,7 +5,7 @@ import { FaFacebook, FaTwitter, FaLinkedin, FaYoutube } from 'react-icons/fa';
 
 const Footer = () => {
     return (
-        <footer className="bg-navy-dark pt-20 pb-10 border-t border-white/5">
+        <footer className="relative z-10 bg-[#000F29]/80 backdrop-blur-lg pt-24 pb-12 border-t border-white/10 shadow-[0_-10px_40px_rgba(0,0,0,0.5)]">
             <Container>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-16">
                     {/* Brand */}
@@ -69,10 +69,7 @@ const Footer = () => {
                 <div className="border-t border-white/5 pt-10 text-white/30 text-xs leading-relaxed space-y-4">
                     <p>
                         <span className="text-white/60 font-bold uppercase block mb-2">Risk Warning:</span>
-                        Trading foreign exchange and Contracts for Difference (CFDs) involves a high level of risk and may not be suitable for all investors. The high degree of leverage can work against you as well as for you. Before deciding to trade foreign exchange, you should carefully consider your investment objectives, level of experience, and risk appetite.
-                    </p>
-                    <p>
-                        The possibility exists that you could sustain a loss of some or all of your initial investment and therefore you should not invest money that you cannot afford to lose. You should be aware of all the risks associated with foreign exchange trading and seek advice from an independent financial advisor if you have any doubts.
+                        Trading foreign exchange and CFDs on margin carries a high level of risk and may not be suitable for all investors. The high degree of leverage can work against you as well as for you. Before deciding to trade, you should carefully consider your investment objectives, level of experience, and risk appetite.
                     </p>
                     <p className="pt-4 border-t border-white/5 text-center">
                         &copy; {new Date().getFullYear()} Rizals Trade. All rights reserved.

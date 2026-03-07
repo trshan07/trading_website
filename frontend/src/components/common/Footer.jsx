@@ -44,7 +44,7 @@ const Footer = () => {
   ];
 
   return (
-    <footer className="gradient-bg text-white pt-16 pb-8">
+    <footer className="relative z-10 bg-[#010816] text-white pt-24 pb-12 border-t border-white/10 shadow-[0_-10px_40px_rgba(0,0,0,0.5)]">
       <div className="container mx-auto px-4 md:px-6">
         {/* Main Footer Content */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8 mb-12">
@@ -165,8 +165,8 @@ const Footer = () => {
         {/* Bottom Bar */}
         <div className="border-t border-navy-700 pt-8 text-center text-navy-300 text-sm">
           <p>&copy; {currentYear} Rizal's Trade. All rights reserved.</p>
-          <p className="mt-2">
-            Trading involves significant risk and may not be suitable for all investors.
+          <p className="mt-2 max-w-4xl mx-auto">
+            Trading foreign exchange and CFDs on margin carries a high level of risk and may not be suitable for all investors. The high degree of leverage can work against you as well as for you. Before deciding to trade, you should carefully consider your investment objectives, level of experience, and risk appetite.
           </p>
         </div>
       </div>

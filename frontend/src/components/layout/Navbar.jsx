@@ -3,45 +3,14 @@ import { Link, NavLink } from 'react-router-dom';
 import { HiMenu, HiX, HiChevronDown } from 'react-icons/hi';
 import Container from './Container';
 
+// Refactored Sub-components
+import { navLinks } from './navbar-refactor/NavConfig';
+import MarketMegaMenu from './navbar-refactor/MarketMegaMenu';
+import ResourceMegaMenu from './navbar-refactor/ResourceMegaMenu';
+import MobileMenu from './navbar-refactor/MobileMenu';
+
 const Navbar = () => {
     const [isOpen, setIsOpen] = useState(false);
-
-    const navLinks = [
-        { name: 'Home', path: '/' },
-        {
-            name: 'Trading',
-            submenu: [
-                { name: 'Account Types', path: '/trading/account-types' },
-                { name: 'Conditions', path: '/trading/conditions' },
-            ],
-        },
-        {
-            name: 'Markets',
-            submenu: [
-                { name: 'Forex', path: '/markets/forex' },
-                { name: 'Commodities', path: '/markets/commodities' },
-                { name: 'Indices', path: '/markets/indices' },
-                { name: 'Shares', path: '/markets/shares' },
-                { name: 'Crypto', path: '/markets/crypto' },
-            ],
-        },
-        {
-            name: 'Resources',
-            submenu: [
-                { name: 'Platforms', path: '/resources/platforms' },
-                { name: 'Tools', path: '/resources/tools' },
-                { name: 'Analysis', path: '/resources/analysis' },
-            ],
-        },
-        {
-            name: 'Company',
-            submenu: [
-                { name: 'About', path: '/about' },
-                { name: 'Contact', path: '/contact' },
-            ],
-        },
-        { name: 'Promotions', path: '/promotions' },
-    ];
 
     return (
         <nav className="fixed w-full z-50 bg-navy/80 backdrop-blur-lg border-b border-white/10">
@@ -53,20 +22,21 @@ const Navbar = () => {
                     </Link>
 
                     {/* Desktop Nav */}
-                    <div className="hidden lg:flex items-center space-x-8">
+                    <div className="hidden lg:flex items-center space-x-8 h-full">
                         {navLinks.map((link) => (
-                            <div key={link.name} className="relative group">
-                                {link.submenu ? (
-                                    <button className="flex items-center space-x-1 text-white/80 hover:text-gold transition-colors font-medium">
+                            <div key={link.name} className="relative group h-full flex items-center">
+                                {/* Navigation Trigger */}
+                                {link.type !== 'link' ? (
+                                    <button className="flex items-center space-x-1 text-white/80 hover:text-gold transition-colors font-medium h-full">
                                         <span>{link.name}</span>
-                                        <HiChevronDown className="w-4 h-4" />
+                                        <HiChevronDown className="w-4 h-4 group-hover:rotate-180 transition-transform duration-300" />
                                     </button>
                                 ) : (
                                     <NavLink
                                         to={link.path}
                                         end={link.path === '/'}
                                         className={({ isActive }) =>
-                                            `relative font-medium transition-colors duration-300 ${isActive
+                                            `relative font-medium transition-colors duration-300 h-full flex items-center ${isActive
                                                 ? 'text-gold'
                                                 : 'text-white/70 hover:text-white'
                                             }`
@@ -76,23 +46,24 @@ const Navbar = () => {
                                             <>
                                                 {link.name}
                                                 {isActive && (
-                                                    <span className="absolute -bottom-1 left-0 right-0 h-px bg-gradient-to-r from-transparent via-gold to-transparent" />
+                                                    <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-gold to-transparent" />
                                                 )}
                                             </>
                                         )}
                                     </NavLink>
                                 )}
 
-                                {link.submenu && (
-                                    <div className="absolute top-full left-0 mt-2 w-48 glass-card rounded-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 overflow-hidden">
+                                {/* Standard Submenu */}
+                                {link.type === 'standard' && (
+                                    <div className="absolute top-20 left-0 w-48 glass-card border border-white/10 rounded-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 overflow-hidden shadow-2xl py-2">
                                         {link.submenu.map((item) => (
                                             <NavLink
                                                 key={item.name}
                                                 to={item.path}
                                                 className={({ isActive }) =>
-                                                    `block px-4 py-3 text-sm transition-colors ${isActive
-                                                        ? 'text-gold bg-gold/10 font-semibold'
-                                                        : 'text-white/80 hover:bg-gold/10 hover:text-gold'
+                                                    `block px-4 py-2 text-sm transition-colors ${isActive
+                                                        ? 'text-gold bg-white/5 font-semibold'
+                                                        : 'text-white/80 hover:bg-white/5 hover:text-gold'
                                                     }`
                                                 }
                                             >
@@ -101,6 +72,12 @@ const Navbar = () => {
                                         ))}
                                     </div>
                                 )}
+
+                                {/* Market Mega Menu */}
+                                {link.type === 'mega-market' && <MarketMegaMenu />}
+
+                                {/* Resource Mega Menu */}
+                                {link.type === 'mega-resource' && <ResourceMegaMenu />}
                             </div>
                         ))}
                     </div>
@@ -119,55 +96,7 @@ const Navbar = () => {
             </Container>
 
             {/* Mobile Menu */}
-            {isOpen && (
-                <div className="lg:hidden bg-navy-dark border-b border-white/10 py-6 px-4">
-                    <div className="flex flex-col space-y-4">
-                        {navLinks.map((link) => (
-                            <div key={link.name}>
-                                {link.submenu ? (
-                                    <>
-                                        <div className="text-gold font-bold mb-2 uppercase text-xs tracking-widest">{link.name}</div>
-                                        <div className="flex flex-col space-y-2 pl-4">
-                                            {link.submenu.map((item) => (
-                                                <NavLink
-                                                    key={item.name}
-                                                    to={item.path}
-                                                    className={({ isActive }) =>
-                                                        `transition-colors ${isActive
-                                                            ? 'text-gold font-semibold'
-                                                            : 'text-white/70 hover:text-white'
-                                                        }`
-                                                    }
-                                                    onClick={() => setIsOpen(false)}
-                                                >
-                                                    {item.name}
-                                                </NavLink>
-                                            ))}
-                                        </div>
-                                    </>
-                                ) : (
-                                    <NavLink
-                                        to={link.path}
-                                        end={link.path === '/'}
-                                        className={({ isActive }) =>
-                                            `font-medium transition-colors ${isActive
-                                                ? 'text-gold'
-                                                : 'text-white/80 hover:text-white'
-                                            }`
-                                        }
-                                        onClick={() => setIsOpen(false)}
-                                    >
-                                        {link.name}
-                                    </NavLink>
-                                )}
-                            </div>
-                        ))}
-                        <hr className="border-white/10" />
-                        <Link to="/login" className="text-center py-3 text-white" onClick={() => setIsOpen(false)}>Login</Link>
-                        <Link to="/register" className="btn-gold text-center py-3" onClick={() => setIsOpen(false)}>Register</Link>
-                    </div>
-                </div>
-            )}
+            <MobileMenu isOpen={isOpen} setIsOpen={setIsOpen} />
         </nav>
     );
 };
