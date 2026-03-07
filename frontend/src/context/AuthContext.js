@@ -13,12 +13,13 @@ export const useAuth = () => {
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
-  const [loading] = useState(false);
-  const [error] = useState(null);
+  const [isLoading] = useState(false);
 
-  const login = async (email, password) => {
-    // Implement login logic here
-    console.log('Login attempt', email, password);
+  // Mock login for testing
+  const login = async (email) => {
+    // This would be replaced with actual API call
+    setUser({ email, role: 'client' });
+    return { success: true };
   };
 
   const logout = () => {
@@ -27,11 +28,14 @@ export const AuthProvider = ({ children }) => {
 
   const value = {
     user,
-    loading,
-    error,
+    isLoading,
     login,
     logout
   };
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={value}>
+      {children}
+    </AuthContext.Provider>
+  );
 };
