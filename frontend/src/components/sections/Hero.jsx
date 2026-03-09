@@ -84,19 +84,19 @@ const Hero = () => {
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             transition={{ duration: 1, delay: 0.8 }}
-                            className="mt-20 grid grid-cols-2 sm:grid-cols-3 gap-12 border-t border-white/5 pt-10"
+                            className="mt-12 md:mt-20 grid grid-cols-2 sm:grid-cols-3 gap-8 md:gap-12 border-t border-white/5 pt-8 md:pt-10"
                         >
                             <div className="flex flex-col">
-                                <span className="text-gold font-display text-2xl font-bold">0.0<span className="text-sm ml-0.5">pips</span></span>
-                                <span className="text-white/30 text-[9px] uppercase tracking-[0.2em] font-bold mt-2">Ultra-Thin Spreads</span>
+                                <span className="text-gold font-display text-xl md:text-2xl font-bold">0.0<span className="text-xs ml-0.5 font-sans">pips</span></span>
+                                <span className="text-white/30 text-[8px] md:text-[9px] uppercase tracking-[0.2em] font-bold mt-2">Ultra-Thin Spreads</span>
                             </div>
                             <div className="flex flex-col">
-                                <span className="text-gold font-display text-2xl font-bold">30<span className="text-sm ml-0.5">ms</span></span>
-                                <span className="text-white/30 text-[9px] uppercase tracking-[0.2em] font-bold mt-2">Execution Speed</span>
+                                <span className="text-gold font-display text-xl md:text-2xl font-bold">30<span className="text-xs ml-0.5 font-sans">ms</span></span>
+                                <span className="text-white/30 text-[8px] md:text-[9px] uppercase tracking-[0.2em] font-bold mt-2">Execution Speed</span>
                             </div>
                             <div className="flex flex-col">
-                                <span className="text-gold font-display text-2xl font-bold">1:500</span>
-                                <span className="text-white/30 text-[9px] uppercase tracking-[0.2em] font-bold mt-2">Flexible Leverage</span>
+                                <span className="text-gold font-display text-xl md:text-2xl font-bold">1:500</span>
+                                <span className="text-white/30 text-[8px] md:text-[9px] uppercase tracking-[0.2em] font-bold mt-2">Flexible Leverage</span>
                             </div>
                         </motion.div>
                     </div>

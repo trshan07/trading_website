@@ -50,7 +50,7 @@ const AboutPage = () => {
                             initial="hidden"
                             animate="visible"
                             variants={fadeInUp}
-                            className="text-6xl md:text-8xl font-display font-bold mb-10 leading-tight"
+                            className="text-5xl sm:text-6xl md:text-8xl font-display font-bold mb-6 md:mb-10 leading-tight"
                         >
                             About <span className="gradient-text italic">Us</span>
                         </motion.h1>
@@ -59,7 +59,7 @@ const AboutPage = () => {
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             transition={{ delay: 0.5, duration: 1 }}
-                            className="text-xl md:text-2xl text-white/70 font-medium leading-[1.8] max-w-3xl mx-auto"
+                            className="text-lg md:text-2xl text-white/70 font-medium leading-[1.6] md:leading-[1.8] max-w-3xl mx-auto"
                         >
                             We were founded by <span className="text-gold font-bold">traders, for traders</span>. Our mission is to bridge the gap between institutional-grade technology and the retail investor.
                         </motion.p>
@@ -131,17 +131,17 @@ const AboutPage = () => {
             {/* Human Support Section */}
             <section className="py-32">
                 <Container>
-                    <div className="bg-[#00173D]/50 border border-white/5 rounded-[4rem] p-12 md:p-24 text-center relative overflow-hidden group">
+                    <div className="bg-[#00173D]/50 border border-white/5 rounded-[2rem] md:rounded-[4rem] p-8 md:p-24 text-center relative overflow-hidden group">
                         <div className="absolute inset-0 bg-gold/5 opacity-0 group-hover:opacity-100 transition-opacity duration-1000 blur-[100px]" />
                         <div className="relative z-10 max-w-2xl mx-auto">
-                            <h3 className="text-4xl font-display font-bold mb-8">Human-Centric Support</h3>
-                            <p className="text-white/50 text-lg leading-relaxed mb-12 font-medium">
+                            <h3 className="text-3xl md:text-4xl font-display font-bold mb-6 md:mb-8">Human-Centric Support</h3>
+                            <p className="text-white/50 text-base md:text-lg leading-relaxed mb-8 md:mb-12 font-medium">
                                 We believe that in an automated world, human connection remains vital. Our support team consists of experienced market experts, not scripts or bots.
                             </p>
-                            <div className="flex flex-wrap justify-center gap-4">
-                                <div className="px-8 py-3 rounded-full bg-white/5 border border-white/10 text-sm font-bold hover:bg-gold/10 hover:border-gold/30 transition-all cursor-default">24/5 Live Support</div>
-                                <div className="px-8 py-3 rounded-full bg-white/5 border border-white/10 text-sm font-bold hover:bg-gold/10 hover:border-gold/30 transition-all cursor-default">Direct Analyst Access</div>
-                                <div className="px-8 py-3 rounded-full bg-white/5 border border-white/10 text-sm font-bold hover:bg-gold/10 hover:border-gold/30 transition-all cursor-default">Multilingual</div>
+                            <div className="flex flex-wrap justify-center gap-3 md:gap-4">
+                                <div className="px-6 md:px-8 py-2.5 md:py-3 rounded-full bg-white/5 border border-white/10 text-[10px] md:text-sm font-bold hover:bg-gold/10 hover:border-gold/30 transition-all cursor-default uppercase md:normal-case">24/5 Live Support</div>
+                                <div className="px-6 md:px-8 py-2.5 md:py-3 rounded-full bg-white/5 border border-white/10 text-[10px] md:text-sm font-bold hover:bg-gold/10 hover:border-gold/30 transition-all cursor-default uppercase md:normal-case">Direct Analyst Access</div>
+                                <div className="px-6 md:px-8 py-2.5 md:py-3 rounded-full bg-white/5 border border-white/10 text-[10px] md:text-sm font-bold hover:bg-gold/10 hover:border-gold/30 transition-all cursor-default uppercase md:normal-case">Multilingual</div>
                             </div>
                         </div>
                     </div>

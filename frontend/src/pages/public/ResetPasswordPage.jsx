@@ -2,36 +2,44 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { HiOutlineMail, HiLockClosed, HiCheck, HiExclamationCircle, HiOutlineEye, HiOutlineEyeOff } from 'react-icons/hi';
+import { HiLockClosed, HiCheck, HiExclamationCircle, HiOutlineEye, HiOutlineEyeOff } from 'react-icons/hi';
 import Button from '../../components/ui/Button';
 import authBg from '../../assets/images/real_trading_bg.png';
 
-const ForgotPasswordPage = () => {
+const ResetPasswordPage = () => {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
-  const [email, setEmail] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const handleSubmit = (e) => {
     e.preventDefault();
     setErrorMsg("");
     setSuccessMsg("");
 
-    if (!email) {
-      setErrorMsg("Terminal ID is required.");
+    if (!newPassword || !confirmPassword) {
+      setErrorMsg("Both password fields are required.");
       return;
     }
+    if (newPassword !== confirmPassword) {
+      setErrorMsg("Passwords do not match.");
+      return;
+    }
+    
     setIsLoading(true);
-    // Simulate API delay for token dispatch
+    // Simulate final reset delay
     setTimeout(() => {
       setIsLoading(false);
-      setSuccessMsg("Recovery session established. Redirecting to reset protocol...");
-      // Redirect to reset password after a brief delay
+      setSuccessMsg("Credentials successfully updated. Terminal access restored.");
+      // Redirect to login after a brief delay
       setTimeout(() => {
-        navigate('/reset-password');
-      }, 1500);
-    }, 1500);
+        navigate('/login');
+      }, 2000);
+    }, 2000);
   };
 
   return (
@@ -102,7 +110,7 @@ const ForgotPasswordPage = () => {
             </Link>
           </div>
           <h1 className="text-3xl md:text-4xl font-display font-bold text-gold tracking-wide mb-2">
-            Access Recovery Protocol
+            Credential Reset Protocol
           </h1>
           <p className="text-white/60 text-sm md:text-base italic">
             Secure reinstatement of operator credentials.
@@ -112,10 +120,6 @@ const ForgotPasswordPage = () => {
             <div className="flex items-center space-x-2 text-green-400">
                <HiLockClosed className="w-4 h-4" />
                <span>Protected by 256-bit SSL Encryption</span>
-            </div>
-            <div className="flex items-center space-x-2">
-               <span className="w-1.5 h-1.5 rounded-full bg-white/50" />
-               <span>Multi-Factor Identity Verification</span>
             </div>
           </div>
         </motion.div>
@@ -129,7 +133,7 @@ const ForgotPasswordPage = () => {
           {/* Card Header */}
           <div className="py-5 border-b border-white/10 bg-white/5 text-center relative">
              <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-gold/50 to-transparent"></div>
-             <h2 className="text-xl font-display text-white tracking-widest">Initiate Recovery</h2>
+             <h2 className="text-xl font-display text-white tracking-widest">Set New Password</h2>
           </div>
 
           <div className="p-8">
@@ -159,19 +163,41 @@ const ForgotPasswordPage = () => {
                 )}
               </AnimatePresence>
               
-              <div>
-                <p className="text-xs text-white/50 tracking-wide leading-relaxed mb-6 text-center">
-                   Specify your registered Terminal ID. An encrypted token will be dispatched for verification.
+              <div className="space-y-4">
+                <p className="text-xs text-white/50 tracking-wide leading-relaxed mb-4 text-center text-green-400">
+                   Verification Successful. Establish new security phrase.
                 </p>
                 <div className="relative group">
-                  <HiOutlineMail className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40 group-focus-within:text-gold transition-colors w-5 h-5" />
+                  <HiLockClosed className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40 group-focus-within:text-gold transition-colors w-5 h-5" />
                   <input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="Terminal ID (Email)"
-                    className="w-full bg-navy/50 border border-white/20 rounded-lg py-4 pl-12 pr-4 text-white text-sm focus:outline-none focus:border-gold/60 focus:bg-navy/80 transition-all placeholder:text-white/30"
+                    type={showPassword ? "text" : "password"}
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    placeholder="New Security Phrase"
+                    className="w-full bg-navy/50 border border-white/20 rounded-lg py-4 pl-12 pr-12 text-white text-sm focus:outline-none focus:border-gold/60 focus:bg-navy/80 transition-all placeholder:text-white/30"
                   />
+                  <div 
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-white/50 hover:text-gold cursor-pointer transition-colors z-20"
+                    onClick={() => setShowPassword(!showPassword)}
+                  >
+                    {showPassword ? <HiOutlineEyeOff className="w-5 h-5" /> : <HiOutlineEye className="w-5 h-5" />}
+                  </div>
+                </div>
+                <div className="relative group">
+                  <HiLockClosed className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40 group-focus-within:text-gold transition-colors w-5 h-5" />
+                  <input
+                    type={showConfirmPassword ? "text" : "password"}
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    placeholder="Confirm Phrase"
+                    className="w-full bg-navy/50 border border-white/20 rounded-lg py-4 pl-12 pr-12 text-white text-sm focus:outline-none focus:border-gold/60 focus:bg-navy/80 transition-all placeholder:text-white/30"
+                  />
+                  <div 
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-white/50 hover:text-gold cursor-pointer transition-colors z-20"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  >
+                    {showConfirmPassword ? <HiOutlineEyeOff className="w-5 h-5" /> : <HiOutlineEye className="w-5 h-5" />}
+                  </div>
                 </div>
               </div>
 
@@ -187,10 +213,10 @@ const ForgotPasswordPage = () => {
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
-                    <span>Dispatching...</span>
+                    <span>Updating...</span>
                   </span>
                 ) : (
-                  <>Dispatch Token <span className="ml-2">→</span></>
+                  <>Verify & Reset <span className="ml-2">→</span></>
                 )}
               </Button>
             </form>
@@ -206,15 +232,15 @@ const ForgotPasswordPage = () => {
             </div>
           </div>
           
-           {/* Back to Login Link */}
           <div className="bg-navy-dark/60 py-4 px-6 border-t border-white/10 flex justify-center items-center text-[10px] uppercase font-bold tracking-widest">
              <Link to="/login" className="text-white/40 hover:text-gold transition-colors block text-center w-full">Cancel and return to Login</Link>
           </div>
         </motion.div>
-      </div>       {/* Footer Status Bar - Visible on mobile */}
+      </div>
+
+      {/* Footer Status Bar & Ticker */}
       <div className="fixed bottom-0 left-0 w-full border-t border-white/10 bg-navy-dark/90 backdrop-blur-md z-20">
          <div className="max-w-7xl mx-auto px-4 md:px-6 py-2 md:py-3 flex flex-col md:flex-row items-center justify-between text-[8px] md:text-[10px] tracking-widest uppercase text-white/40 space-y-2 md:space-y-0">
-            
             <div className="flex items-center space-x-4 md:space-x-6">
                 <span>Rizals Trade Ltd.</span>
                 <span className="w-px h-3 md:h-4 bg-white/20"></span>
@@ -225,7 +251,6 @@ const ForgotPasswordPage = () => {
                     <span className="text-green-500 font-bold">Online</span>
                 </span>
             </div>
-            
             <div className="flex items-center space-x-4 md:space-x-6">
                 <span className="flex items-center space-x-1.5 md:space-x-2">
                     <span className="hidden md:inline">Node:</span>
@@ -238,8 +263,6 @@ const ForgotPasswordPage = () => {
                 <span className="hidden md:inline">Protocol: <span className="text-white font-bold">L3-Max</span></span>
             </div>
          </div>
-         
-         {/* Risk Warning Disclaimer - Simplified for mobile */}
          <div className="max-w-7xl mx-auto px-4 md:px-6 pb-2 text-[7px] md:text-[9px] leading-tight text-white/30 text-center uppercase tracking-[0.05em] border-t border-white/5 pt-1.5 md:pt-2">
              Trading foreign exchange and CFDs on margin carries a high level of risk and may not be suitable for all investors. The high degree of leverage can work against you as well as for you.
          </div>
@@ -252,8 +275,6 @@ const ForgotPasswordPage = () => {
                   <span className="flex items-center space-x-2"><span>GBPUSD 1.2645</span><span className="text-red-500">▼</span></span>
                   <span className="flex items-center space-x-2"><span>USDJPY 150.32</span><span className="text-green-500">▲</span></span>
                   <span className="flex items-center space-x-2"><span>ETHUSD 3,450</span><span className="text-green-500">▲</span></span>
-                  
-                  {/* Duplicated for seamless loop */}
                   <span className="flex items-center space-x-2"><span>EURUSD 1.0834</span><span className="text-green-500">▲</span></span>
                   <span className="flex items-center space-x-2"><span>BTCUSD 63,200</span><span className="text-red-500">▼</span></span>
                   <span className="flex items-center space-x-2"><span>XAUUSD 2,148</span><span className="text-green-500">▲</span></span>
@@ -267,4 +288,5 @@ const ForgotPasswordPage = () => {
     </main>
   );
 };
-export default ForgotPasswordPage;
+
+export default ResetPasswordPage;

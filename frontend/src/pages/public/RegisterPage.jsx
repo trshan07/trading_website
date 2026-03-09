@@ -215,7 +215,7 @@ const RegisterPage = () => {
                             className="w-full bg-navy/50 border border-white/20 rounded-lg py-3 pl-12 pr-12 text-white text-sm focus:outline-none focus:border-gold/60 focus:bg-navy/80 transition-all placeholder:text-white/30"
                         />
                         <div 
-                          className="absolute right-4 top-1/2 -translate-y-1/2 text-white/30 hover:text-white cursor-pointer transition-colors"
+                          className="absolute right-4 top-1/2 -translate-y-1/2 text-white/50 hover:text-gold cursor-pointer transition-colors z-20"
                           onClick={() => setShowPassword(!showPassword)}
                         >
                           {showPassword ? <HiOutlineEyeOff className="w-5 h-5" /> : <HiOutlineEye className="w-5 h-5" />}
@@ -248,7 +248,7 @@ const RegisterPage = () => {
                             className="w-full bg-navy/50 border border-white/20 rounded-lg py-3 pl-12 pr-12 text-white text-sm focus:outline-none focus:border-gold/60 focus:bg-navy/80 transition-all placeholder:text-white/30"
                         />
                         <div 
-                          className="absolute right-4 top-1/2 -translate-y-1/2 text-white/30 hover:text-white cursor-pointer transition-colors"
+                          className="absolute right-4 top-1/2 -translate-y-1/2 text-white/50 hover:text-gold cursor-pointer transition-colors z-20"
                           onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                         >
                           {showConfirmPassword ? <HiOutlineEyeOff className="w-5 h-5" /> : <HiOutlineEye className="w-5 h-5" />}
@@ -294,35 +294,40 @@ const RegisterPage = () => {
         </motion.div>
       </div>
 
-       {/* Footer Status Bar (Fixed at bottom) */}
-      <div className="fixed bottom-0 left-0 w-full border-t border-white/10 bg-navy-dark/80 backdrop-blur-md z-20 hidden md:block">
-         <div className="max-w-7xl mx-auto px-6 py-3 flex flex-col md:flex-row items-center justify-between text-[10px] tracking-widest uppercase text-white/40 space-y-4 md:space-y-0">
+       {/* Footer Status Bar - Visible on mobile */}
+      <div className="fixed bottom-0 left-0 w-full border-t border-white/10 bg-navy-dark/90 backdrop-blur-md z-20">
+         <div className="max-w-7xl mx-auto px-4 md:px-6 py-2 md:py-3 flex flex-col md:flex-row items-center justify-between text-[8px] md:text-[10px] tracking-widest uppercase text-white/40 space-y-2 md:space-y-0">
             
-            <div className="flex items-center space-x-6">
+            <div className="flex items-center space-x-4 md:space-x-6">
                 <span>Rizals Trade Ltd.</span>
-                <span className="w-px h-4 bg-white/20 hidden md:block"></span>
-                <span className="hidden md:block">Secure Operator Network</span>
-                <span className="w-px h-4 bg-white/20 hidden md:block"></span>
-                <span className="flex items-center space-x-2">
-                    <span>System Status:</span>
+                <span className="w-px h-3 md:h-4 bg-white/20"></span>
+                <span>Secure Network</span>
+                <span className="w-px h-3 md:h-4 bg-white/20 hidden md:block"></span>
+                <span className="flex items-center space-x-2 hidden md:flex">
+                    <span>System:</span>
                     <span className="text-green-500 font-bold">Online</span>
                 </span>
             </div>
             
-            <div className="flex items-center space-x-6">
-                <span className="flex items-center space-x-2 hidden md:flex">
-                    <span>Server Status:</span>
-                    <span className="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.8)]"></span>
-                    <span className="text-white">Online</span>
+            <div className="flex items-center space-x-4 md:space-x-6">
+                <span className="flex items-center space-x-1.5 md:space-x-2">
+                    <span className="hidden md:inline">Node:</span>
+                    <span className="w-1.5 h-1.5 md:w-2 md:h-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.8)]"></span>
+                    <span className="text-white">Active</span>
                 </span>
-                <span className="w-px h-4 bg-white/20 hidden md:block"></span>
-                <span>Latency: <span className="text-white font-bold">18ms</span></span>
-                <span className="w-px h-4 bg-white/20"></span>
-                <span>Network: <span className="text-white">Global Grid</span></span>
+                <span className="w-px h-3 md:h-4 bg-white/20"></span>
+                <span>Latency: <span className="text-white font-bold">12ms</span></span>
+                <span className="w-px h-3 md:h-4 bg-white/20 hidden md:block"></span>
+                <span className="hidden md:inline">Protocol: <span className="text-white font-bold">L3-Max</span></span>
             </div>
          </div>
 
-         <div className="border-t border-white/5 py-2 w-full overflow-hidden">
+         {/* Risk Warning Disclaimer - Simplified for mobile */}
+         <div className="max-w-7xl mx-auto px-4 md:px-6 pb-2 text-[7px] md:text-[9px] leading-tight text-white/30 text-center uppercase tracking-[0.05em] border-t border-white/5 pt-1.5 md:pt-2">
+             Trading foreign exchange and CFDs on margin carries a high level of risk and may not be suitable for all investors. The high degree of leverage can work against you as well as for you.
+         </div>
+
+         <div className="border-t border-white/5 py-1.5 md:py-2 w-full overflow-hidden">
             <div className="max-w-7xl mx-auto px-6 whitespace-nowrap flex text-[10px] tracking-widest font-mono text-white/50">
                <div className="animate-ticker space-x-12 pr-12">
                   <span className="flex items-center space-x-2"><span>EURUSD 1.0834</span><span className="text-green-500">▲</span></span>
