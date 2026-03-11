@@ -16,6 +16,7 @@ import RegisterPage from '../pages/public/RegisterPage';
 import PrivacyPage from '../pages/public/PrivacyPage';
 import RiskDisclaimerPage from '../pages/public/RiskDisclaimerPage';
 import ForgotPasswordPage from '../pages/public/ForgotPasswordPage';
+import ResetPasswordPage from '../pages/public/ResetPasswordPage';
 import PromotionsPage from '../pages/public/PromotionsPage';
 
 // Admin Pages
@@ -49,6 +50,7 @@ const AppRoutes = () => {
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
             <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+            <Route path="/reset-password" element={<ResetPasswordPage />} />
             <Route path="*" element={<HomePage />} />
 
             {/* Admin Routes */}

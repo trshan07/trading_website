@@ -117,21 +117,21 @@ const ConditionsPage = () => {
                                 <span className="text-gold text-[10px] font-bold tracking-[0.2em] uppercase">Premium Environment</span>
                             </motion.div>
                             
-                            <motion.h1 variants={fadeInUp} className="text-5xl md:text-7xl font-display font-bold text-white mb-8 leading-tight">
+                            <motion.h1 variants={fadeInUp} className="text-4xl sm:text-5xl md:text-7xl font-display font-bold text-white mb-6 md:mb-8 leading-tight">
                                 Institutional <br />
                                 <span className="gradient-text italic">Trading Conditions</span>
                             </motion.h1>
                             
-                            <motion.p variants={fadeInUp} className="text-lg md:text-xl text-white/50 mb-12 max-w-2xl leading-relaxed font-medium">
+                            <motion.p variants={fadeInUp} className="text-base md:text-xl text-white/50 mb-10 md:mb-12 max-w-2xl leading-relaxed font-medium px-4">
                                 Engineered for speed, transparency, and top-tier safeguards. Your operations stay predictable and protected in live market conditions.
                             </motion.p>
 
-                            <motion.div variants={fadeInUp} className="grid grid-cols-1 sm:grid-cols-3 gap-6 w-full max-w-4xl">
+                            <motion.div variants={fadeInUp} className="grid grid-cols-1 sm:grid-cols-3 gap-4 md:gap-6 w-full max-w-4xl px-4 md:px-0">
                                 {trustStats.map((stat, idx) => (
-                                    <div key={stat.label} className="glass-card rounded-[2rem] p-8 border border-white/5 flex flex-col items-center text-center group hover:bg-white/[0.05] transition-all duration-500">
-                                        <div className="text-gold mb-4 opacity-70 group-hover:opacity-100 group-hover:scale-110 transition-all">{stat.icon}</div>
-                                        <h3 className="text-2xl font-display font-bold text-white mb-1">{stat.value}</h3>
-                                        <p className="text-[10px] text-white/30 uppercase tracking-[0.1em] font-black">{stat.label}</p>
+                                    <div key={stat.label} className="glass-card rounded-[1.5rem] md:rounded-[2rem] p-6 md:p-8 border border-white/5 flex flex-col items-center text-center group hover:bg-white/[0.05] transition-all duration-500">
+                                        <div className="text-gold mb-3 md:mb-4 opacity-70 group-hover:opacity-100 group-hover:scale-110 transition-all">{stat.icon}</div>
+                                        <h3 className="text-xl md:text-2xl font-display font-bold text-white mb-1">{stat.value}</h3>
+                                        <p className="text-[9px] md:text-[10px] text-white/30 uppercase tracking-[0.1em] font-black">{stat.label}</p>
                                     </div>
                                 ))}
                             </motion.div>
@@ -150,7 +150,7 @@ const ConditionsPage = () => {
                                     whileInView={{ opacity: 1, y: 0 }}
                                     viewport={{ once: true }}
                                     transition={{ delay: index * 0.1 }}
-                                    className="glass-card rounded-[2rem] p-8 md:p-9 border border-white/10 hover:border-gold/30 transition-all duration-500 relative group overflow-hidden flex flex-col h-full"
+                                    className="glass-card rounded-[1.5rem] md:rounded-[2rem] p-6 md:p-9 border border-white/10 hover:border-gold/30 transition-all duration-500 relative group overflow-hidden flex flex-col h-full"
                                 >
                                     {/* Hover Glow */}
                                     <div className="absolute top-0 right-0 p-32 bg-gold/5 blur-[80px] rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-1000 pointer-events-none" />
@@ -189,13 +189,13 @@ const ConditionsPage = () => {
                             initial={{ opacity: 0, y: 30 }}
                             whileInView={{ opacity: 1, y: 0 }}
                             viewport={{ once: true }}
-                            className="max-w-4xl mx-auto glass-card rounded-[2.5rem] p-10 md:p-14 border border-gold/20 flex flex-col md:flex-row items-center justify-between gap-10 relative overflow-hidden group shadow-gold-glow-sm"
+                            className="max-w-4xl mx-auto glass-card rounded-[1.5rem] md:rounded-[2.5rem] p-8 md:p-14 border border-gold/20 flex flex-col md:flex-row items-center justify-between gap-8 md:gap-10 relative overflow-hidden group shadow-gold-glow-sm"
                         >
                             <div className="absolute inset-0 bg-gradient-to-r from-gold/10 to-transparent opacity-0 group-hover:opacity-100 transition-duration-700 pointer-events-none" />
                             
                             <div className="text-center md:text-left z-10">
-                                <h2 className="text-3xl md:text-4xl font-display font-bold text-white mb-3">Trade with Professional Edge</h2>
-                                <p className="text-base text-white/40 font-medium">Experience the difference with an account built for high-performance trading.</p>
+                                <h2 className="text-2xl md:text-4xl font-display font-bold text-white mb-3 leading-tight">Trade with Professional Edge</h2>
+                                <p className="text-sm md:text-base text-white/40 font-medium max-w-md mx-auto md:mx-0">Experience the difference with an account built for high-performance trading.</p>
                             </div>
                             
                             <div className="shrink-0 z-10">

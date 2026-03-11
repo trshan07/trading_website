@@ -73,11 +73,11 @@ const ContactPage = () => {
                                         <span className="w-2 h-2 rounded-full bg-gold animate-pulse" />
                                         <span className="text-gold text-[10px] font-bold tracking-[0.2em] uppercase">Connect With Us</span>
                                     </motion.div>
-                                    <h1 className="text-5xl md:text-7xl font-display font-bold mb-8 leading-tight">
+                                    <h1 className="text-4xl sm:text-5xl md:text-7xl font-display font-bold mb-6 md:mb-8 leading-tight">
                                         Let's Start a <br />
                                         <span className="gradient-text italic">Conversation</span>
                                     </h1>
-                                    <p className="text-lg text-white/50 leading-relaxed font-medium max-w-md">
+                                    <p className="text-base md:text-lg text-white/50 leading-relaxed font-medium max-w-md">
                                         Have questions about our institutional infrastructure or trading conditions? Our experts are here to help you navigate the markets.
                                     </p>
                                 </div>
@@ -108,8 +108,8 @@ const ContactPage = () => {
                                 transition={{ duration: 0.8, delay: 0.2 }}
                                 className="relative lg:mt-10"
                             >
-                                <div className="absolute -inset-4 bg-gold/5 blur-2xl rounded-[3rem] -z-10" />
-                                <div className="glass-card p-10 md:p-14 rounded-[3rem] border-white/10 relative overflow-hidden">
+                                <div className="absolute -inset-4 bg-gold/5 blur-2xl rounded-[2rem] md:rounded-[3rem] -z-10" />
+                                <div className="glass-card p-8 md:p-14 rounded-[2rem] md:rounded-[3rem] border-white/10 relative overflow-hidden">
                                     <div className="absolute top-0 right-0 p-10 opacity-5">
                                         <HiOutlineMail className="w-32 h-32" />
                                     </div>

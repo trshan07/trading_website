@@ -42,13 +42,13 @@ const MarketsPage = () => {
                         title="Institutional Markets"
                     />
 
-                    <div className="flex flex-wrap justify-center gap-4 mb-16">
+                    <div className="flex flex-wrap justify-center gap-3 md:gap-4 mb-10 md:mb-16">
                         {Object.keys(marketData).map((tab) => (
                             <button
                                 key={tab}
                                 onClick={() => setActiveTab(tab)}
-                                className={`px-10 py-4 rounded-full font-display font-bold transition-all duration-300 ${activeTab === tab
-                                    ? 'bg-gold text-navy shadow-[0_0_30px_rgba(212,175,55,0.4)]'
+                                className={`px-6 md:px-10 py-3 md:py-4 rounded-full text-xs md:text-sm font-display font-bold transition-all duration-300 ${activeTab === tab
+                                    ? 'bg-gold text-navy shadow-[0_0_20px_rgba(212,175,55,0.3)] md:shadow-[0_0_30px_rgba(212,175,55,0.4)]'
                                     : 'bg-navy-light/50 text-white/50 hover:text-white border border-white/10'
                                     }`}
                             >
@@ -67,9 +67,9 @@ const MarketsPage = () => {
                             className="grid grid-cols-1 lg:grid-cols-3 gap-12"
                         >
                             <div className="lg:col-span-1">
-                                <div className="sticky top-32">
-                                    <h3 className="text-4xl font-display font-bold mb-6 gradient-text">{activeTab}</h3>
-                                    <p className="text-white/60 text-lg leading-relaxed mb-8">
+                                <div className="lg:sticky lg:top-32 text-center lg:text-left mb-8 lg:mb-0">
+                                    <h3 className="text-3xl md:text-4xl font-display font-bold mb-4 md:mb-6 gradient-text">{activeTab}</h3>
+                                    <p className="text-white/60 text-base md:text-lg leading-relaxed mb-6 md:mb-8 max-w-md mx-auto lg:mx-0">
                                         {marketData[activeTab].description}
                                     </p>
                                 </div>

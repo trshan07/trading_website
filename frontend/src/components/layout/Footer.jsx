@@ -5,18 +5,18 @@ import { FaFacebook, FaTwitter, FaLinkedin, FaYoutube } from 'react-icons/fa';
 
 const Footer = () => {
     return (
-        <footer className="relative z-10 bg-[#000F29]/80 backdrop-blur-lg pt-24 pb-12 border-t border-white/10 shadow-[0_-10px_40px_rgba(0,0,0,0.5)]">
+        <footer className="relative z-10 bg-[#000F29]/80 backdrop-blur-lg pt-16 md:pt-24 pb-8 md:pb-12 border-t border-white/10 shadow-[0_-10px_40px_rgba(0,0,0,0.5)]">
             <Container>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-16">
-                    {/* Brand */}
-                    <div className="lg:col-span-1">
-                        <Link to="/" className="text-2xl font-bold font-display gradient-text italic mb-6 block">
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-10 md:gap-12 mb-12 md:mb-16">
+                    {/* Brand - Full width on mobile */}
+                    <div className="col-span-2 lg:col-span-1 text-center lg:text-left mb-4 md:mb-0">
+                        <Link to="/" className="text-2xl font-bold font-display gradient-text italic mb-4 md:mb-6 block">
                             RIZALS TRADE
                         </Link>
-                        <p className="text-white/50 text-sm leading-relaxed mb-6">
+                        <p className="text-white/50 text-sm leading-relaxed mb-6 max-w-sm mx-auto lg:mx-0">
                             Empowering traders globally with institutional-grade technology, deep liquidity, and a commitment to transparency.
                         </p>
-                        <div className="flex space-x-4">
+                        <div className="flex justify-center md:justify-start space-x-4">
                             <a href="#" className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-white/50 hover:bg-gold hover:text-navy transition-all">
                                 <FaFacebook />
                             </a>
@@ -66,12 +66,12 @@ const Footer = () => {
                 </div>
 
                 {/* Risk Disclaimer */}
-                <div className="border-t border-white/5 pt-10 text-white/30 text-xs leading-relaxed space-y-4">
-                    <p>
+                <div className="border-t border-white/5 pt-10 text-[10px] md:text-xs leading-relaxed space-y-4 text-center">
+                    <p className="max-w-3xl mx-auto">
                         <span className="text-white/60 font-bold uppercase block mb-2">Risk Warning:</span>
                         Trading foreign exchange and CFDs on margin carries a high level of risk and may not be suitable for all investors. The high degree of leverage can work against you as well as for you. Before deciding to trade, you should carefully consider your investment objectives, level of experience, and risk appetite.
                     </p>
-                    <p className="pt-4 border-t border-white/5 text-center">
+                    <p className="pt-4 border-t border-white/5">
                         &copy; {new Date().getFullYear()} Rizals Trade. All rights reserved.
                     </p>
                 </div>

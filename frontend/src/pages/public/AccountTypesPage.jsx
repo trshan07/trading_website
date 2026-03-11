@@ -60,11 +60,11 @@ const AccountTypesPage = () => {
                         className="max-w-4xl mx-auto text-center mb-20"
                     >
                         <span className="text-gold text-xs font-bold tracking-[0.4em] uppercase mb-6 block">Trading Architecture</span>
-                        <h1 className="text-5xl md:text-7xl font-display font-bold mb-8 leading-[1.1]">
+                        <h1 className="text-4xl sm:text-5xl md:text-7xl font-display font-bold mb-6 md:mb-8 leading-[1.1]">
                             Institutional <br />
                             <span className="gradient-text italic">Account Tiering</span>
                         </h1>
-                        <p className="text-white/40 text-lg md:text-xl max-w-2xl mx-auto leading-relaxed">
+                        <p className="text-white/40 text-base md:text-xl max-w-2xl mx-auto leading-relaxed px-4">
                             Precision-engineered account types designed to match every trading style, from active scalpers to long-term institutional investors.
                         </p>
                     </motion.div>
@@ -77,7 +77,7 @@ const AccountTypesPage = () => {
                                 whileInView={{ opacity: 1, y: 0 }}
                                 viewport={{ once: true }}
                                 transition={{ delay: index * 0.2 }}
-                                className={`group relative p-8 md:p-10 rounded-[2.5rem] glass-card border-white/5 transition-all duration-500 hover:shadow-gold-glow-sm flex flex-col ${
+                                className={`group relative p-6 sm:p-8 md:p-10 rounded-[2rem] md:rounded-[2.5rem] glass-card border-white/5 transition-all duration-500 hover:shadow-gold-glow-sm flex flex-col ${
                                     acc.highlight ? 'border-gold/30 bg-white/[0.03]' : ''
                                 }`}
                             >
