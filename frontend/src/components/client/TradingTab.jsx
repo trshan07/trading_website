@@ -1,10 +1,6 @@
 // frontend/src/components/dashboard/TradingTab.jsx
-import React, { useState } from 'react';
-import { MdCandlestickChart } from 'react-icons/md';
-import { BsFillBarChartFill } from 'react-icons/bs';
-import { FaChartLine } from 'react-icons/fa';
+import React, { useState, useEffect } from 'react';
 import TradingViewWidget from '../trading/TradingViewWidget';
-import TradingChart from '../trading/TradingChart';
 import OrderBook from '../trading/OrderBook';
 import OrderForm from '../trading/OrderForm';
 import PositionsTable from '../trading/PositionsTable';
@@ -13,24 +9,47 @@ import AccountSummary from '../trading/AccountSummary';
 import AreaChart from '../ui/charts/AreaChart';
 
 const TradingTab = ({ 
-  portfolio, 
-  showBalance, 
-  onToggleBalance,
-  positions,
-  orders,
-  marketData,
-  portfolioHistory,
-  onPlaceOrder,
-  onClosePosition,
-  onCancelOrder
+  portfolio = {
+    totalBalance: 0,
+    availableBalance: 0,
+    equity: 0,
+    margin: 0,
+    marginLevel: 0,
+    dailyPnL: 0,
+    dailyPnLPercent: 0,
+    weeklyPnL: 0,
+    monthlyPnL: 0,
+    yearlyPnL: 0,
+    positionsCount: 0
+  }, 
+  showBalance = true, 
+  onToggleBalance = () => {},
+  positions = [],
+  orders = [],
+  marketData = {},
+  portfolioHistory = [],
+  onPlaceOrder = () => {},
+  onClosePosition = () => {},
+  onCancelOrder = () => {}
 }) => {
-  const [selectedSymbol, setSelectedSymbol] = useState('BTCUSD');
-  const [chartType, setChartType] = useState('line');
-  const [timeframe, setTimeframe] = useState('1H');
   const [activeSubTab, setActiveSubTab] = useState('positions');
+  const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1200);
+
+  // Handle window resize
+  useEffect(() => {
+    const handleResize = () => {
+      setWindowWidth(window.innerWidth);
+    };
+    
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  const isMobile = windowWidth < 768;
+  const isTablet = windowWidth >= 768 && windowWidth < 1024;
 
   return (
-    <>
+    <div className="space-y-4 sm:space-y-6">
       <AccountSummary 
         portfolio={portfolio}
         showBalance={showBalance}
@@ -38,115 +57,53 @@ const TradingTab = ({
       />
 
       {/* Main Trading Area */}
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 mt-6 mb-6">
-        {/* Chart Area - 3 columns */}
-        <div className="lg:col-span-3 space-y-4">
-          {/* Chart Controls */}
-          <div className="bg-navy-800/50 rounded-xl p-4 border border-gold-500/20">
-            <div className="flex flex-wrap items-center justify-between gap-4">
-              <div className="flex items-center space-x-4">
-                {/* Symbol Selector */}
-                <select
-                  value={selectedSymbol}
-                  onChange={(e) => setSelectedSymbol(e.target.value)}
-                  className="px-3 py-2 bg-navy-700 border border-gold-500/30 rounded-lg text-gold-500 focus:outline-none focus:border-gold-500"
-                >
-                  <option value="BTCUSD">BTC/USD</option>
-                  <option value="ETHUSD">ETH/USD</option>
-                  <option value="EURUSD">EUR/USD</option>
-                  <option value="GBPUSD">GBP/USD</option>
-                  <option value="GOLD">GOLD</option>
-                </select>
-
-                {/* Chart Type Selector */}
-                <div className="flex items-center space-x-1 bg-navy-700 rounded-lg p-1">
-                  <button
-                    onClick={() => setChartType('candlestick')}
-                    className={`p-2 rounded ${chartType === 'candlestick' ? 'bg-gold-500 text-navy-950' : 'text-gold-500/70 hover:text-gold-500'}`}
-                    title="Candlestick"
-                  >
-                    <MdCandlestickChart size={18} />
-                  </button>
-                  <button
-                    onClick={() => setChartType('line')}
-                    className={`p-2 rounded ${chartType === 'line' ? 'bg-gold-500 text-navy-950' : 'text-gold-500/70 hover:text-gold-500'}`}
-                    title="Line"
-                  >
-                    <FaChartLine size={16} />
-                  </button>
-                  <button
-                    onClick={() => setChartType('area')}
-                    className={`p-2 rounded ${chartType === 'area' ? 'bg-gold-500 text-navy-950' : 'text-gold-500/70 hover:text-gold-500'}`}
-                    title="Area"
-                  >
-                    <BsFillBarChartFill size={16} />
-                  </button>
-                </div>
-
-                {/* Timeframe Selector */}
-                <div className="flex items-center space-x-1 bg-navy-700 rounded-lg p-1">
-                  {['1m', '5m', '15m', '1H', '4H', '1D'].map((tf) => (
-                    <button
-                      key={tf}
-                      onClick={() => setTimeframe(tf)}
-                      className={`px-2 py-1 text-xs font-medium rounded ${
-                        timeframe === tf
-                          ? 'bg-gold-500 text-navy-950'
-                          : 'text-gold-500/70 hover:text-gold-500'
-                      }`}
-                    >
-                      {tf}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Market Stats */}
-              <div className="flex items-center space-x-4 text-sm">
-                <div>
-                  <span className="text-gold-500/70 mr-2">Bid:</span>
-                  <span className="text-white">${marketData['BTC/USD']?.price || 43250}</span>
-                </div>
-                <div>
-                  <span className="text-gold-500/70 mr-2">24h Change:</span>
-                  <span className={marketData['BTC/USD']?.change >= 0 ? 'text-green-400' : 'text-red-400'}>
-                    {marketData['BTC/USD']?.change >= 0 ? '+' : ''}{marketData['BTC/USD']?.change || 0}%
-                  </span>
-                </div>
-                <div>
-                  <span className="text-gold-500/70 mr-2">Volume:</span>
-                  <span className="text-white">${(marketData['BTC/USD']?.volume / 1000000).toFixed(1)}M</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Chart Container */}
-          <div className="bg-navy-800/50 rounded-xl border border-gold-500/20 overflow-hidden" style={{ height: '500px' }}>
-            {selectedSymbol === 'BTCUSD' ? (
-              <TradingViewWidget symbol="BTCUSD" />
-            ) : (
-              <TradingChart type={chartType} />
-            )}
+      <div className={`grid ${isMobile ? 'grid-cols-1' : 'lg:grid-cols-4'} gap-4 sm:gap-6`}>
+        {/* Chart Area - Responsive columns */}
+        <div className={isMobile ? 'col-span-1' : 'lg:col-span-3 space-y-4'}>
+          {/* Real Chart - No selector, just the chart */}
+          <div 
+            className="bg-navy-800/50 rounded-xl border border-gold-500/20 overflow-hidden" 
+            style={{ height: isMobile ? '350px' : isTablet ? '400px' : '500px' }}
+          >
+            <TradingViewWidget symbol="BTCUSD" />
           </div>
 
           {/* Order Book */}
-          <OrderBook />
+          {!isMobile && <OrderBook symbol="BTCUSD" />}
+          
+          {/* Mobile Order Book Toggle */}
+          {isMobile && (
+            <div className="bg-navy-800/50 rounded-xl border border-gold-500/20 p-3">
+              <details className="group">
+                <summary className="flex items-center justify-between cursor-pointer text-gold-500 font-medium">
+                  <span>Order Book</span>
+                  <span className="transform group-open:rotate-180 transition-transform">▼</span>
+                </summary>
+                <div className="mt-3">
+                  <OrderBook symbol="BTCUSD" compact={true} />
+                </div>
+              </details>
+            </div>
+          )}
         </div>
 
-        {/* Order Form - 1 column */}
-        <div className="lg:col-span-1">
-          <OrderForm onSubmit={onPlaceOrder} />
+        {/* Order Form - Responsive column */}
+        <div className={isMobile ? 'col-span-1' : 'lg:col-span-1'}>
+          <OrderForm 
+            onSubmit={onPlaceOrder} 
+            symbol="BTCUSD"
+            compact={isMobile}
+          />
         </div>
       </div>
 
       {/* Positions and Orders Tabs */}
-      <div className="bg-navy-800/50 rounded-xl border border-gold-500/20 overflow-hidden mb-6">
+      <div className="bg-navy-800/50 rounded-xl border border-gold-500/20 overflow-hidden">
         <div className="border-b border-gold-500/20">
-          <div className="flex space-x-1 p-1">
+          <div className="flex space-x-1 p-1 overflow-x-auto">
             <button
               onClick={() => setActiveSubTab('positions')}
-              className={`px-4 py-2 text-sm font-medium rounded-lg transition-all ${
+              className={`px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium rounded-lg transition-all whitespace-nowrap ${
                 activeSubTab === 'positions'
                   ? 'bg-gold-500 text-navy-950'
                   : 'text-gold-500/70 hover:text-gold-500 hover:bg-navy-700'
@@ -156,7 +113,7 @@ const TradingTab = ({
             </button>
             <button
               onClick={() => setActiveSubTab('orders')}
-              className={`px-4 py-2 text-sm font-medium rounded-lg transition-all ${
+              className={`px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium rounded-lg transition-all whitespace-nowrap ${
                 activeSubTab === 'orders'
                   ? 'bg-gold-500 text-navy-950'
                   : 'text-gold-500/70 hover:text-gold-500 hover:bg-navy-700'
@@ -164,27 +121,56 @@ const TradingTab = ({
             >
               Open Orders ({orders.length})
             </button>
+            <button
+              onClick={() => setActiveSubTab('history')}
+              className={`px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium rounded-lg transition-all whitespace-nowrap ${
+                activeSubTab === 'history'
+                  ? 'bg-gold-500 text-navy-950'
+                  : 'text-gold-500/70 hover:text-gold-500 hover:bg-navy-700'
+              }`}
+            >
+              Order History
+            </button>
           </div>
         </div>
 
-        <div className="p-4">
+        <div className="p-3 sm:p-4">
           {activeSubTab === 'positions' && (
-            <PositionsTable 
-              positions={positions}
-              onClose={onClosePosition}
-            />
+            positions.length > 0 ? (
+              <PositionsTable 
+                positions={positions}
+                onClose={onClosePosition}
+                compact={isMobile}
+              />
+            ) : (
+              <div className="text-center py-8">
+                <p className="text-gold-500/50">No open positions</p>
+              </div>
+            )
           )}
           {activeSubTab === 'orders' && (
-            <OpenOrders 
-              orders={orders}
-              onCancel={onCancelOrder}
-            />
+            orders.length > 0 ? (
+              <OpenOrders 
+                orders={orders}
+                onCancel={onCancelOrder}
+                compact={isMobile}
+              />
+            ) : (
+              <div className="text-center py-8">
+                <p className="text-gold-500/50">No open orders</p>
+              </div>
+            )
+          )}
+          {activeSubTab === 'history' && (
+            <div className="text-center py-8">
+              <p className="text-gold-500/50">Order history coming soon</p>
+            </div>
           )}
         </div>
       </div>
 
       {/* Portfolio Performance Chart */}
-      <div className="bg-navy-800/50 rounded-xl p-4 border border-gold-500/20">
+      <div className="bg-navy-800/50 rounded-xl p-3 sm:p-4 border border-gold-500/20">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-sm font-semibold text-gold-500">Portfolio Performance</h3>
           <div className="flex items-center space-x-2">
@@ -192,15 +178,21 @@ const TradingTab = ({
             <span className="text-sm font-medium text-green-400">+6.5%</span>
           </div>
         </div>
-        <div style={{ height: '200px' }}>
-          <AreaChart 
-            data={portfolioHistory}
-            xKey="date"
-            yKey="value"
-          />
+        <div style={{ height: isMobile ? '150px' : '200px' }}>
+          {portfolioHistory && portfolioHistory.length > 0 ? (
+            <AreaChart 
+              data={portfolioHistory}
+              xKey="date"
+              yKey="value"
+            />
+          ) : (
+            <div className="h-full flex items-center justify-center">
+              <p className="text-gold-500/50 text-sm">No portfolio data available</p>
+            </div>
+          )}
         </div>
       </div>
-    </>
+    </div>
   );
 };
 

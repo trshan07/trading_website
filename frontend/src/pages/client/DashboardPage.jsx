@@ -1,6 +1,13 @@
 // frontend/src/pages/client/DashboardPage.jsx
 import React, { useState, useEffect } from 'react';
-import { FaBolt, FaChartLine, FaTimes } from 'react-icons/fa';
+import { 
+  FaBolt, FaChartLine, FaTimes, FaBars, FaBell, 
+  FaUser, FaSignOutAlt, FaCog, FaSearch, FaFilter,
+  FaArrowUp, FaArrowDown, FaWallet, FaExchangeAlt,
+  FaFileAlt, FaLandmark, FaCreditCard, FaHistory,
+  FaHome, FaChartBar, FaDatabase, FaDownload,
+  FaMoon, FaSun
+} from 'react-icons/fa';
 
 // Import dashboard components
 import Header from '../../components/client/Header';
@@ -18,6 +25,10 @@ const DashboardPage = () => {
   const [showOrderForm, setShowOrderForm] = useState(false);
   const [showTransferModal, setShowTransferModal] = useState(false);
   const [showUploadModal, setShowUploadModal] = useState(false);
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
+  const [showMobileFilters, setShowMobileFilters] = useState(false);
+  const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1200);
+  const [darkMode, setDarkMode] = useState(true);
 
   // Portfolio Data
   const [portfolio, setPortfolio] = useState({
@@ -290,9 +301,33 @@ const DashboardPage = () => {
     { id: 3, message: 'Deposit confirmed: $5,000', type: 'success', read: true }
   ]);
 
+  // Mobile Navigation Items with darker styling
+  const mobileNavItems = [
+    { id: 'trading', label: 'Trading', icon: FaChartLine, color: 'text-blue-400' },
+    { id: 'banking', label: 'Banking', icon: FaWallet, color: 'text-green-400' },
+    { id: 'documents', label: 'Documents', icon: FaFileAlt, color: 'text-yellow-400' },
+    { id: 'markets', label: 'Markets', icon: FaChartBar, color: 'text-purple-400' },
+    { id: 'portfolio', label: 'Portfolio', icon: FaDatabase, color: 'text-orange-400' },
+    { id: 'history', label: 'History', icon: FaHistory, color: 'text-pink-400' }
+  ];
+
   useEffect(() => {
     const timer = setTimeout(() => setLoading(false), 1000);
-    return () => clearTimeout(timer);
+    
+    // Handle window resize
+    const handleResize = () => {
+      setWindowWidth(window.innerWidth);
+      if (window.innerWidth >= 768) {
+        setShowMobileMenu(false);
+      }
+    };
+    
+    window.addEventListener('resize', handleResize);
+    
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener('resize', handleResize);
+    };
   }, []);
 
   // Real-time price simulation
@@ -338,6 +373,7 @@ const DashboardPage = () => {
         tradingWallet: prev.tradingWallet + amount
       }));
     }
+    setShowTransferModal(false);
   };
 
   const handleFileUpload = (file) => {
@@ -354,20 +390,51 @@ const DashboardPage = () => {
     setDocuments([...documents, newDoc]);
   };
 
+  const handleAddBankAccount = (newAccount) => {
+    setBankAccounts([...bankAccounts, newAccount]);
+  };
+
+  const handleAddCreditCard = (newCard) => {
+    setCreditCards([...creditCards, newCard]);
+  };
+
+  const handleDeleteBankAccount = (id) => {
+    setBankAccounts(prev => prev.filter(acc => acc.id !== id));
+  };
+
+  const handleDeleteCreditCard = (id) => {
+    setCreditCards(prev => prev.filter(card => card.id !== id));
+  };
+
+  const handleSetDefaultBankAccount = (id) => {
+    setBankAccounts(prev => prev.map(acc => ({
+      ...acc,
+      isDefault: acc.id === id
+    })));
+  };
+
+  const handleSetDefaultCreditCard = (id) => {
+    setCreditCards(prev => prev.map(card => ({
+      ...card,
+      isDefault: card.id === id
+    })));
+  };
+
   const unreadNotifications = notifications.filter(n => !n.read).length;
+  const isMobile = windowWidth < 768;
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-navy-950 flex items-center justify-center">
+      <div className="min-h-screen bg-navy-950 flex items-center justify-center p-4">
         <div className="text-center">
           <div className="relative">
-            <div className="w-24 h-24 border-4 border-gold-500 border-t-transparent rounded-full animate-spin mx-auto mb-6"></div>
+            <div className="w-16 sm:w-24 h-16 sm:h-24 border-4 border-gold-500 border-t-transparent rounded-full animate-spin mx-auto mb-4 sm:mb-6"></div>
             <div className="absolute inset-0 flex items-center justify-center">
-              <FaChartLine className="text-gold-500 text-3xl animate-pulse" />
+              <FaChartLine className="text-gold-500 text-xl sm:text-3xl animate-pulse" />
             </div>
           </div>
-          <p className="text-gold-400 text-lg font-medium">Loading your dashboard...</p>
-          <p className="text-gold-500/50 text-sm mt-2">Real-time data connecting</p>
+          <p className="text-gold-400 text-base sm:text-lg font-medium">Loading your dashboard...</p>
+          <p className="text-gold-500/50 text-xs sm:text-sm mt-2">Real-time data connecting</p>
         </div>
       </div>
     );
@@ -377,7 +444,10 @@ const DashboardPage = () => {
     <div className="min-h-screen bg-navy-950">
       <Header 
         activeTab={activeMainTab}
-        onTabChange={setActiveMainTab}
+        onTabChange={(tab) => {
+          setActiveMainTab(tab);
+          setShowMobileMenu(false);
+        }}
         portfolio={portfolio}
         showBalance={showBalance}
         onToggleBalance={() => setShowBalance(!showBalance)}
@@ -387,7 +457,166 @@ const DashboardPage = () => {
       
       <PriceTicker data={marketData} />
 
-      <main className="px-4 sm:px-6 py-6 max-w-7xl mx-auto">
+      {/* Mobile Navigation Bar - Darker for better visibility */}
+      {isMobile && (
+        <div className="sticky top-0 z-40 bg-navy-900/98 backdrop-blur-sm border-b border-gold-500/30 shadow-lg">
+          <div className="flex items-center justify-between px-4 py-3">
+            <button
+              onClick={() => setShowMobileMenu(true)}
+              className="p-2 bg-navy-800 rounded-lg text-gold-400 hover:text-gold-300 border border-gold-500/20"
+            >
+              <FaBars size={20} />
+            </button>
+            <div className="flex items-center space-x-3">
+              <button
+                onClick={() => setShowMobileFilters(!showMobileFilters)}
+                className="p-2 bg-navy-800 rounded-lg text-gold-400 hover:text-gold-300 border border-gold-500/20"
+              >
+                <FaFilter size={18} />
+              </button>
+              <button className="p-2 bg-navy-800 rounded-lg text-gold-400 hover:text-gold-300 border border-gold-500/20 relative">
+                <FaBell size={18} />
+                {unreadNotifications > 0 && (
+                  <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center border-2 border-navy-900">
+                    {unreadNotifications}
+                  </span>
+                )}
+              </button>
+            </div>
+          </div>
+
+          {/* Mobile Filters - Darker background */}
+          {showMobileFilters && (
+            <div className="px-4 py-3 bg-navy-900 border-t border-gold-500/30">
+              <div className="relative">
+                <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gold-500/70" />
+                <input
+                  type="text"
+                  placeholder="Search markets..."
+                  className="w-full pl-10 pr-4 py-3 bg-navy-800 border border-gold-500/40 rounded-lg text-white text-sm focus:outline-none focus:border-gold-500 placeholder-gold-500/50"
+                />
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Mobile Side Menu - Darker and more visible */}
+      {showMobileMenu && (
+        <div className="fixed inset-0 z-50 flex">
+          {/* Overlay - Darker */}
+          <div 
+            className="absolute inset-0 bg-black/90 backdrop-blur-md"
+            onClick={() => setShowMobileMenu(false)}
+          ></div>
+          
+          {/* Menu Panel - Darker with better contrast */}
+          <div className="absolute left-0 top-0 bottom-0 w-72 bg-navy-950 border-r border-gold-500/40 shadow-2xl flex flex-col">
+            <div className="flex items-center justify-between p-5 border-b border-gold-500/40 bg-navy-900">
+              <h2 className="text-xl font-bold text-gold-400">Navigation</h2>
+              <button
+                onClick={() => setShowMobileMenu(false)}
+                className="p-2 bg-navy-800 rounded-lg text-gold-400 hover:text-gold-300 border border-gold-500/30"
+              >
+                <FaTimes size={18} />
+              </button>
+            </div>
+            
+            <div className="flex-1 overflow-y-auto p-4 bg-navy-950">
+              <div className="space-y-2">
+                {mobileNavItems.map((item) => (
+                  <button
+                    key={item.id}
+                    onClick={() => {
+                      setActiveMainTab(item.id);
+                      setShowMobileMenu(false);
+                    }}
+                    className={`w-full px-4 py-4 rounded-xl text-left flex items-center space-x-3 transition-all ${
+                      activeMainTab === item.id
+                        ? 'bg-gold-500 text-navy-950 shadow-lg shadow-gold-500/20'
+                        : 'bg-navy-800 hover:bg-navy-700 text-gold-300 border border-gold-500/30'
+                    }`}
+                  >
+                    <item.icon size={20} className={activeMainTab === item.id ? 'text-navy-950' : item.color} />
+                    <span className={`font-medium ${activeMainTab === item.id ? 'text-navy-950' : 'text-white'}`}>
+                      {item.label}
+                    </span>
+                    {activeMainTab === item.id && (
+                      <span className="ml-auto text-xs bg-navy-950/20 text-navy-950 px-2 py-1 rounded">
+                        Active
+                      </span>
+                    )}
+                  </button>
+                ))}
+              </div>
+              
+              <div className="mt-8 pt-6 border-t border-gold-500/40">
+                <div className="space-y-2">
+                  <button className="w-full px-4 py-3 bg-navy-800 hover:bg-navy-700 rounded-xl text-left flex items-center space-x-3 border border-gold-500/30">
+                    <FaUser className="text-blue-400" size={18} />
+                    <span className="text-white font-medium">Profile</span>
+                  </button>
+                  <button className="w-full px-4 py-3 bg-navy-800 hover:bg-navy-700 rounded-xl text-left flex items-center space-x-3 border border-gold-500/30">
+                    <FaCog className="text-purple-400" size={18} />
+                    <span className="text-white font-medium">Settings</span>
+                  </button>
+                  <button className="w-full px-4 py-3 bg-navy-800 hover:bg-navy-700 rounded-xl text-left flex items-center space-x-3 border border-gold-500/30">
+                    <FaMoon className="text-yellow-400" size={18} />
+                    <span className="text-white font-medium">Dark Mode</span>
+                  </button>
+                  <button className="w-full px-4 py-3 bg-red-900/30 hover:bg-red-900/50 rounded-xl text-left flex items-center space-x-3 border border-red-500/30">
+                    <FaSignOutAlt className="text-red-400" size={18} />
+                    <span className="text-red-400 font-medium">Logout</span>
+                  </button>
+                </div>
+              </div>
+              
+              {/* User Info - Darker */}
+              <div className="mt-6 p-4 bg-navy-800 rounded-xl border border-gold-500/40">
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 rounded-full bg-gold-500/20 flex items-center justify-center border-2 border-gold-500/50">
+                    <FaUser className="text-gold-400" />
+                  </div>
+                  <div>
+                    <p className="text-white font-medium">John Smith</p>
+                    <p className="text-xs text-gold-400/70">Premium Member</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <main className="px-3 sm:px-4 md:px-6 py-4 sm:py-6 max-w-7xl mx-auto">
+        {/* Quick Stats for Mobile - Darker cards */}
+        {isMobile && (
+          <div className="grid grid-cols-2 gap-3 mb-4">
+            <div className="bg-navy-800 rounded-lg p-4 border border-gold-500/40 shadow-lg">
+              <p className="text-xs text-gold-400 mb-1">Total Balance</p>
+              <p className="text-xl font-bold text-white">
+                ${showBalance ? portfolio.totalBalance.toLocaleString() : '••••••'}
+              </p>
+            </div>
+            <div className="bg-navy-800 rounded-lg p-4 border border-gold-500/40 shadow-lg">
+              <p className="text-xs text-gold-400 mb-1">Today's P&L</p>
+              <div className="flex items-center">
+                {portfolio.dailyPnL > 0 ? (
+                  <FaArrowUp className="text-green-400 mr-1" size={14} />
+                ) : (
+                  <FaArrowDown className="text-red-400 mr-1" size={14} />
+                )}
+                <p className={`text-xl font-bold ${
+                  portfolio.dailyPnL > 0 ? 'text-green-400' : 'text-red-400'
+                }`}>
+                  ${showBalance ? Math.abs(portfolio.dailyPnL).toLocaleString() : '••••••'}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Tab Content */}
         {activeMainTab === 'trading' && (
           <TradingTab 
             portfolio={portfolio}
@@ -412,6 +641,12 @@ const DashboardPage = () => {
             transactions={transactions}
             onTransfer={handleTransfer}
             onShowTransferModal={() => setShowTransferModal(true)}
+            onAddBankAccount={handleAddBankAccount}
+            onAddCreditCard={handleAddCreditCard}
+            onDeleteBankAccount={handleDeleteBankAccount}
+            onDeleteCreditCard={handleDeleteCreditCard}
+            onSetDefaultBankAccount={handleSetDefaultBankAccount}
+            onSetDefaultCreditCard={handleSetDefaultCreditCard}
           />
         )}
 
@@ -423,16 +658,174 @@ const DashboardPage = () => {
         )}
 
         {activeMainTab === 'markets' && (
-          <div className="bg-navy-800/50 rounded-xl p-8 text-center border border-gold-500/20">
-            <h2 className="text-2xl font-bold text-gold-500 mb-4">Markets Overview</h2>
-            <p className="text-gold-500/70">Market analysis and data coming soon...</p>
+          <div className="space-y-4">
+            <div className="bg-navy-800/80 rounded-xl p-4 sm:p-6 border border-gold-500/30 shadow-xl">
+              <h2 className="text-lg sm:text-xl font-bold text-gold-400 mb-4">Markets Overview</h2>
+              
+              {/* Mobile-friendly market grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+                {Object.entries(marketData).map(([symbol, data]) => (
+                  <div key={symbol} className="bg-navy-700/80 rounded-lg p-4 border border-gold-500/30">
+                    <div className="flex justify-between items-start mb-2">
+                      <span className="text-white font-medium text-sm sm:text-base">{symbol}</span>
+                      <span className={`text-xs px-2 py-1 rounded-full ${
+                        data.change > 0 ? 'bg-green-500/30 text-green-300' : 'bg-red-500/30 text-red-300'
+                      }`}>
+                        {data.change > 0 ? '+' : ''}{data.change.toFixed(2)}%
+                      </span>
+                    </div>
+                    <p className="text-lg sm:text-xl font-bold text-white">${data.price.toLocaleString()}</p>
+                    <p className="text-xs text-gold-400/70 mt-2">Vol: ${(data.volume / 1e6).toFixed(1)}M</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="bg-navy-800/80 rounded-xl p-4 sm:p-6 border border-gold-500/30 shadow-xl">
+              <h3 className="text-md sm:text-lg font-semibold text-gold-400 mb-4">Market Analysis</h3>
+              <p className="text-sm sm:text-base text-gold-300/80">Detailed market analysis and charts coming soon...</p>
+            </div>
           </div>
         )}
 
         {activeMainTab === 'portfolio' && (
-          <div className="bg-navy-800/50 rounded-xl p-8 text-center border border-gold-500/20">
-            <h2 className="text-2xl font-bold text-gold-500 mb-4">Portfolio Analytics</h2>
-            <p className="text-gold-500/70">Detailed portfolio analysis coming soon...</p>
+          <div className="space-y-4">
+            <div className="bg-navy-800/80 rounded-xl p-4 sm:p-6 border border-gold-500/30 shadow-xl">
+              <h2 className="text-lg sm:text-xl font-bold text-gold-400 mb-4">Portfolio Analytics</h2>
+              
+              {/* Portfolio Summary Cards */}
+              <div className="grid grid-cols-2 gap-3 mb-4">
+                <div className="bg-navy-700/80 rounded-lg p-4 border border-gold-500/30">
+                  <p className="text-xs text-gold-400 mb-1">Total Value</p>
+                  <p className="text-base sm:text-lg font-bold text-white">
+                    ${showBalance ? portfolio.equity.toLocaleString() : '••••••'}
+                  </p>
+                </div>
+                <div className="bg-navy-700/80 rounded-lg p-4 border border-gold-500/30">
+                  <p className="text-xs text-gold-400 mb-1">Open P&L</p>
+                  <p className={`text-base sm:text-lg font-bold ${
+                    portfolio.dailyPnL > 0 ? 'text-green-400' : 'text-red-400'
+                  }`}>
+                    ${showBalance ? portfolio.dailyPnL.toLocaleString() : '••••••'}
+                  </p>
+                </div>
+                <div className="bg-navy-700/80 rounded-lg p-4 border border-gold-500/30">
+                  <p className="text-xs text-gold-400 mb-1">Margin Used</p>
+                  <p className="text-base sm:text-lg font-bold text-yellow-400">
+                    ${showBalance ? portfolio.margin.toLocaleString() : '••••••'}
+                  </p>
+                </div>
+                <div className="bg-navy-700/80 rounded-lg p-4 border border-gold-500/30">
+                  <p className="text-xs text-gold-400 mb-1">Margin Level</p>
+                  <p className="text-base sm:text-lg font-bold text-gold-400">
+                    {showBalance ? portfolio.marginLevel : '•••'}%
+                  </p>
+                </div>
+              </div>
+
+              {/* Performance Chart Placeholder */}
+              <div className="bg-navy-700/80 rounded-lg p-6 h-48 flex items-center justify-center border border-gold-500/30">
+                <p className="text-gold-400/60 text-sm">Portfolio performance chart coming soon</p>
+              </div>
+            </div>
+
+            {/* Positions Summary */}
+            <div className="bg-navy-800/80 rounded-xl p-4 sm:p-6 border border-gold-500/30 shadow-xl">
+              <h3 className="text-md sm:text-lg font-semibold text-gold-400 mb-4">Open Positions</h3>
+              
+              {positions.map(position => (
+                <div key={position.id} className="bg-navy-700/80 rounded-lg p-4 mb-3 border border-gold-500/30">
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <span className="text-white font-medium">{position.symbol}</span>
+                      <span className={`ml-2 text-xs px-2 py-1 rounded ${
+                        position.type === 'LONG' ? 'bg-green-500/30 text-green-300' : 'bg-red-500/30 text-red-300'
+                      }`}>
+                        {position.type}
+                      </span>
+                    </div>
+                    <span className={`text-sm font-medium ${
+                      position.pnl > 0 ? 'text-green-400' : 'text-red-400'
+                    }`}>
+                      {position.pnl > 0 ? '+' : ''}{position.pnlPercent.toFixed(2)}%
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3 mt-3 text-sm">
+                    <div>
+                      <span className="text-gold-400/70">Qty:</span>
+                      <span className="ml-1 text-white">{position.quantity}</span>
+                    </div>
+                    <div>
+                      <span className="text-gold-400/70">Entry:</span>
+                      <span className="ml-1 text-white">${position.entryPrice.toLocaleString()}</span>
+                    </div>
+                    <div>
+                      <span className="text-gold-400/70">Current:</span>
+                      <span className="ml-1 text-white">${position.currentPrice.toLocaleString()}</span>
+                    </div>
+                    <div>
+                      <span className="text-gold-400/70">P&L:</span>
+                      <span className={`ml-1 ${position.pnl > 0 ? 'text-green-400' : 'text-red-400'}`}>
+                        ${position.pnl.toLocaleString()}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {activeMainTab === 'history' && (
+          <div className="bg-navy-800/80 rounded-xl p-4 sm:p-6 border border-gold-500/30 shadow-xl">
+            <h2 className="text-lg sm:text-xl font-bold text-gold-400 mb-4">Transaction History</h2>
+            
+            {/* Mobile-friendly transaction list */}
+            <div className="space-y-3">
+              {transactions.map(tx => (
+                <div key={tx.id} className="bg-navy-700/80 rounded-lg p-4 border border-gold-500/30">
+                  <div className="flex justify-between items-start mb-3">
+                    <div className="flex items-center">
+                      {tx.type === 'Deposit' && <FaArrowDown className="text-green-400 mr-2" size={14} />}
+                      {tx.type === 'Withdrawal' && <FaArrowUp className="text-red-400 mr-2" size={14} />}
+                      {tx.type === 'Transfer' && <FaExchangeAlt className="text-gold-400 mr-2" size={14} />}
+                      <span className="text-white font-medium text-sm">{tx.type}</span>
+                    </div>
+                    <span className={`text-xs px-2 py-1 rounded-full ${
+                      tx.status === 'Completed' ? 'bg-green-500/30 text-green-300' : 
+                      tx.status === 'Pending' ? 'bg-yellow-500/30 text-yellow-300' : 
+                      'bg-red-500/30 text-red-300'
+                    }`}>
+                      {tx.status}
+                    </span>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-3 text-sm mb-3">
+                    <div>
+                      <span className="text-gold-400/70">Amount:</span>
+                      <span className="ml-1 text-white">${tx.amount.toLocaleString()}</span>
+                    </div>
+                    <div>
+                      <span className="text-gold-400/70">Method:</span>
+                      <span className="ml-1 text-white">{tx.method}</span>
+                    </div>
+                    <div>
+                      <span className="text-gold-400/70">Date:</span>
+                      <span className="ml-1 text-white">{new Date(tx.date).toLocaleDateString()}</span>
+                    </div>
+                    <div>
+                      <span className="text-gold-400/70">Ref:</span>
+                      <span className="ml-1 text-white text-xs">{tx.reference}</span>
+                    </div>
+                  </div>
+                  
+                  <button className="w-full mt-2 px-4 py-3 bg-navy-600 hover:bg-navy-500 text-gold-300 rounded-lg text-sm flex items-center justify-center border border-gold-500/30">
+                    <FaDownload className="mr-2" size={12} />
+                    Download Receipt
+                  </button>
+                </div>
+              ))}
+            </div>
           </div>
         )}
       </main>
@@ -451,31 +844,77 @@ const DashboardPage = () => {
         onUpload={handleFileUpload}
       />
 
-      {/* Quick Trade Modal - You can create a similar component */}
+      {/* Quick Trade Modal - Darker */}
       {showOrderForm && (
-        <div className="fixed inset-0 bg-navy-950/95 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="bg-navy-800 rounded-2xl border border-gold-500/30 p-6 w-full max-w-md">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-xl font-bold text-gold-500">Quick Trade</h3>
+        <div className="fixed inset-0 bg-black/95 backdrop-blur-md flex items-center justify-center z-50 p-4">
+          <div className="bg-navy-900 rounded-2xl border border-gold-500/40 p-6 w-full max-w-md shadow-2xl">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xl font-bold text-gold-400">Quick Trade</h3>
               <button
                 onClick={() => setShowOrderForm(false)}
-                className="text-gold-500/70 hover:text-gold-500"
+                className="p-2 bg-navy-800 rounded-lg text-gold-400 hover:text-gold-300 border border-gold-500/30"
               >
-                <FaTimes />
+                <FaTimes size={18} />
               </button>
             </div>
-            {/* Import OrderForm component here */}
+            
+            {/* Simplified order form for mobile */}
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm text-gold-400 mb-2">Symbol</label>
+                <select className="w-full px-4 py-3 bg-navy-800 border border-gold-500/40 rounded-lg text-white text-sm focus:outline-none focus:border-gold-500">
+                  <option>BTC/USD</option>
+                  <option>ETH/USD</option>
+                  <option>EUR/USD</option>
+                </select>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-3">
+                <button className="px-4 py-3 bg-green-500/20 text-green-300 rounded-lg text-sm font-medium border border-green-500/40 hover:bg-green-500/30">
+                  BUY
+                </button>
+                <button className="px-4 py-3 bg-red-500/20 text-red-300 rounded-lg text-sm font-medium border border-red-500/40 hover:bg-red-500/30">
+                  SELL
+                </button>
+              </div>
+              
+              <div>
+                <label className="block text-sm text-gold-400 mb-2">Amount (USD)</label>
+                <input
+                  type="number"
+                  placeholder="0.00"
+                  className="w-full px-4 py-3 bg-navy-800 border border-gold-500/40 rounded-lg text-white text-sm focus:outline-none focus:border-gold-500 placeholder-gold-500/50"
+                />
+              </div>
+              
+              <div className="grid grid-cols-2 gap-3 pt-4">
+                <button
+                  onClick={() => setShowOrderForm(false)}
+                  className="px-4 py-3 bg-navy-800 text-gold-300 rounded-lg text-sm font-medium border border-gold-500/30 hover:bg-navy-700"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => handlePlaceOrder({})}
+                  className="px-4 py-3 bg-gold-500 text-navy-950 rounded-lg text-sm font-medium hover:bg-gold-400"
+                >
+                  Place Order
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
 
-      {/* Floating Action Button */}
-      <button
-        onClick={() => setShowOrderForm(true)}
-        className="fixed bottom-6 right-6 w-14 h-14 bg-gold-500 rounded-full flex items-center justify-center text-navy-950 shadow-lg hover:bg-gold-600 transition-all hover:scale-110 z-40"
-      >
-        <FaBolt size={24} />
-      </button>
+      {/* Floating Action Button - Darker */}
+      {isMobile && (
+        <button
+          onClick={() => setShowOrderForm(true)}
+          className="fixed bottom-6 right-6 w-14 h-14 bg-gold-500 rounded-full flex items-center justify-center text-navy-950 shadow-2xl hover:bg-gold-400 transition-all hover:scale-110 z-40 border-2 border-gold-300"
+        >
+          <FaBolt size={24} />
+        </button>
+      )}
 
       <style jsx>{`
         @keyframes ticker {
@@ -484,6 +923,12 @@ const DashboardPage = () => {
         }
         .animate-ticker {
           animation: ticker 30s linear infinite;
+        }
+        
+        @media (max-width: 640px) {
+          .animate-ticker {
+            animation-duration: 20s;
+          }
         }
       `}</style>
     </div>
