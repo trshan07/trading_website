@@ -55,7 +55,7 @@ const Navbar = () => {
 
                                 {/* Standard Submenu */}
                                 {link.type === 'standard' && (
-                                    <div className="absolute top-20 left-0 w-48 glass-card border border-white/10 rounded-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 overflow-hidden shadow-2xl py-2">
+                                    <div className="absolute top-20 left-0 w-56 bg-[#000F29] border border-white/10 rounded-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.5)] ring-1 ring-white/5 py-2">
                                         {link.submenu.map((item) => (
                                             <NavLink
                                                 key={item.name}

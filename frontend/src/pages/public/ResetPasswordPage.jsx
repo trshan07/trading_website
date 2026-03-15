@@ -3,8 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { HiLockClosed, HiCheck, HiExclamationCircle, HiOutlineEye, HiOutlineEyeOff } from 'react-icons/hi';
+import { toast } from 'react-hot-toast';
 import Button from '../../components/ui/Button';
 import authBg from '../../assets/images/real_trading_bg.png';
+import authService from '../../services/authService';
 
 const ResetPasswordPage = () => {
   const navigate = useNavigate();
@@ -16,10 +18,19 @@ const ResetPasswordPage = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  const handleSubmit = (e) => {
+  // Retrieve email from session storage (set by forgot password page)
+  const email = sessionStorage.getItem('resetEmail');
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setErrorMsg("");
     setSuccessMsg("");
+
+    if (!email) {
+      setErrorMsg("Recovery session expired. Please initiate new recovery.");
+      toast.error("Session Expired");
+      return;
+    }
 
     if (!newPassword || !confirmPassword) {
       setErrorMsg("Both password fields are required.");
@@ -31,15 +42,24 @@ const ResetPasswordPage = () => {
     }
     
     setIsLoading(true);
-    // Simulate final reset delay
-    setTimeout(() => {
-      setIsLoading(false);
+
+    try {
+      await authService.resetPassword(email, newPassword);
       setSuccessMsg("Credentials successfully updated. Terminal access restored.");
-      // Redirect to login after a brief delay
+      toast.success("Security Phrase Updated");
+      
+      // Clear session storage
+      sessionStorage.removeItem('resetEmail');
+
       setTimeout(() => {
         navigate('/login');
       }, 2000);
-    }, 2000);
+    } catch (err) {
+      setErrorMsg(err.response?.data?.message || "Reset Protocol Failure. Please contact support.");
+      toast.error("Update Failed");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (

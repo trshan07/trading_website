@@ -10,7 +10,8 @@ const Header = ({
   onToggleBalance, 
   onQuickTrade,
   unreadNotifications,
-  user = { name: 'John Smith', tier: 'Premium Trader' }
+  onLogout,
+  user = { firstName: 'John', lastName: 'Smith', role: 'Trader', selectedAccountType: 'demo' }
 }) => {
   const tabs = [
     { id: 'trading', label: 'Trading', icon: FaChartLine },
@@ -96,12 +97,22 @@ const Header = ({
             {/* User Menu */}
             <div className="flex items-center space-x-3 pl-2 border-l border-gold-500/30">
               <div className="text-right hidden md:block">
-                <p className="text-sm font-medium text-white">{user.name}</p>
-                <p className="text-xs text-gold-500/70">{user.tier}</p>
+                <p className="text-sm font-medium text-white">{user.firstName} {user.lastName}</p>
+                <div className="flex items-center justify-end">
+                    <span className={`text-[9px] uppercase tracking-widest px-1.5 py-0.5 rounded border ${
+                        user.selectedAccountType === 'real'
+                        ? 'border-green-500 text-green-500 bg-green-500/10'
+                        : 'border-gold-500/50 text-gold-500/70 bg-gold-500/5'
+                    }`}>
+                        {user.selectedAccountType === 'real' ? 'Live Trading' : 'Demo Mode'}
+                    </span>
+                </div>
               </div>
               <div className="relative group">
                 <div className="w-10 h-10 bg-gradient-to-br from-gold-500 to-gold-600 rounded-full flex items-center justify-center cursor-pointer shadow-lg shadow-gold-500/20">
-                  <span className="text-navy-950 font-bold text-lg">JS</span>
+                  <span className="text-navy-950 font-bold text-lg">
+                    {user.firstName?.charAt(0)}{user.lastName?.charAt(0)}
+                  </span>
                 </div>
 
                 {/* Dropdown Menu */}
@@ -111,7 +122,10 @@ const Header = ({
                     <a href="#" className="block px-4 py-2 text-sm text-gold-500/70 hover:text-gold-500 hover:bg-navy-700 rounded">Settings</a>
                     <a href="#" className="block px-4 py-2 text-sm text-gold-500/70 hover:text-gold-500 hover:bg-navy-700 rounded">Statements</a>
                     <div className="border-t border-gold-500/30 my-2"></div>
-                    <button className="w-full text-left px-4 py-2 text-sm text-red-400 hover:text-red-300 hover:bg-navy-700 rounded flex items-center">
+                    <button 
+                      onClick={onLogout}
+                      className="w-full text-left px-4 py-2 text-sm text-red-400 hover:text-red-300 hover:bg-navy-700 rounded flex items-center"
+                    >
                       <FaSignOutAlt className="mr-2" size={14} />
                       Logout
                     </button>

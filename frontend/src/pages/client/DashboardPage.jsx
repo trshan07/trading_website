@@ -1,5 +1,6 @@
 // frontend/src/pages/client/DashboardPage.jsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
   FaBolt, FaChartLine, FaTimes, FaBars, FaBell, 
   FaUser, FaSignOutAlt, FaCog, FaSearch, FaFilter,
@@ -17,8 +18,11 @@ import DocumentsTab from '../../components/client/DocumentsTab';
 import TransferModal from '../../components/client/TransferModal';
 import UploadModal from '../../components/client/UploadModal';
 import PriceTicker from '../../components/trading/PriceTicker';
+import { AuthContext } from '../../context/AuthContext';
 
 const DashboardPage = () => {
+  const { user, logout } = useContext(AuthContext);
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [activeMainTab, setActiveMainTab] = useState('trading');
   const [showBalance, setShowBalance] = useState(true);
@@ -30,31 +34,43 @@ const DashboardPage = () => {
   const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1200);
   const [darkMode, setDarkMode] = useState(true);
 
-  // Portfolio Data
+  // Find the selected account based on the session
+  const activeAccount = user?.accounts?.find(acc => acc.type === user.selectedAccountType) || {
+    balance: 0,
+    type: user?.selectedAccountType || 'demo',
+    account_number: 'N/A'
+  };
+
+  // Dynamic Portfolio Data
   const [portfolio, setPortfolio] = useState({
-    totalBalance: 52450.75,
-    availableBalance: 50000.25,
-    equity: 53450.25,
-    margin: 2450.5,
-    marginLevel: 218,
-    dailyPnL: 1250.5,
-    dailyPnLPercent: 2.41,
-    weeklyPnL: 4250.75,
-    monthlyPnL: 18750.25,
-    yearlyPnL: 245000.5,
-    positionsCount: 3
+    totalBalance: activeAccount.balance,
+    availableBalance: activeAccount.balance,
+    equity: activeAccount.balance,
+    margin: 0,
+    marginLevel: 0,
+    dailyPnL: 0,
+    dailyPnLPercent: 0,
+    weeklyPnL: 0,
+    monthlyPnL: 0,
+    yearlyPnL: 0,
+    positionsCount: 0
   });
 
-  // Wallet Data
+  // Dynamic Wallet Data
   const [walletData, setWalletData] = useState({
-    mainWallet: 52450.75,
-    tradingWallet: 50000.25,
-    bonusWallet: 2500.00,
-    creditWallet: 5000.00,
-    totalBalance: 59950.75,
-    pendingWithdrawals: 1500.00,
-    pendingDeposits: 2000.00
+    mainWallet: activeAccount.balance,
+    tradingWallet: activeAccount.balance,
+    bonusWallet: 0,
+    creditWallet: 0,
+    totalBalance: activeAccount.balance,
+    pendingWithdrawals: 0,
+    pendingDeposits: 0
   });
+
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
+  };
 
   // Bank Accounts
   const [bankAccounts, setBankAccounts] = useState([
@@ -453,6 +469,8 @@ const DashboardPage = () => {
         onToggleBalance={() => setShowBalance(!showBalance)}
         onQuickTrade={() => setShowOrderForm(true)}
         unreadNotifications={unreadNotifications}
+        user={user}
+        onLogout={handleLogout}
       />
       
       <PriceTicker data={marketData} />
@@ -564,7 +582,10 @@ const DashboardPage = () => {
                     <FaMoon className="text-yellow-400" size={18} />
                     <span className="text-white font-medium">Dark Mode</span>
                   </button>
-                  <button className="w-full px-4 py-3 bg-red-900/30 hover:bg-red-900/50 rounded-xl text-left flex items-center space-x-3 border border-red-500/30">
+                  <button 
+                    onClick={handleLogout}
+                    className="w-full px-4 py-3 bg-red-900/30 hover:bg-red-900/50 rounded-xl text-left flex items-center space-x-3 border border-red-500/30"
+                  >
                     <FaSignOutAlt className="text-red-400" size={18} />
                     <span className="text-red-400 font-medium">Logout</span>
                   </button>
@@ -916,7 +937,7 @@ const DashboardPage = () => {
         </button>
       )}
 
-      <style jsx>{`
+      <style>{`
         @keyframes ticker {
           0% { transform: translateX(100%); }
           100% { transform: translateX(-100%); }

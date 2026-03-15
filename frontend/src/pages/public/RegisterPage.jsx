@@ -1,17 +1,37 @@
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { HiOutlineMail, HiOutlineLockClosed, HiOutlineUser, HiOutlinePhone, HiLockClosed, HiCheck, HiOutlineEye, HiOutlineEyeOff, HiExclamationCircle } from 'react-icons/hi';
+import { toast } from 'react-hot-toast';
 import Button from '../../components/ui/Button';
 import authBg from '../../assets/images/real_trading_bg.png';
+import { AuthContext } from '../../context/AuthContext';
+import authService from '../../services/authService';
 
 const RegisterPage = () => {
+  const navigate = useNavigate();
+  const { login: contextLogin } = useContext(AuthContext);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [capsLockOn, setCapsLockOn] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
   
+  const [formData, setFormData] = useState({
+    firstName: "",
+    lastName: "",
+    email: "",
+    phone: "",
+    country: "",
+    password: "",
+    confirmPassword: ""
+  });
+
+  const countries = [
+    "United Kingdom", "United States", "Sri Lanka", "India", "Australia", 
+    "Canada", "Germany", "France", "Japan", "Singapore", "UAE", "Other"
+  ];
+
   const handleKeyUp = (e) => {
     if (e.getModifierState && e.getModifierState('CapsLock')) {
       setCapsLockOn(true);
@@ -20,15 +40,30 @@ const RegisterPage = () => {
     }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    if (formData.password !== formData.confirmPassword) {
+      setErrorMsg("Security Phrases do not match.");
+      return;
+    }
+
     setIsLoading(true);
     setErrorMsg("");
-    // Simulate authentication delay
-    setTimeout(() => {
+
+    try {
+      const data = await authService.register(formData);
+      // Automatically log them in. Default to 'demo' account on registration.
+      contextLogin({ ...data, selectedAccountType: 'demo' }, data.token);
+      toast.success("Account Provisioned Successfully! Welcome to Rizal's Trade.");
+      navigate('/dashboard');
+    } catch (err) {
+      console.error('Registration error:', err);
+      setErrorMsg(err.response?.data?.message || "Protocol Error: Registration sequence failed.");
+      toast.error("Account Creation Failed");
+    } finally {
       setIsLoading(false);
-      setErrorMsg("Registration unavailable during active trading session.");
-    }, 2000);
+    }
   };
 
   return (
@@ -160,6 +195,9 @@ const RegisterPage = () => {
                     <input
                         type="text"
                         placeholder="Given Name"
+                        value={formData.firstName}
+                        onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+                        required
                         className="w-full bg-navy/50 border border-white/20 rounded-lg py-3 pl-12 pr-4 text-white text-sm focus:outline-none focus:border-gold/60 focus:bg-navy/80 transition-all placeholder:text-white/30"
                     />
                     </div>
@@ -171,6 +209,9 @@ const RegisterPage = () => {
                     <input
                         type="text"
                         placeholder="Family Name"
+                        value={formData.lastName}
+                        onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+                        required
                         className="w-full bg-navy/50 border border-white/20 rounded-lg py-3 pl-12 pr-4 text-white text-sm focus:outline-none focus:border-gold/60 focus:bg-navy/80 transition-all placeholder:text-white/30"
                     />
                     </div>
@@ -185,6 +226,9 @@ const RegisterPage = () => {
                     <input
                         type="email"
                         placeholder="operator@system.com"
+                        value={formData.email}
+                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                        required
                         className="w-full bg-navy/50 border border-white/20 rounded-lg py-3 pl-12 pr-4 text-white text-sm focus:outline-none focus:border-gold/60 focus:bg-navy/80 transition-all placeholder:text-white/30"
                     />
                     </div>
@@ -196,9 +240,38 @@ const RegisterPage = () => {
                     <input
                         type="tel"
                         placeholder="+1 XXX XXX XXXX"
+                        value={formData.phone}
+                        onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                         className="w-full bg-navy/50 border border-white/20 rounded-lg py-3 pl-12 pr-4 text-white text-sm focus:outline-none focus:border-gold/60 focus:bg-navy/80 transition-all placeholder:text-white/30"
                     />
                     </div>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-white/50 text-[10px] uppercase font-bold tracking-[0.2em] mb-2 ml-1">Country of Residence</label>
+                <div className="relative group">
+                  <div className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40 group-focus-within:text-gold transition-colors w-5 h-5 pointer-events-none">
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                  <select
+                    value={formData.country}
+                    onChange={(e) => setFormData({ ...formData, country: e.target.value })}
+                    required
+                    className="w-full bg-navy/50 border border-white/20 rounded-lg py-3 pl-12 pr-10 text-white text-sm focus:outline-none focus:border-gold/60 focus:bg-navy/80 transition-all appearance-none cursor-pointer"
+                  >
+                    <option value="" disabled className="bg-navy-dark text-white/30">Select Regulatory Jurisdiction</option>
+                    {countries.map(country => (
+                      <option key={country} value={country} className="bg-navy-dark text-white">{country}</option>
+                    ))}
+                  </select>
+                  <div className="absolute right-4 top-1/2 -translate-y-1/2 text-white/30 pointer-events-none group-focus-within:text-gold">
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </div>
                 </div>
               </div>
 
@@ -211,7 +284,10 @@ const RegisterPage = () => {
                         <input
                             type={showPassword ? "text" : "password"}
                             onKeyUp={handleKeyUp}
+                            value={formData.password}
+                            onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                             placeholder="••••••••"
+                            required
                             className="w-full bg-navy/50 border border-white/20 rounded-lg py-3 pl-12 pr-12 text-white text-sm focus:outline-none focus:border-gold/60 focus:bg-navy/80 transition-all placeholder:text-white/30"
                         />
                         <div 
@@ -244,7 +320,10 @@ const RegisterPage = () => {
                         <input
                             type={showConfirmPassword ? "text" : "password"}
                             onKeyUp={handleKeyUp}
+                            value={formData.confirmPassword}
+                            onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
                             placeholder="••••••••"
+                            required
                             className="w-full bg-navy/50 border border-white/20 rounded-lg py-3 pl-12 pr-12 text-white text-sm focus:outline-none focus:border-gold/60 focus:bg-navy/80 transition-all placeholder:text-white/30"
                         />
                         <div 

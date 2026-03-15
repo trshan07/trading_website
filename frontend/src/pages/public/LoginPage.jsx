@@ -1,16 +1,22 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { HiOutlineMail, HiOutlineLockClosed, HiChevronLeft, HiLockClosed, HiCheck, HiOutlineEye, HiOutlineEyeOff, HiExclamationCircle } from 'react-icons/hi';
+import { toast } from 'react-hot-toast';
 import Button from '../../components/ui/Button';
 import authBg from '../../assets/images/real_trading_bg.png';
+import { AuthContext } from '../../context/AuthContext';
+import authService from '../../services/authService';
 
 const LoginPage = () => {
+  const navigate = useNavigate();
+  const { login: contextLogin } = useContext(AuthContext);
   const [showPassword, setShowPassword] = useState(false);
   const [capsLockOn, setCapsLockOn] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
-  const [formData, setFormData] = useState({ id: "", password: "" });
+  const [accountType, setAccountType] = useState('demo'); // 'demo' or 'real'
+  const [formData, setFormData] = useState({ email: "", password: "" });
 
   const handleKeyUp = (e) => {
     if (e.getModifierState && e.getModifierState('CapsLock')) {
@@ -20,19 +26,54 @@ const LoginPage = () => {
     }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!formData.id || !formData.password) {
-      setErrorMsg("Terminal ID and Password are required.");
+    if (!formData.email || !formData.password) {
+      setErrorMsg("Email and Password are required.");
       return;
     }
     setIsLoading(true);
     setErrorMsg("");
-    // Simulate authentication delay
-    setTimeout(() => {
+
+    try {
+      const data = await authService.login(formData.email, formData.password);
+      
+      // Pass the selected account type to the login context
+      contextLogin({ ...data, selectedAccountType: accountType }, data.token);
+      
+      toast.success(`Welcome back, ${data.firstName}! [${accountType.toUpperCase()} MODE]`);
+      
+      // Redirect based on role
+      if (data.role === 'admin') {
+        navigate('/admin/dashboard');
+      } else {
+        navigate('/dashboard');
+      }
+    } catch (err) {
+      console.error('Login error:', err);
+      setErrorMsg(err.response?.data?.message || "Invalid Operator Credentials. Access Denied.");
+      toast.error("Authentication Failed");
+    } finally {
       setIsLoading(false);
-      setErrorMsg("Invalid Operator Credentials. Access Denied.");
-    }, 2000);
+    }
+  };
+
+  const handleDemoLogin = async () => {
+    setIsLoading(true);
+    setErrorMsg("");
+    try {
+      const data = await authService.demoLogin();
+      // Guests are always in demo mode
+      contextLogin({ ...data, selectedAccountType: 'demo' }, data.token);
+      toast.success("Guest Connection Established! Welcome to the Demo Terminal.");
+      navigate('/dashboard');
+    } catch (err) {
+      console.error('Demo Login error:', err);
+      setErrorMsg("Failed to establish guest connection. Please try manual registration.");
+      toast.error("Demo Access Failed");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -154,14 +195,42 @@ const LoginPage = () => {
                 )}
               </AnimatePresence>
 
+              {/* Account Type Selector */}
+              <div className="flex p-1 bg-navy/80 rounded-xl border border-white/10 mb-6 group transition-all hover:border-gold/30">
+                <button
+                  type="button"
+                  onClick={() => setAccountType('demo')}
+                  className={`flex-1 py-2.5 px-4 rounded-lg text-[10px] font-bold uppercase tracking-[0.2em] transition-all flex items-center justify-center space-x-2 ${
+                    accountType === 'demo' 
+                    ? 'bg-gold text-navy-dark shadow-gold-glow-sm' 
+                    : 'text-white/40 hover:text-white/70'
+                  }`}
+                >
+                  <span className={`w-1.5 h-1.5 rounded-full ${accountType === 'demo' ? 'bg-navy-dark animate-pulse' : 'bg-white/20'}`} />
+                  <span>Demo Account</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAccountType('real')}
+                  className={`flex-1 py-2.5 px-4 rounded-lg text-[10px] font-bold uppercase tracking-[0.2em] transition-all flex items-center justify-center space-x-2 ${
+                    accountType === 'real' 
+                    ? 'bg-green-500 text-navy-dark shadow-[0_0_15px_rgba(34,197,94,0.3)]' 
+                    : 'text-white/40 hover:text-white/70'
+                  }`}
+                >
+                  <span className={`w-1.5 h-1.5 rounded-full ${accountType === 'real' ? 'bg-navy-dark animate-pulse' : 'bg-white/20'}`} />
+                  <span>Live Trading</span>
+                </button>
+              </div>
+
               <div>
                 <div className="relative group">
                   <HiOutlineMail className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40 group-focus-within:text-gold transition-colors w-5 h-5" />
                   <input
-                    type="text"
-                    value={formData.id}
-                    onChange={(e) => setFormData({ ...formData, id: e.target.value })}
-                    placeholder="Username / Terminal ID"
+                    type="email"
+                    value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    placeholder="Operator Email / Terminal ID"
                     className="w-full bg-navy/50 border border-white/20 rounded-lg py-3 pl-12 pr-4 text-white text-sm focus:outline-none focus:border-gold/60 focus:bg-navy/80 transition-all placeholder:text-white/30"
                   />
                 </div>
@@ -203,12 +272,23 @@ const LoginPage = () => {
                 </div>
               </div>
 
-              <Button 
-                variant="gold" 
-                type="submit"
-                disabled={isLoading}
-                className="relative overflow-hidden group w-full py-3.5 font-bold text-sm tracking-widest rounded-lg shadow-gold-glow hover:shadow-gold-glow-lg transition-all active:scale-[0.98] uppercase flex justify-center items-center animate-shine"
-              >
+              <div className="pt-2">
+                <button 
+                  type="button"
+                  onClick={handleDemoLogin}
+                  disabled={isLoading}
+                  className="w-full py-3 bg-white/5 hover:bg-white/10 border border-gold/30 rounded-lg text-gold text-[10px] font-bold uppercase tracking-[0.2em] transition-all flex items-center justify-center space-x-2 group mb-4 shadow-xl active:scale-[0.98]"
+                >
+                  <span className="w-2 h-2 rounded-full bg-gold animate-ping" />
+                  <span>Try Instant Demo Access</span>
+                </button>
+
+                <Button 
+                  variant="gold" 
+                  type="submit"
+                  disabled={isLoading}
+                  className="relative overflow-hidden group w-full py-3.5 font-bold text-sm tracking-widest rounded-lg shadow-gold-glow hover:shadow-gold-glow-lg transition-all active:scale-[0.98] uppercase flex justify-center items-center animate-shine"
+                >
                 {isLoading ? (
                   <span className="flex items-center space-x-2">
                     <svg className="animate-spin h-5 w-5 text-navy-dark" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -221,7 +301,8 @@ const LoginPage = () => {
                   <>Establish Connection <span className="ml-2">→</span></>
                 )}
               </Button>
-            </form>
+            </div>
+          </form>
 
             <div className="mt-6 text-center">
               <div className="flex items-center justify-center space-x-2 text-gold/80 mb-2">

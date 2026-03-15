@@ -25,6 +25,31 @@ app.use((req, res, next) => {
     next();
 });
 
+// Routes
+app.get('/', (req, res) => {
+    res.json({ 
+        message: 'Welcome to the Rizal\'s Trade Backend API',
+        api_health: 'http://localhost:5000/api/health',
+        documentation: 'The API endpoints are located under /api/auth'
+    });
+});
+
+const authRoutes = require('./src/routes/authRoutes');
+app.use('/api/auth', authRoutes);
+
+// API Information route
+app.get('/api', (req, res) => {
+    res.json({
+        version: '1.0.0',
+        status: 'Active',
+        endpoints: {
+            auth: '/api/auth',
+            health: '/api/health',
+            test: '/api/test'
+        }
+    });
+});
+
 // WebSocket (optional for now)
 let wss = null;
 try {

@@ -227,7 +227,7 @@ const OrderBook = ({ symbol = 'BTCUSD', compact = false }) => {
       )}
 
       {/* Add custom scrollbar styles */}
-      <style jsx>{`
+      <style>{`
         .scrollbar-thin::-webkit-scrollbar {
           width: 4px;
         }

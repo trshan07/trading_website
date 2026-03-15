@@ -10,24 +10,39 @@ import bgImage from '../../assets/images/Conditions.jpeg';
 const RiskDisclaimerPage = () => {
     const riskSections = [
         {
-            title: "Leverage and Margin Risk",
+            title: "Market Risk",
             icon: <HiExclamation className="w-6 h-6" />,
-            content: "The high degree of leverage available in trading can work against you as well as for you. Before deciding to trade, you should carefully consider your investment objectives, level of experience, and risk appetite. The possibility exists that you could sustain a loss of some or all of your initial investment and therefore you should not invest money that you cannot afford to lose."
+            content: "Prices of financial instruments can fluctuate rapidly due to global economic events, market sentiment, and other factors."
         },
         {
-            title: "Market Volatility",
+            title: "Leverage Risk",
             icon: <HiShieldCheck className="w-6 h-6" />,
-            content: "Financial markets are subject to unpredictable shifts in sentiment and price. Rapid price movements can lead to substantial losses that can exceed your initial deposit in some circumstances. Rizals Trade provides institutional-grade execution, but cannot guarantee protection against extreme market gaps or volatility."
+            content: "Trading with leverage can magnify both profits and losses. You may lose more than your initial investment."
         },
         {
-            title: "Technical and Systemic Risks",
+            title: "Liquidity Risk",
             icon: <HiExclamation className="w-6 h-6" />,
-            content: "Online trading systems carry inherent risks including hardware failure, software issues, and connectivity disruptions. While we utilize redundant servers and high-speed data centers, clients must recognize that technical failures are a possibility in any electronic trading environment."
+            content: "Certain instruments may have limited liquidity, making it difficult to enter or exit positions at desired prices."
+        },
+        {
+            title: "Regulatory Risk",
+            icon: <HiShieldCheck className="w-6 h-6" />,
+            content: "Changes in laws, regulations, or government policies may impact trading conditions and profitability."
+        },
+        {
+            title: "Technology Risk",
+            icon: <HiExclamation className="w-6 h-6" />,
+            content: "Online trading relies on internet connectivity and technology systems. Interruptions or failures may affect your ability to trade."
+        },
+        {
+            title: "No Guarantee of Returns",
+            icon: <HiShieldCheck className="w-6 h-6" />,
+            content: "Past performance is not indicative of future results. There is no assurance of profit."
         }
     ];
 
     return (
-        <main className="bg-navy min-h-screen relative overflow-hidden">
+        <main className="bg-navy min-h-screen relative overflow-hidden flex flex-col">
             <Navbar />
 
             {/* Fixed Background Layer */}
@@ -41,7 +56,7 @@ const RiskDisclaimerPage = () => {
                 <div className="absolute inset-0 bg-grid-slim opacity-10" />
             </div>
 
-            <div className="relative z-10 pt-32 pb-24">
+            <div className="relative z-10 pt-32 pb-24 flex-grow">
                 <Container>
                     <motion.div
                         initial={{ opacity: 0, y: 20 }}
@@ -50,7 +65,7 @@ const RiskDisclaimerPage = () => {
                     >
                         <SectionTitle 
                             subtitle="Regulatory Protocol" 
-                            title="Risk Disclaimer" 
+                            title="Risk Disclosure" 
                         />
 
                         {/* High Alert Banner */}
@@ -68,7 +83,7 @@ const RiskDisclaimerPage = () => {
                                 <div>
                                     <h3 className="text-xl font-display font-bold text-white mb-3 uppercase tracking-wider">High Risk Investment Warning</h3>
                                     <p className="text-white/70 leading-relaxed italic text-base">
-                                        Trading foreign exchange and CFDs on margin carries a high level of risk and may not be suitable for all investors. You must be aware of the risks and be willing to accept them in order to invest in the financial markets.
+                                        Trading in financial instruments involves significant risk and may not be suitable for all investors. Before engaging in trading activities, please carefully consider the following:
                                     </p>
                                 </div>
                             </div>
@@ -109,11 +124,13 @@ const RiskDisclaimerPage = () => {
                         >
                             <div className="inline-flex items-center space-x-3 px-6 py-3 rounded-full bg-white/5 border border-white/10 mb-6">
                                 <HiShieldCheck className="text-gold w-5 h-5" />
-                                <span className="text-white/40 text-[10px] font-black uppercase tracking-widest">Regulatory Compliance Verified</span>
+                                <span className="text-white/40 text-[10px] font-black uppercase tracking-widest">Important Notice</span>
                             </div>
-                            <p className="text-white/30 text-xs max-w-2xl mx-auto leading-relaxed italic">
-                                By accessing our trading environment, you acknowledge that you have fully read and understood the systemic risks involved in margin trading and are capable of assuming the financial consequences of your execution decisions.
-                            </p>
+                            <div className="text-white/30 text-xs max-w-2xl mx-auto leading-relaxed italic space-y-2">
+                                <p>• You should only trade with funds you can afford to lose.</p>
+                                <p>• It is your responsibility to understand the risks involved and seek independent financial advice if necessary.</p>
+                                <p>• By using our platform, you acknowledge and accept these risks.</p>
+                            </div>
                         </motion.div>
                     </motion.div>
                 </Container>

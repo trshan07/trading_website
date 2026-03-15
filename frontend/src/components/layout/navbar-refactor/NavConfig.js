@@ -78,6 +78,7 @@ export const navLinks = [
         submenu: [
             { name: 'Account Types', path: '/trading/account-types' },
             { name: 'Conditions', path: '/trading/conditions' },
+            { name: 'Deposits & Withdrawals', path: '/deposits-withdrawals' },
         ],
         type: 'standard'
     },
@@ -94,6 +95,11 @@ export const navLinks = [
         submenu: [
             { name: 'About', path: '/about' },
             { name: 'Contact', path: '/contact' },
+            { name: 'Terms of Service', path: '/terms' },
+            { name: 'Privacy Policy', path: '/privacy' },
+            { name: 'Risk Disclaimer', path: '/risk-disclaimer' },
+            { name: 'KYC Policy', path: '/kyc-policy' },
+            { name: 'AML Policy', path: '/aml-policy' }
         ],
         type: 'standard'
     },

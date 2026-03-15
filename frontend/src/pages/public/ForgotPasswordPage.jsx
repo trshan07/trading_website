@@ -2,9 +2,11 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { HiOutlineMail, HiLockClosed, HiCheck, HiExclamationCircle, HiOutlineEye, HiOutlineEyeOff } from 'react-icons/hi';
+import { HiOutlineMail, HiLockClosed, HiCheck, HiExclamationCircle } from 'react-icons/hi';
+import { toast } from 'react-hot-toast';
 import Button from '../../components/ui/Button';
 import authBg from '../../assets/images/real_trading_bg.png';
+import authService from '../../services/authService';
 
 const ForgotPasswordPage = () => {
   const navigate = useNavigate();
@@ -13,7 +15,7 @@ const ForgotPasswordPage = () => {
   const [successMsg, setSuccessMsg] = useState("");
   const [email, setEmail] = useState("");
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setErrorMsg("");
     setSuccessMsg("");
@@ -23,15 +25,24 @@ const ForgotPasswordPage = () => {
       return;
     }
     setIsLoading(true);
-    // Simulate API delay for token dispatch
-    setTimeout(() => {
-      setIsLoading(false);
+
+    try {
+      await authService.forgotPassword(email);
       setSuccessMsg("Recovery session established. Redirecting to reset protocol...");
-      // Redirect to reset password after a brief delay
+      toast.success("Recovery Token Dispatched");
+      
+      // Store email for reset page
+      sessionStorage.setItem('resetEmail', email);
+
       setTimeout(() => {
         navigate('/reset-password');
-      }, 1500);
-    }, 1500);
+      }, 2000);
+    } catch (err) {
+      setErrorMsg(err.response?.data?.message || "Recovery Protocol Failed. Terminal unrecognized.");
+      toast.error("Recovery Fault");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (

@@ -38,6 +38,7 @@ const Footer = () => {
                         <ul className="space-y-4 text-white/50 text-sm">
                             <li><Link to="/trading/account-types" className="hover:text-gold transition-colors">Account Types</Link></li>
                             <li><Link to="/trading/conditions" className="hover:text-gold transition-colors">Conditions</Link></li>
+                            <li><Link to="/deposits-withdrawals" className="hover:text-gold transition-colors">Deposits & Withdrawals</Link></li>
                             <li><Link to="/markets" className="hover:text-gold transition-colors">Markets Overview</Link></li>
                             <li><Link to="/promotions" className="hover:text-gold transition-colors">Promotions</Link></li>
                         </ul>
@@ -55,12 +56,21 @@ const Footer = () => {
 
                     <div>
                         <h4 className="text-white font-bold mb-6">Company</h4>
-                        <ul className="space-y-4 text-white/50 text-sm">
-                            <li><Link to="/about" className="hover:text-gold transition-colors">About Us</Link></li>
-                            <li><Link to="/contact" className="hover:text-gold transition-colors">Contact</Link></li>
-                            <li><Link to="/terms" className="hover:text-gold transition-colors">Terms of Service</Link></li>
-                            <li><Link to="/privacy" className="hover:text-gold transition-colors">Privacy Policy</Link></li>
-                            <li><Link to="/risk-disclaimer" className="hover:text-gold transition-colors">Risk Disclaimer</Link></li>
+                        <ul className="grid grid-cols-2 gap-x-4 gap-y-4 text-white/50 text-sm">
+                            {/* Left Column */}
+                            <div className="space-y-4">
+                                <li><Link to="/about" className="hover:text-gold transition-colors">About Us</Link></li>
+                                <li><Link to="/contact" className="hover:text-gold transition-colors">Contact</Link></li>
+                                <li><Link to="/terms" className="hover:text-gold transition-colors">Terms of Service</Link></li>
+                            </div>
+                            
+                            {/* Right Column */}
+                            <div className="space-y-4">
+                                <li><Link to="/privacy" className="hover:text-gold transition-colors">Privacy Policy</Link></li>
+                                <li><Link to="/risk-disclaimer" className="hover:text-gold transition-colors">Risk Disclaimer</Link></li>
+                                <li><Link to="/kyc-policy" className="hover:text-gold transition-colors">KYC Policy</Link></li>
+                                <li><Link to="/aml-policy" className="hover:text-gold transition-colors">AML Policy</Link></li>
+                            </div>
                         </ul>
                     </div>
                 </div>

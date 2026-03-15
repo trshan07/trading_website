@@ -15,6 +15,9 @@ import LoginPage from "../pages/public/LoginPage";
 import RegisterPage from "../pages/public/RegisterPage";
 import PrivacyPage from "../pages/public/PrivacyPage";
 import RiskDisclaimerPage from "../pages/public/RiskDisclaimerPage";
+import KYCPolicyPage from "../pages/public/KYCPolicyPage";
+import AMLPolicyPage from "../pages/public/AMLPolicyPage";
+import DepositsWithdrawalsPage from "../pages/public/DepositsWithdrawalsPage";
 import ForgotPasswordPage from "../pages/public/ForgotPasswordPage";
 import ResetPasswordPage from "../pages/public/ResetPasswordPage";
 import PromotionsPage from "../pages/public/PromotionsPage";
@@ -59,6 +62,9 @@ const AppRoutes = () => {
       <Route path="/terms" element={<TermsPage />} />
       <Route path="/privacy" element={<PrivacyPage />} />
       <Route path="/risk-disclaimer" element={<RiskDisclaimerPage />} />
+      <Route path="/kyc-policy" element={<KYCPolicyPage />} />
+      <Route path="/aml-policy" element={<AMLPolicyPage />} />
+      <Route path="/deposits-withdrawals" element={<DepositsWithdrawalsPage />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
