@@ -44,6 +44,7 @@ import AuditPage from "../pages/admin/AuditPage";
 import AdminSettingsPage from "../pages/admin/SettingsPage";
 import KYCManagementPage from "../pages/admin/KYCManagementPage";
 import TransactionsPage from "../pages/admin/TransactionsPage";
+import ProtectedRoute from "../components/common/ProtectedRoute";
 
 const AppRoutes = () => {
   return (
@@ -70,28 +71,28 @@ const AppRoutes = () => {
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
       <Route path="/reset-password" element={<ResetPasswordPage />} />
 
-      {/* Client Dashboard Routes (only the ones that exist) */}
-      <Route path="/dashboard" element={<DashboardPage />} />
-      <Route path="/dashboard/trading" element={<TradingPage />} />
-      <Route path="/dashboard/charts" element={<ChartsPage />} />
-      <Route path="/dashboard/funding" element={<FundingPage />} />
-      <Route path="/dashboard/deposit" element={<DepositPage />} />
-      <Route path="/dashboard/withdrawal" element={<WithdrawalPage />} />
-      <Route path="/dashboard/history" element={<HistoryPage />} />
-      <Route path="/dashboard/profile" element={<ProfilePage />} />
-      <Route path="/dashboard/settings" element={<SettingsPage />} />
-      <Route path="/dashboard/statements" element={<StatementsPage />} />
+      {/* Client Dashboard Routes */}
+      <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
+      <Route path="/dashboard/trading" element={<ProtectedRoute><TradingPage /></ProtectedRoute>} />
+      <Route path="/dashboard/charts" element={<ProtectedRoute><ChartsPage /></ProtectedRoute>} />
+      <Route path="/dashboard/funding" element={<ProtectedRoute><FundingPage /></ProtectedRoute>} />
+      <Route path="/dashboard/deposit" element={<ProtectedRoute><DepositPage /></ProtectedRoute>} />
+      <Route path="/dashboard/withdrawal" element={<ProtectedRoute><WithdrawalPage /></ProtectedRoute>} />
+      <Route path="/dashboard/history" element={<ProtectedRoute><HistoryPage /></ProtectedRoute>} />
+      <Route path="/dashboard/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
+      <Route path="/dashboard/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
+      <Route path="/dashboard/statements" element={<ProtectedRoute><StatementsPage /></ProtectedRoute>} />
 
       {/* Admin Routes */}
-      <Route path="/admin" element={<AdminDashboardPage />} />
-      <Route path="/admin/users" element={<UsersPage />} />
-      <Route path="/admin/funding" element={<FundingRequestsPage />} />
-      <Route path="/admin/trades" element={<TradesPage />} />
-      <Route path="/admin/reports" element={<ReportsPage />} />
-      <Route path="/admin/audit" element={<AuditPage />} />
-      <Route path="/admin/settings" element={<AdminSettingsPage />} />
-      <Route path="/admin/kyc" element={<KYCManagementPage />} />
-      <Route path="/admin/transactions" element={<TransactionsPage />} />
+      <Route path="/admin" element={<ProtectedRoute allowedRoles={['admin']}><AdminDashboardPage /></ProtectedRoute>} />
+      <Route path="/admin/users" element={<ProtectedRoute allowedRoles={['admin']}><UsersPage /></ProtectedRoute>} />
+      <Route path="/admin/funding" element={<ProtectedRoute allowedRoles={['admin']}><FundingRequestsPage /></ProtectedRoute>} />
+      <Route path="/admin/trades" element={<ProtectedRoute allowedRoles={['admin']}><TradesPage /></ProtectedRoute>} />
+      <Route path="/admin/reports" element={<ProtectedRoute allowedRoles={['admin']}><ReportsPage /></ProtectedRoute>} />
+      <Route path="/admin/audit" element={<ProtectedRoute allowedRoles={['admin']}><AuditPage /></ProtectedRoute>} />
+      <Route path="/admin/settings" element={<ProtectedRoute allowedRoles={['admin']}><AdminSettingsPage /></ProtectedRoute>} />
+      <Route path="/admin/kyc" element={<ProtectedRoute allowedRoles={['admin']}><KYCManagementPage /></ProtectedRoute>} />
+      <Route path="/admin/transactions" element={<ProtectedRoute allowedRoles={['admin']}><TransactionsPage /></ProtectedRoute>} />
 
       {/* Catch all route - redirect to home */}
       <Route path="*" element={<HomePage />} />

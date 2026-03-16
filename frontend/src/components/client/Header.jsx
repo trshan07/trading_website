@@ -97,14 +97,14 @@ const Header = ({
             {/* User Menu */}
             <div className="flex items-center space-x-3 pl-2 border-l border-gold-500/30">
               <div className="text-right hidden md:block">
-                <p className="text-sm font-medium text-white">{user.firstName} {user.lastName}</p>
+                <p className="text-sm font-medium text-white">{user?.firstName} {user?.lastName}</p>
                 <div className="flex items-center justify-end">
                     <span className={`text-[9px] uppercase tracking-widest px-1.5 py-0.5 rounded border ${
-                        user.selectedAccountType === 'real'
+                        user?.selectedAccountType === 'real'
                         ? 'border-green-500 text-green-500 bg-green-500/10'
                         : 'border-gold-500/50 text-gold-500/70 bg-gold-500/5'
                     }`}>
-                        {user.selectedAccountType === 'real' ? 'Live Trading' : 'Demo Mode'}
+                        {user?.selectedAccountType === 'real' ? 'Live Trading' : 'Demo Mode'}
                     </span>
                 </div>
               </div>
