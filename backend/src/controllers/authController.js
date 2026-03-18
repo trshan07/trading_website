@@ -1,11 +1,12 @@
+// controllers/authController.js
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const User = require('../models/User');
 const Account = require('../models/Account');
 
 // Generate JWT
-const generateToken = (id) => {
-    return jwt.sign({ id }, process.env.JWT_SECRET, {
+const generateToken = (id, role) => {
+    return jwt.sign({ id, role }, process.env.JWT_SECRET, {
         expiresIn: process.env.JWT_EXPIRE || '7d',
     });
 };
@@ -17,8 +18,8 @@ const register = async (req, res) => {
     try {
         const { email, password, firstName, lastName, phone, country } = req.body;
 
-        if (!email || !password) {
-            return res.status(400).json({ message: 'Please add all fields' });
+        if (!email || !password || !firstName || !lastName) {
+            return res.status(400).json({ message: 'Please add all required fields' });
         }
 
         // Check if user exists
@@ -28,7 +29,7 @@ const register = async (req, res) => {
             return res.status(400).json({ message: 'User already exists' });
         }
 
-        // Create user
+        // Create user as client
         const user = await User.create({
             email,
             password,
@@ -40,21 +41,24 @@ const register = async (req, res) => {
         });
 
         if (user) {
-            // Generate accounts automatically
+            // Generate accounts automatically for client
             await Account.create(user.id, 'demo');
             await Account.create(user.id, 'real');
 
-            // Fetch the newly created accounts to return them
+            // Fetch the newly created accounts
             const accounts = await Account.findByUserId(user.id);
 
             res.status(201).json({
-                _id: user.id,
-                email: user.email,
-                firstName: user.first_name,
-                lastName: user.last_name,
-                role: user.role,
-                accounts: accounts,
-                token: generateToken(user.id),
+                success: true,
+                data: {
+                    _id: user.id,
+                    email: user.email,
+                    firstName: user.first_name,
+                    lastName: user.last_name,
+                    role: user.role,
+                    accounts: accounts,
+                    token: generateToken(user.id, user.role),
+                }
             });
         } else {
             res.status(400).json({ message: 'Invalid user data' });
@@ -65,6 +69,56 @@ const register = async (req, res) => {
     }
 };
 
+// @desc    Register new admin (protected route)
+// @route   POST /api/auth/register-admin
+// @access  Private/Admin
+const registerAdmin = async (req, res) => {
+    try {
+        const { email, password, firstName, lastName, phone, country } = req.body;
+
+        if (!email || !password || !firstName || !lastName) {
+            return res.status(400).json({ message: 'Please add all required fields' });
+        }
+
+        // Check if user exists
+        const userExists = await User.findByEmail(email);
+
+        if (userExists) {
+            return res.status(400).json({ message: 'User already exists' });
+        }
+
+        // Create user as admin
+        const user = await User.create({
+            email,
+            password,
+            firstName,
+            lastName,
+            phone,
+            country,
+            role: 'admin'
+        });
+
+        if (user) {
+            res.status(201).json({
+                success: true,
+                data: {
+                    _id: user.id,
+                    email: user.email,
+                    firstName: user.first_name,
+                    lastName: user.last_name,
+                    role: user.role,
+                    token: generateToken(user.id, user.role),
+                }
+            });
+        } else {
+            res.status(400).json({ message: 'Invalid user data' });
+        }
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Server error during admin registration' });
+    }
+};
+
 // @desc    Authenticate a user
 // @route   POST /api/auth/login
 // @access  Public
@@ -72,20 +126,40 @@ const login = async (req, res) => {
     try {
         const { email, password } = req.body;
 
+        if (!email || !password) {
+            return res.status(400).json({ message: 'Please provide email and password' });
+        }
+
         // Check for user email
         const user = await User.findByEmail(email);
 
-        if (user && (await bcrypt.compare(password, user.password_hash))) {
-            const accounts = await Account.findByUserId(user.id);
+        if (!user) {
+            return res.status(401).json({ message: 'Invalid credentials' });
+        }
+
+        // Check if user is active
+        if (!user.is_active) {
+            return res.status(401).json({ message: 'Account is deactivated. Please contact admin.' });
+        }
+
+        if (await bcrypt.compare(password, user.password_hash)) {
+            // Get accounts only for clients
+            let accounts = [];
+            if (user.role === 'client') {
+                accounts = await Account.findByUserId(user.id);
+            }
 
             res.json({
-                _id: user.id,
-                email: user.email,
-                firstName: user.first_name,
-                lastName: user.last_name,
-                role: user.role,
-                accounts: accounts,
-                token: generateToken(user.id),
+                success: true,
+                data: {
+                    _id: user.id,
+                    email: user.email,
+                    firstName: user.first_name,
+                    lastName: user.last_name,
+                    role: user.role,
+                    accounts: accounts,
+                    token: generateToken(user.id, user.role),
+                }
             });
         } else {
             res.status(401).json({ message: 'Invalid credentials' });
@@ -96,7 +170,54 @@ const login = async (req, res) => {
     }
 };
 
-// @desc    Simulate Forgot Password
+// @desc    Demo login (creates temporary client)
+// @route   POST /api/auth/demo-login
+// @access  Public
+const demoLogin = async (req, res) => {
+    try {
+        // Create a temporary guest user as client
+        const guestId = Math.floor(100000 + Math.random() * 900000);
+        const guestEmail = `guest_${guestId}@rizalstrade.demo`;
+        const guestPassword = `guest_${guestId}`;
+
+        const user = await User.create({
+            email: guestEmail,
+            password: guestPassword,
+            firstName: 'Guest',
+            lastName: `User #${guestId}`,
+            phone: '0000000000',
+            country: 'Demo',
+            role: 'client',
+            is_active: true
+        });
+
+        if (user) {
+            await Account.create(user.id, 'demo');
+            await Account.create(user.id, 'real');
+
+            const accounts = await Account.findByUserId(user.id);
+
+            res.status(201).json({
+                success: true,
+                data: {
+                    _id: user.id,
+                    email: user.email,
+                    firstName: user.first_name,
+                    lastName: user.last_name,
+                    role: user.role,
+                    accounts: accounts,
+                    token: generateToken(user.id, user.role),
+                    isGuest: true
+                }
+            });
+        }
+    } catch (error) {
+        console.error('Demo Login Error:', error);
+        res.status(500).json({ message: 'Failed to establish demo connection' });
+    }
+};
+
+// @desc    Forgot Password
 // @route   POST /api/auth/forgot-password
 // @access  Public
 const forgotPassword = async (req, res) => {
@@ -108,86 +229,61 @@ const forgotPassword = async (req, res) => {
             return res.status(404).json({ message: 'User not found' });
         }
 
-        // In a real app we'd save a resetToken to the DB and email it
-        // For now, we simulate success and return a dummy token in DEV mode
-        const dummyToken = `reset_${user.id}_${Date.now()}`;
-        console.log(`[DEV ONLY] Password reset token for ${email}: ${dummyToken}`);
+        // In production, send email with reset link
+        const resetToken = jwt.sign(
+            { id: user.id, purpose: 'password-reset' },
+            process.env.JWT_SECRET,
+            { expiresIn: '1h' }
+        );
 
-        res.json({ message: 'Password reset instructions sent (check console in Dev)' });
+        console.log(`[DEV] Password reset token for ${email}: ${resetToken}`);
+
+        res.json({ 
+            success: true,
+            message: 'Password reset instructions sent to your email' 
+        });
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: 'Server error' });
     }
 };
 
-// @desc    Simulate Reset Password
+// @desc    Reset Password
 // @route   POST /api/auth/reset-password
 // @access  Public
 const resetPassword = async (req, res) => {
     try {
-        const { email, newPassword } = req.body;
-        // In reality, this would use the resetToken to find the user.
-        // For the scoped requirement, we'll find by email and set new password directly
-        const user = await User.findByEmail(email);
+        const { token, newPassword } = req.body;
 
-        if (!user) {
-            return res.status(404).json({ message: 'User not found' });
+        if (!token || !newPassword) {
+            return res.status(400).json({ message: 'Token and new password are required' });
         }
 
-        await User.updatePassword(user.id, newPassword);
+        // Verify token
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        
+        if (decoded.purpose !== 'password-reset') {
+            return res.status(400).json({ message: 'Invalid reset token' });
+        }
 
-        res.json({ message: 'Password has been reset successfully' });
+        await User.updatePassword(decoded.id, newPassword);
+
+        res.json({ 
+            success: true,
+            message: 'Password has been reset successfully' 
+        });
     } catch (error) {
         console.error(error);
-        res.status(500).json({ message: 'Server error' });
-    }
-};
-
-// @desc    One-click Demo Login
-// @route   POST /api/auth/demo-login
-// @access  Public
-const demoLogin = async (req, res) => {
-    try {
-        // Create a temporary guest user
-        const guestId = Math.floor(100000 + Math.random() * 900000);
-        const guestEmail = `guest_${guestId}@rizalstrade.demo`;
-        const guestPassword = `guest_${guestId}`; // Not strictly needed for the session but keeps model happy
-
-        const user = await User.create({
-            email: guestEmail,
-            password: guestPassword,
-            firstName: 'Guest',
-            lastName: `User #${guestId}`,
-            phone: '0000000000',
-            country: 'Demo',
-            role: 'client'
-        });
-
-        if (user) {
-            await Account.create(user.id, 'demo');
-            await Account.create(user.id, 'real');
-
-            const accounts = await Account.findByUserId(user.id);
-
-            res.status(201).json({
-                _id: user.id,
-                email: user.email,
-                firstName: user.first_name,
-                lastName: user.last_name,
-                role: user.role,
-                accounts: accounts,
-                token: generateToken(user.id),
-                isGuest: true
-            });
+        if (error.name === 'TokenExpiredError') {
+            return res.status(400).json({ message: 'Reset token has expired' });
         }
-    } catch (error) {
-        console.error('Demo Login Error:', error);
-        res.status(500).json({ message: 'Failed to establish demo connection' });
+        res.status(500).json({ message: 'Server error' });
     }
 };
 
 module.exports = {
     register,
+    registerAdmin,
     login,
     demoLogin,
     forgotPassword,

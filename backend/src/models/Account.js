@@ -1,35 +1,51 @@
+// src/models/Account.js
 const db = require('../config/database');
 
 class Account {
-    static async create(userId, type, currency = 'USD') {
-        // Generate random account number for demo purposes
-        const min = 10000000;
-        const max = 99999999;
-        const accountNumber = Math.floor(Math.random() * (max - min + 1) + min).toString();
-        
-        // Initial balance: 10,000 for demo, 0 for real
-        const initialBalance = type === 'demo' ? 10000.00 : 0.00;
-
+    static async create(userId, accountType) {
+        const accountNumber = this.generateAccountNumber();
         const query = `
-            INSERT INTO trading_accounts (user_id, account_number, account_type, currency, balance)
-            VALUES ($1, $2, $3, $4, $5)
-            RETURNING id, account_number, account_type, balance, currency
+            INSERT INTO accounts (user_id, account_number, account_type, balance, currency, status)
+            VALUES ($1, $2, $3, $4, $5, $6)
+            RETURNING *
         `;
-
-        const values = [userId, accountNumber, type, currency, initialBalance];
+        const values = [userId, accountNumber, accountType, 0, 'USD', 'active'];
         const { rows } = await db.query(query, values);
         return rows[0];
     }
 
     static async findByUserId(userId) {
         const query = `
-            SELECT id, account_number, account_type, balance, currency, leverage
-            FROM trading_accounts
-            WHERE user_id = $1
+            SELECT * FROM accounts 
+            WHERE user_id = $1 
             ORDER BY created_at DESC
         `;
         const { rows } = await db.query(query, [userId]);
         return rows;
+    }
+
+    static async findByAccountNumber(accountNumber) {
+        const query = 'SELECT * FROM accounts WHERE account_number = $1';
+        const { rows } = await db.query(query, [accountNumber]);
+        return rows[0];
+    }
+
+    static async updateBalance(accountId, newBalance) {
+        const query = `
+            UPDATE accounts 
+            SET balance = $1, updated_at = CURRENT_TIMESTAMP
+            WHERE id = $2 
+            RETURNING *
+        `;
+        const { rows } = await db.query(query, [newBalance, accountId]);
+        return rows[0];
+    }
+
+    static generateAccountNumber() {
+        const prefix = 'RT';
+        const timestamp = Date.now().toString().slice(-8);
+        const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+        return `${prefix}${timestamp}${random}`;
     }
 }
 

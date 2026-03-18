@@ -1,3 +1,4 @@
+// src/config/database.js
 const { Pool } = require('pg');
 require('dotenv').config();
 
@@ -7,11 +8,19 @@ const pool = new Pool({
     user: process.env.DB_USER || 'postgres',
     password: process.env.DB_PASSWORD,
     database: process.env.DB_NAME || 'trade_db',
+    max: 20, // maximum number of clients in the pool
+    idleTimeoutMillis: 30000,
+    connectionTimeoutMillis: 2000,
 });
 
 // Test connection
-pool.on('connect', () => {
-    // console.log('Connected to PostgreSQL Database');
+pool.connect((err, client, release) => {
+    if (err) {
+        console.error('Error connecting to PostgreSQL database:', err.stack);
+    } else {
+        console.log('✅ Connected to PostgreSQL Database');
+        release();
+    }
 });
 
 pool.on('error', (err) => {
