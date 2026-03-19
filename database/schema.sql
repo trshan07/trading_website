@@ -1,3 +1,4 @@
+-- Active: 1773618003761@@localhost@5432@trade_db
 -- Create users table if it doesn't exist
 CREATE TABLE IF NOT EXISTS users (
     id SERIAL PRIMARY KEY,
