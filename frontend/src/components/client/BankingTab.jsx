@@ -1,5 +1,5 @@
 // frontend/src/components/client/BankingTab.jsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   FaWallet, FaExchangeAlt, FaMoneyBillWave, FaLandmark,
   FaCreditCard, FaMobileAlt, FaHistory, FaArrowRight,
@@ -8,7 +8,7 @@ import {
   FaPaypal, FaBitcoin, FaArrowUp, FaArrowDown,
   FaShieldAlt, FaCcVisa, FaCcMastercard, FaCcAmex,
   FaCcDiscover, FaCalendarAlt, FaUser, FaBuilding,
-  FaIdCard, FaHome, FaPhone, FaEnvelope
+  FaIdCard, FaHome, FaPhone, FaEnvelope, FaBars
 } from 'react-icons/fa';
 
 const BankingTab = ({ 
@@ -36,6 +36,21 @@ const BankingTab = ({
   const [selectedMethod, setSelectedMethod] = useState('bank');
   const [showSuccessMessage, setShowSuccessMessage] = useState('');
   const [showErrorMessage, setShowErrorMessage] = useState('');
+  const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1200);
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
+
+  // Handle window resize
+  useEffect(() => {
+    const handleResize = () => {
+      setWindowWidth(window.innerWidth);
+    };
+    
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  const isMobile = windowWidth < 768;
+  const isTablet = windowWidth >= 768 && windowWidth < 1024;
 
   // Form states for adding bank account
   const [bankForm, setBankForm] = useState({
@@ -72,27 +87,27 @@ const BankingTab = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const bankingTabs = [
-    { id: 'overview', label: 'Banking Overview', icon: FaUniversity },
-    { id: 'transfer', label: 'Internal Transfer', icon: FaExchangeAlt },
-    { id: 'withdraw', label: 'Withdrawals', icon: FaMoneyBillWave },
-    { id: 'accounts', label: 'Bank Accounts', icon: FaLandmark },
-    { id: 'cards', label: 'Credit Cards', icon: FaCreditCard },
-    { id: 'payment', label: 'Payment Methods', icon: FaMobileAlt },
-    { id: 'history', label: 'Transaction History', icon: FaHistory }
+    { id: 'overview', label: 'Overview', icon: FaUniversity },
+    { id: 'transfer', label: 'Transfer', icon: FaExchangeAlt },
+    { id: 'withdraw', label: 'Withdraw', icon: FaMoneyBillWave },
+    { id: 'accounts', label: 'Accounts', icon: FaLandmark },
+    { id: 'cards', label: 'Cards', icon: FaCreditCard },
+    { id: 'payment', label: 'Payment', icon: FaMobileAlt },
+    { id: 'history', label: 'History', icon: FaHistory }
   ];
 
   const quickAmounts = [100, 500, 1000, 5000, 10000];
 
   const depositMethods = [
-    { id: 'bank', name: 'Bank Transfer', icon: FaUniversity, processing: '1-3 business days', fee: 'Free' },
+    { id: 'bank', name: 'Bank Transfer', icon: FaUniversity, processing: '1-3 days', fee: 'Free' },
     { id: 'card', name: 'Credit/Debit Card', icon: FaCreditCard, processing: 'Instant', fee: '2.5%' },
     { id: 'paypal', name: 'PayPal', icon: FaPaypal, processing: 'Instant', fee: '1.5%' },
-    { id: 'crypto', name: 'Cryptocurrency', icon: FaBitcoin, processing: '10-30 minutes', fee: '0.1%' }
+    { id: 'crypto', name: 'Cryptocurrency', icon: FaBitcoin, processing: '30 min', fee: '0.1%' }
   ];
 
   const withdrawalMethods = [
-    { id: 'bank', name: 'Bank Transfer', icon: FaUniversity, processing: '1-3 business days', fee: 'Free', min: 50, max: 50000 },
-    { id: 'card', name: 'Credit/Debit Card', icon: FaCreditCard, processing: '3-5 business days', fee: '1%', min: 20, max: 10000 },
+    { id: 'bank', name: 'Bank Transfer', icon: FaUniversity, processing: '1-3 days', fee: 'Free', min: 50, max: 50000 },
+    { id: 'card', name: 'Credit/Debit Card', icon: FaCreditCard, processing: '3-5 days', fee: '1%', min: 20, max: 10000 },
     { id: 'paypal', name: 'PayPal', icon: FaPaypal, processing: '24 hours', fee: '2%', min: 10, max: 5000 },
     { id: 'crypto', name: 'Cryptocurrency', icon: FaBitcoin, processing: '1 hour', fee: '0.0005 BTC', min: 50, max: 50000 }
   ];
@@ -201,7 +216,6 @@ const BankingTab = ({
       ...prev,
       [name]: type === 'checkbox' ? checked : value
     }));
-    // Clear error for this field
     if (formErrors[name]) {
       setFormErrors(prev => ({ ...prev, [name]: '' }));
     }
@@ -210,7 +224,6 @@ const BankingTab = ({
   const handleCardFormChange = (e) => {
     const { name, value, type, checked } = e.target;
     
-    // Format card number with spaces
     if (name === 'cardNumber') {
       const cleaned = value.replace(/\s/g, '');
       const formatted = cleaned.replace(/(\d{4})/g, '$1 ').trim();
@@ -222,7 +235,6 @@ const BankingTab = ({
       }));
     }
     
-    // Clear error for this field
     if (formErrors[name]) {
       setFormErrors(prev => ({ ...prev, [name]: '' }));
     }
@@ -240,7 +252,6 @@ const BankingTab = ({
     setIsSubmitting(true);
     
     try {
-      // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 1500));
       
       const newAccount = {
@@ -259,7 +270,6 @@ const BankingTab = ({
       setShowSuccessMessage('Bank account added successfully!');
       setTimeout(() => setShowSuccessMessage(''), 3000);
       
-      // Reset form
       setBankForm({
         bankName: '',
         accountName: '',
@@ -296,13 +306,11 @@ const BankingTab = ({
     setIsSubmitting(true);
     
     try {
-      // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 1500));
       
       const cardNumberClean = cardForm.cardNumber.replace(/\s/g, '');
       const last4 = cardNumberClean.slice(-4);
       
-      // Detect card type
       let cardType = 'Unknown';
       if (cardNumberClean.startsWith('4')) {
         cardType = 'Visa';
@@ -321,7 +329,7 @@ const BankingTab = ({
         cardType,
         isVerified: false,
         isDefault: cardForm.isDefault || creditCards.length === 0,
-        availableCredit: 5000 // Mock available credit
+        availableCredit: 5000
       };
       
       delete newCard.cvv;
@@ -334,7 +342,6 @@ const BankingTab = ({
       setShowSuccessMessage('Credit card added successfully!');
       setTimeout(() => setShowSuccessMessage(''), 3000);
       
-      // Reset form
       setCardForm({
         cardholderName: '',
         cardNumber: '',
@@ -430,22 +437,22 @@ const BankingTab = ({
 
   const getCardIcon = (cardType) => {
     switch(cardType) {
-      case 'Visa': return <FaCcVisa className="text-blue-400 text-2xl" />;
-      case 'Mastercard': return <FaCcMastercard className="text-orange-400 text-2xl" />;
-      case 'American Express': return <FaCcAmex className="text-blue-300 text-2xl" />;
-      case 'Discover': return <FaCcDiscover className="text-orange-300 text-2xl" />;
-      default: return <FaCreditCard className="text-gold-500 text-2xl" />;
+      case 'Visa': return <FaCcVisa className="text-blue-400 text-xl sm:text-2xl" />;
+      case 'Mastercard': return <FaCcMastercard className="text-orange-400 text-xl sm:text-2xl" />;
+      case 'American Express': return <FaCcAmex className="text-blue-300 text-xl sm:text-2xl" />;
+      case 'Discover': return <FaCcDiscover className="text-orange-300 text-xl sm:text-2xl" />;
+      default: return <FaCreditCard className="text-gold-500 text-xl sm:text-2xl" />;
     }
   };
 
-  // Bank Accounts Section
+  // Bank Accounts Section - Responsive
   const BankAccountsSection = () => (
-    <div className="bg-navy-800/50 rounded-xl border border-gold-500/20 p-6">
-      <div className="flex justify-between items-center mb-6">
-        <h3 className="text-lg font-semibold text-gold-500">Your Bank Accounts</h3>
+    <div className="bg-navy-800/50 rounded-xl border border-gold-500/20 p-4 sm:p-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+        <h3 className="text-base sm:text-lg font-semibold text-gold-500">Your Bank Accounts</h3>
         <button 
           onClick={() => setShowAddAccount(true)}
-          className="px-4 py-2 bg-gold-500 text-navy-950 rounded-lg hover:bg-gold-600 transition-all flex items-center space-x-2"
+          className="w-full sm:w-auto px-4 py-2 bg-gold-500 text-navy-950 rounded-lg hover:bg-gold-600 transition-all flex items-center justify-center space-x-2"
         >
           <FaPlus size={14} />
           <span>Add Bank Account</span>
@@ -455,9 +462,9 @@ const BankingTab = ({
       <div className="space-y-4">
         {bankAccounts.map((account) => (
           <div key={account.id} className="bg-navy-700/50 rounded-lg p-4 border border-gold-500/20">
-            <div className="flex justify-between items-start">
-              <div>
-                <div className="flex items-center space-x-2">
+            <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
+              <div className="flex-1">
+                <div className="flex flex-wrap items-center gap-2 mb-2">
                   <FaBuilding className="text-gold-500" />
                   <h4 className="text-white font-medium">{account.bankName}</h4>
                   {account.isVerified && (
@@ -466,17 +473,19 @@ const BankingTab = ({
                     </span>
                   )}
                 </div>
-                <p className="text-sm text-gold-500/70 mt-2">
+                <p className="text-sm text-gold-500/70">
                   {account.accountName} •••• {account.accountNumber.slice(-4)}
                 </p>
-                <p className="text-xs text-gold-500/50">
+                <p className="text-xs text-gold-500/50 mt-1">
                   Routing: {account.routingNumber} • {account.accountType.charAt(0).toUpperCase() + account.accountType.slice(1)}
                 </p>
-                <p className="text-xs text-gold-500/50 mt-1">
-                  {account.address}, {account.city}, {account.state} {account.zipCode}
-                </p>
+                {!isMobile && (
+                  <p className="text-xs text-gold-500/50 mt-1">
+                    {account.address}, {account.city}, {account.state} {account.zipCode}
+                  </p>
+                )}
               </div>
-              <div className="flex items-center space-x-2">
+              <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
                 {account.isDefault && (
                   <span className="px-2 py-1 bg-gold-500/20 text-gold-500 text-xs rounded">Default</span>
                 )}
@@ -498,34 +507,39 @@ const BankingTab = ({
                 </button>
               </div>
             </div>
+            {isMobile && (
+              <p className="text-xs text-gold-500/50 mt-2">
+                {account.address}, {account.city}, {account.state} {account.zipCode}
+              </p>
+            )}
           </div>
         ))}
       </div>
 
       {bankAccounts.length === 0 && (
         <div className="text-center py-8">
-          <FaBuilding className="mx-auto text-gold-500/30 text-4xl mb-3" />
-          <p className="text-gold-500/50">No bank accounts added yet</p>
+          <FaBuilding className="mx-auto text-gold-500/30 text-3xl sm:text-4xl mb-3" />
+          <p className="text-gold-500/50 text-sm sm:text-base">No bank accounts added yet</p>
         </div>
       )}
     </div>
   );
 
-  // Credit Cards Section
+  // Credit Cards Section - Responsive
   const CreditCardsSection = () => (
-    <div className="bg-navy-800/50 rounded-xl border border-gold-500/20 p-6">
-      <div className="flex justify-between items-center mb-6">
-        <h3 className="text-lg font-semibold text-gold-500">Your Credit Cards</h3>
+    <div className="bg-navy-800/50 rounded-xl border border-gold-500/20 p-4 sm:p-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+        <h3 className="text-base sm:text-lg font-semibold text-gold-500">Your Credit Cards</h3>
         <button 
           onClick={() => setShowAddCard(true)}
-          className="px-4 py-2 bg-gold-500 text-navy-950 rounded-lg hover:bg-gold-600 transition-all flex items-center space-x-2"
+          className="w-full sm:w-auto px-4 py-2 bg-gold-500 text-navy-950 rounded-lg hover:bg-gold-600 transition-all flex items-center justify-center space-x-2"
         >
           <FaPlus size={14} />
           <span>Add Card</span>
         </button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {creditCards.map((card) => (
           <div key={card.id} className="bg-gradient-to-br from-navy-700 to-navy-800 rounded-lg p-4 border border-gold-500/30">
             <div className="flex justify-between items-start mb-4">
@@ -534,9 +548,9 @@ const BankingTab = ({
                 <span className="px-2 py-1 bg-gold-500/20 text-gold-500 text-xs rounded">Default</span>
               )}
             </div>
-            <p className="text-white font-mono text-lg">•••• •••• •••• {card.last4}</p>
+            <p className="text-white font-mono text-base sm:text-lg">•••• •••• •••• {card.last4}</p>
             <p className="text-sm text-gold-500/70 mt-2">{card.cardholderName}</p>
-            <div className="flex justify-between items-center mt-4">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mt-4">
               <p className="text-xs text-gold-500/50">Expires {card.expiryMonth}/{card.expiryYear}</p>
               <p className="text-xs text-green-400">Available: ${card.availableCredit?.toLocaleString()}</p>
             </div>
@@ -567,21 +581,21 @@ const BankingTab = ({
 
       {creditCards.length === 0 && (
         <div className="text-center py-8">
-          <FaCreditCard className="mx-auto text-gold-500/30 text-4xl mb-3" />
-          <p className="text-gold-500/50">No credit cards added yet</p>
+          <FaCreditCard className="mx-auto text-gold-500/30 text-3xl sm:text-4xl mb-3" />
+          <p className="text-gold-500/50 text-sm sm:text-base">No credit cards added yet</p>
         </div>
       )}
     </div>
   );
 
-  // Payment Methods Section
+  // Payment Methods Section - Responsive
   const PaymentMethodsSection = () => (
-    <div className="bg-navy-800/50 rounded-xl border border-gold-500/20 p-6">
-      <h3 className="text-lg font-semibold text-gold-500 mb-6">Your Online Payment Methods</h3>
+    <div className="bg-navy-800/50 rounded-xl border border-gold-500/20 p-4 sm:p-6">
+      <h3 className="text-base sm:text-lg font-semibold text-gold-500 mb-6">Your Online Payment Methods</h3>
       
       <div className="space-y-4">
         {paymentMethods.map((method) => (
-          <div key={method.id} className="flex items-center justify-between p-4 bg-navy-700/50 rounded-lg border border-gold-500/20">
+          <div key={method.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-navy-700/50 rounded-lg border border-gold-500/20 gap-4">
             <div className="flex items-center space-x-3">
               {method.method === 'PayPal' && <FaPaypal className="text-blue-400 text-xl" />}
               {method.method === 'Skrill' && <FaMoneyBillWave className="text-orange-400 text-xl" />}
@@ -611,71 +625,128 @@ const BankingTab = ({
     </div>
   );
 
-  // Transaction History Section
+  // Transaction History Section - Responsive
   const TransactionHistorySection = () => (
     <div className="bg-navy-800/50 rounded-xl border border-gold-500/20 overflow-hidden">
       <div className="p-4 border-b border-gold-500/20">
-        <h3 className="text-lg font-semibold text-gold-500">Transaction History</h3>
+        <h3 className="text-base sm:text-lg font-semibold text-gold-500">Transaction History</h3>
       </div>
-      <div className="overflow-x-auto">
-        <table className="w-full">
-          <thead className="bg-navy-900/50">
-            <tr>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gold-500/70">Date</th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gold-500/70">Type</th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gold-500/70">Amount</th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gold-500/70">Method</th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gold-500/70">From/To</th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gold-500/70">Status</th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gold-500/70">Reference</th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gold-500/70">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gold-500/10">
-            {transactions.map((tx) => (
-              <tr key={tx.id} className="hover:bg-navy-700/30">
-                <td className="px-4 py-3 text-sm text-gold-500/70">{tx.date}</td>
-                <td className="px-4 py-3">
-                  <div className="flex items-center space-x-2">
-                    {tx.type === 'Deposit' && <FaArrowDown className="text-green-400" size={12} />}
-                    {tx.type === 'Withdrawal' && <FaArrowUp className="text-red-400" size={12} />}
-                    {tx.type === 'Transfer' && <FaExchangeAlt className="text-gold-400" size={12} />}
-                    <span className={`text-sm ${
-                      tx.type === 'Deposit' ? 'text-green-400' : 
-                      tx.type === 'Withdrawal' ? 'text-red-400' : 'text-gold-400'
-                    }`}>
-                      {tx.type}
-                    </span>
-                  </div>
-                </td>
-                <td className="px-4 py-3 text-sm text-white">${tx.amount.toLocaleString()}</td>
-                <td className="px-4 py-3 text-sm text-gold-500/70">{tx.method}</td>
-                <td className="px-4 py-3 text-sm text-gold-500/50">{tx.from} → {tx.to}</td>
-                <td className="px-4 py-3">
-                  <span className={`px-2 py-1 text-xs rounded-full ${
-                    tx.status === 'Completed' ? 'bg-green-500/20 text-green-400' : 
-                    tx.status === 'Pending' ? 'bg-yellow-500/20 text-yellow-400' : 
-                    'bg-red-500/20 text-red-400'
+      
+      {isMobile ? (
+        // Mobile view - Card layout
+        <div className="p-4 space-y-4">
+          {transactions.map((tx) => (
+            <div key={tx.id} className="bg-navy-700/30 rounded-lg p-4 border border-gold-500/20">
+              <div className="flex justify-between items-start mb-3">
+                <div className="flex items-center space-x-2">
+                  {tx.type === 'Deposit' && <FaArrowDown className="text-green-400" size={12} />}
+                  {tx.type === 'Withdrawal' && <FaArrowUp className="text-red-400" size={12} />}
+                  {tx.type === 'Transfer' && <FaExchangeAlt className="text-gold-400" size={12} />}
+                  <span className={`text-sm font-medium ${
+                    tx.type === 'Deposit' ? 'text-green-400' : 
+                    tx.type === 'Withdrawal' ? 'text-red-400' : 'text-gold-400'
                   }`}>
-                    {tx.status}
+                    {tx.type}
                   </span>
-                </td>
-                <td className="px-4 py-3 text-xs text-gold-500/50">{tx.reference}</td>
-                <td className="px-4 py-3">
-                  <button className="p-1 text-gold-500/70 hover:text-gold-500">
-                    <FaDownload size={14} />
-                  </button>
-                </td>
+                </div>
+                <span className={`px-2 py-1 text-xs rounded-full ${
+                  tx.status === 'Completed' ? 'bg-green-500/20 text-green-400' : 
+                  tx.status === 'Pending' ? 'bg-yellow-500/20 text-yellow-400' : 
+                  'bg-red-500/20 text-red-400'
+                }`}>
+                  {tx.status}
+                </span>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-3 text-sm mb-3">
+                <div>
+                  <p className="text-gold-500/50 text-xs">Amount</p>
+                  <p className="text-white font-medium">${tx.amount.toLocaleString()}</p>
+                </div>
+                <div>
+                  <p className="text-gold-500/50 text-xs">Method</p>
+                  <p className="text-gold-500/70">{tx.method}</p>
+                </div>
+                <div>
+                  <p className="text-gold-500/50 text-xs">Date</p>
+                  <p className="text-gold-500/70 text-xs">{tx.date}</p>
+                </div>
+                <div>
+                  <p className="text-gold-500/50 text-xs">Reference</p>
+                  <p className="text-gold-500/50 text-xs">{tx.reference}</p>
+                </div>
+              </div>
+              
+              <div className="flex justify-end">
+                <button className="p-2 text-gold-500/70 hover:text-gold-500">
+                  <FaDownload size={14} />
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        // Desktop view - Table layout
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-navy-900/50">
+              <tr>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gold-500/70">Date</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gold-500/70">Type</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gold-500/70">Amount</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gold-500/70">Method</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gold-500/70">From/To</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gold-500/70">Status</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gold-500/70">Reference</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gold-500/70">Actions</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody className="divide-y divide-gold-500/10">
+              {transactions.map((tx) => (
+                <tr key={tx.id} className="hover:bg-navy-700/30">
+                  <td className="px-4 py-3 text-sm text-gold-500/70">{tx.date}</td>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center space-x-2">
+                      {tx.type === 'Deposit' && <FaArrowDown className="text-green-400" size={12} />}
+                      {tx.type === 'Withdrawal' && <FaArrowUp className="text-red-400" size={12} />}
+                      {tx.type === 'Transfer' && <FaExchangeAlt className="text-gold-400" size={12} />}
+                      <span className={`text-sm ${
+                        tx.type === 'Deposit' ? 'text-green-400' : 
+                        tx.type === 'Withdrawal' ? 'text-red-400' : 'text-gold-400'
+                      }`}>
+                        {tx.type}
+                      </span>
+                    </div>
+                  </td>
+                  <td className="px-4 py-3 text-sm text-white">${tx.amount.toLocaleString()}</td>
+                  <td className="px-4 py-3 text-sm text-gold-500/70">{tx.method}</td>
+                  <td className="px-4 py-3 text-sm text-gold-500/50">{tx.from} → {tx.to}</td>
+                  <td className="px-4 py-3">
+                    <span className={`px-2 py-1 text-xs rounded-full ${
+                      tx.status === 'Completed' ? 'bg-green-500/20 text-green-400' : 
+                      tx.status === 'Pending' ? 'bg-yellow-500/20 text-yellow-400' : 
+                      'bg-red-500/20 text-red-400'
+                    }`}>
+                      {tx.status}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 text-xs text-gold-500/50">{tx.reference}</td>
+                  <td className="px-4 py-3">
+                    <button className="p-1 text-gold-500/70 hover:text-gold-500">
+                      <FaDownload size={14} />
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Success/Error Messages */}
       {showSuccessMessage && (
         <div className="fixed top-4 right-4 z-50 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg flex items-center space-x-2">
@@ -691,77 +762,115 @@ const BankingTab = ({
         </div>
       )}
 
-      {/* Banking Navigation */}
-      <div className="bg-navy-800/50 rounded-xl border border-gold-500/20 p-4">
-        <div className="flex flex-wrap gap-2">
-          {bankingTabs.map((item) => (
+      {/* Banking Navigation - Responsive */}
+      <div className="bg-navy-800/50 rounded-xl border border-gold-500/20 p-3 sm:p-4">
+        {isMobile ? (
+          // Mobile navigation with dropdown
+          <div className="relative">
             <button
-              key={item.id}
-              onClick={() => setActiveBankingTab(item.id)}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center space-x-2 ${
-                activeBankingTab === item.id
-                  ? 'bg-gold-500 text-navy-950'
-                  : 'text-gold-500/70 hover:text-gold-500 hover:bg-navy-700'
-              }`}
+              onClick={() => setShowMobileMenu(!showMobileMenu)}
+              className="w-full px-4 py-3 bg-navy-700 rounded-lg text-gold-500 flex items-center justify-between"
             >
-              <item.icon size={16} />
-              <span>{item.label}</span>
+              <span className="flex items-center">
+                {bankingTabs.find(tab => tab.id === activeBankingTab)?.icon && 
+                  React.createElement(bankingTabs.find(tab => tab.id === activeBankingTab).icon, { className: "mr-2" })}
+                {bankingTabs.find(tab => tab.id === activeBankingTab)?.label}
+              </span>
+              <FaBars />
             </button>
-          ))}
-        </div>
+            
+            {showMobileMenu && (
+              <div className="absolute top-full left-0 right-0 mt-2 bg-navy-800 rounded-lg border border-gold-500/30 shadow-xl z-10">
+                {bankingTabs.map((item) => (
+                  <button
+                    key={item.id}
+                    onClick={() => {
+                      setActiveBankingTab(item.id);
+                      setShowMobileMenu(false);
+                    }}
+                    className={`w-full px-4 py-3 text-left flex items-center space-x-2 hover:bg-navy-700 ${
+                      activeBankingTab === item.id ? 'bg-gold-500/10 text-gold-500' : 'text-gold-500/70'
+                    }`}
+                  >
+                    <item.icon size={16} />
+                    <span>{item.label}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        ) : (
+          // Desktop navigation - tabs
+          <div className="flex flex-wrap gap-2">
+            {bankingTabs.map((item) => (
+              <button
+                key={item.id}
+                onClick={() => setActiveBankingTab(item.id)}
+                className={`px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all flex items-center space-x-2 ${
+                  activeBankingTab === item.id
+                    ? 'bg-gold-500 text-navy-950'
+                    : 'text-gold-500/70 hover:text-gold-500 hover:bg-navy-700'
+                }`}
+              >
+                <item.icon size={isTablet ? 14 : 16} />
+                <span>{item.label}</span>
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Banking Content */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className={`grid ${isMobile ? 'grid-cols-1' : 'lg:grid-cols-3'} gap-4 sm:gap-6`}>
         {/* Left Column - Wallet Info */}
-        <div className="lg:col-span-1 space-y-6">
+        <div className="lg:col-span-1 space-y-4 sm:space-y-6">
           {/* Wallet Balance Card */}
-          <div className="bg-navy-800/50 rounded-xl border border-gold-500/20 p-6">
-            <h3 className="text-lg font-semibold text-gold-500 mb-4 flex items-center">
+          <div className="bg-navy-800/50 rounded-xl border border-gold-500/20 p-4 sm:p-6">
+            <h3 className="text-base sm:text-lg font-semibold text-gold-500 mb-4 flex items-center">
               <FaWallet className="mr-2" />
               My Wallet
             </h3>
             <div className="space-y-4">
               <div>
-                <p className="text-sm text-gold-500/70">Main Wallet Balance</p>
-                <p className="text-3xl font-bold text-white">
+                <p className="text-xs sm:text-sm text-gold-500/70">Main Wallet Balance</p>
+                <p className="text-2xl sm:text-3xl font-bold text-white">
                   ${walletData.mainWallet?.toLocaleString() || '0'}
                 </p>
               </div>
               <div className="grid grid-cols-2 gap-3">
-                <div className="bg-navy-700/50 rounded-lg p-3">
+                <div className="bg-navy-700/50 rounded-lg p-2 sm:p-3">
                   <p className="text-xs text-gold-500/70">Trading Wallet</p>
-                  <p className="text-lg font-semibold text-gold-400">
+                  <p className="text-base sm:text-lg font-semibold text-gold-400">
                     ${walletData.tradingWallet?.toLocaleString() || '0'}
                   </p>
                 </div>
-                <div className="bg-navy-700/50 rounded-lg p-3">
+                <div className="bg-navy-700/50 rounded-lg p-2 sm:p-3">
                   <p className="text-xs text-gold-500/70">Bonus Wallet</p>
-                  <p className="text-lg font-semibold text-green-400">
+                  <p className="text-base sm:text-lg font-semibold text-green-400">
                     ${walletData.bonusWallet?.toLocaleString() || '0'}
                   </p>
                 </div>
               </div>
               <div className="pt-4 border-t border-gold-500/20">
-                <div className="flex justify-between text-sm mb-2">
+                <div className="flex justify-between text-xs sm:text-sm mb-2">
                   <span className="text-gold-500/70">Pending Withdrawals</span>
                   <span className="text-yellow-400">${walletData.pendingWithdrawals?.toLocaleString() || '0'}</span>
                 </div>
-                <div className="flex justify-between text-sm">
+                <div className="flex justify-between text-xs sm:text-sm">
                   <span className="text-gold-500/70">Pending Deposits</span>
                   <span className="text-green-400">${walletData.pendingDeposits?.toLocaleString() || '0'}</span>
                 </div>
               </div>
-              <div className="flex space-x-2 pt-2">
+              <div className="flex flex-col sm:flex-row gap-2 pt-2">
                 <button 
                   onClick={() => setShowDeposit(true)}
-                  className="flex-1 px-4 py-2 bg-gold-500 text-navy-950 rounded-lg hover:bg-gold-600 transition-all"
+                  className="flex-1 px-4 py-2 bg-gold-500 text-navy-950 rounded-lg hover:bg-gold-600 transition-all text-sm sm:text-base"
                 >
                   Deposit
                 </button>
                 <button 
                   onClick={() => setShowWithdraw(true)}
-                  className="flex-1 px-4 py-2 bg-navy-700 text-gold-500 rounded-lg hover:bg-navy-600 transition-all"
+                  className="flex-1 px-4 py-2 bg-navy-700 text-gold-500 rounded-lg hover:bg-navy-600 transition-all text-sm sm:text-base"
                 >
                   Withdraw
                 </button>
@@ -770,12 +879,12 @@ const BankingTab = ({
           </div>
 
           {/* Quick Actions */}
-          <div className="bg-navy-800/50 rounded-xl border border-gold-500/20 p-6">
-            <h3 className="text-md font-semibold text-gold-500 mb-3">Quick Actions</h3>
+          <div className="bg-navy-800/50 rounded-xl border border-gold-500/20 p-4 sm:p-6">
+            <h3 className="text-sm sm:text-md font-semibold text-gold-500 mb-3">Quick Actions</h3>
             <div className="space-y-2">
               <button 
                 onClick={onShowTransferModal}
-                className="w-full px-4 py-3 bg-navy-700 text-left text-white rounded-lg hover:bg-navy-600 flex items-center justify-between"
+                className="w-full px-4 py-3 bg-navy-700 text-left text-white rounded-lg hover:bg-navy-600 flex items-center justify-between text-sm sm:text-base"
               >
                 <span className="flex items-center">
                   <FaExchangeAlt className="mr-2 text-gold-500" />
@@ -785,7 +894,7 @@ const BankingTab = ({
               </button>
               <button 
                 onClick={() => setShowAddAccount(true)}
-                className="w-full px-4 py-3 bg-navy-700 text-left text-white rounded-lg hover:bg-navy-600 flex items-center justify-between"
+                className="w-full px-4 py-3 bg-navy-700 text-left text-white rounded-lg hover:bg-navy-600 flex items-center justify-between text-sm sm:text-base"
               >
                 <span className="flex items-center">
                   <FaBuilding className="mr-2 text-gold-500" />
@@ -795,7 +904,7 @@ const BankingTab = ({
               </button>
               <button 
                 onClick={() => setShowAddCard(true)}
-                className="w-full px-4 py-3 bg-navy-700 text-left text-white rounded-lg hover:bg-navy-600 flex items-center justify-between"
+                className="w-full px-4 py-3 bg-navy-700 text-left text-white rounded-lg hover:bg-navy-600 flex items-center justify-between text-sm sm:text-base"
               >
                 <span className="flex items-center">
                   <FaCreditCard className="mr-2 text-gold-500" />
@@ -803,7 +912,7 @@ const BankingTab = ({
                 </span>
                 <FaPlus className="text-gold-500/50" />
               </button>
-              <button className="w-full px-4 py-3 bg-navy-700 text-left text-white rounded-lg hover:bg-navy-600 flex items-center justify-between">
+              <button className="w-full px-4 py-3 bg-navy-700 text-left text-white rounded-lg hover:bg-navy-600 flex items-center justify-between text-sm sm:text-base">
                 <span className="flex items-center">
                   <FaFileInvoice className="mr-2 text-gold-500" />
                   Generate Statement
@@ -815,26 +924,26 @@ const BankingTab = ({
         </div>
 
         {/* Right Column - Main Banking Area */}
-        <div className="lg:col-span-2 space-y-6">
+        <div className="lg:col-span-2 space-y-4 sm:space-y-6">
           {activeBankingTab === 'overview' && (
             <>
-              <div className="bg-navy-800/50 rounded-xl border border-gold-500/20 p-6">
-                <h3 className="text-lg font-semibold text-gold-500 mb-4">Banking Overview</h3>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="bg-navy-800/50 rounded-xl border border-gold-500/20 p-4 sm:p-6">
+                <h3 className="text-base sm:text-lg font-semibold text-gold-500 mb-4">Banking Overview</h3>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
                   <div className="text-center">
-                    <p className="text-2xl font-bold text-white">${walletData.totalBalance?.toLocaleString() || '0'}</p>
+                    <p className="text-lg sm:text-2xl font-bold text-white">${walletData.totalBalance?.toLocaleString() || '0'}</p>
                     <p className="text-xs text-gold-500/70">Total Balance</p>
                   </div>
                   <div className="text-center">
-                    <p className="text-2xl font-bold text-green-400">+$5,250</p>
+                    <p className="text-lg sm:text-2xl font-bold text-green-400">+$5,250</p>
                     <p className="text-xs text-gold-500/70">This Month</p>
                   </div>
                   <div className="text-center">
-                    <p className="text-2xl font-bold text-gold-400">{transactions.length}</p>
+                    <p className="text-lg sm:text-2xl font-bold text-gold-400">{transactions.length}</p>
                     <p className="text-xs text-gold-500/70">Transactions</p>
                   </div>
                   <div className="text-center">
-                    <p className="text-2xl font-bold text-yellow-400">
+                    <p className="text-lg sm:text-2xl font-bold text-yellow-400">
                       {transactions.filter(t => t.status === 'Pending').length}
                     </p>
                     <p className="text-xs text-gold-500/70">Pending</p>
@@ -846,11 +955,11 @@ const BankingTab = ({
           )}
 
           {activeBankingTab === 'transfer' && (
-            <div className="bg-navy-800/50 rounded-xl border border-gold-500/20 p-6">
-              <h3 className="text-lg font-semibold text-gold-500 mb-4">Internal Transfer</h3>
+            <div className="bg-navy-800/50 rounded-xl border border-gold-500/20 p-4 sm:p-6">
+              <h3 className="text-base sm:text-lg font-semibold text-gold-500 mb-4">Internal Transfer</h3>
               <button
                 onClick={onShowTransferModal}
-                className="px-6 py-3 bg-gold-500 text-navy-950 rounded-lg hover:bg-gold-600"
+                className="w-full sm:w-auto px-6 py-3 bg-gold-500 text-navy-950 rounded-lg hover:bg-gold-600"
               >
                 Open Transfer Modal
               </button>
@@ -858,11 +967,11 @@ const BankingTab = ({
           )}
 
           {activeBankingTab === 'withdraw' && (
-            <div className="bg-navy-800/50 rounded-xl border border-gold-500/20 p-6">
-              <h3 className="text-lg font-semibold text-gold-500 mb-4">Withdrawals</h3>
+            <div className="bg-navy-800/50 rounded-xl border border-gold-500/20 p-4 sm:p-6">
+              <h3 className="text-base sm:text-lg font-semibold text-gold-500 mb-4">Withdrawals</h3>
               <button
                 onClick={() => setShowWithdraw(true)}
-                className="px-6 py-3 bg-gold-500 text-navy-950 rounded-lg hover:bg-gold-600"
+                className="w-full sm:w-auto px-6 py-3 bg-gold-500 text-navy-950 rounded-lg hover:bg-gold-600"
               >
                 Make a Withdrawal
               </button>
@@ -876,12 +985,12 @@ const BankingTab = ({
         </div>
       </div>
 
-      {/* Deposit Modal */}
+      {/* Deposit Modal - Responsive */}
       {showDeposit && (
-        <div className="fixed inset-0 bg-navy-950/95 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="bg-navy-800 rounded-2xl border border-gold-500/30 p-6 w-full max-w-md">
+        <div className="fixed inset-0 bg-navy-950/95 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-navy-800 rounded-2xl border border-gold-500/30 p-4 sm:p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-xl font-bold text-gold-500">Deposit Funds</h3>
+              <h3 className="text-lg sm:text-xl font-bold text-gold-500">Deposit Funds</h3>
               <button onClick={() => setShowDeposit(false)} className="text-gold-500/70 hover:text-gold-500">
                 <FaTimes />
               </button>
@@ -903,8 +1012,8 @@ const BankingTab = ({
                       <div className="flex items-center space-x-3">
                         <method.icon className="text-gold-500 text-xl" />
                         <div className="text-left">
-                          <p className="text-white font-medium">{method.name}</p>
-                          <p className="text-xs text-gold-500/50">Processing: {method.processing} | Fee: {method.fee}</p>
+                          <p className="text-white font-medium text-sm">{method.name}</p>
+                          <p className="text-xs text-gold-500/50">{method.processing} | Fee: {method.fee}</p>
                         </div>
                       </div>
                       {selectedMethod === method.id && <FaCheck className="text-gold-500" />}
@@ -932,7 +1041,7 @@ const BankingTab = ({
                   <button
                     key={amount}
                     onClick={() => setDepositAmount(amount)}
-                    className="px-3 py-1 bg-navy-700 text-gold-500 rounded-lg hover:bg-navy-600 text-sm"
+                    className="px-3 py-1 bg-navy-700 text-gold-500 rounded-lg hover:bg-navy-600 text-xs sm:text-sm"
                   >
                     ${amount}
                   </button>
@@ -962,7 +1071,7 @@ const BankingTab = ({
                   </span>
                 </div>
               </div>
-              <div className="flex space-x-3">
+              <div className="flex flex-col sm:flex-row gap-3">
                 <button
                   onClick={handleDeposit}
                   disabled={!depositAmount}
@@ -986,12 +1095,12 @@ const BankingTab = ({
         </div>
       )}
 
-      {/* Withdrawal Modal */}
+      {/* Withdrawal Modal - Responsive */}
       {showWithdraw && (
-        <div className="fixed inset-0 bg-navy-950/95 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="bg-navy-800 rounded-2xl border border-gold-500/30 p-6 w-full max-w-md">
+        <div className="fixed inset-0 bg-navy-950/95 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-navy-800 rounded-2xl border border-gold-500/30 p-4 sm:p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-xl font-bold text-gold-500">Withdraw Funds</h3>
+              <h3 className="text-lg sm:text-xl font-bold text-gold-500">Withdraw Funds</h3>
               <button onClick={() => setShowWithdraw(false)} className="text-gold-500/70 hover:text-gold-500">
                 <FaTimes />
               </button>
@@ -999,7 +1108,7 @@ const BankingTab = ({
             <div className="space-y-4">
               <div className="bg-navy-700/30 rounded-lg p-3">
                 <p className="text-xs text-gold-500/70">Available Balance</p>
-                <p className="text-2xl font-bold text-white">${walletData.mainWallet?.toLocaleString() || '0'}</p>
+                <p className="text-xl sm:text-2xl font-bold text-white">${walletData.mainWallet?.toLocaleString() || '0'}</p>
               </div>
               <div>
                 <label className="block text-sm text-gold-500/70 mb-2">Select Method</label>
@@ -1036,7 +1145,7 @@ const BankingTab = ({
                   <button
                     key={amount}
                     onClick={() => setWithdrawAmount(amount)}
-                    className="px-3 py-1 bg-navy-700 text-gold-500 rounded-lg hover:bg-navy-600 text-sm"
+                    className="px-3 py-1 bg-navy-700 text-gold-500 rounded-lg hover:bg-navy-600 text-xs sm:text-sm"
                   >
                     ${amount}
                   </button>
@@ -1071,7 +1180,7 @@ const BankingTab = ({
                   </span>
                 </div>
               </div>
-              <div className="flex space-x-3">
+              <div className="flex flex-col sm:flex-row gap-3">
                 <button
                   onClick={handleWithdraw}
                   disabled={!withdrawAmount || parseFloat(withdrawAmount) > walletData.mainWallet}
@@ -1095,33 +1204,36 @@ const BankingTab = ({
         </div>
       )}
 
-      {/* Add Bank Account Modal */}
+
+
+      {/* Add Bank Account Modal - Fully Responsive */}
       {showAddAccount && (
-        <div className="fixed inset-0 bg-navy-950/95 backdrop-blur-sm flex items-center justify-center z-50 overflow-y-auto">
-          <div className="bg-navy-800 rounded-2xl border border-gold-500/30 p-6 w-full max-w-2xl my-8">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-bold text-gold-500">Add Bank Account</h3>
-              <button onClick={() => setShowAddAccount(false)} className="text-gold-500/70 hover:text-gold-500">
-                <FaTimes />
+        <div className="fixed inset-0 bg-navy-950/95 backdrop-blur-sm flex items-center justify-center z-50 overflow-y-auto p-2 sm:p-4">
+          <div className="bg-navy-800 rounded-2xl border border-gold-500/30 p-3 sm:p-6 w-full max-w-2xl my-4 sm:my-8 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-4 sm:mb-6 sticky top-0 bg-navy-800 py-2 z-10">
+              <h3 className="text-base sm:text-xl font-bold text-gold-500">Add Bank Account</h3>
+              <button onClick={() => setShowAddAccount(false)} className="text-gold-500/70 hover:text-gold-500 p-2">
+                <FaTimes size={18} />
               </button>
             </div>
             
-            <form onSubmit={handleAddBankAccount} className="space-y-4">
+            <form onSubmit={handleAddBankAccount} className="space-y-3 sm:space-y-4">
               {/* Bank Information */}
-              <div className="border-b border-gold-500/20 pb-4">
-                <h4 className="text-md font-semibold text-gold-400 mb-4 flex items-center">
-                  <FaBuilding className="mr-2" /> Bank Information
+              <div className="border-b border-gold-500/20 pb-3 sm:pb-4">
+                <h4 className="text-sm sm:text-md font-semibold text-gold-400 mb-3 sm:mb-4 flex items-center">
+                  <FaBuilding className="mr-2" size={isMobile ? 14 : 16} /> Bank Information
                 </h4>
                 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-3 sm:space-y-4">
+                  {/* Bank Name - Full width on mobile */}
                   <div>
-                    <label className="block text-sm text-gold-500/70 mb-2">Bank Name *</label>
+                    <label className="block text-xs sm:text-sm text-gold-500/70 mb-1 sm:mb-2">Bank Name *</label>
                     <input
                       type="text"
                       name="bankName"
                       value={bankForm.bankName}
                       onChange={handleBankFormChange}
-                      className={`w-full px-4 py-3 bg-navy-700 border rounded-lg text-white focus:outline-none ${
+                      className={`w-full px-3 sm:px-4 py-2 sm:py-3 bg-navy-700 border rounded-lg text-white text-sm sm:text-base focus:outline-none ${
                         formErrors.bankName ? 'border-red-500' : 'border-gold-500/30 focus:border-gold-500'
                       }`}
                       placeholder="Enter bank name"
@@ -1131,13 +1243,14 @@ const BankingTab = ({
                     )}
                   </div>
                   
+                  {/* Account Type - Full width on mobile */}
                   <div>
-                    <label className="block text-sm text-gold-500/70 mb-2">Account Type *</label>
+                    <label className="block text-xs sm:text-sm text-gold-500/70 mb-1 sm:mb-2">Account Type *</label>
                     <select
                       name="accountType"
                       value={bankForm.accountType}
                       onChange={handleBankFormChange}
-                      className="w-full px-4 py-3 bg-navy-700 border border-gold-500/30 rounded-lg text-white focus:outline-none focus:border-gold-500"
+                      className="w-full px-3 sm:px-4 py-2 sm:py-3 bg-navy-700 border border-gold-500/30 rounded-lg text-white text-sm sm:text-base focus:outline-none focus:border-gold-500"
                     >
                       {accountTypes.map(type => (
                         <option key={type.value} value={type.value}>{type.label}</option>
@@ -1148,20 +1261,21 @@ const BankingTab = ({
               </div>
 
               {/* Account Holder Information */}
-              <div className="border-b border-gold-500/20 pb-4">
-                <h4 className="text-md font-semibold text-gold-400 mb-4 flex items-center">
-                  <FaUser className="mr-2" /> Account Holder Information
+              <div className="border-b border-gold-500/20 pb-3 sm:pb-4">
+                <h4 className="text-sm sm:text-md font-semibold text-gold-400 mb-3 sm:mb-4 flex items-center">
+                  <FaUser className="mr-2" size={isMobile ? 14 : 16} /> Account Holder Information
                 </h4>
                 
-                <div className="space-y-4">
+                <div className="space-y-3 sm:space-y-4">
+                  {/* Account Holder Name */}
                   <div>
-                    <label className="block text-sm text-gold-500/70 mb-2">Account Holder Name *</label>
+                    <label className="block text-xs sm:text-sm text-gold-500/70 mb-1 sm:mb-2">Account Holder Name *</label>
                     <input
                       type="text"
                       name="accountName"
                       value={bankForm.accountName}
                       onChange={handleBankFormChange}
-                      className={`w-full px-4 py-3 bg-navy-700 border rounded-lg text-white focus:outline-none ${
+                      className={`w-full px-3 sm:px-4 py-2 sm:py-3 bg-navy-700 border rounded-lg text-white text-sm sm:text-base focus:outline-none ${
                         formErrors.accountName ? 'border-red-500' : 'border-gold-500/30 focus:border-gold-500'
                       }`}
                       placeholder="Name on account"
@@ -1171,15 +1285,16 @@ const BankingTab = ({
                     )}
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Account Number and Confirm - Stack on mobile, side by side on desktop */}
+                  <div className="space-y-3 sm:space-y-0 sm:grid sm:grid-cols-2 sm:gap-4">
                     <div>
-                      <label className="block text-sm text-gold-500/70 mb-2">Account Number *</label>
+                      <label className="block text-xs sm:text-sm text-gold-500/70 mb-1 sm:mb-2">Account Number *</label>
                       <input
                         type="text"
                         name="accountNumber"
                         value={bankForm.accountNumber}
                         onChange={handleBankFormChange}
-                        className={`w-full px-4 py-3 bg-navy-700 border rounded-lg text-white focus:outline-none ${
+                        className={`w-full px-3 sm:px-4 py-2 sm:py-3 bg-navy-700 border rounded-lg text-white text-sm sm:text-base focus:outline-none ${
                           formErrors.accountNumber ? 'border-red-500' : 'border-gold-500/30 focus:border-gold-500'
                         }`}
                         placeholder="Enter account number"
@@ -1190,13 +1305,13 @@ const BankingTab = ({
                     </div>
                     
                     <div>
-                      <label className="block text-sm text-gold-500/70 mb-2">Confirm Account Number *</label>
+                      <label className="block text-xs sm:text-sm text-gold-500/70 mb-1 sm:mb-2">Confirm Account Number *</label>
                       <input
                         type="text"
                         name="confirmAccountNumber"
                         value={bankForm.confirmAccountNumber}
                         onChange={handleBankFormChange}
-                        className={`w-full px-4 py-3 bg-navy-700 border rounded-lg text-white focus:outline-none ${
+                        className={`w-full px-3 sm:px-4 py-2 sm:py-3 bg-navy-700 border rounded-lg text-white text-sm sm:text-base focus:outline-none ${
                           formErrors.confirmAccountNumber ? 'border-red-500' : 'border-gold-500/30 focus:border-gold-500'
                         }`}
                         placeholder="Confirm account number"
@@ -1207,14 +1322,15 @@ const BankingTab = ({
                     </div>
                   </div>
 
+                  {/* Routing Number */}
                   <div>
-                    <label className="block text-sm text-gold-500/70 mb-2">Routing Number *</label>
+                    <label className="block text-xs sm:text-sm text-gold-500/70 mb-1 sm:mb-2">Routing Number *</label>
                     <input
                       type="text"
                       name="routingNumber"
                       value={bankForm.routingNumber}
                       onChange={handleBankFormChange}
-                      className={`w-full px-4 py-3 bg-navy-700 border rounded-lg text-white focus:outline-none ${
+                      className={`w-full px-3 sm:px-4 py-2 sm:py-3 bg-navy-700 border rounded-lg text-white text-sm sm:text-base focus:outline-none ${
                         formErrors.routingNumber ? 'border-red-500' : 'border-gold-500/30 focus:border-gold-500'
                       }`}
                       placeholder="9-digit routing number"
@@ -1228,20 +1344,21 @@ const BankingTab = ({
               </div>
 
               {/* Address Information */}
-              <div className="border-b border-gold-500/20 pb-4">
-                <h4 className="text-md font-semibold text-gold-400 mb-4 flex items-center">
-                  <FaHome className="mr-2" /> Address Information
+              <div className="border-b border-gold-500/20 pb-3 sm:pb-4">
+                <h4 className="text-sm sm:text-md font-semibold text-gold-400 mb-3 sm:mb-4 flex items-center">
+                  <FaHome className="mr-2" size={isMobile ? 14 : 16} /> Address Information
                 </h4>
                 
-                <div className="space-y-4">
+                <div className="space-y-3 sm:space-y-4">
+                  {/* Street Address */}
                   <div>
-                    <label className="block text-sm text-gold-500/70 mb-2">Street Address *</label>
+                    <label className="block text-xs sm:text-sm text-gold-500/70 mb-1 sm:mb-2">Street Address *</label>
                     <input
                       type="text"
                       name="address"
                       value={bankForm.address}
                       onChange={handleBankFormChange}
-                      className={`w-full px-4 py-3 bg-navy-700 border rounded-lg text-white focus:outline-none ${
+                      className={`w-full px-3 sm:px-4 py-2 sm:py-3 bg-navy-700 border rounded-lg text-white text-sm sm:text-base focus:outline-none ${
                         formErrors.address ? 'border-red-500' : 'border-gold-500/30 focus:border-gold-500'
                       }`}
                       placeholder="Enter street address"
@@ -1251,15 +1368,17 @@ const BankingTab = ({
                     )}
                   </div>
 
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div className="col-span-2">
-                      <label className="block text-sm text-gold-500/70 mb-2">City *</label>
+                  {/* City, State, ZIP - Responsive grid */}
+                  <div className="space-y-3 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-4">
+                    {/* City - Full width on mobile, spans 1 on desktop */}
+                    <div className="sm:col-span-1">
+                      <label className="block text-xs sm:text-sm text-gold-500/70 mb-1 sm:mb-2">City *</label>
                       <input
                         type="text"
                         name="city"
                         value={bankForm.city}
                         onChange={handleBankFormChange}
-                        className={`w-full px-4 py-3 bg-navy-700 border rounded-lg text-white focus:outline-none ${
+                        className={`w-full px-3 sm:px-4 py-2 sm:py-3 bg-navy-700 border rounded-lg text-white text-sm sm:text-base focus:outline-none ${
                           formErrors.city ? 'border-red-500' : 'border-gold-500/30 focus:border-gold-500'
                         }`}
                         placeholder="City"
@@ -1269,13 +1388,14 @@ const BankingTab = ({
                       )}
                     </div>
                     
+                    {/* State - Full width on mobile */}
                     <div>
-                      <label className="block text-sm text-gold-500/70 mb-2">State *</label>
+                      <label className="block text-xs sm:text-sm text-gold-500/70 mb-1 sm:mb-2">State *</label>
                       <select
                         name="state"
                         value={bankForm.state}
                         onChange={handleBankFormChange}
-                        className={`w-full px-4 py-3 bg-navy-700 border rounded-lg text-white focus:outline-none ${
+                        className={`w-full px-3 sm:px-4 py-2 sm:py-3 bg-navy-700 border rounded-lg text-white text-sm sm:text-base focus:outline-none ${
                           formErrors.state ? 'border-red-500' : 'border-gold-500/30 focus:border-gold-500'
                         }`}
                       >
@@ -1289,14 +1409,15 @@ const BankingTab = ({
                       )}
                     </div>
                     
+                    {/* ZIP - Full width on mobile */}
                     <div>
-                      <label className="block text-sm text-gold-500/70 mb-2">ZIP Code *</label>
+                      <label className="block text-xs sm:text-sm text-gold-500/70 mb-1 sm:mb-2">ZIP Code *</label>
                       <input
                         type="text"
                         name="zipCode"
                         value={bankForm.zipCode}
                         onChange={handleBankFormChange}
-                        className={`w-full px-4 py-3 bg-navy-700 border rounded-lg text-white focus:outline-none ${
+                        className={`w-full px-3 sm:px-4 py-2 sm:py-3 bg-navy-700 border rounded-lg text-white text-sm sm:text-base focus:outline-none ${
                           formErrors.zipCode ? 'border-red-500' : 'border-gold-500/30 focus:border-gold-500'
                         }`}
                         placeholder="ZIP"
@@ -1308,13 +1429,14 @@ const BankingTab = ({
                     </div>
                   </div>
 
+                  {/* Country */}
                   <div>
-                    <label className="block text-sm text-gold-500/70 mb-2">Country</label>
+                    <label className="block text-xs sm:text-sm text-gold-500/70 mb-1 sm:mb-2">Country</label>
                     <select
                       name="country"
                       value={bankForm.country}
                       onChange={handleBankFormChange}
-                      className="w-full px-4 py-3 bg-navy-700 border border-gold-500/30 rounded-lg text-white focus:outline-none focus:border-gold-500"
+                      className="w-full px-3 sm:px-4 py-2 sm:py-3 bg-navy-700 border border-gold-500/30 rounded-lg text-white text-sm sm:text-base focus:outline-none focus:border-gold-500"
                     >
                       {countries.map(country => (
                         <option key={country} value={country}>{country}</option>
@@ -1334,26 +1456,26 @@ const BankingTab = ({
                   onChange={handleBankFormChange}
                   className="w-4 h-4 text-gold-500 bg-navy-700 border-gold-500/30 rounded focus:ring-gold-500"
                 />
-                <label htmlFor="isDefaultBank" className="text-sm text-gold-500/70">
+                <label htmlFor="isDefaultBank" className="text-xs sm:text-sm text-gold-500/70">
                   Set as default bank account
                 </label>
               </div>
 
               {/* Security Notice */}
-              <div className="bg-navy-700/30 rounded-lg p-4 flex items-start space-x-3">
-                <FaShieldAlt className="text-gold-500 mt-1" />
+              <div className="bg-navy-700/30 rounded-lg p-3 sm:p-4 flex items-start space-x-3">
+                <FaShieldAlt className="text-gold-500 mt-1 flex-shrink-0" size={isMobile ? 14 : 16} />
                 <div>
-                  <p className="text-sm text-gold-500 font-medium">Your information is secure</p>
-                  <p className="text-xs text-gold-500/50">All banking information is encrypted and securely stored. We never share your details with third parties.</p>
+                  <p className="text-xs sm:text-sm text-gold-500 font-medium">Your information is secure</p>
+                  <p className="text-xs text-gold-500/50">All banking information is encrypted and securely stored.</p>
                 </div>
               </div>
 
-              {/* Form Actions */}
-              <div className="flex space-x-3 pt-4">
+              {/* Form Actions - Stack on mobile, side by side on desktop */}
+              <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 pt-3 sm:pt-4">
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="flex-1 px-4 py-3 bg-gold-500 text-navy-950 rounded-lg font-bold hover:bg-gold-600 disabled:bg-gold-500/50 disabled:cursor-not-allowed flex items-center justify-center"
+                  className="w-full sm:flex-1 px-4 py-3 bg-gold-500 text-navy-950 rounded-lg font-bold hover:bg-gold-600 disabled:bg-gold-500/50 disabled:cursor-not-allowed flex items-center justify-center text-sm sm:text-base"
                 >
                   {isSubmitting ? (
                     <>
@@ -1367,7 +1489,7 @@ const BankingTab = ({
                 <button
                   type="button"
                   onClick={() => setShowAddAccount(false)}
-                  className="px-4 py-3 bg-navy-700 text-gold-500 rounded-lg font-bold hover:bg-navy-600"
+                  className="w-full sm:w-auto px-4 py-3 bg-navy-700 text-gold-500 rounded-lg font-bold hover:bg-navy-600 text-sm sm:text-base"
                 >
                   Cancel
                 </button>
@@ -1377,33 +1499,34 @@ const BankingTab = ({
         </div>
       )}
 
-      {/* Add Credit Card Modal */}
+      {/* Add Credit Card Modal - Fully Responsive */}
       {showAddCard && (
-        <div className="fixed inset-0 bg-navy-950/95 backdrop-blur-sm flex items-center justify-center z-50 overflow-y-auto">
-          <div className="bg-navy-800 rounded-2xl border border-gold-500/30 p-6 w-full max-w-2xl my-8">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-bold text-gold-500">Add Credit Card</h3>
-              <button onClick={() => setShowAddCard(false)} className="text-gold-500/70 hover:text-gold-500">
-                <FaTimes />
+        <div className="fixed inset-0 bg-navy-950/95 backdrop-blur-sm flex items-center justify-center z-50 overflow-y-auto p-2 sm:p-4">
+          <div className="bg-navy-800 rounded-2xl border border-gold-500/30 p-3 sm:p-6 w-full max-w-2xl my-4 sm:my-8 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-4 sm:mb-6 sticky top-0 bg-navy-800 py-2 z-10">
+              <h3 className="text-base sm:text-xl font-bold text-gold-500">Add Credit Card</h3>
+              <button onClick={() => setShowAddCard(false)} className="text-gold-500/70 hover:text-gold-500 p-2">
+                <FaTimes size={18} />
               </button>
             </div>
             
-            <form onSubmit={handleAddCreditCard} className="space-y-4">
+            <form onSubmit={handleAddCreditCard} className="space-y-3 sm:space-y-4">
               {/* Card Information */}
-              <div className="border-b border-gold-500/20 pb-4">
-                <h4 className="text-md font-semibold text-gold-400 mb-4 flex items-center">
-                  <FaCreditCard className="mr-2" /> Card Information
+              <div className="border-b border-gold-500/20 pb-3 sm:pb-4">
+                <h4 className="text-sm sm:text-md font-semibold text-gold-400 mb-3 sm:mb-4 flex items-center">
+                  <FaCreditCard className="mr-2" size={isMobile ? 14 : 16} /> Card Information
                 </h4>
                 
-                <div className="space-y-4">
+                <div className="space-y-3 sm:space-y-4">
+                  {/* Cardholder Name */}
                   <div>
-                    <label className="block text-sm text-gold-500/70 mb-2">Cardholder Name *</label>
+                    <label className="block text-xs sm:text-sm text-gold-500/70 mb-1 sm:mb-2">Cardholder Name *</label>
                     <input
                       type="text"
                       name="cardholderName"
                       value={cardForm.cardholderName}
                       onChange={handleCardFormChange}
-                      className={`w-full px-4 py-3 bg-navy-700 border rounded-lg text-white focus:outline-none ${
+                      className={`w-full px-3 sm:px-4 py-2 sm:py-3 bg-navy-700 border rounded-lg text-white text-sm sm:text-base focus:outline-none ${
                         formErrors.cardholderName ? 'border-red-500' : 'border-gold-500/30 focus:border-gold-500'
                       }`}
                       placeholder="Name as it appears on card"
@@ -1413,14 +1536,15 @@ const BankingTab = ({
                     )}
                   </div>
 
+                  {/* Card Number */}
                   <div>
-                    <label className="block text-sm text-gold-500/70 mb-2">Card Number *</label>
+                    <label className="block text-xs sm:text-sm text-gold-500/70 mb-1 sm:mb-2">Card Number *</label>
                     <input
                       type="text"
                       name="cardNumber"
                       value={cardForm.cardNumber}
                       onChange={handleCardFormChange}
-                      className={`w-full px-4 py-3 bg-navy-700 border rounded-lg text-white focus:outline-none ${
+                      className={`w-full px-3 sm:px-4 py-2 sm:py-3 bg-navy-700 border rounded-lg text-white text-sm sm:text-base focus:outline-none ${
                         formErrors.cardNumber ? 'border-red-500' : 'border-gold-500/30 focus:border-gold-500'
                       }`}
                       placeholder="1234 5678 9012 3456"
@@ -1431,14 +1555,16 @@ const BankingTab = ({
                     )}
                   </div>
 
-                  <div className="grid grid-cols-3 gap-4">
-                    <div className="col-span-1">
-                      <label className="block text-sm text-gold-500/70 mb-2">Month *</label>
+                  {/* Expiry Month, Year, and CVV - Responsive grid */}
+                  <div className="space-y-3 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-4">
+                    {/* Month */}
+                    <div>
+                      <label className="block text-xs sm:text-sm text-gold-500/70 mb-1 sm:mb-2">Month *</label>
                       <select
                         name="expiryMonth"
                         value={cardForm.expiryMonth}
                         onChange={handleCardFormChange}
-                        className={`w-full px-4 py-3 bg-navy-700 border rounded-lg text-white focus:outline-none ${
+                        className={`w-full px-3 sm:px-4 py-2 sm:py-3 bg-navy-700 border rounded-lg text-white text-sm sm:text-base focus:outline-none ${
                           formErrors.expiry ? 'border-red-500' : 'border-gold-500/30 focus:border-gold-500'
                         }`}
                       >
@@ -1449,13 +1575,14 @@ const BankingTab = ({
                       </select>
                     </div>
                     
-                    <div className="col-span-1">
-                      <label className="block text-sm text-gold-500/70 mb-2">Year *</label>
+                    {/* Year */}
+                    <div>
+                      <label className="block text-xs sm:text-sm text-gold-500/70 mb-1 sm:mb-2">Year *</label>
                       <select
                         name="expiryYear"
                         value={cardForm.expiryYear}
                         onChange={handleCardFormChange}
-                        className={`w-full px-4 py-3 bg-navy-700 border rounded-lg text-white focus:outline-none ${
+                        className={`w-full px-3 sm:px-4 py-2 sm:py-3 bg-navy-700 border rounded-lg text-white text-sm sm:text-base focus:outline-none ${
                           formErrors.expiry ? 'border-red-500' : 'border-gold-500/30 focus:border-gold-500'
                         }`}
                       >
@@ -1466,14 +1593,15 @@ const BankingTab = ({
                       </select>
                     </div>
                     
-                    <div className="col-span-1">
-                      <label className="block text-sm text-gold-500/70 mb-2">CVV *</label>
+                    {/* CVV */}
+                    <div>
+                      <label className="block text-xs sm:text-sm text-gold-500/70 mb-1 sm:mb-2">CVV *</label>
                       <input
                         type="password"
                         name="cvv"
                         value={cardForm.cvv}
                         onChange={handleCardFormChange}
-                        className={`w-full px-4 py-3 bg-navy-700 border rounded-lg text-white focus:outline-none ${
+                        className={`w-full px-3 sm:px-4 py-2 sm:py-3 bg-navy-700 border rounded-lg text-white text-sm sm:text-base focus:outline-none ${
                           formErrors.cvv ? 'border-red-500' : 'border-gold-500/30 focus:border-gold-500'
                         }`}
                         placeholder="123"
@@ -1491,20 +1619,21 @@ const BankingTab = ({
               </div>
 
               {/* Billing Address */}
-              <div className="border-b border-gold-500/20 pb-4">
-                <h4 className="text-md font-semibold text-gold-400 mb-4 flex items-center">
-                  <FaHome className="mr-2" /> Billing Address
+              <div className="border-b border-gold-500/20 pb-3 sm:pb-4">
+                <h4 className="text-sm sm:text-md font-semibold text-gold-400 mb-3 sm:mb-4 flex items-center">
+                  <FaHome className="mr-2" size={isMobile ? 14 : 16} /> Billing Address
                 </h4>
                 
-                <div className="space-y-4">
+                <div className="space-y-3 sm:space-y-4">
+                  {/* Street Address */}
                   <div>
-                    <label className="block text-sm text-gold-500/70 mb-2">Street Address *</label>
+                    <label className="block text-xs sm:text-sm text-gold-500/70 mb-1 sm:mb-2">Street Address *</label>
                     <input
                       type="text"
                       name="billingAddress"
                       value={cardForm.billingAddress}
                       onChange={handleCardFormChange}
-                      className={`w-full px-4 py-3 bg-navy-700 border rounded-lg text-white focus:outline-none ${
+                      className={`w-full px-3 sm:px-4 py-2 sm:py-3 bg-navy-700 border rounded-lg text-white text-sm sm:text-base focus:outline-none ${
                         formErrors.billingAddress ? 'border-red-500' : 'border-gold-500/30 focus:border-gold-500'
                       }`}
                       placeholder="Enter billing address"
@@ -1514,15 +1643,17 @@ const BankingTab = ({
                     )}
                   </div>
 
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div className="col-span-2">
-                      <label className="block text-sm text-gold-500/70 mb-2">City *</label>
+                  {/* City, State, ZIP - Responsive grid */}
+                  <div className="space-y-3 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-4">
+                    {/* City */}
+                    <div className="sm:col-span-1">
+                      <label className="block text-xs sm:text-sm text-gold-500/70 mb-1 sm:mb-2">City *</label>
                       <input
                         type="text"
                         name="billingCity"
                         value={cardForm.billingCity}
                         onChange={handleCardFormChange}
-                        className={`w-full px-4 py-3 bg-navy-700 border rounded-lg text-white focus:outline-none ${
+                        className={`w-full px-3 sm:px-4 py-2 sm:py-3 bg-navy-700 border rounded-lg text-white text-sm sm:text-base focus:outline-none ${
                           formErrors.billingCity ? 'border-red-500' : 'border-gold-500/30 focus:border-gold-500'
                         }`}
                         placeholder="City"
@@ -1532,13 +1663,14 @@ const BankingTab = ({
                       )}
                     </div>
                     
+                    {/* State */}
                     <div>
-                      <label className="block text-sm text-gold-500/70 mb-2">State *</label>
+                      <label className="block text-xs sm:text-sm text-gold-500/70 mb-1 sm:mb-2">State *</label>
                       <select
                         name="billingState"
                         value={cardForm.billingState}
                         onChange={handleCardFormChange}
-                        className={`w-full px-4 py-3 bg-navy-700 border rounded-lg text-white focus:outline-none ${
+                        className={`w-full px-3 sm:px-4 py-2 sm:py-3 bg-navy-700 border rounded-lg text-white text-sm sm:text-base focus:outline-none ${
                           formErrors.billingState ? 'border-red-500' : 'border-gold-500/30 focus:border-gold-500'
                         }`}
                       >
@@ -1552,14 +1684,15 @@ const BankingTab = ({
                       )}
                     </div>
                     
+                    {/* ZIP */}
                     <div>
-                      <label className="block text-sm text-gold-500/70 mb-2">ZIP Code *</label>
+                      <label className="block text-xs sm:text-sm text-gold-500/70 mb-1 sm:mb-2">ZIP Code *</label>
                       <input
                         type="text"
                         name="billingZip"
                         value={cardForm.billingZip}
                         onChange={handleCardFormChange}
-                        className={`w-full px-4 py-3 bg-navy-700 border rounded-lg text-white focus:outline-none ${
+                        className={`w-full px-3 sm:px-4 py-2 sm:py-3 bg-navy-700 border rounded-lg text-white text-sm sm:text-base focus:outline-none ${
                           formErrors.billingZip ? 'border-red-500' : 'border-gold-500/30 focus:border-gold-500'
                         }`}
                         placeholder="ZIP"
@@ -1571,13 +1704,14 @@ const BankingTab = ({
                     </div>
                   </div>
 
+                  {/* Country */}
                   <div>
-                    <label className="block text-sm text-gold-500/70 mb-2">Country</label>
+                    <label className="block text-xs sm:text-sm text-gold-500/70 mb-1 sm:mb-2">Country</label>
                     <select
                       name="billingCountry"
                       value={cardForm.billingCountry}
                       onChange={handleCardFormChange}
-                      className="w-full px-4 py-3 bg-navy-700 border border-gold-500/30 rounded-lg text-white focus:outline-none focus:border-gold-500"
+                      className="w-full px-3 sm:px-4 py-2 sm:py-3 bg-navy-700 border border-gold-500/30 rounded-lg text-white text-sm sm:text-base focus:outline-none focus:border-gold-500"
                     >
                       {countries.map(country => (
                         <option key={country} value={country}>{country}</option>
@@ -1597,26 +1731,26 @@ const BankingTab = ({
                   onChange={handleCardFormChange}
                   className="w-4 h-4 text-gold-500 bg-navy-700 border-gold-500/30 rounded focus:ring-gold-500"
                 />
-                <label htmlFor="isDefaultCard" className="text-sm text-gold-500/70">
+                <label htmlFor="isDefaultCard" className="text-xs sm:text-sm text-gold-500/70">
                   Set as default payment method
                 </label>
               </div>
 
               {/* Security Notice */}
-              <div className="bg-navy-700/30 rounded-lg p-4 flex items-start space-x-3">
-                <FaShieldAlt className="text-gold-500 mt-1" />
+              <div className="bg-navy-700/30 rounded-lg p-3 sm:p-4 flex items-start space-x-3">
+                <FaShieldAlt className="text-gold-500 mt-1 flex-shrink-0" size={isMobile ? 14 : 16} />
                 <div>
-                  <p className="text-sm text-gold-500 font-medium">Your card information is secure</p>
-                  <p className="text-xs text-gold-500/50">We use industry-standard encryption to protect your payment information. Your full card number is never stored on our servers.</p>
+                  <p className="text-xs sm:text-sm text-gold-500 font-medium">Your card information is secure</p>
+                  <p className="text-xs text-gold-500/50">Your full card number is never stored on our servers.</p>
                 </div>
               </div>
 
-              {/* Form Actions */}
-              <div className="flex space-x-3 pt-4">
+              {/* Form Actions - Stack on mobile, side by side on desktop */}
+              <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 pt-3 sm:pt-4">
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="flex-1 px-4 py-3 bg-gold-500 text-navy-950 rounded-lg font-bold hover:bg-gold-600 disabled:bg-gold-500/50 disabled:cursor-not-allowed flex items-center justify-center"
+                  className="w-full sm:flex-1 px-4 py-3 bg-gold-500 text-navy-950 rounded-lg font-bold hover:bg-gold-600 disabled:bg-gold-500/50 disabled:cursor-not-allowed flex items-center justify-center text-sm sm:text-base"
                 >
                   {isSubmitting ? (
                     <>
@@ -1630,7 +1764,7 @@ const BankingTab = ({
                 <button
                   type="button"
                   onClick={() => setShowAddCard(false)}
-                  className="px-4 py-3 bg-navy-700 text-gold-500 rounded-lg font-bold hover:bg-navy-600"
+                  className="w-full sm:w-auto px-4 py-3 bg-navy-700 text-gold-500 rounded-lg font-bold hover:bg-navy-600 text-sm sm:text-base"
                 >
                   Cancel
                 </button>

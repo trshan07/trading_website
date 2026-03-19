@@ -122,54 +122,68 @@ const registerAdmin = async (req, res) => {
 // @desc    Authenticate a user
 // @route   POST /api/auth/login
 // @access  Public
+// backend/src/controllers/authController.js
 const login = async (req, res) => {
     try {
         const { email, password } = req.body;
-
-        if (!email || !password) {
-            return res.status(400).json({ message: 'Please provide email and password' });
-        }
 
         // Check for user email
         const user = await User.findByEmail(email);
 
         if (!user) {
-            return res.status(401).json({ message: 'Invalid credentials' });
+            return res.status(401).json({ 
+                success: false,
+                message: 'Invalid credentials' 
+            });
         }
 
         // Check if user is active
         if (!user.is_active) {
-            return res.status(401).json({ message: 'Account is deactivated. Please contact admin.' });
-        }
-
-        if (await bcrypt.compare(password, user.password_hash)) {
-            // Get accounts only for clients
-            let accounts = [];
-            if (user.role === 'client') {
-                accounts = await Account.findByUserId(user.id);
-            }
-
-            res.json({
-                success: true,
-                data: {
-                    _id: user.id,
-                    email: user.email,
-                    firstName: user.first_name,
-                    lastName: user.last_name,
-                    role: user.role,
-                    accounts: accounts,
-                    token: generateToken(user.id, user.role),
-                }
+            return res.status(401).json({ 
+                success: false,
+                message: 'Account is deactivated. Please contact admin.' 
             });
-        } else {
-            res.status(401).json({ message: 'Invalid credentials' });
         }
+
+        // Check password
+        const isValidPassword = await bcrypt.compare(password, user.password_hash);
+        
+        if (!isValidPassword) {
+            return res.status(401).json({ 
+                success: false,
+                message: 'Invalid credentials' 
+            });
+        }
+
+        // Get accounts only for clients
+        let accounts = [];
+        if (user.role === 'client') {
+            accounts = await Account.findByUserId(user.id);
+        }
+
+        // Generate token
+        const token = generateToken(user.id, user.role);
+
+        res.json({
+            success: true,
+            data: {
+                _id: user.id,
+                email: user.email,
+                firstName: user.first_name,
+                lastName: user.last_name,
+                role: user.role,
+                accounts: accounts,
+                token: token,
+            }
+        });
     } catch (error) {
         console.error(error);
-        res.status(500).json({ message: 'Server error during login' });
+        res.status(500).json({ 
+            success: false,
+            message: 'Server error during login' 
+        });
     }
 };
-
 // @desc    Demo login (creates temporary client)
 // @route   POST /api/auth/demo-login
 // @access  Public

@@ -1,3 +1,4 @@
+// frontend/src/router/AppRoutes.js
 import React from "react";
 import { Routes, Route } from "react-router-dom";
 
@@ -22,7 +23,7 @@ import ForgotPasswordPage from "../pages/public/ForgotPasswordPage";
 import ResetPasswordPage from "../pages/public/ResetPasswordPage";
 import PromotionsPage from "../pages/public/PromotionsPage";
 
-// Client Dashboard Pages (only the ones that exist)
+// Client Dashboard Pages
 import DashboardPage from "../pages/client/DashboardPage";
 import TradingPage from "../pages/client/TradingPage";
 import ChartsPage from "../pages/client/ChartsPage";
@@ -44,6 +45,8 @@ import AuditPage from "../pages/admin/AuditPage";
 import AdminSettingsPage from "../pages/admin/SettingsPage";
 import KYCManagementPage from "../pages/admin/KYCManagementPage";
 import TransactionsPage from "../pages/admin/TransactionsPage";
+
+// Components
 import ProtectedRoute from "../components/common/ProtectedRoute";
 
 const AppRoutes = () => {
@@ -71,28 +74,104 @@ const AppRoutes = () => {
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
       <Route path="/reset-password" element={<ResetPasswordPage />} />
 
-      {/* Client Dashboard Routes */}
-      <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
-      <Route path="/dashboard/trading" element={<ProtectedRoute><TradingPage /></ProtectedRoute>} />
-      <Route path="/dashboard/charts" element={<ProtectedRoute><ChartsPage /></ProtectedRoute>} />
-      <Route path="/dashboard/funding" element={<ProtectedRoute><FundingPage /></ProtectedRoute>} />
-      <Route path="/dashboard/deposit" element={<ProtectedRoute><DepositPage /></ProtectedRoute>} />
-      <Route path="/dashboard/withdrawal" element={<ProtectedRoute><WithdrawalPage /></ProtectedRoute>} />
-      <Route path="/dashboard/history" element={<ProtectedRoute><HistoryPage /></ProtectedRoute>} />
-      <Route path="/dashboard/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
-      <Route path="/dashboard/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
-      <Route path="/dashboard/statements" element={<ProtectedRoute><StatementsPage /></ProtectedRoute>} />
+      {/* Client Dashboard Routes - All protected for clients only */}
+      <Route path="/dashboard" element={
+        <ProtectedRoute allowedRoles={['client']}>
+          <DashboardPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/dashboard/trading" element={
+        <ProtectedRoute allowedRoles={['client']}>
+          <TradingPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/dashboard/charts" element={
+        <ProtectedRoute allowedRoles={['client']}>
+          <ChartsPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/dashboard/funding" element={
+        <ProtectedRoute allowedRoles={['client']}>
+          <FundingPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/dashboard/deposit" element={
+        <ProtectedRoute allowedRoles={['client']}>
+          <DepositPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/dashboard/withdrawal" element={
+        <ProtectedRoute allowedRoles={['client']}>
+          <WithdrawalPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/dashboard/history" element={
+        <ProtectedRoute allowedRoles={['client']}>
+          <HistoryPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/dashboard/profile" element={
+        <ProtectedRoute allowedRoles={['client']}>
+          <ProfilePage />
+        </ProtectedRoute>
+      } />
+      <Route path="/dashboard/settings" element={
+        <ProtectedRoute allowedRoles={['client']}>
+          <SettingsPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/dashboard/statements" element={
+        <ProtectedRoute allowedRoles={['client']}>
+          <StatementsPage />
+        </ProtectedRoute>
+      } />
 
-      {/* Admin Routes */}
-      <Route path="/admin" element={<ProtectedRoute allowedRoles={['admin']}><AdminDashboardPage /></ProtectedRoute>} />
-      <Route path="/admin/users" element={<ProtectedRoute allowedRoles={['admin']}><UsersPage /></ProtectedRoute>} />
-      <Route path="/admin/funding" element={<ProtectedRoute allowedRoles={['admin']}><FundingRequestsPage /></ProtectedRoute>} />
-      <Route path="/admin/trades" element={<ProtectedRoute allowedRoles={['admin']}><TradesPage /></ProtectedRoute>} />
-      <Route path="/admin/reports" element={<ProtectedRoute allowedRoles={['admin']}><ReportsPage /></ProtectedRoute>} />
-      <Route path="/admin/audit" element={<ProtectedRoute allowedRoles={['admin']}><AuditPage /></ProtectedRoute>} />
-      <Route path="/admin/settings" element={<ProtectedRoute allowedRoles={['admin']}><AdminSettingsPage /></ProtectedRoute>} />
-      <Route path="/admin/kyc" element={<ProtectedRoute allowedRoles={['admin']}><KYCManagementPage /></ProtectedRoute>} />
-      <Route path="/admin/transactions" element={<ProtectedRoute allowedRoles={['admin']}><TransactionsPage /></ProtectedRoute>} />
+      {/* Admin Routes - All protected for admins only */}
+      <Route path="/admin" element={
+        <ProtectedRoute allowedRoles={['admin']}>
+          <AdminDashboardPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/admin/users" element={
+        <ProtectedRoute allowedRoles={['admin']}>
+          <UsersPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/admin/funding" element={
+        <ProtectedRoute allowedRoles={['admin']}>
+          <FundingRequestsPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/admin/trades" element={
+        <ProtectedRoute allowedRoles={['admin']}>
+          <TradesPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/admin/reports" element={
+        <ProtectedRoute allowedRoles={['admin']}>
+          <ReportsPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/admin/audit" element={
+        <ProtectedRoute allowedRoles={['admin']}>
+          <AuditPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/admin/settings" element={
+        <ProtectedRoute allowedRoles={['admin']}>
+          <AdminSettingsPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/admin/kyc" element={
+        <ProtectedRoute allowedRoles={['admin']}>
+          <KYCManagementPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/admin/transactions" element={
+        <ProtectedRoute allowedRoles={['admin']}>
+          <TransactionsPage />
+        </ProtectedRoute>
+      } />
 
       {/* Catch all route - redirect to home */}
       <Route path="*" element={<HomePage />} />

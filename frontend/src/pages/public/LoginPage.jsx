@@ -26,37 +26,45 @@ const LoginPage = () => {
     }
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!formData.email || !formData.password) {
-      setErrorMsg("Email and Password are required.");
-      return;
-    }
-    setIsLoading(true);
-    setErrorMsg("");
+// frontend/src/pages/public/LoginPage.jsx
+const handleSubmit = async (e) => {
+  e.preventDefault();
+  if (!formData.email || !formData.password) {
+    setErrorMsg("Email and Password are required.");
+    return;
+  }
+  setIsLoading(true);
+  setErrorMsg("");
 
-    try {
-      const data = await authService.login(formData.email, formData.password);
+  try {
+    const response = await authService.login(formData.email, formData.password);
+    
+    // Check if response has the expected structure
+    if (response.success && response.data) {
+      const userData = response.data;
       
-      // Pass the selected account type to the login context
-      contextLogin({ ...data, selectedAccountType: accountType }, data.token);
+      // Pass the user data to context
+      contextLogin({ ...userData, selectedAccountType: accountType }, userData.token);
       
-      toast.success(`Welcome back, ${data.firstName}! [${accountType.toUpperCase()} MODE]`);
+      toast.success(`Welcome back, ${userData.firstName || 'User'}! [${accountType.toUpperCase()} MODE]`);
       
       // Redirect based on role
-      if (data.role === 'admin') {
-        navigate('/admin/dashboard');
+      if (userData.role === 'admin') {
+        navigate('/admin');
       } else {
         navigate('/dashboard');
       }
-    } catch (err) {
-      console.error('Login error:', err);
-      setErrorMsg(err.response?.data?.message || "Invalid Operator Credentials. Access Denied.");
-      toast.error("Authentication Failed");
-    } finally {
-      setIsLoading(false);
+    } else {
+      throw new Error('Invalid response structure');
     }
-  };
+  } catch (err) {
+    console.error('Login error:', err);
+    setErrorMsg(err.response?.data?.message || "Invalid Operator Credentials. Access Denied.");
+    toast.error("Authentication Failed");
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   const handleDemoLogin = async () => {
     setIsLoading(true);
