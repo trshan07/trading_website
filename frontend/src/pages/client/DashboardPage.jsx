@@ -19,6 +19,8 @@ import TransferModal from '../../components/client/TransferModal';
 import UploadModal from '../../components/client/UploadModal';
 import PriceTicker from '../../components/trading/PriceTicker';
 import { AuthContext } from '../../context/AuthContext';
+import RealTimeChart from '../../components/trading/RealTimeChart';
+
 
 const DashboardPage = () => {
   const { user, logout } = useContext(AuthContext);
@@ -678,124 +680,146 @@ const DashboardPage = () => {
           />
         )}
 
-        {activeMainTab === 'markets' && (
-          <div className="space-y-4">
-            <div className="bg-navy-800/80 rounded-xl p-4 sm:p-6 border border-gold-500/30 shadow-xl">
-              <h2 className="text-lg sm:text-xl font-bold text-gold-400 mb-4">Markets Overview</h2>
-              
-              {/* Mobile-friendly market grid */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-                {Object.entries(marketData).map(([symbol, data]) => (
-                  <div key={symbol} className="bg-navy-700/80 rounded-lg p-4 border border-gold-500/30">
-                    <div className="flex justify-between items-start mb-2">
-                      <span className="text-white font-medium text-sm sm:text-base">{symbol}</span>
-                      <span className={`text-xs px-2 py-1 rounded-full ${
-                        data.change > 0 ? 'bg-green-500/30 text-green-300' : 'bg-red-500/30 text-red-300'
-                      }`}>
-                        {data.change > 0 ? '+' : ''}{data.change.toFixed(2)}%
-                      </span>
-                    </div>
-                    <p className="text-lg sm:text-xl font-bold text-white">${data.price.toLocaleString()}</p>
-                    <p className="text-xs text-gold-400/70 mt-2">Vol: ${(data.volume / 1e6).toFixed(1)}M</p>
-                  </div>
-                ))}
-              </div>
+  {activeMainTab === 'markets' && (
+  <div className="space-y-4">
+    {/* Main Chart */}
+    <div className="bg-navy-800/80 rounded-xl p-4 sm:p-6 border border-gold-500/30 shadow-xl">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
+        <h2 className="text-lg sm:text-xl font-bold text-gold-400">BTC/USD Chart</h2>
+        <div className="flex items-center gap-2">
+          <select className="px-3 py-2 bg-navy-700 border border-gold-500/30 rounded-lg text-gold-500 text-sm">
+            <option>1H</option>
+            <option>4H</option>
+            <option selected>1D</option>
+            <option>1W</option>
+            <option>1M</option>
+          </select>
+        </div>
+      </div>
+      
+      <div className="w-full h-[400px] sm:h-[500px] rounded-lg overflow-hidden border border-gold-500/30">
+        <RealTimeChart 
+          symbol="BTC/USD"
+          theme={darkMode ? 'dark' : 'light'}
+          height="100%"
+          width="100%"
+        />
+      </div>
+    </div>
+
+    {/* Market Grid */}
+    <div className="bg-navy-800/80 rounded-xl p-4 sm:p-6 border border-gold-500/30 shadow-xl">
+      <h2 className="text-lg sm:text-xl font-bold text-gold-400 mb-4">Market Overview</h2>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {Object.entries(marketData).map(([symbol, data]) => (
+          <div key={symbol} className="bg-navy-700/80 rounded-lg p-4 border border-gold-500/30 hover:border-gold-500/50 transition-all cursor-pointer">
+            <div className="flex justify-between items-start mb-2">
+              <span className="text-white font-semibold">{symbol}</span>
+              <span className={`text-sm font-medium ${data.change > 0 ? 'text-green-400' : 'text-red-400'}`}>
+                {data.change > 0 ? '+' : ''}{data.change}%
+              </span>
             </div>
-
-            <div className="bg-navy-800/80 rounded-xl p-4 sm:p-6 border border-gold-500/30 shadow-xl">
-              <h3 className="text-md sm:text-lg font-semibold text-gold-400 mb-4">Market Analysis</h3>
-              <p className="text-sm sm:text-base text-gold-300/80">Detailed market analysis and charts coming soon...</p>
-            </div>
-          </div>
-        )}
-
-        {activeMainTab === 'portfolio' && (
-          <div className="space-y-4">
-            <div className="bg-navy-800/80 rounded-xl p-4 sm:p-6 border border-gold-500/30 shadow-xl">
-              <h2 className="text-lg sm:text-xl font-bold text-gold-400 mb-4">Portfolio Analytics</h2>
-              
-              {/* Portfolio Summary Cards */}
-              <div className="grid grid-cols-2 gap-3 mb-4">
-                <div className="bg-navy-700/80 rounded-lg p-4 border border-gold-500/30">
-                  <p className="text-xs text-gold-400 mb-1">Total Value</p>
-                  <p className="text-base sm:text-lg font-bold text-white">
-                    ${showBalance ? portfolio.equity.toLocaleString() : '••••••'}
-                  </p>
-                </div>
-                <div className="bg-navy-700/80 rounded-lg p-4 border border-gold-500/30">
-                  <p className="text-xs text-gold-400 mb-1">Open P&L</p>
-                  <p className={`text-base sm:text-lg font-bold ${
-                    portfolio.dailyPnL > 0 ? 'text-green-400' : 'text-red-400'
-                  }`}>
-                    ${showBalance ? portfolio.dailyPnL.toLocaleString() : '••••••'}
-                  </p>
-                </div>
-                <div className="bg-navy-700/80 rounded-lg p-4 border border-gold-500/30">
-                  <p className="text-xs text-gold-400 mb-1">Margin Used</p>
-                  <p className="text-base sm:text-lg font-bold text-yellow-400">
-                    ${showBalance ? portfolio.margin.toLocaleString() : '••••••'}
-                  </p>
-                </div>
-                <div className="bg-navy-700/80 rounded-lg p-4 border border-gold-500/30">
-                  <p className="text-xs text-gold-400 mb-1">Margin Level</p>
-                  <p className="text-base sm:text-lg font-bold text-gold-400">
-                    {showBalance ? portfolio.marginLevel : '•••'}%
-                  </p>
-                </div>
-              </div>
-
-              {/* Performance Chart Placeholder */}
-              <div className="bg-navy-700/80 rounded-lg p-6 h-48 flex items-center justify-center border border-gold-500/30">
-                <p className="text-gold-400/60 text-sm">Portfolio performance chart coming soon</p>
-              </div>
-            </div>
-
-            {/* Positions Summary */}
-            <div className="bg-navy-800/80 rounded-xl p-4 sm:p-6 border border-gold-500/30 shadow-xl">
-              <h3 className="text-md sm:text-lg font-semibold text-gold-400 mb-4">Open Positions</h3>
-              
-              {positions.map(position => (
-                <div key={position.id} className="bg-navy-700/80 rounded-lg p-4 mb-3 border border-gold-500/30">
-                  <div className="flex justify-between items-center">
-                    <div>
-                      <span className="text-white font-medium">{position.symbol}</span>
-                      <span className={`ml-2 text-xs px-2 py-1 rounded ${
-                        position.type === 'LONG' ? 'bg-green-500/30 text-green-300' : 'bg-red-500/30 text-red-300'
-                      }`}>
-                        {position.type}
-                      </span>
-                    </div>
-                    <span className={`text-sm font-medium ${
-                      position.pnl > 0 ? 'text-green-400' : 'text-red-400'
-                    }`}>
-                      {position.pnl > 0 ? '+' : ''}{position.pnlPercent.toFixed(2)}%
-                    </span>
-                  </div>
-                  <div className="grid grid-cols-2 gap-3 mt-3 text-sm">
-                    <div>
-                      <span className="text-gold-400/70">Qty:</span>
-                      <span className="ml-1 text-white">{position.quantity}</span>
-                    </div>
-                    <div>
-                      <span className="text-gold-400/70">Entry:</span>
-                      <span className="ml-1 text-white">${position.entryPrice.toLocaleString()}</span>
-                    </div>
-                    <div>
-                      <span className="text-gold-400/70">Current:</span>
-                      <span className="ml-1 text-white">${position.currentPrice.toLocaleString()}</span>
-                    </div>
-                    <div>
-                      <span className="text-gold-400/70">P&L:</span>
-                      <span className={`ml-1 ${position.pnl > 0 ? 'text-green-400' : 'text-red-400'}`}>
-                        ${position.pnl.toLocaleString()}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              ))}
+            <p className="text-2xl font-bold text-white">${data.price.toLocaleString()}</p>
+            <div className="flex justify-between items-center mt-2 text-sm">
+              <span className="text-gold-400/70">Vol: ${(data.volume / 1e6).toFixed(1)}M</span>
+              <span className="text-gold-400">View →</span>
             </div>
           </div>
-        )}
+        ))}
+      </div>
+    </div>
+  </div>
+)}
+
+  {activeMainTab === 'portfolio' && (
+  <div className="space-y-4">
+    {/* Portfolio Performance */}
+    <div className="bg-navy-800/80 rounded-xl p-4 sm:p-6 border border-gold-500/30 shadow-xl">
+      <h2 className="text-lg sm:text-xl font-bold text-gold-400 mb-4">Portfolio Performance</h2>
+      
+      <div className="w-full h-[300px] sm:h-[350px] rounded-lg overflow-hidden border border-gold-500/30 mb-4">
+        <RealTimeChart 
+          symbol="BTC/USD"
+          theme={darkMode ? 'dark' : 'light'}
+          height="100%"
+          width="100%"
+        />
+      </div>
+
+      {/* Portfolio Stats */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="bg-navy-700/50 rounded-lg p-3">
+          <span className="text-xs text-gold-400/70">Total Value</span>
+          <p className="text-xl font-bold text-white">${showBalance ? portfolio.totalBalance.toLocaleString() : '••••••'}</p>
+        </div>
+        <div className="bg-navy-700/50 rounded-lg p-3">
+          <span className="text-xs text-gold-400/70">Daily P&L</span>
+          <p className={`text-xl font-bold ${portfolio.dailyPnL > 0 ? 'text-green-400' : 'text-red-400'}`}>
+            {showBalance ? (portfolio.dailyPnL > 0 ? '+' : '') + portfolio.dailyPnL.toLocaleString() : '••••••'}
+          </p>
+        </div>
+        <div className="bg-navy-700/50 rounded-lg p-3">
+          <span className="text-xs text-gold-400/70">Win Rate</span>
+          <p className="text-xl font-bold text-white">68.5%</p>
+        </div>
+        <div className="bg-navy-700/50 rounded-lg p-3">
+          <span className="text-xs text-gold-400/70">Sharpe Ratio</span>
+          <p className="text-xl font-bold text-white">1.85</p>
+        </div>
+      </div>
+    </div>
+
+    {/* Open Positions */}
+    <div className="bg-navy-800/80 rounded-xl p-4 sm:p-6 border border-gold-500/30 shadow-xl">
+      <h3 className="text-md sm:text-lg font-semibold text-gold-400 mb-4">Open Positions</h3>
+      
+      {positions.map(position => (
+        <div key={position.id} className="bg-navy-700/80 rounded-lg p-4 mb-3 border border-gold-500/30">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-3">
+            <div className="flex items-center gap-3">
+              <span className="text-white font-bold text-lg">{position.symbol}</span>
+              <span className={`px-2 py-1 rounded text-xs font-bold ${
+                position.type === 'LONG' ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'
+              }`}>
+                {position.type}
+              </span>
+            </div>
+            <div className="flex items-center gap-3">
+              <span className={`text-lg font-bold ${position.pnl > 0 ? 'text-green-400' : 'text-red-400'}`}>
+                {position.pnl > 0 ? '+' : ''}{position.pnl.toFixed(2)} ({position.pnlPercent > 0 ? '+' : ''}{position.pnlPercent.toFixed(2)}%)
+              </span>
+              <button
+                onClick={() => handleClosePosition(position.id)}
+                className="px-3 py-1 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded text-xs"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
+            <div>
+              <span className="text-gold-400/70">Entry:</span>
+              <span className="ml-1 text-white">${position.entryPrice.toLocaleString()}</span>
+            </div>
+            <div>
+              <span className="text-gold-400/70">Current:</span>
+              <span className="ml-1 text-white">${position.currentPrice.toLocaleString()}</span>
+            </div>
+            <div>
+              <span className="text-gold-400/70">Quantity:</span>
+              <span className="ml-1 text-white">{position.quantity}</span>
+            </div>
+            <div>
+              <span className="text-gold-400/70">Liquidation:</span>
+              <span className="ml-1 text-white">${position.liquidationPrice?.toLocaleString() || 'N/A'}</span>
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  </div>
+)}
 
         {activeMainTab === 'history' && (
           <div className="bg-navy-800/80 rounded-xl p-4 sm:p-6 border border-gold-500/30 shadow-xl">

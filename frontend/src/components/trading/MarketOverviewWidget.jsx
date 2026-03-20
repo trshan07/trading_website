@@ -1,11 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 
-const AdvancedRealTimeChart = ({ 
-  symbol = 'BTCUSDT',
-  theme = 'dark',
-  height = '100%',
-  width = '100%'
-}) => {
+const MarketOverview = ({ height = '100%', theme = 'dark' }) => {
   const containerRef = useRef(null);
   const scriptRef = useRef(null);
 
@@ -27,26 +22,36 @@ const AdvancedRealTimeChart = ({
 
     // Create script
     const script = document.createElement('script');
-    script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js';
+    script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-market-overview.js';
     script.async = true;
     script.type = 'text/javascript';
     
-    // Widget configuration
     script.text = JSON.stringify({
-      "autosize": true,
-      "symbol": symbol,
-      "interval": "D",
-      "timezone": "Etc/UTC",
-      "theme": theme,
-      "style": "1",
+      "colorTheme": theme,
+      "dateRange": "12M",
+      "showChart": true,
       "locale": "en",
-      "allow_symbol_change": true,
-      "calendar": false,
-      "studies": [
-        "RSI@tv-basicstudies",
-        "MACD@tv-basicstudies"
-      ],
-      "support_host": "https://www.tradingview.com"
+      "width": "100%",
+      "height": height,
+      "largeChartUrl": "",
+      "tabs": [
+        {
+          "title": "Forex",
+          "symbols": [
+            { "s": "FX:EURUSD", "d": "EUR/USD" },
+            { "s": "FX:GBPUSD", "d": "GBP/USD" },
+            { "s": "FX:USDJPY", "d": "USD/JPY" }
+          ]
+        },
+        {
+          "title": "Crypto",
+          "symbols": [
+            { "s": "BINANCE:BTCUSDT", "d": "BTC/USDT" },
+            { "s": "BINANCE:ETHUSDT", "d": "ETH/USDT" },
+            { "s": "BINANCE:BNBUSDT", "d": "BNB/USDT" }
+          ]
+        }
+      ]
     });
 
     scriptRef.current = script;
@@ -60,25 +65,15 @@ const AdvancedRealTimeChart = ({
         containerRef.current.innerHTML = '';
       }
     };
-  }, [symbol, theme]);
+  }, [theme, height]);
 
   return (
     <div 
       ref={containerRef}
-      style={{ 
-        height, 
-        width,
-        position: 'relative'
-      }}
       className="tradingview-widget-container"
-    >
-      <div className="tradingview-widget-copyright" style={{ display: 'none' }}>
-        <a href="https://www.tradingview.com/" rel="noopener nofollow" target="_blank">
-          <span className="blue-text">Track all markets on TradingView</span>
-        </a>
-      </div>
-    </div>
+      style={{ height, width: '100%' }}
+    />
   );
 };
 
-export default AdvancedRealTimeChart;
+export default MarketOverview;

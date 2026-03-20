@@ -533,3 +533,39 @@
     border-color 0.3s ease,
     color 0.3s ease;
 }
+
+/* Add to your index.css or App.css */
+.bg-navy-950 { background-color: #0a0f1c; }
+.bg-navy-900 { background-color: #0f172a; }
+.bg-navy-800 { background-color: #1e293b; }
+.bg-navy-700 { background-color: #334155; }
+.text-gold-400 { color: #ffd700; }
+.text-gold-500 { color: #fbbf24; }
+.border-gold-500 { border-color: #ffd700; }
+.border-gold-500\/30 { border-color: rgba(255, 215, 0, 0.3); }
+.border-gold-500\/40 { border-color: rgba(255, 215, 0, 0.4); }
+
+/* Chart container styles */
+.tv-lightweight-charts {
+  border-radius: 0.5rem;
+  overflow: hidden;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #1e293b;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #ffd700;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #fbbf24;
+}
