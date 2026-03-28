@@ -1,180 +1,333 @@
 // frontend/src/pages/admin/FundingRequestsPage.jsx
-import React, { useState } from 'react';
-import { FaCheck, FaTimes, FaEye, FaDownload } from 'react-icons/fa';
+import React, { useState, useEffect } from 'react';
+import {
+  Card,
+  Table,
+  Button,
+  Space,
+  Modal,
+  Form,
+  Input,
+  Select,
+  message,
+  Tag,
+  Image,
+  Descriptions,
+  Upload,
+  Timeline,
+  Badge,
+  Tabs,
+} from 'antd';
+import {
+  CheckOutlined,
+  CloseOutlined,
+  EyeOutlined,
+  DownloadOutlined,
+  UploadOutlined,
+  ClockCircleOutlined,
+} from '@ant-design/icons';
+import { adminService } from '../../services/adminService';
+import moment from 'moment';
+
+const { Option } = Select;
+const { TabPane } = Tabs;
 
 const FundingRequestsPage = () => {
+  const [requests, setRequests] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [selectedRequest, setSelectedRequest] = useState(null);
   const [activeTab, setActiveTab] = useState('pending');
+  const [form] = Form.useForm();
+  const [pagination, setPagination] = useState({ current: 1, pageSize: 10, total: 0 });
 
-  const requests = {
-    pending: [
-      { id: 'DEP001', user: 'John Smith', amount: '$5,000', method: 'Bank Transfer', date: '2024-03-15', proof: 'receipt1.pdf' },
-      { id: 'DEP002', user: 'Sarah Johnson', amount: '$2,500', method: 'Credit Card', date: '2024-03-15', proof: 'receipt2.pdf' },
-      { id: 'DEP003', user: 'Mike Wilson', amount: '$10,000', method: 'Crypto', date: '2024-03-14', proof: 'txn_hash_123' },
-    ],
-    approved: [
-      { id: 'DEP004', user: 'Emma Brown', amount: '$3,200', method: 'Bank Transfer', date: '2024-03-13', approvedBy: 'Admin' },
-      { id: 'DEP005', user: 'David Lee', amount: '$7,500', method: 'Credit Card', date: '2024-03-12', approvedBy: 'Admin' },
-    ],
-    rejected: [
-      { id: 'DEP006', user: 'Tom Harris', amount: '$1,000', method: 'Crypto', date: '2024-03-11', reason: 'Invalid proof' },
-    ]
-  };
+  useEffect(() => {
+    fetchRequests();
+  }, [pagination.current, pagination.pageSize, activeTab]);
 
-  const getMethodColor = (method) => {
-    switch(method) {
-      case 'Bank Transfer': return 'bg-blue-100 text-blue-700';
-      case 'Credit Card': return 'bg-purple-100 text-purple-700';
-      case 'Crypto': return 'bg-orange-100 text-orange-700';
-      default: return 'bg-gray-100 text-gray-700';
+  const fetchRequests = async () => {
+    setLoading(true);
+    try {
+      const data = await adminService.getFundingRequests({
+        page: pagination.current,
+        limit: pagination.pageSize,
+        status: activeTab,
+      });
+      setRequests(data.requests);
+      setPagination({ ...pagination, total: data.total });
+    } catch (error) {
+      message.error('Failed to fetch funding requests');
+    } finally {
+      setLoading(false);
     }
   };
 
-  return (
-    <div className="space-y-6">
-      {/* Page Header */}
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold text-navy-900">Funding Requests</h1>
-        <div className="flex space-x-2">
-          <button className="bg-navy-600 text-white px-4 py-2 rounded-lg hover:bg-navy-700 transition-colors">
-            Export Report
-          </button>
-          <button className="bg-gold-500 text-navy-900 px-4 py-2 rounded-lg hover:bg-gold-600 transition-colors">
-            Settings
-          </button>
-        </div>
-      </div>
+  const handleApproveRequest = async (requestId) => {
+    try {
+      await adminService.approveFundingRequest(requestId);
+      message.success('Request approved successfully');
+      fetchRequests();
+      setModalVisible(false);
+    } catch (error) {
+      message.error('Failed to approve request');
+    }
+  };
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div className="bg-white rounded-xl shadow-lg p-6 border border-navy-100">
-          <p className="text-sm text-navy-500">Total Requests</p>
-          <p className="text-2xl font-bold text-navy-900">156</p>
-          <p className="text-xs text-green-600 mt-2">↑ 12% from last month</p>
-        </div>
-        <div className="bg-white rounded-xl shadow-lg p-6 border border-navy-100">
-          <p className="text-sm text-navy-500">Pending</p>
-          <p className="text-2xl font-bold text-yellow-600">23</p>
-          <p className="text-xs text-navy-500 mt-2">Requires attention</p>
-        </div>
-        <div className="bg-white rounded-xl shadow-lg p-6 border border-navy-100">
-          <p className="text-sm text-navy-500">Approved (Today)</p>
-          <p className="text-2xl font-bold text-green-600">12</p>
-          <p className="text-xs text-navy-500 mt-2">Total: $45,230</p>
-        </div>
-        <div className="bg-white rounded-xl shadow-lg p-6 border border-navy-100">
-          <p className="text-sm text-navy-500">Total Volume</p>
-          <p className="text-2xl font-bold text-navy-900">$1.2M</p>
-          <p className="text-xs text-navy-500 mt-2">This month</p>
-        </div>
-      </div>
+  const handleRejectRequest = async (values) => {
+    try {
+      await adminService.rejectFundingRequest(selectedRequest.id, values.reason);
+      message.success('Request rejected');
+      setModalVisible(false);
+      form.resetFields();
+      fetchRequests();
+    } catch (error) {
+      message.error('Failed to reject request');
+    }
+  };
 
-      {/* Tabs */}
-      <div className="bg-white rounded-xl shadow-lg border border-navy-100 overflow-hidden">
-        <div className="border-b border-navy-100">
-          <nav className="flex space-x-8 px-6" aria-label="Tabs">
-            {['pending', 'approved', 'rejected'].map((tab) => (
-              <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                className={`py-4 px-1 border-b-2 font-medium text-sm capitalize ${
-                  activeTab === tab
-                    ? 'border-gold-500 text-gold-500'
-                    : 'border-transparent text-navy-500 hover:text-navy-700 hover:border-navy-300'
-                }`}
+  const columns = [
+    {
+      title: 'Request ID',
+      dataIndex: 'id',
+      key: 'id',
+      render: (id) => <span style={{ fontFamily: 'monospace' }}>#{id.slice(-6)}</span>,
+    },
+    {
+      title: 'User',
+      dataIndex: 'userName',
+      key: 'userName',
+      render: (text, record) => (
+        <div>
+          <div>{text}</div>
+          <div style={{ fontSize: '12px', color: '#666' }}>{record.userEmail}</div>
+        </div>
+      ),
+    },
+    {
+      title: 'Type',
+      dataIndex: 'type',
+      key: 'type',
+      render: (type) => (
+        <Tag color={type === 'deposit' ? '#52c41a' : '#f5222d'}>
+          {type.toUpperCase()}
+        </Tag>
+      ),
+    },
+    {
+      title: 'Amount',
+      dataIndex: 'amount',
+      key: 'amount',
+      render: (amount) => (
+        <span style={{ fontWeight: 'bold', color: '#52c41a' }}>
+          ${amount.toLocaleString()}
+        </span>
+      ),
+    },
+    {
+      title: 'Method',
+      dataIndex: 'method',
+      key: 'method',
+      render: (method) => method.toUpperCase(),
+    },
+    {
+      title: 'Date',
+      dataIndex: 'createdAt',
+      key: 'createdAt',
+      render: (date) => moment(date).format('YYYY-MM-DD HH:mm'),
+    },
+    {
+      title: 'Actions',
+      key: 'actions',
+      render: (_, record) => (
+        <Space>
+          <Button
+            icon={<EyeOutlined />}
+            onClick={() => {
+              setSelectedRequest(record);
+              setModalVisible(true);
+            }}
+          >
+            Review
+          </Button>
+          {activeTab === 'pending' && (
+            <>
+              <Button
+                type="primary"
+                icon={<CheckOutlined />}
+                onClick={() => handleApproveRequest(record.id)}
+                style={{ backgroundColor: '#52c41a', borderColor: '#52c41a' }}
               >
-                {tab} ({requests[tab].length})
-              </button>
-            ))}
-          </nav>
-        </div>
+                Approve
+              </Button>
+              <Button
+                danger
+                icon={<CloseOutlined />}
+                onClick={() => {
+                  setSelectedRequest(record);
+                  form.setFieldsValue({ reason: '' });
+                  Modal.confirm({
+                    title: 'Reject Request',
+                    content: (
+                      <Form form={form}>
+                        <Form.Item
+                          name="reason"
+                          label="Rejection Reason"
+                          rules={[{ required: true, message: 'Please provide a reason' }]}
+                        >
+                          <Input.TextArea rows={4} placeholder="Enter reason for rejection" />
+                        </Form.Item>
+                      </Form>
+                    ),
+                    onOk: () => form.validateFields().then(values => handleRejectRequest(values)),
+                  });
+                }}
+              >
+                Reject
+              </Button>
+            </>
+          )}
+        </Space>
+      ),
+    },
+  ];
 
-        {/* Table */}
-        <table className="w-full">
-          <thead className="bg-navy-50">
-            <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-navy-500 uppercase tracking-wider">Request ID</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-navy-500 uppercase tracking-wider">User</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-navy-500 uppercase tracking-wider">Amount</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-navy-500 uppercase tracking-wider">Method</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-navy-500 uppercase tracking-wider">Date</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-navy-500 uppercase tracking-wider">Proof</th>
-              {activeTab !== 'pending' && (
-                <th className="px-6 py-3 text-left text-xs font-medium text-navy-500 uppercase tracking-wider">
-                  {activeTab === 'approved' ? 'Approved By' : 'Reason'}
-                </th>
+  return (
+    <div>
+      <Card 
+        title="Funding Requests Management" 
+        style={{ borderTop: '4px solid #FFD700' }}
+        extra={
+          <Button 
+            icon={<DownloadOutlined />}
+            onClick={() => adminService.exportFundingRequests(activeTab)}
+          >
+            Export
+          </Button>
+        }
+      >
+        <Tabs activeKey={activeTab} onChange={setActiveTab}>
+          <TabPane tab={<Badge count={0}><span>Pending</span></Badge>} key="pending" />
+          <TabPane tab="Approved" key="approved" />
+          <TabPane tab="Rejected" key="rejected" />
+          <TabPane tab="All" key="all" />
+        </Tabs>
+        
+        <Table
+          columns={columns}
+          dataSource={requests}
+          loading={loading}
+          pagination={pagination}
+          onChange={(newPagination) => setPagination(newPagination)}
+          rowKey="id"
+        />
+      </Card>
+
+      {/* Request Details Modal */}
+      <Modal
+        title="Funding Request Details"
+        open={modalVisible}
+        onCancel={() => setModalVisible(false)}
+        footer={null}
+        width={700}
+      >
+        {selectedRequest && (
+          <>
+            <Descriptions column={2} bordered style={{ marginBottom: 24 }}>
+              <Descriptions.Item label="Request ID" span={2}>
+                {selectedRequest.id}
+              </Descriptions.Item>
+              <Descriptions.Item label="User Name">{selectedRequest.userName}</Descriptions.Item>
+              <Descriptions.Item label="User Email">{selectedRequest.userEmail}</Descriptions.Item>
+              <Descriptions.Item label="Type">
+                <Tag color={selectedRequest.type === 'deposit' ? '#52c41a' : '#f5222d'}>
+                  {selectedRequest.type.toUpperCase()}
+                </Tag>
+              </Descriptions.Item>
+              <Descriptions.Item label="Amount">
+                <span style={{ color: '#52c41a', fontWeight: 'bold' }}>
+                  ${selectedRequest.amount.toLocaleString()}
+                </span>
+              </Descriptions.Item>
+              <Descriptions.Item label="Method">{selectedRequest.method.toUpperCase()}</Descriptions.Item>
+              <Descriptions.Item label="Status">
+                <Badge 
+                  status={
+                    selectedRequest.status === 'approved' ? 'success' :
+                    selectedRequest.status === 'rejected' ? 'error' : 'warning'
+                  }
+                  text={selectedRequest.status.toUpperCase()}
+                />
+              </Descriptions.Item>
+              <Descriptions.Item label="Created">{moment(selectedRequest.createdAt).format('YYYY-MM-DD HH:mm:ss')}</Descriptions.Item>
+              <Descriptions.Item label="Updated">{moment(selectedRequest.updatedAt).format('YYYY-MM-DD HH:mm:ss')}</Descriptions.Item>
+              {selectedRequest.rejectionReason && (
+                <Descriptions.Item label="Rejection Reason" span={2}>
+                  <span style={{ color: '#f5222d' }}>{selectedRequest.rejectionReason}</span>
+                </Descriptions.Item>
               )}
-              <th className="px-6 py-3 text-left text-xs font-medium text-navy-500 uppercase tracking-wider">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-navy-100">
-            {requests[activeTab].map((request) => (
-              <tr key={request.id} className="hover:bg-navy-50 transition-colors">
-                <td className="px-6 py-4 text-sm font-medium text-navy-900">{request.id}</td>
-                <td className="px-6 py-4 text-sm text-navy-600">{request.user}</td>
-                <td className="px-6 py-4 text-sm font-medium text-navy-900">{request.amount}</td>
-                <td className="px-6 py-4">
-                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${getMethodColor(request.method)}`}>
-                    {request.method}
-                  </span>
-                </td>
-                <td className="px-6 py-4 text-sm text-navy-600">{request.date}</td>
-                <td className="px-6 py-4">
-                  <button className="flex items-center text-gold-500 hover:text-gold-600">
-                    <FaDownload className="mr-1" size={12} />
-                    <span className="text-xs">{request.proof}</span>
-                  </button>
-                </td>
-                {activeTab !== 'pending' && (
-                  <td className="px-6 py-4 text-sm text-navy-600">
-                    {request.approvedBy || request.reason}
-                  </td>
-                )}
-                <td className="px-6 py-4">
-                  {activeTab === 'pending' ? (
-                    <div className="flex space-x-2">
-                      <button className="p-1 bg-green-100 text-green-700 rounded hover:bg-green-200" title="Approve">
-                        <FaCheck size={16} />
-                      </button>
-                      <button className="p-1 bg-red-100 text-red-700 rounded hover:bg-red-200" title="Reject">
-                        <FaTimes size={16} />
-                      </button>
-                      <button className="p-1 bg-navy-100 text-navy-700 rounded hover:bg-navy-200" title="View Details">
-                        <FaEye size={16} />
-                      </button>
-                    </div>
-                  ) : (
-                    <button className="p-1 bg-navy-100 text-navy-700 rounded hover:bg-navy-200">
-                      <FaEye size={16} />
-                    </button>
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      {/* Quick Action Panel */}
-      <div className="bg-white rounded-xl shadow-lg p-6 border border-navy-100">
-        <h2 className="text-lg font-semibold text-navy-900 mb-4">Quick Actions</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="p-4 bg-navy-50 rounded-lg">
-            <h3 className="font-medium text-navy-900 mb-2">Bulk Approve</h3>
-            <p className="text-sm text-navy-600 mb-3">Approve multiple pending requests at once</p>
-            <button className="text-gold-500 hover:text-gold-600 text-sm font-medium">Select Requests →</button>
-          </div>
-          <div className="p-4 bg-navy-50 rounded-lg">
-            <h3 className="font-medium text-navy-900 mb-2">Manual Adjustment</h3>
-            <p className="text-sm text-navy-600 mb-3">Manually adjust user balance</p>
-            <button className="text-gold-500 hover:text-gold-600 text-sm font-medium">Adjust Balance →</button>
-          </div>
-          <div className="p-4 bg-navy-50 rounded-lg">
-            <h3 className="font-medium text-navy-900 mb-2">Generate Report</h3>
-            <p className="text-sm text-navy-600 mb-3">Download funding report for accounting</p>
-            <button className="text-gold-500 hover:text-gold-600 text-sm font-medium">Generate →</button>
-          </div>
-        </div>
-      </div>
+            </Descriptions>
+            
+            {selectedRequest.proofImage && (
+              <div style={{ marginBottom: 24 }}>
+                <h4>Proof of Payment:</h4>
+                <Image
+                  src={selectedRequest.proofImage}
+                  alt="Proof"
+                  style={{ maxWidth: '100%', maxHeight: '400px' }}
+                />
+                <Button 
+                  icon={<DownloadOutlined />} 
+                  onClick={() => window.open(selectedRequest.proofImage)}
+                  style={{ marginTop: 8 }}
+                >
+                  Download Proof
+                </Button>
+              </div>
+            )}
+            
+            {selectedRequest.status === 'pending' && (
+              <div style={{ marginTop: 24, textAlign: 'right' }}>
+                <Space>
+                  <Button onClick={() => setModalVisible(false)}>Cancel</Button>
+                  <Button 
+                    type="primary" 
+                    icon={<CloseOutlined />} 
+                    danger
+                    onClick={() => {
+                      form.setFieldsValue({ reason: '' });
+                      Modal.confirm({
+                        title: 'Reject Request',
+                        content: (
+                          <Form form={form}>
+                            <Form.Item
+                              name="reason"
+                              label="Rejection Reason"
+                              rules={[{ required: true }]}
+                            >
+                              <Input.TextArea rows={4} />
+                            </Form.Item>
+                          </Form>
+                        ),
+                        onOk: () => form.validateFields().then(values => handleRejectRequest(values)),
+                      });
+                    }}
+                  >
+                    Reject
+                  </Button>
+                  <Button 
+                    type="primary" 
+                    icon={<CheckOutlined />}
+                    onClick={() => handleApproveRequest(selectedRequest.id)}
+                    style={{ backgroundColor: '#52c41a', borderColor: '#52c41a' }}
+                  >
+                    Approve
+                  </Button>
+                </Space>
+              </div>
+            )}
+          </>
+        )}
+      </Modal>
     </div>
   );
 };

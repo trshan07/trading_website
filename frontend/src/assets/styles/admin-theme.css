@@ -1,0 +1,67 @@
+/* frontend/src/assets/styles/admin-theme.css */
+
+/* Admin Dashboard Theme */
+.admin-theme {
+  --primary-gold: #FFD700;
+  --primary-navy: #001529;
+  --primary-white: #ffffff;
+  --secondary-gold: #ffed4e;
+  --secondary-navy: #002140;
+}
+
+/* Custom Card Styles */
+.admin-card {
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  transition: all 0.3s ease;
+}
+
+.admin-card:hover {
+  box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+  transform: translateY(-2px);
+}
+
+/* Custom Table Styles */
+.admin-table .ant-table-thead > tr > th {
+  background-color: var(--primary-navy);
+  color: var(--primary-white);
+  font-weight: 600;
+}
+
+.admin-table .ant-table-tbody > tr:hover > td {
+  background-color: rgba(255, 215, 0, 0.1);
+}
+
+/* Custom Button Styles */
+.btn-gold {
+  background-color: var(--primary-gold);
+  border-color: var(--primary-gold);
+  color: var(--primary-navy);
+}
+
+.btn-gold:hover {
+  background-color: var(--secondary-gold);
+  border-color: var(--secondary-gold);
+  color: var(--primary-navy);
+}
+
+/* Custom Modal Styles */
+.admin-modal .ant-modal-header {
+  background-color: var(--primary-navy);
+  color: var(--primary-white);
+  border-bottom: 2px solid var(--primary-gold);
+}
+
+.admin-modal .ant-modal-title {
+  color: var(--primary-white);
+}
+
+/* Custom Statistic Styles */
+.statistic-gold .ant-statistic-title {
+  color: var(--primary-gold);
+  font-weight: 600;
+}
+
+.statistic-gold .ant-statistic-content {
+  color: var(--primary-navy);
+}

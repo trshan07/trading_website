@@ -1,575 +1,473 @@
 // frontend/src/pages/admin/UsersPage.jsx
 import React, { useState, useEffect } from 'react';
 import {
-  FaSearch,
-  FaFilter,
-  FaEdit,
-  FaTrash,
-  FaBan,
-  FaCheck,
-  FaEye,
-  FaUserPlus,
-  FaDownload,
-  FaEnvelope,
-  FaPhone,
-  FaMapMarkerAlt,
-  FaCalendarAlt,
-  FaChartLine,
-  FaMoneyBillWave,
-  FaShieldAlt,
-  FaStar,
-  FaExclamationTriangle
-} from 'react-icons/fa';
+  Card,
+  Table,
+  Button,
+  Space,
+  Modal,
+  Form,
+  Input,
+  Select,
+  Switch,
+  message,
+  Tag,
+  Popconfirm,
+  Tooltip,
+  Avatar,
+  InputNumber,
+  Drawer,
+  Descriptions,
+  Badge,
+} from 'antd';
+import {
+  PlusOutlined,
+  EditOutlined,
+  DeleteOutlined,
+  EyeOutlined,
+  SearchOutlined,
+  FilterOutlined,
+  ExportOutlined,
+  DollarOutlined,
+  StopOutlined,
+  CheckCircleOutlined,
+} from '@ant-design/icons';
+import { adminService } from '../../services/adminService';
+import moment from 'moment';
+
+const { Option } = Select;
 
 const UsersPage = () => {
   const [users, setUsers] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [selectedUsers, setSelectedUsers] = useState([]);
-  const [filterStatus, setFilterStatus] = useState('all');
-  const [searchTerm, setSearchTerm] = useState('');
-  const [showUserModal, setShowUserModal] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [drawerVisible, setDrawerVisible] = useState(false);
+  const [editingUser, setEditingUser] = useState(null);
   const [selectedUser, setSelectedUser] = useState(null);
-  const [userStats, setUserStats] = useState({
-    total: 0,
-    active: 0,
-    pending: 0,
-    suspended: 0,
-    verified: 0
-  });
+  const [form] = Form.useForm();
+  const [balanceForm] = Form.useForm();
+  const [searchText, setSearchText] = useState('');
+  const [filters, setFilters] = useState({ status: 'all', role: 'all' });
+  const [pagination, setPagination] = useState({ current: 1, pageSize: 10, total: 0 });
 
-  // Mock users data
   useEffect(() => {
-    const mockUsers = [
-      {
-        id: 1,
-        name: 'John Smith',
-        email: 'john.smith@example.com',
-        phone: '+1 234-567-8901',
-        country: 'USA',
-        city: 'New York',
-        balance: 25450.00,
-        equity: 26780.00,
-        trades: 145,
-        winRate: 68,
-        status: 'active',
-        verified: true,
-        kyc: 'approved',
-        role: 'client',
-        lastActive: '2024-03-07T10:30:00',
-        joined: '2024-01-15',
-        riskLevel: 'low',
-        avatar: null
-      },
-      {
-        id: 2,
-        name: 'Sarah Johnson',
-        email: 'sarah.j@example.com',
-        phone: '+1 345-678-9012',
-        country: 'Canada',
-        city: 'Toronto',
-        balance: 12800.00,
-        equity: 13450.00,
-        trades: 89,
-        winRate: 72,
-        status: 'active',
-        verified: true,
-        kyc: 'approved',
-        role: 'client',
-        lastActive: '2024-03-07T09:15:00',
-        joined: '2024-02-20',
-        riskLevel: 'low',
-        avatar: null
-      },
-      {
-        id: 3,
-        name: 'Mike Wilson',
-        email: 'mike.w@example.com',
-        phone: '+44 20 1234 5678',
-        country: 'UK',
-        city: 'London',
-        balance: 5200.00,
-        equity: 4950.00,
-        trades: 34,
-        winRate: 55,
-        status: 'inactive',
-        verified: false,
-        kyc: 'pending',
-        role: 'client',
-        lastActive: '2024-03-05T14:20:00',
-        joined: '2024-03-10',
-        riskLevel: 'medium',
-        avatar: null
-      },
-      {
-        id: 4,
-        name: 'Emma Brown',
-        email: 'emma.b@example.com',
-        phone: '+61 2 1234 5678',
-        country: 'Australia',
-        city: 'Sydney',
-        balance: 32100.00,
-        equity: 34500.00,
-        trades: 212,
-        winRate: 65,
-        status: 'active',
-        verified: true,
-        kyc: 'approved',
-        role: 'client',
-        lastActive: '2024-03-07T11:45:00',
-        joined: '2024-01-05',
-        riskLevel: 'low',
-        avatar: null
-      },
-      {
-        id: 5,
-        name: 'David Lee',
-        email: 'david.lee@example.com',
-        phone: '+65 9123 4567',
-        country: 'Singapore',
-        city: 'Singapore',
-        balance: 8750.00,
-        equity: 8200.00,
-        trades: 67,
-        winRate: 48,
-        status: 'suspended',
-        verified: true,
-        kyc: 'approved',
-        role: 'client',
-        lastActive: '2024-03-04T16:30:00',
-        joined: '2024-02-28',
-        riskLevel: 'high',
-        avatar: null
-      },
-      {
-        id: 6,
-        name: 'Maria Garcia',
-        email: 'maria.g@example.com',
-        phone: '+34 91 123 4567',
-        country: 'Spain',
-        city: 'Madrid',
-        balance: 18300.00,
-        equity: 19200.00,
-        trades: 156,
-        winRate: 71,
-        status: 'active',
-        verified: true,
-        kyc: 'approved',
-        role: 'client',
-        lastActive: '2024-03-07T08:20:00',
-        joined: '2024-01-22',
-        riskLevel: 'low',
-        avatar: null
-      }
-    ];
+    fetchUsers();
+  }, [pagination.current, pagination.pageSize, searchText, filters]);
 
-    setUsers(mockUsers);
-    
-    // Calculate stats
-    setUserStats({
-      total: mockUsers.length,
-      active: mockUsers.filter(u => u.status === 'active').length,
-      pending: mockUsers.filter(u => u.kyc === 'pending').length,
-      suspended: mockUsers.filter(u => u.status === 'suspended').length,
-      verified: mockUsers.filter(u => u.verified).length
-    });
-    
-    setLoading(false);
-  }, []);
-
-  const getStatusColor = (status) => {
-    switch(status) {
-      case 'active': return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400';
-      case 'inactive': return 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400';
-      case 'suspended': return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400';
-      default: return 'bg-gray-100 text-gray-800';
+  const fetchUsers = async () => {
+    setLoading(true);
+    try {
+      const data = await adminService.getUsers({
+        page: pagination.current,
+        limit: pagination.pageSize,
+        search: searchText,
+        status: filters.status !== 'all' ? filters.status : undefined,
+        role: filters.role !== 'all' ? filters.role : undefined,
+      });
+      setUsers(data.users);
+      setPagination({ ...pagination, total: data.total });
+    } catch (error) {
+      message.error('Failed to fetch users');
+    } finally {
+      setLoading(false);
     }
   };
 
-  const getRiskColor = (risk) => {
-    switch(risk) {
-      case 'low': return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400';
-      case 'medium': return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400';
-      case 'high': return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400';
-      default: return 'bg-gray-100 text-gray-800';
+  const handleCreateUser = async (values) => {
+    try {
+      await adminService.createUser(values);
+      message.success('User created successfully');
+      setModalVisible(false);
+      form.resetFields();
+      fetchUsers();
+    } catch (error) {
+      message.error('Failed to create user');
     }
   };
 
-  const filteredUsers = users.filter(user => {
-    const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         user.country.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    if (filterStatus === 'all') return matchesSearch;
-    return matchesSearch && user.status === filterStatus;
-  });
-
-  const toggleSelectAll = () => {
-    if (selectedUsers.length === filteredUsers.length) {
-      setSelectedUsers([]);
-    } else {
-      setSelectedUsers(filteredUsers.map(u => u.id));
+  const handleUpdateUser = async (values) => {
+    try {
+      await adminService.updateUser(editingUser.id, values);
+      message.success('User updated successfully');
+      setModalVisible(false);
+      setEditingUser(null);
+      form.resetFields();
+      fetchUsers();
+    } catch (error) {
+      message.error('Failed to update user');
     }
   };
 
-  const toggleSelectUser = (userId) => {
-    if (selectedUsers.includes(userId)) {
-      setSelectedUsers(selectedUsers.filter(id => id !== userId));
-    } else {
-      setSelectedUsers([...selectedUsers, userId]);
+  const handleDeleteUser = async (userId) => {
+    try {
+      await adminService.deleteUser(userId);
+      message.success('User deleted successfully');
+      fetchUsers();
+    } catch (error) {
+      message.error('Failed to delete user');
     }
   };
 
-  const handleViewUser = (user) => {
-    setSelectedUser(user);
-    setShowUserModal(true);
+  const handleAdjustBalance = async (values) => {
+    try {
+      await adminService.adjustUserBalance(selectedUser.id, values);
+      message.success('Balance adjusted successfully');
+      setDrawerVisible(false);
+      fetchUsers();
+    } catch (error) {
+      message.error('Failed to adjust balance');
+    }
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600 dark:text-gray-400">Loading users...</p>
-        </div>
-      </div>
-    );
-  }
+  const handleToggleStatus = async (userId, currentStatus) => {
+    try {
+      const newStatus = currentStatus === 'active' ? 'suspended' : 'active';
+      await adminService.updateUserStatus(userId, newStatus);
+      message.success(`User ${newStatus === 'active' ? 'activated' : 'suspended'} successfully`);
+      fetchUsers();
+    } catch (error) {
+      message.error('Failed to update user status');
+    }
+  };
+
+  const columns = [
+    {
+      title: 'User',
+      dataIndex: 'name',
+      key: 'name',
+      render: (text, record) => (
+        <Space>
+          <Avatar style={{ backgroundColor: '#FFD700', color: '#001529' }}>
+            {text.charAt(0)}
+          </Avatar>
+          <div>
+            <div style={{ fontWeight: 'bold' }}>{text}</div>
+            <div style={{ fontSize: '12px', color: '#666' }}>{record.email}</div>
+          </div>
+        </Space>
+      ),
+    },
+    {
+      title: 'Role',
+      dataIndex: 'role',
+      key: 'role',
+      render: (role) => (
+        <Tag color={role === 'admin' ? '#FFD700' : '#1890ff'}>
+          {role.toUpperCase()}
+        </Tag>
+      ),
+    },
+    {
+      title: 'Balance',
+      dataIndex: 'balance',
+      key: 'balance',
+      render: (balance) => (
+        <span style={{ color: '#52c41a', fontWeight: 'bold' }}>
+          ${balance?.toLocaleString()}
+        </span>
+      ),
+    },
+    {
+      title: 'Status',
+      dataIndex: 'status',
+      key: 'status',
+      render: (status) => (
+        <Badge 
+          status={status === 'active' ? 'success' : 'error'} 
+          text={status.toUpperCase()}
+        />
+      ),
+    },
+    {
+      title: 'Joined',
+      dataIndex: 'createdAt',
+      key: 'createdAt',
+      render: (date) => moment(date).format('YYYY-MM-DD'),
+    },
+    {
+      title: 'Last Login',
+      dataIndex: 'lastLogin',
+      key: 'lastLogin',
+      render: (date) => date ? moment(date).fromNow() : 'Never',
+    },
+    {
+      title: 'Actions',
+      key: 'actions',
+      render: (_, record) => (
+        <Space>
+          <Tooltip title="View Details">
+            <Button
+              icon={<EyeOutlined />}
+              onClick={() => {
+                setSelectedUser(record);
+                setDrawerVisible(true);
+              }}
+            />
+          </Tooltip>
+          <Tooltip title="Edit User">
+            <Button
+              icon={<EditOutlined />}
+              onClick={() => {
+                setEditingUser(record);
+                form.setFieldsValue(record);
+                setModalVisible(true);
+              }}
+            />
+          </Tooltip>
+          <Tooltip title={record.status === 'active' ? 'Suspend User' : 'Activate User'}>
+            <Button
+              icon={record.status === 'active' ? <StopOutlined /> : <CheckCircleOutlined />}
+              onClick={() => handleToggleStatus(record.id, record.status)}
+              style={{ borderColor: record.status === 'active' ? '#f5222d' : '#52c41a' }}
+            />
+          </Tooltip>
+          <Popconfirm
+            title="Are you sure you want to delete this user?"
+            onConfirm={() => handleDeleteUser(record.id)}
+            okText="Yes"
+            cancelText="No"
+          >
+            <Tooltip title="Delete User">
+              <Button icon={<DeleteOutlined />} danger />
+            </Tooltip>
+          </Popconfirm>
+        </Space>
+      ),
+    },
+  ];
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">User Management</h1>
-          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-            Manage and monitor all platform users
-          </p>
-        </div>
-        <div className="mt-4 md:mt-0 flex space-x-3">
-          <button className="flex items-center px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">
-            <FaDownload className="mr-2" size={14} />
-            Export
-          </button>
-          <button className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
-            <FaUserPlus className="mr-2" size={14} />
-            Add User
-          </button>
-        </div>
-      </div>
+    <div>
+      <Card 
+        title="User Management" 
+        style={{ borderTop: '4px solid #FFD700' }}
+        extra={
+          <Space>
+            <Input.Search
+              placeholder="Search users..."
+              onSearch={setSearchText}
+              style={{ width: 200 }}
+              allowClear
+            />
+            <Select
+              defaultValue="all"
+              style={{ width: 120 }}
+              onChange={(value) => setFilters({ ...filters, status: value })}
+            >
+              <Option value="all">All Status</Option>
+              <Option value="active">Active</Option>
+              <Option value="suspended">Suspended</Option>
+              <Option value="pending">Pending</Option>
+            </Select>
+            <Select
+              defaultValue="all"
+              style={{ width: 120 }}
+              onChange={(value) => setFilters({ ...filters, role: value })}
+            >
+              <Option value="all">All Roles</Option>
+              <Option value="user">User</Option>
+              <Option value="admin">Admin</Option>
+            </Select>
+            <Button icon={<ExportOutlined />}>Export</Button>
+            <Button 
+              type="primary" 
+              icon={<PlusOutlined />}
+              onClick={() => {
+                setEditingUser(null);
+                form.resetFields();
+                setModalVisible(true);
+              }}
+              style={{ backgroundColor: '#FFD700', borderColor: '#FFD700', color: '#001529' }}
+            >
+              Add User
+            </Button>
+          </Space>
+        }
+      >
+        <Table
+          columns={columns}
+          dataSource={users}
+          loading={loading}
+          pagination={pagination}
+          onChange={(newPagination) => setPagination(newPagination)}
+          rowKey="id"
+        />
+      </Card>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4">
-          <p className="text-sm text-gray-500 dark:text-gray-400">Total Users</p>
-          <p className="text-2xl font-bold text-gray-900 dark:text-white">{userStats.total}</p>
-          <p className="text-xs text-green-600 mt-1">+12 this week</p>
-        </div>
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4">
-          <p className="text-sm text-gray-500 dark:text-gray-400">Active Now</p>
-          <p className="text-2xl font-bold text-green-600">1,234</p>
-          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">online users</p>
-        </div>
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4">
-          <p className="text-sm text-gray-500 dark:text-gray-400">Pending KYC</p>
-          <p className="text-2xl font-bold text-yellow-600">{userStats.pending}</p>
-          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">awaiting verification</p>
-        </div>
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4">
-          <p className="text-sm text-gray-500 dark:text-gray-400">Suspended</p>
-          <p className="text-2xl font-bold text-red-600">{userStats.suspended}</p>
-          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">restricted accounts</p>
-        </div>
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4">
-          <p className="text-sm text-gray-500 dark:text-gray-400">Total Balance</p>
-          <p className="text-2xl font-bold text-gray-900 dark:text-white">$102.5K</p>
-          <p className="text-xs text-green-600 mt-1">+8.2% this month</p>
-        </div>
-      </div>
-
-      {/* Filters */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4">
-        <div className="flex flex-wrap gap-4">
-          <div className="flex-1 min-w-[300px]">
-            <div className="relative">
-              <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Search by name, email, country..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-          </div>
-          
-          <select
-            value={filterStatus}
-            onChange={(e) => setFilterStatus(e.target.value)}
-            className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+      {/* Create/Edit User Modal */}
+      <Modal
+        title={editingUser ? 'Edit User' : 'Create New User'}
+        open={modalVisible}
+        onCancel={() => {
+          setModalVisible(false);
+          setEditingUser(null);
+          form.resetFields();
+        }}
+        footer={null}
+        width={600}
+      >
+        <Form
+          form={form}
+          layout="vertical"
+          onFinish={editingUser ? handleUpdateUser : handleCreateUser}
+        >
+          <Form.Item
+            name="name"
+            label="Full Name"
+            rules={[{ required: true, message: 'Please enter name' }]}
           >
-            <option value="all">All Status</option>
-            <option value="active">Active</option>
-            <option value="inactive">Inactive</option>
-            <option value="suspended">Suspended</option>
-          </select>
+            <Input placeholder="Enter full name" />
+          </Form.Item>
+          
+          <Form.Item
+            name="email"
+            label="Email"
+            rules={[
+              { required: true, message: 'Please enter email' },
+              { type: 'email', message: 'Invalid email' }
+            ]}
+          >
+            <Input placeholder="Enter email" />
+          </Form.Item>
+          
+          {!editingUser && (
+            <Form.Item
+              name="password"
+              label="Password"
+              rules={[{ required: true, message: 'Please enter password', min: 6 }]}
+            >
+              <Input.Password placeholder="Enter password" />
+            </Form.Item>
+          )}
+          
+          <Form.Item
+            name="role"
+            label="Role"
+            rules={[{ required: true }]}
+          >
+            <Select>
+              <Option value="user">User</Option>
+              <Option value="admin">Admin</Option>
+            </Select>
+          </Form.Item>
+          
+          <Form.Item
+            name="status"
+            label="Status"
+            rules={[{ required: true }]}
+          >
+            <Select>
+              <Option value="active">Active</Option>
+              <Option value="suspended">Suspended</Option>
+              <Option value="pending">Pending</Option>
+            </Select>
+          </Form.Item>
+          
+          <Form.Item>
+            <Space>
+              <Button type="primary" htmlType="submit" style={{ backgroundColor: '#FFD700', borderColor: '#FFD700', color: '#001529' }}>
+                {editingUser ? 'Update' : 'Create'}
+              </Button>
+              <Button onClick={() => setModalVisible(false)}>Cancel</Button>
+            </Space>
+          </Form.Item>
+        </Form>
+      </Modal>
 
-          <select className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
-            <option>All Verification</option>
-            <option>Verified</option>
-            <option>Pending</option>
-            <option>Rejected</option>
-          </select>
-
-          <select className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
-            <option>All Risk Levels</option>
-            <option>Low Risk</option>
-            <option>Medium Risk</option>
-            <option>High Risk</option>
-          </select>
-
-          <button className="flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300">
-            <FaFilter className="mr-2" size={14} />
-            More Filters
-          </button>
-        </div>
-      </div>
-
-      {/* Users Table */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-50 dark:bg-gray-900/50">
-              <tr>
-                <th className="px-6 py-3 text-left">
-                  <input
-                    type="checkbox"
-                    checked={selectedUsers.length === filteredUsers.length && filteredUsers.length > 0}
-                    onChange={toggleSelectAll}
-                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                  />
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">User</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Contact</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Balance</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Trades</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Status</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Risk</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Last Active</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-              {filteredUsers.map((user) => (
-                <tr key={user.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
-                  <td className="px-6 py-4">
-                    <input
-                      type="checkbox"
-                      checked={selectedUsers.includes(user.id)}
-                      onChange={() => toggleSelectUser(user.id)}
-                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                    />
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center">
-                      <div className="w-10 h-10 bg-gray-200 dark:bg-gray-600 rounded-full flex items-center justify-center">
-                        <span className="text-lg font-semibold text-gray-700 dark:text-gray-300">
-                          {user.name.charAt(0)}
-                        </span>
-                      </div>
-                      <div className="ml-3">
-                        <p className="text-sm font-medium text-gray-900 dark:text-white">{user.name}</p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">{user.country}</p>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="text-sm">
-                      <p className="text-gray-900 dark:text-white">{user.email}</p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">{user.phone}</p>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <p className="text-sm font-medium text-gray-900 dark:text-white">
-                      ${user.balance.toLocaleString()}
-                    </p>
-                    <p className="text-xs text-green-600">
-                      Equity: ${user.equity.toLocaleString()}
-                    </p>
-                  </td>
-                  <td className="px-6 py-4">
-                    <p className="text-sm text-gray-900 dark:text-white">{user.trades}</p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">Win: {user.winRate}%</p>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(user.status)}`}>
-                      {user.status.charAt(0).toUpperCase() + user.status.slice(1)}
-                    </span>
-                    {user.verified && (
-                      <span className="ml-2 px-2 py-1 bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400 text-xs font-medium rounded-full">
-                        Verified
-                      </span>
-                    )}
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className={`px-2 py-1 text-xs font-medium rounded-full ${getRiskColor(user.riskLevel)}`}>
-                      {user.riskLevel.charAt(0).toUpperCase() + user.riskLevel.slice(1)}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                    {new Date(user.lastActive).toLocaleTimeString()}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm">
-                    <button
-                      onClick={() => handleViewUser(user)}
-                      className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 mr-3"
-                      title="View Details"
-                    >
-                      <FaEye size={16} />
-                    </button>
-                    <button className="text-green-600 hover:text-green-700 dark:text-green-400 dark:hover:text-green-300 mr-3" title="Edit">
-                      <FaEdit size={16} />
-                    </button>
-                    <button className="text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300" title="Suspend">
-                      <FaBan size={16} />
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Pagination */}
-        <div className="px-6 py-4 bg-gray-50 dark:bg-gray-900/50 border-t border-gray-200 dark:border-gray-700">
-          <div className="flex items-center justify-between">
-            <p className="text-sm text-gray-600 dark:text-gray-400">
-              Showing 1 to {filteredUsers.length} of {users.length} results
-            </p>
-            <div className="flex space-x-2">
-              <button className="px-3 py-1 border border-gray-300 dark:border-gray-600 rounded-md text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">
-                Previous
-              </button>
-              <button className="px-3 py-1 bg-blue-600 text-white rounded-md text-sm hover:bg-blue-700">1</button>
-              <button className="px-3 py-1 border border-gray-300 dark:border-gray-600 rounded-md text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">
-                2
-              </button>
-              <button className="px-3 py-1 border border-gray-300 dark:border-gray-600 rounded-md text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">
-                3
-              </button>
-              <button className="px-3 py-1 border border-gray-300 dark:border-gray-600 rounded-md text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">
-                Next
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* User Detail Modal */}
-      {showUserModal && selectedUser && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">User Details</h3>
-              <button
-                onClick={() => setShowUserModal(false)}
-                className="text-gray-400 hover:text-gray-500"
-              >
-                <span className="text-2xl">&times;</span>
-              </button>
-            </div>
+      {/* User Details Drawer */}
+      <Drawer
+        title="User Details"
+        placement="right"
+        width={500}
+        onClose={() => setDrawerVisible(false)}
+        open={drawerVisible}
+        extra={
+          <Button 
+            icon={<DollarOutlined />} 
+            onClick={() => balanceForm.setFieldsValue({ amount: 0, type: 'add' })}
+            style={{ borderColor: '#FFD700', color: '#FFD700' }}
+          >
+            Adjust Balance
+          </Button>
+        }
+      >
+        {selectedUser && (
+          <>
+            <Descriptions column={1} bordered>
+              <Descriptions.Item label="Name">{selectedUser.name}</Descriptions.Item>
+              <Descriptions.Item label="Email">{selectedUser.email}</Descriptions.Item>
+              <Descriptions.Item label="Role">{selectedUser.role}</Descriptions.Item>
+              <Descriptions.Item label="Status">
+                <Badge status={selectedUser.status === 'active' ? 'success' : 'error'} text={selectedUser.status} />
+              </Descriptions.Item>
+              <Descriptions.Item label="Balance">
+                <span style={{ color: '#52c41a', fontWeight: 'bold' }}>
+                  ${selectedUser.balance?.toLocaleString()}
+                </span>
+              </Descriptions.Item>
+              <Descriptions.Item label="Total Deposits">
+                ${selectedUser.totalDeposits?.toLocaleString()}
+              </Descriptions.Item>
+              <Descriptions.Item label="Total Withdrawals">
+                ${selectedUser.totalWithdrawals?.toLocaleString()}
+              </Descriptions.Item>
+              <Descriptions.Item label="Total Trades">
+                {selectedUser.totalTrades}
+              </Descriptions.Item>
+              <Descriptions.Item label="Joined">
+                {moment(selectedUser.createdAt).format('YYYY-MM-DD HH:mm:ss')}
+              </Descriptions.Item>
+              <Descriptions.Item label="Last Login">
+                {selectedUser.lastLogin ? moment(selectedUser.lastLogin).format('YYYY-MM-DD HH:mm:ss') : 'Never'}
+              </Descriptions.Item>
+            </Descriptions>
             
-            <div className="p-6">
-              {/* User Header */}
-              <div className="flex items-start space-x-6">
-                <div className="w-24 h-24 bg-gray-200 dark:bg-gray-600 rounded-full flex items-center justify-center">
-                  <span className="text-3xl font-semibold text-gray-700 dark:text-gray-300">
-                    {selectedUser.name.charAt(0)}
-                  </span>
-                </div>
-                <div className="flex-1">
-                  <h2 className="text-2xl font-bold text-gray-900 dark:text-white">{selectedUser.name}</h2>
-                  <div className="grid grid-cols-2 gap-4 mt-4">
-                    <div>
-                      <p className="text-sm text-gray-500 dark:text-gray-400">Email</p>
-                      <p className="text-sm font-medium text-gray-900 dark:text-white">{selectedUser.email}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-500 dark:text-gray-400">Phone</p>
-                      <p className="text-sm font-medium text-gray-900 dark:text-white">{selectedUser.phone}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-500 dark:text-gray-400">Location</p>
-                      <p className="text-sm font-medium text-gray-900 dark:text-white">{selectedUser.city}, {selectedUser.country}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-500 dark:text-gray-400">Joined</p>
-                      <p className="text-sm font-medium text-gray-900 dark:text-white">{selectedUser.joined}</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Stats Grid */}
-              <div className="grid grid-cols-4 gap-4 mt-8">
-                <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
-                  <p className="text-sm text-gray-500 dark:text-gray-400">Balance</p>
-                  <p className="text-xl font-bold text-gray-900 dark:text-white">${selectedUser.balance.toLocaleString()}</p>
-                </div>
-                <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
-                  <p className="text-sm text-gray-500 dark:text-gray-400">Equity</p>
-                  <p className="text-xl font-bold text-gray-900 dark:text-white">${selectedUser.equity.toLocaleString()}</p>
-                </div>
-                <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
-                  <p className="text-sm text-gray-500 dark:text-gray-400">Total Trades</p>
-                  <p className="text-xl font-bold text-gray-900 dark:text-white">{selectedUser.trades}</p>
-                </div>
-                <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
-                  <p className="text-sm text-gray-500 dark:text-gray-400">Win Rate</p>
-                  <p className="text-xl font-bold text-gray-900 dark:text-white">{selectedUser.winRate}%</p>
-                </div>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="flex space-x-3 mt-8">
-                <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
-                  Adjust Balance
-                </button>
-                <button className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">
-                  Send Message
-                </button>
-                <button className="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700">
-                  View Trading History
-                </button>
-                <button className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700">
-                  Suspend Account
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Bulk Actions */}
-      {selectedUsers.length > 0 && (
-        <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 p-4 flex items-center space-x-4">
-          <span className="text-sm text-gray-700 dark:text-gray-300">
-            {selectedUsers.length} user{selectedUsers.length > 1 ? 's' : ''} selected
-          </span>
-          <div className="h-4 w-px bg-gray-300 dark:bg-gray-600"></div>
-          <button className="text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300">
-            Verify Selected
-          </button>
-          <button className="text-sm text-green-600 hover:text-green-700 dark:text-green-400 dark:hover:text-green-300">
-            Approve KYC
-          </button>
-          <button className="text-sm text-yellow-600 hover:text-yellow-700 dark:text-yellow-400 dark:hover:text-yellow-300">
-            Send Email
-          </button>
-          <button className="text-sm text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300">
-            Suspend
-          </button>
-        </div>
-      )}
+            <Form
+              form={balanceForm}
+              layout="vertical"
+              onFinish={handleAdjustBalance}
+              style={{ marginTop: 24 }}
+            >
+              <Form.Item
+                name="type"
+                label="Transaction Type"
+                rules={[{ required: true }]}
+              >
+                <Select>
+                  <Option value="add">Add Funds</Option>
+                  <Option value="subtract">Subtract Funds</Option>
+                </Select>
+              </Form.Item>
+              
+              <Form.Item
+                name="amount"
+                label="Amount"
+                rules={[{ required: true, type: 'number', min: 0.01 }]}
+              >
+                <InputNumber
+                  style={{ width: '100%' }}
+                  precision={2}
+                  placeholder="Enter amount"
+                />
+              </Form.Item>
+              
+              <Form.Item
+                name="reason"
+                label="Reason"
+                rules={[{ required: true }]}
+              >
+                <Input.TextArea rows={3} placeholder="Enter reason for adjustment" />
+              </Form.Item>
+              
+              <Form.Item>
+                <Button type="primary" htmlType="submit" style={{ backgroundColor: '#FFD700', borderColor: '#FFD700', color: '#001529' }}>
+                  Apply Adjustment
+                </Button>
+              </Form.Item>
+            </Form>
+          </>
+        )}
+      </Drawer>
     </div>
   );
 };
