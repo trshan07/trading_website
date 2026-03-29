@@ -14,6 +14,7 @@ const SymbolInfo = ({ symbol = 'BTCUSDT', height = '100%', theme = 'dark' }) => 
     script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-symbol-info.js';
     script.async = true;
     script.type = 'text/javascript';
+    script.crossOrigin = 'anonymous';
     
     // Widget configuration
     const config = {
@@ -28,10 +29,12 @@ const SymbolInfo = ({ symbol = 'BTCUSDT', height = '100%', theme = 'dark' }) => 
     
     script.innerHTML = JSON.stringify(config);
 
-    // Append script to container
-    if (containerRef.current) {
-      containerRef.current.appendChild(script);
-    }
+    // Append script to container with small delay to ensure DOM settled
+    setTimeout(() => {
+        if (containerRef.current) {
+            containerRef.current.appendChild(script);
+        }
+    }, 0);
 
     return () => {
       if (containerRef.current) {

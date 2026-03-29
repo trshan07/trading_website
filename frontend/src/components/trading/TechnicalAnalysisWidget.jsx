@@ -14,6 +14,7 @@ const TechnicalAnalysis = ({ symbol = 'BTCUSDT', interval = 'D', height = '100%'
     script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-technical-analysis.js';
     script.async = true;
     script.type = 'text/javascript';
+    script.crossOrigin = 'anonymous';
     
     // Widget configuration
     const config = {
@@ -30,10 +31,12 @@ const TechnicalAnalysis = ({ symbol = 'BTCUSDT', interval = 'D', height = '100%'
     
     script.innerHTML = JSON.stringify(config);
 
-    // Append script to container
-    if (containerRef.current) {
-      containerRef.current.appendChild(script);
-    }
+    // Append script to container with a small delay to ensure DOM is settled
+    setTimeout(() => {
+        if (containerRef.current) {
+            containerRef.current.appendChild(script);
+        }
+    }, 0);
 
     return () => {
       if (containerRef.current) {

@@ -10,49 +10,41 @@ const AccountSummary = ({ portfolio, showBalance, onToggleBalance }) => {
 
   return (
     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
-      <div className="bg-navy-800/50 rounded-lg p-3 sm:p-4 border border-gold-500/20">
-        <div className="flex items-center justify-between mb-1">
-          <p className="text-xs text-gold-500/70">Total Balance</p>
-          <button onClick={onToggleBalance} className="text-gold-500/70 hover:text-gold-500">
-            {showBalance ? <FaEye size={14} /> : <FaEyeSlash size={14} />}
-          </button>
-        </div>
-        <p className="text-lg sm:text-xl font-bold text-white">${formatBalance(portfolio.totalBalance)}</p>
-      </div>
-
-      <div className="bg-navy-800/50 rounded-lg p-3 sm:p-4 border border-gold-500/20">
-        <p className="text-xs text-gold-500/70 mb-1">Equity</p>
-        <p className="text-lg sm:text-xl font-bold text-white">${formatBalance(portfolio.equity)}</p>
-      </div>
-
-      <div className="bg-navy-800/50 rounded-lg p-3 sm:p-4 border border-gold-500/20">
-        <p className="text-xs text-gold-500/70 mb-1">Margin</p>
-        <p className="text-lg sm:text-xl font-bold text-yellow-400">${formatBalance(portfolio.margin)}</p>
-      </div>
-
-      <div className="bg-navy-800/50 rounded-lg p-3 sm:p-4 border border-gold-500/20">
-        <p className="text-xs text-gold-500/70 mb-1">Margin Level</p>
-        <p className="text-lg sm:text-xl font-bold text-gold-400">{showBalance ? portfolio.marginLevel : '•••'}%</p>
-      </div>
-
-      <div className="bg-navy-800/50 rounded-lg p-3 sm:p-4 border border-gold-500/20">
-        <p className="text-xs text-gold-500/70 mb-1">Daily P&L</p>
-        <div className="flex items-center">
-          {portfolio.dailyPnL > 0 ? (
-            <FaArrowUp className="text-green-400 mr-1" size={14} />
+      {[
+        { label: 'Total Balance', value: portfolio.totalBalance, showEye: true },
+        { label: 'Equity', value: portfolio.equity },
+        { label: 'Margin', value: portfolio.margin, color: 'text-amber-600' },
+        { label: 'Margin Level', value: `${portfolio.marginLevel}%`, raw: true, color: 'text-gold-600' },
+        { label: 'Daily P&L', value: portfolio.dailyPnL, isPnL: true },
+        { label: 'Positions', value: portfolio.positionsCount || 0, raw: true }
+      ].map((item, idx) => (
+        <div key={idx} className="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm transition-all hover:shadow-md">
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-[10px] uppercase tracking-wider font-bold text-slate-400">{item.label}</p>
+            {item.showEye && (
+              <button onClick={onToggleBalance} className="text-slate-300 hover:text-gold-600 transition-colors">
+                {showBalance ? <FaEye size={14} /> : <FaEyeSlash size={14} />}
+              </button>
+            )}
+          </div>
+          {item.isPnL ? (
+            <div className="flex items-center">
+              {item.value >= 0 ? (
+                <FaArrowUp className="text-emerald-500 mr-1.5" size={12} />
+              ) : (
+                <FaArrowDown className="text-rose-500 mr-1.5" size={12} />
+              ) }
+              <p className={`text-xl font-bold ${item.value >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
+                ${formatBalance(Math.abs(item.value))}
+              </p>
+            </div>
           ) : (
-            <FaArrowDown className="text-red-400 mr-1" size={14} />
+            <p className={`text-xl font-bold ${item.color || 'text-slate-900'}`}>
+              {item.raw ? item.value : `$${formatBalance(item.value)}`}
+            </p>
           )}
-          <p className={`text-lg sm:text-xl font-bold ${portfolio.dailyPnL > 0 ? 'text-green-400' : 'text-red-400'}`}>
-            ${formatBalance(Math.abs(portfolio.dailyPnL))}
-          </p>
         </div>
-      </div>
-
-      <div className="bg-navy-800/50 rounded-lg p-3 sm:p-4 border border-gold-500/20">
-        <p className="text-xs text-gold-500/70 mb-1">Positions</p>
-        <p className="text-lg sm:text-xl font-bold text-white">{portfolio.positionsCount || 0}</p>
-      </div>
+      ))}
     </div>
   );
 };

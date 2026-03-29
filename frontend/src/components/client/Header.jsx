@@ -1,137 +1,86 @@
 // frontend/src/components/dashboard/Header.jsx
 import React from 'react';
-import { FaChartLine, FaEye, FaBolt, FaBell, FaSignOutAlt, FaGlobe, FaChartPie, FaUniversity, FaFileAlt } from 'react-icons/fa';
+import { FaEye, FaBolt, FaBell, FaSignOutAlt, FaSearch, FaBars } from 'react-icons/fa';
 
 const Header = ({ 
-  activeTab, 
-  onTabChange, 
-  portfolio, 
-  showBalance, 
-  onToggleBalance, 
-  onQuickTrade,
-  unreadNotifications,
-  onLogout,
-  user = { firstName: 'John', lastName: 'Smith', role: 'Trader', selectedAccountType: 'demo' }
+  portfolio = {}, 
+  showBalance = true, 
+  onToggleBalance = () => {}, 
+  onQuickTrade = () => {},
+  unreadNotifications = 0,
+  onLogout = () => {},
+  onMenuClick = () => {},
+  user = { firstName: 'Trader', lastName: '', selectedAccountType: 'demo' }
 }) => {
-  const tabs = [
-    { id: 'trading', label: 'Trading', icon: FaChartLine },
-    { id: 'markets', label: 'Markets', icon: FaGlobe },
-    { id: 'portfolio', label: 'Portfolio', icon: FaChartPie },
-    { id: 'banking', label: 'Banking', icon: FaUniversity },
-    { id: 'documents', label: 'Documents', icon: FaFileAlt }
-  ];
-
   return (
-    <header className="bg-navy-900/95 backdrop-blur-lg border-b border-gold-500/30 sticky top-0 z-50">
-      <div className="px-6 py-3">
-        <div className="flex justify-between items-center">
-          {/* Logo */}
-          <div className="flex items-center space-x-4">
-            <div className="flex items-center space-x-2">
-              <div className="w-10 h-10 bg-gold-500 rounded-lg flex items-center justify-center">
-                <FaChartLine className="text-navy-950 text-xl" />
-              </div>
-              <div>
-                <h1 className="text-xl font-bold text-white">
-                  Rizal's<span className="text-gold-500 ml-1">Trade</span>
-                </h1>
-                <p className="text-xs text-gold-500/70">Professional Trading</p>
-              </div>
-            </div>
+    <header className="bg-white/80 backdrop-blur-md border-b border-slate-200 sticky top-0 z-40 px-4 sm:px-6 lg:px-10 h-20 flex items-center shadow-lg shadow-slate-200/50">
+      <div className="flex-1 flex justify-between items-center">
+        {/* Left Section - Quick Search & Mobile Menu */}
+        <div className="flex items-center space-x-6">
+          <button
+            onClick={onMenuClick}
+            className="lg:hidden p-3 bg-slate-900 text-white rounded-2xl shadow-xl hover:bg-slate-800 transition-all"
+          >
+            <FaBars size={18} />
+          </button>
 
-            {/* Main Navigation Tabs */}
-            <nav className="hidden lg:flex items-center space-x-1 bg-navy-800/50 rounded-lg p-1 ml-6">
-              {tabs.map((tab) => (
-                <button
-                  key={tab.id}
-                  onClick={() => onTabChange(tab.id)}
-                  className={`px-4 py-2 text-sm font-medium rounded-md transition-all flex items-center space-x-2 ${
-                    activeTab === tab.id
-                      ? 'bg-gold-500 text-navy-950'
-                      : 'text-gold-500/70 hover:text-gold-500 hover:bg-navy-700'
-                  }`}
-                >
-                  <tab.icon size={14} />
-                  <span>{tab.label}</span>
-                </button>
-              ))}
-            </nav>
+          <div className="hidden md:flex items-center relative group">
+            <FaSearch className="absolute left-4 text-slate-400 group-focus-within:text-gold-500 transition-colors" />
+            <input 
+              type="text" 
+              placeholder="Search markets, assets, news..." 
+              className="pl-12 pr-6 py-3 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-bold text-slate-900 w-80 focus:outline-none focus:ring-4 focus:ring-slate-900/5 focus:bg-white focus:border-slate-300 transition-all"
+            />
+          </div>
+        </div>
+
+        {/* Right Section - Balance, Quick Trade, & Profile */}
+        <div className="flex items-center space-x-4 sm:space-x-8">
+          {/* Balance Widget */}
+          <div className="hidden sm:flex flex-col items-end border-r border-slate-200 pr-8 mr-2 last:border-0 last:pr-0 last:mr-0">
+            <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-1.5 flex items-center">
+              Global Balance <FaEye className="ml-2 cursor-pointer hover:text-gold-500 transition-colors" onClick={onToggleBalance} />
+            </span>
+            <p className="text-xl font-black text-slate-900 italic tracking-tighter">
+              {showBalance ? `$${(portfolio?.totalBalance ?? 0).toLocaleString()}` : '••••••••'}
+            </p>
           </div>
 
-          {/* Right Section */}
           <div className="flex items-center space-x-4">
-            {/* Balance Display */}
-            <div className="hidden lg:block">
-              <p className="text-xs text-gold-500/70">Account Balance</p>
-              <div className="flex items-center space-x-2">
-                <p className="text-lg font-bold text-white">
-                  {showBalance ? `$${portfolio.totalBalance.toLocaleString()}` : '••••••'}
-                </p>
-                <button onClick={onToggleBalance}>
-                  <FaEye className={`text-gold-500/70 hover:text-gold-500 ${showBalance ? '' : 'opacity-50'}`} />
-                </button>
-              </div>
-            </div>
-
-            {/* Quick Trade Button */}
             <button
               onClick={onQuickTrade}
-              className="hidden lg:flex items-center space-x-2 px-4 py-2 bg-gold-500 text-navy-950 rounded-lg hover:bg-gold-600 transition-all"
+              className="flex items-center space-x-3 px-6 py-3 bg-slate-900 text-white rounded-2xl shadow-2xl shadow-slate-900/20 hover:bg-gold-600 hover:scale-[1.02] transition-all font-black uppercase tracking-widest text-[11px] border border-slate-800"
             >
               <FaBolt />
-              <span className="font-medium">Quick Trade</span>
+              <span className="hidden lg:inline">Quick Trade</span>
             </button>
 
             {/* Notifications */}
-            <div className="relative">
-              <button className="relative p-2 text-gold-500/70 hover:text-gold-500">
-                <FaBell size={20} />
-                {unreadNotifications > 0 && (
-                  <span className="absolute top-0 right-0 w-4 h-4 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
-                    {unreadNotifications}
-                  </span>
-                )}
-              </button>
-            </div>
+            <button className="relative p-3 bg-slate-900 text-white rounded-2xl shadow-xl hover:bg-slate-800 transition-all group">
+              <FaBell size={18} className="group-hover:rotate-12 transition-transform" />
+              {unreadNotifications > 0 && (
+                <span className="absolute -top-1.5 -right-1.5 w-6 h-6 bg-rose-500 text-white text-[10px] font-black rounded-full flex items-center justify-center border-4 border-white shadow-lg">
+                  {unreadNotifications}
+                </span>
+              )}
+            </button>
 
-            {/* User Menu */}
-            <div className="flex items-center space-x-3 pl-2 border-l border-gold-500/30">
-              <div className="text-right hidden md:block">
-                <p className="text-sm font-medium text-white">{user?.firstName} {user?.lastName}</p>
-                <div className="flex items-center justify-end">
-                    <span className={`text-[9px] uppercase tracking-widest px-1.5 py-0.5 rounded border ${
-                        user?.selectedAccountType === 'real'
-                        ? 'border-green-500 text-green-500 bg-green-500/10'
-                        : 'border-gold-500/50 text-gold-500/70 bg-gold-500/5'
-                    }`}>
-                        {user?.selectedAccountType === 'real' ? 'Live Trading' : 'Demo Mode'}
-                    </span>
+            {/* Account Selector Widget */}
+            <div className="hidden lg:flex items-center p-1 bg-slate-100 rounded-2xl border border-slate-200 ml-4 group cursor-pointer hover:bg-white hover:border-slate-300 transition-all">
+                <div className="w-10 h-10 bg-slate-900 rounded-[1.1rem] flex items-center justify-center text-gold-500 font-black italic shadow-lg">
+                    {user?.firstName?.charAt(0)}
                 </div>
-              </div>
-              <div className="relative group">
-                <div className="w-10 h-10 bg-gradient-to-br from-gold-500 to-gold-600 rounded-full flex items-center justify-center cursor-pointer shadow-lg shadow-gold-500/20">
-                  <span className="text-navy-950 font-bold text-lg">
-                    {user.firstName?.charAt(0)}{user.lastName?.charAt(0)}
-                  </span>
+                <div className="px-4 py-1 text-right">
+                    <p className="text-[11px] font-black text-slate-900 uppercase tracking-tight leading-none mb-1">
+                        {user?.firstName} {user?.lastName}
+                    </p>
+                    <div className="flex items-center justify-end">
+                        <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full mr-2 shadow-[0_0_8px_#10b981]"></span>
+                        <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">
+                            {user?.selectedAccountType} Live
+                        </span>
+                    </div>
                 </div>
-
-                {/* Dropdown Menu */}
-                <div className="absolute right-0 mt-2 w-48 bg-navy-800 rounded-lg shadow-xl border border-gold-500/30 hidden group-hover:block">
-                  <div className="p-2">
-                    <a href="#" className="block px-4 py-2 text-sm text-gold-500/70 hover:text-gold-500 hover:bg-navy-700 rounded">Profile</a>
-                    <a href="#" className="block px-4 py-2 text-sm text-gold-500/70 hover:text-gold-500 hover:bg-navy-700 rounded">Settings</a>
-                    <a href="#" className="block px-4 py-2 text-sm text-gold-500/70 hover:text-gold-500 hover:bg-navy-700 rounded">Statements</a>
-                    <div className="border-t border-gold-500/30 my-2"></div>
-                    <button 
-                      onClick={onLogout}
-                      className="w-full text-left px-4 py-2 text-sm text-red-400 hover:text-red-300 hover:bg-navy-700 rounded flex items-center"
-                    >
-                      <FaSignOutAlt className="mr-2" size={14} />
-                      Logout
-                    </button>
-                  </div>
-                </div>
-              </div>
             </div>
           </div>
         </div>

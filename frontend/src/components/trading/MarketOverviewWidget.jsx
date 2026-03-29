@@ -25,6 +25,7 @@ const MarketOverview = ({ height = '100%', theme = 'dark' }) => {
     script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-market-overview.js';
     script.async = true;
     script.type = 'text/javascript';
+    script.crossOrigin = "anonymous";
     
     script.text = JSON.stringify({
       "colorTheme": theme,
@@ -55,7 +56,13 @@ const MarketOverview = ({ height = '100%', theme = 'dark' }) => {
     });
 
     scriptRef.current = script;
-    containerRef.current.appendChild(script);
+    
+    // Use a small timeout to ensure the DOM for widgetContainer has settled
+    setTimeout(() => {
+        if (containerRef.current && containerRef.current.contains(widgetContainer)) {
+            containerRef.current.appendChild(script);
+        }
+    }, 0);
 
     return () => {
       if (scriptRef.current && scriptRef.current.parentNode) {

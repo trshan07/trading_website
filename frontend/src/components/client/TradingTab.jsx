@@ -5,29 +5,10 @@ import OrderBook from '../trading/OrderBook';
 import OrderForm from '../trading/OrderForm';
 import PositionsTable from '../trading/PositionsTable';
 import OpenOrders from '../trading/OpenOrders';
-import AccountSummary from '../trading/AccountSummary';
-import AreaChart from '../ui/charts/AreaChart';
 
 const TradingTab = ({ 
-  portfolio = {
-    totalBalance: 0,
-    availableBalance: 0,
-    equity: 0,
-    margin: 0,
-    marginLevel: 0,
-    dailyPnL: 0,
-    dailyPnLPercent: 0,
-    weeklyPnL: 0,
-    monthlyPnL: 0,
-    yearlyPnL: 0,
-    positionsCount: 0
-  }, 
-  showBalance = true, 
-  onToggleBalance = () => {},
   positions = [],
   orders = [],
-  marketData = {},
-  portfolioHistory = [],
   onPlaceOrder = () => {},
   onClosePosition = () => {},
   onCancelOrder = () => {}
@@ -35,12 +16,8 @@ const TradingTab = ({
   const [activeSubTab, setActiveSubTab] = useState('positions');
   const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1200);
 
-  // Handle window resize
   useEffect(() => {
-    const handleResize = () => {
-      setWindowWidth(window.innerWidth);
-    };
-    
+    const handleResize = () => setWindowWidth(window.innerWidth);
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
@@ -49,92 +26,81 @@ const TradingTab = ({
   const isTablet = windowWidth >= 768 && windowWidth < 1024;
 
   return (
-    <div className="space-y-4 sm:space-y-6">
-      <AccountSummary 
-        portfolio={portfolio}
-        showBalance={showBalance}
-        onToggleBalance={onToggleBalance}
-      />
-
-      {/* Main Trading Area */}
-      <div className={`grid ${isMobile ? 'grid-cols-1' : 'lg:grid-cols-4'} gap-4 sm:gap-6`}>
-        {/* Chart Area - Responsive columns */}
-        <div className={isMobile ? 'col-span-1' : 'lg:col-span-3 space-y-4'}>
-          {/* Real Chart - No selector, just the chart */}
-          <div 
-            className="bg-navy-800/50 rounded-xl border border-gold-500/20 overflow-hidden" 
-            style={{ height: isMobile ? '350px' : isTablet ? '400px' : '500px' }}
-          >
-            <TradingViewWidget symbol="BTCUSD" />
+    <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
+      {/* Main Execution Terminal */}
+      <div className={`grid ${isMobile ? 'grid-cols-1' : 'lg:grid-cols-12'} gap-8 items-start`}>
+        {/* Left Column: Chart & Market Depth */}
+        <div className={isMobile ? 'col-span-1' : 'lg:col-span-9 space-y-8'}>
+          {/* Chart Section - Professional Glassmorphism */}
+          <div className="bg-white rounded-[3rem] border border-slate-100 overflow-hidden shadow-2xl shadow-slate-200/50 group">
+             <div className="p-8 border-b border-slate-50 flex justify-between items-center bg-slate-50/50">
+                <div className="flex items-center space-x-3">
+                   <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_10px_#10b981]"></div>
+                   <h3 className="text-xs font-black uppercase text-slate-900 tracking-[0.2em] italic">Real-Time Market Terminal</h3>
+                </div>
+                <div className="hidden sm:flex space-x-2">
+                   {['1M', '5M', '15M', '1H', '1D'].map(t => (
+                      <button key={t} className="px-3 py-1.5 text-[10px] font-black text-slate-400 hover:text-slate-900 hover:bg-white rounded-xl border border-transparent hover:border-slate-100 transition-all">{t}</button>
+                   ))}
+                </div>
+             </div>
+             <div 
+               className="relative" 
+               style={{ height: isMobile ? '350px' : isTablet ? '400px' : '550px' }}
+             >
+               <TradingViewWidget symbol="BTCUSD" theme="light" />
+             </div>
           </div>
 
-          {/* Order Book */}
-          {!isMobile && <OrderBook symbol="BTCUSD" />}
-          
-          {/* Mobile Order Book Toggle */}
-          {isMobile && (
-            <div className="bg-navy-800/50 rounded-xl border border-gold-500/20 p-3">
-              <details className="group">
-                <summary className="flex items-center justify-between cursor-pointer text-gold-500 font-medium">
-                  <span>Order Book</span>
-                  <span className="transform group-open:rotate-180 transition-transform">▼</span>
-                </summary>
-                <div className="mt-3">
-                  <OrderBook symbol="BTCUSD" compact={true} />
-                </div>
-              </details>
-            </div>
-          )}
+          {/* Depth Area */}
+          <div className="grid grid-cols-1 md:grid-cols-1 gap-8">
+             <OrderBook symbol="BTCUSD" />
+          </div>
         </div>
 
-        {/* Order Form - Responsive column */}
-        <div className={isMobile ? 'col-span-1' : 'lg:col-span-1'}>
-          <OrderForm 
-            onSubmit={onPlaceOrder} 
-            symbol="BTCUSD"
-            compact={isMobile}
-          />
+        {/* Right Column: Execution Panel */}
+        <div className={isMobile ? 'col-span-1' : 'lg:col-span-3 h-full'}>
+          <div className="sticky top-28">
+            <OrderForm 
+              onSubmit={onPlaceOrder} 
+              symbol="BTCUSD"
+            />
+          </div>
         </div>
       </div>
 
-      {/* Positions and Orders Tabs */}
-      <div className="bg-navy-800/50 rounded-xl border border-gold-500/20 overflow-hidden">
-        <div className="border-b border-gold-500/20">
-          <div className="flex space-x-1 p-1 overflow-x-auto">
-            <button
-              onClick={() => setActiveSubTab('positions')}
-              className={`px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium rounded-lg transition-all whitespace-nowrap ${
-                activeSubTab === 'positions'
-                  ? 'bg-gold-500 text-navy-950'
-                  : 'text-gold-500/70 hover:text-gold-500 hover:bg-navy-700'
-              }`}
-            >
-              Open Positions ({positions.length})
-            </button>
-            <button
-              onClick={() => setActiveSubTab('orders')}
-              className={`px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium rounded-lg transition-all whitespace-nowrap ${
-                activeSubTab === 'orders'
-                  ? 'bg-gold-500 text-navy-950'
-                  : 'text-gold-500/70 hover:text-gold-500 hover:bg-navy-700'
-              }`}
-            >
-              Open Orders ({orders.length})
-            </button>
-            <button
-              onClick={() => setActiveSubTab('history')}
-              className={`px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium rounded-lg transition-all whitespace-nowrap ${
-                activeSubTab === 'history'
-                  ? 'bg-gold-500 text-navy-950'
-                  : 'text-gold-500/70 hover:text-gold-500 hover:bg-navy-700'
-              }`}
-            >
-              Order History
-            </button>
+      {/* Operations Panel (Positions & Orders) */}
+      <div className="bg-white rounded-[3rem] border border-slate-100 overflow-hidden shadow-2xl shadow-slate-200/50">
+        <div className="border-b border-slate-50 bg-slate-50/50 p-4">
+          <div className="flex space-x-2">
+            {[
+              { id: 'positions', label: 'Open Positions', count: positions.length },
+              { id: 'orders', label: 'Limit Orders', count: orders.length },
+              { id: 'history', label: 'Trade Journal', count: 0 }
+            ].map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveSubTab(tab.id)}
+                className={`px-8 py-4 text-[10px] font-black uppercase tracking-widest rounded-[1.5rem] transition-all duration-300 flex items-center ${
+                  activeSubTab === tab.id
+                    ? 'bg-slate-900 text-white shadow-2xl shadow-slate-900/20 translate-y-[-2px]'
+                    : 'text-slate-400 hover:text-slate-900 hover:bg-white border border-transparent hover:border-slate-100'
+                }`}
+              >
+                {tab.label}
+                {tab.count > 0 && (
+                  <span className={`ml-3 w-5 h-5 flex items-center justify-center rounded-full text-[9px] ${
+                    activeSubTab === tab.id ? 'bg-slate-900 text-gold-500 shadow-2xl shadow-slate-900/40 transform scale-105' : 'bg-slate-100 text-slate-400 hover:bg-slate-200'
+                  }`}>
+                    {tab.count}
+                  </span>
+                )}
+              </button>
+            ))}
           </div>
         </div>
 
-        <div className="p-3 sm:p-4">
+        <div className="p-8 sm:p-12">
           {activeSubTab === 'positions' && (
             positions.length > 0 ? (
               <PositionsTable 
@@ -143,8 +109,12 @@ const TradingTab = ({
                 compact={isMobile}
               />
             ) : (
-              <div className="text-center py-8">
-                <p className="text-gold-500/50">No open positions</p>
+              <div className="text-center py-24 flex flex-col items-center">
+                <div className="w-20 h-20 bg-slate-50 rounded-[2rem] flex items-center justify-center text-slate-200 mb-6 border-2 border-dashed border-slate-100">
+                   <FaChartLine size={24} />
+                </div>
+                <h4 className="text-xl font-black text-slate-900 italic tracking-tight mb-1">No Active Positions</h4>
+                <p className="text-slate-400 text-sm font-medium">Your terminal history is waiting for your next move.</p>
               </div>
             )
           )}
@@ -156,38 +126,15 @@ const TradingTab = ({
                 compact={isMobile}
               />
             ) : (
-              <div className="text-center py-8">
-                <p className="text-gold-500/50">No open orders</p>
+              <div className="text-center py-20">
+                <p className="text-slate-400 font-black uppercase tracking-[0.2em] text-[10px]">No Pending Executions</p>
               </div>
             )
           )}
           {activeSubTab === 'history' && (
-            <div className="text-center py-8">
-              <p className="text-gold-500/50">Order history coming soon</p>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Portfolio Performance Chart */}
-      <div className="bg-navy-800/50 rounded-xl p-3 sm:p-4 border border-gold-500/20">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-sm font-semibold text-gold-500">Portfolio Performance</h3>
-          <div className="flex items-center space-x-2">
-            <span className="text-xs text-gold-500/50">Total Return: </span>
-            <span className="text-sm font-medium text-green-400">+6.5%</span>
-          </div>
-        </div>
-        <div style={{ height: isMobile ? '150px' : '200px' }}>
-          {portfolioHistory && portfolioHistory.length > 0 ? (
-            <AreaChart 
-              data={portfolioHistory}
-              xKey="date"
-              yKey="value"
-            />
-          ) : (
-            <div className="h-full flex items-center justify-center">
-              <p className="text-gold-500/50 text-sm">No portfolio data available</p>
+            <div className="text-center py-20 flex flex-col items-center">
+                <h4 className="text-lg font-black text-slate-900 italic mb-2 tracking-tight uppercase">Journal coming soon</h4>
+                <p className="text-slate-400 text-xs font-bold tracking-widest uppercase">Performance metrics are building...</p>
             </div>
           )}
         </div>

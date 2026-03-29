@@ -1,6 +1,5 @@
-// context/AuthContext.js
 import React, { createContext, useState, useEffect, useContext } from 'react';
-import axios from 'axios';
+import api from '../services/api';
 
 // Create context
 export const AuthContext = createContext();
@@ -21,7 +20,6 @@ export const AuthProvider = ({ children }) => {
 
     useEffect(() => {
         if (token) {
-            axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
             loadUser();
         } else {
             setLoading(false);
@@ -30,8 +28,18 @@ export const AuthProvider = ({ children }) => {
 
     const loadUser = async () => {
         try {
-            const response = await axios.get('http://localhost:5000/api/user/profile');
-            setUser(response.data.data.user);
+            const response = await api.get('/user/profile');
+            const userData = response.data.data.user;
+            
+            setUser({
+                id: userData.id || userData._id,
+                email: userData.email,
+                firstName: userData.firstName || userData.first_name,
+                lastName: userData.lastName || userData.last_name,
+                role: userData.role,
+                accounts: userData.accounts || [],
+                selectedAccountType: userData.selectedAccountType || 'demo'
+            });
         } catch (error) {
             console.error('Error loading user:', error);
             logout();
@@ -45,10 +53,11 @@ const login = async (userData, token) => {
   try {
     // Store token
     localStorage.setItem('token', token);
+    setToken(token);
     
     // Set user data
     setUser({
-      id: userData._id,
+      id: userData._id || userData.id,
       email: userData.email,
       firstName: userData.firstName,
       lastName: userData.lastName,
@@ -56,9 +65,6 @@ const login = async (userData, token) => {
       accounts: userData.accounts || [],
       selectedAccountType: userData.selectedAccountType || 'demo'
     });
-    
-    // Set default authorization header
-    api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
     
     return { success: true };
   } catch (error) {
@@ -71,7 +77,6 @@ const login = async (userData, token) => {
         localStorage.removeItem('token');
         setToken(null);
         setUser(null);
-        delete axios.defaults.headers.common['Authorization'];
     };
 
     const value = {

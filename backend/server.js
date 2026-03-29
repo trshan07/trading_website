@@ -26,8 +26,18 @@ app.use(helmet({
 }));
 
 // CORS configuration
+const allowedOrigins = (process.env.CLIENT_URL || 'http://localhost:3000').split(',');
 app.use(cors({
-    origin: process.env.CLIENT_URL || 'http://localhost:3000',
+    origin: (origin, callback) => {
+        // Allow requests with no origin (like mobile apps or curl requests)
+        if (!origin) return callback(null, true);
+        if (allowedOrigins.indexOf(origin) !== -1 || allowedOrigins.includes(origin)) {
+            callback(null, true);
+        } else {
+            console.warn(`Origin ${origin} not allowed by CORS`);
+            callback(new Error('Not allowed by CORS'));
+        }
+    },
     credentials: true,
     optionsSuccessStatus: 200
 }));
@@ -89,13 +99,24 @@ app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
 
 // Protected user route
-app.get('/api/user/profile', protect, (req, res) => {
-    res.json({ 
-        success: true,
-        data: {
-            user: req.user
-        }
-    });
+app.get('/api/user/profile', protect, async (req, res) => {
+    try {
+        const Account = require('./src/models/Account');
+        const accounts = await Account.findByUserId(req.user.id);
+        
+        res.json({ 
+            success: true,
+            data: {
+                user: {
+                    ...req.user,
+                    accounts: accounts
+                }
+            }
+        });
+    } catch (error) {
+        console.error('Profile fetch error:', error);
+        res.status(500).json({ success: false, message: 'Error fetching profile' });
+    }
 });
 
 // Admin dashboard route

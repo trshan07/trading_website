@@ -52,11 +52,17 @@ const RegisterPage = () => {
     setErrorMsg("");
 
     try {
-      const data = await authService.register(formData);
-      // Automatically log them in. Default to 'demo' account on registration.
-      contextLogin({ ...data, selectedAccountType: 'demo' }, data.token);
-      toast.success("Account Provisioned Successfully! Welcome to Rizal's Trade.");
-      navigate('/dashboard');
+      const response = await authService.register(formData);
+      
+      if (response.success && response.data) {
+        const userData = response.data;
+        // Automatically log them in. Default to 'demo' account on registration.
+        contextLogin({ ...userData, selectedAccountType: 'demo' }, userData.token);
+        toast.success("Account Provisioned Successfully! Welcome to Rizal's Trade.");
+        navigate('/dashboard');
+      } else {
+        throw new Error('Invalid response structure');
+      }
     } catch (err) {
       console.error('Registration error:', err);
       setErrorMsg(err.response?.data?.message || "Protocol Error: Registration sequence failed.");

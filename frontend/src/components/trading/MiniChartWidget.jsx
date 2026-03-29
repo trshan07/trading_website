@@ -14,6 +14,7 @@ const MiniChart = ({ symbol = 'BTCUSDT', height = 50, theme = 'dark' }) => {
     script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-mini-symbol-overview.js';
     script.async = true;
     script.type = 'text/javascript';
+    script.crossOrigin = 'anonymous';
     
     // Widget configuration
     const config = {
@@ -33,10 +34,12 @@ const MiniChart = ({ symbol = 'BTCUSDT', height = 50, theme = 'dark' }) => {
     
     script.innerHTML = JSON.stringify(config);
 
-    // Append script to container
-    if (containerRef.current) {
-      containerRef.current.appendChild(script);
-    }
+    // Append script to container with small delay to ensute DOM settled
+    setTimeout(() => {
+        if (containerRef.current) {
+            containerRef.current.appendChild(script);
+        }
+    }, 0);
 
     return () => {
       if (containerRef.current) {

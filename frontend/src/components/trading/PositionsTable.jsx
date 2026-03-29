@@ -1,54 +1,50 @@
 // frontend/src/components/trading/PositionsTable.jsx
 import React from 'react';
+import { FaTimes, FaArrowUp, FaArrowDown } from 'react-icons/fa';
 
 const PositionsTable = ({ positions = [], onClose, compact = false }) => {
   if (compact) {
     return (
-      <div className="space-y-3">
+      <div className="space-y-6">
         {positions.map(position => (
-          <div key={position.id} className="bg-navy-700/30 rounded-lg p-3">
-            <div className="flex justify-between items-center mb-2">
-              <div>
-                <span className="text-white font-medium">{position.symbol}</span>
-                <span className={`ml-2 text-xs px-2 py-1 rounded ${
-                  position.type === 'LONG' ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'
-                }`}>
-                  {position.type}
-                </span>
+          <div key={position.id} className="bg-slate-50/50 rounded-3xl p-6 border border-slate-100 hover:border-gold-500/20 transition-all group">
+            <div className="flex justify-between items-start mb-4">
+              <div className="flex items-center space-x-3">
+                <div className={`p-3 rounded-2xl ${position.type === 'LONG' ? 'bg-emerald-50 text-emerald-500' : 'bg-rose-50 text-rose-500 shadow-sm'}`}>
+                  {position.type === 'LONG' ? <FaArrowUp size={14} /> : <FaArrowDown size={14} />}
+                </div>
+                <div>
+                  <p className="text-sm font-black text-slate-900 tracking-tight italic uppercase">{position.symbol}</p>
+                  <p className="text-[9px] font-black text-slate-400 tracking-[0.2em] uppercase">Market Position</p>
+                </div>
               </div>
-              <span className={`text-sm font-medium ${
-                position.pnl > 0 ? 'text-green-400' : 'text-red-400'
-              }`}>
-                {position.pnl > 0 ? '+' : ''}{position.pnlPercent.toFixed(2)}%
-              </span>
+              <div className="text-right">
+                <p className={`text-base font-black italic tracking-tighter ${position.pnl >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
+                  {position.pnl >= 0 ? '+' : ''}{position.pnl.toLocaleString()} USD
+                </p>
+                <p className="text-[9px] font-black text-slate-400 mt-0.5 uppercase tracking-widest">Unrealized P&L</p>
+              </div>
             </div>
             
-            <div className="grid grid-cols-2 gap-2 text-xs mb-3">
-              <div>
-                <span className="text-gold-500/50">Size:</span>
-                <span className="ml-1 text-white">{position.quantity}</span>
+            <div className="grid grid-cols-2 gap-4 mb-6">
+              <div className="bg-white p-4 rounded-2xl border border-slate-50 shadow-sm">
+                <p className="text-[8px] uppercase font-black text-slate-400 mb-1 tracking-widest">Unit Size</p>
+                <p className="text-xs font-black text-slate-900 italic">{position.quantity}</p>
               </div>
-              <div>
-                <span className="text-gold-500/50">Entry:</span>
-                <span className="ml-1 text-white">${position.entryPrice.toLocaleString()}</span>
-              </div>
-              <div>
-                <span className="text-gold-500/50">Current:</span>
-                <span className="ml-1 text-white">${position.currentPrice.toLocaleString()}</span>
-              </div>
-              <div>
-                <span className="text-gold-500/50">P&L:</span>
-                <span className={`ml-1 ${position.pnl > 0 ? 'text-green-400' : 'text-red-400'}`}>
-                  ${position.pnl.toLocaleString()}
-                </span>
+              <div className="bg-white p-4 rounded-2xl border border-slate-50 shadow-sm">
+                <p className="text-[8px] uppercase font-black text-slate-400 mb-1 tracking-widest">Global P&L</p>
+                <p className={`text-xs font-black italic ${position.pnl >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
+                  {position.pnl >= 0 ? '+' : ''}{position.pnlPercent?.toFixed(2) || '0.00'}%
+                </p>
               </div>
             </div>
             
             <button
               onClick={() => onClose(position.id)}
-              className="w-full px-3 py-2 bg-red-500/20 text-red-400 rounded-lg text-xs hover:bg-red-500/30"
+              className="w-full py-4 bg-slate-900 text-white font-black rounded-2xl text-[10px] uppercase tracking-[0.2em] hover:bg-rose-600 transition-all shadow-xl shadow-slate-900/10 flex items-center justify-center group/btn"
             >
-              Close Position
+              <FaTimes className="mr-3 text-gold-500 group-hover/btn:text-white" />
+              Terminate Position
             </button>
           </div>
         ))}
@@ -58,44 +54,47 @@ const PositionsTable = ({ positions = [], onClose, compact = false }) => {
 
   return (
     <div className="overflow-x-auto">
-      <table className="w-full">
+      <table className="w-full border-separate border-spacing-y-4">
         <thead>
-          <tr className="text-xs text-gold-500/70 border-b border-gold-500/20">
-            <th className="px-4 py-2 text-left">Symbol</th>
-            <th className="px-4 py-2 text-left">Type</th>
-            <th className="px-4 py-2 text-right">Size</th>
-            <th className="px-4 py-2 text-right">Entry Price</th>
-            <th className="px-4 py-2 text-right">Current Price</th>
-            <th className="px-4 py-2 text-right">P&L</th>
-            <th className="px-4 py-2 text-right">P&L %</th>
-            <th className="px-4 py-2 text-center">Actions</th>
+          <tr className="text-[10px] uppercase font-black text-slate-400 tracking-[0.25em]">
+            <th className="px-8 py-4 text-left font-black">Instrument</th>
+            <th className="px-8 py-4 text-left font-black">Type</th>
+            <th className="px-8 py-4 text-right font-black">Exposure</th>
+            <th className="px-8 py-4 text-right font-black">Avg. Entry</th>
+            <th className="px-8 py-4 text-right font-black">Market</th>
+            <th className="px-8 py-4 text-right font-black">Total P&L</th>
+            <th className="px-8 py-4 text-right font-black">Return</th>
+            <th className="px-8 py-4 text-center font-black">Status</th>
           </tr>
         </thead>
-        <tbody>
+        <tbody className="space-y-4">
           {positions.map(position => (
-            <tr key={position.id} className="border-b border-gold-500/10 hover:bg-navy-700/30">
-              <td className="px-4 py-3 text-sm text-white">{position.symbol}</td>
-              <td className="px-4 py-3">
-                <span className={`text-xs px-2 py-1 rounded ${
-                  position.type === 'LONG' ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'
+            <tr key={position.id} className="group bg-slate-50/30 hover:bg-white hover:shadow-2xl hover:shadow-slate-200/50 transition-all duration-300 transform hover:-translate-y-1">
+              <td className="px-8 py-6 rounded-l-[2rem] border-y border-l border-slate-50 group-hover:border-gold-500/20">
+                <span className="text-sm font-black text-slate-900 italic uppercase tracking-tight">{position.symbol}</span>
+              </td>
+              <td className="px-8 py-6 border-y border-slate-50 group-hover:border-gold-500/20">
+                <span className={`text-[10px] font-black px-4 py-1.5 rounded-full uppercase tracking-widest shadow-sm ${
+                  position.type === 'LONG' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-rose-50 text-rose-600 border border-rose-100'
                 }`}>
                   {position.type}
                 </span>
               </td>
-              <td className="px-4 py-3 text-sm text-right text-white">{position.quantity}</td>
-              <td className="px-4 py-3 text-sm text-right text-white">${position.entryPrice.toLocaleString()}</td>
-              <td className="px-4 py-3 text-sm text-right text-white">${position.currentPrice.toLocaleString()}</td>
-              <td className={`px-4 py-3 text-sm text-right ${position.pnl > 0 ? 'text-green-400' : 'text-red-400'}`}>
-                ${position.pnl.toLocaleString()}
+              <td className="px-8 py-6 text-sm font-black text-right text-slate-800 border-y border-slate-50 group-hover:border-gold-500/20 italic">{position.quantity}</td>
+              <td className="px-8 py-6 text-sm font-bold text-right text-slate-500 border-y border-slate-50 group-hover:border-gold-500/20">${position.entryPrice.toLocaleString()}</td>
+              <td className="px-8 py-6 text-sm font-bold text-right text-slate-500 border-y border-slate-50 group-hover:border-gold-500/20">${position.currentPrice.toLocaleString()}</td>
+              <td className={`px-8 py-6 text-sm font-black text-right border-y border-slate-50 group-hover:border-gold-500/20 italic ${position.pnl >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
+                {position.pnl >= 0 ? '+' : ''}${position.pnl.toLocaleString()}
               </td>
-              <td className={`px-4 py-3 text-sm text-right ${position.pnl > 0 ? 'text-green-400' : 'text-red-400'}`}>
-                {position.pnl > 0 ? '+' : ''}{position.pnlPercent.toFixed(2)}%
+              <td className={`px-8 py-6 text-sm font-black text-right border-y border-slate-50 group-hover:border-gold-500/20 italic ${position.pnl >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
+                {position.pnl >= 0 ? '+' : ''}{position.pnlPercent?.toFixed(2) || '0.00'}%
               </td>
-              <td className="px-4 py-3 text-center">
+              <td className="px-8 py-6 text-center rounded-r-[2rem] border-y border-r border-slate-50 group-hover:border-gold-500/20">
                 <button
                   onClick={() => onClose(position.id)}
-                  className="px-3 py-1 bg-red-500/20 text-red-400 rounded text-xs hover:bg-red-500/30"
+                  className="px-6 py-2 bg-slate-900 text-white rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-rose-600 transition-all shadow-lg active:scale-95 flex items-center mx-auto"
                 >
+                  <FaTimes className="mr-2 text-gold-500" />
                   Close
                 </button>
               </td>

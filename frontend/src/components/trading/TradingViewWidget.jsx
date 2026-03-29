@@ -1,6 +1,6 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, memo } from 'react';
 
-const AdvancedRealTimeChart = ({ 
+const AdvancedRealTimeChart = memo(({ 
   symbol = 'BTCUSDT',
   theme = 'dark',
   height = '100%',
@@ -10,52 +10,58 @@ const AdvancedRealTimeChart = ({
   const scriptRef = useRef(null);
 
   useEffect(() => {
-    // Clean up previous script
-    if (scriptRef.current && scriptRef.current.parentNode) {
-      scriptRef.current.parentNode.removeChild(scriptRef.current);
-    }
+    // Unique ID for this specific widget instance container to avoid querySelector conflicts
+    const widgetId = `tradingview_${Math.random().toString(36).substring(7)}`;
 
-    // Clear container
+    // Clean up previous content if it exists
     if (containerRef.current) {
-      containerRef.current.innerHTML = '';
+        containerRef.current.innerHTML = '';
+        
+        // Create the actual widget div that the TV script will target
+        const widgetContainer = document.createElement('div');
+        widgetContainer.id = widgetId;
+        widgetContainer.className = 'tradingview-widget-container__widget';
+        widgetContainer.style.height = '100%';
+        widgetContainer.style.width = '100%';
+        containerRef.current.appendChild(widgetContainer);
+
+        // Create the script
+        const script = document.createElement('script');
+        script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js';
+        script.async = true;
+        script.type = 'text/javascript';
+        script.crossOrigin = "anonymous";
+        
+        // Configuration
+        script.text = JSON.stringify({
+          "autosize": true,
+          "symbol": symbol,
+          "interval": "D",
+          "timezone": "Etc/UTC",
+          "theme": theme,
+          "style": "1",
+          "locale": "en",
+          "toolbar_bg": "#f1f3f6",
+          "enable_publishing": false,
+          "allow_symbol_change": true,
+          "calendar": false,
+          "studies": [
+            "RSI@tv-basicstudies",
+            "MACD@tv-basicstudies"
+          ],
+          "container_id": widgetId, // Explicitly tell the script which element to use
+          "support_host": "https://www.tradingview.com"
+        });
+
+        // Use a small timeout to ensure the DOM for widgetContainer has settled
+        setTimeout(() => {
+            if (containerRef.current && containerRef.current.contains(widgetContainer)) {
+                containerRef.current.appendChild(script);
+            }
+        }, 0);
     }
-
-    // Create widget container
-    const widgetContainer = document.createElement('div');
-    widgetContainer.className = 'tradingview-widget-container__widget';
-    containerRef.current.appendChild(widgetContainer);
-
-    // Create script
-    const script = document.createElement('script');
-    script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js';
-    script.async = true;
-    script.type = 'text/javascript';
-    
-    // Widget configuration
-    script.text = JSON.stringify({
-      "autosize": true,
-      "symbol": symbol,
-      "interval": "D",
-      "timezone": "Etc/UTC",
-      "theme": theme,
-      "style": "1",
-      "locale": "en",
-      "allow_symbol_change": true,
-      "calendar": false,
-      "studies": [
-        "RSI@tv-basicstudies",
-        "MACD@tv-basicstudies"
-      ],
-      "support_host": "https://www.tradingview.com"
-    });
-
-    scriptRef.current = script;
-    containerRef.current.appendChild(script);
 
     return () => {
-      if (scriptRef.current && scriptRef.current.parentNode) {
-        scriptRef.current.parentNode.removeChild(scriptRef.current);
-      }
       if (containerRef.current) {
         containerRef.current.innerHTML = '';
       }
@@ -68,7 +74,8 @@ const AdvancedRealTimeChart = ({
       style={{ 
         height, 
         width,
-        position: 'relative'
+        position: 'relative',
+        background: theme === 'dark' ? '#0a0f1c' : '#ffffff' // Placeholder background
       }}
       className="tradingview-widget-container"
     >
@@ -79,6 +86,6 @@ const AdvancedRealTimeChart = ({
       </div>
     </div>
   );
-};
+});
 
 export default AdvancedRealTimeChart;

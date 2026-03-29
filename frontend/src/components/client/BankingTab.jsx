@@ -447,79 +447,76 @@ const BankingTab = ({
 
   // Bank Accounts Section - Responsive
   const BankAccountsSection = () => (
-    <div className="bg-navy-800/50 rounded-xl border border-gold-500/20 p-4 sm:p-6">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-        <h3 className="text-base sm:text-lg font-semibold text-gold-500">Your Bank Accounts</h3>
+    <div className="bg-white rounded-[2.5rem] border border-slate-100 p-8 shadow-2xl shadow-slate-200/50">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6 mb-10">
+        <div>
+          <h3 className="text-xl font-black text-slate-900 uppercase tracking-tight italic">Financial Hub</h3>
+          <p className="text-[10px] text-slate-400 mt-2 uppercase font-black tracking-[0.2em]">Linked Asset Accounts</p>
+        </div>
         <button 
           onClick={() => setShowAddAccount(true)}
-          className="w-full sm:w-auto px-4 py-2 bg-gold-500 text-navy-950 rounded-lg hover:bg-gold-600 transition-all flex items-center justify-center space-x-2"
+          className="w-full sm:w-auto px-8 py-4 bg-slate-900 text-white rounded-[1.5rem] hover:bg-gold-600 transition-all shadow-xl shadow-slate-900/10 font-black uppercase tracking-widest text-[11px] flex items-center justify-center space-x-3 group"
         >
-          <FaPlus size={14} />
-          <span>Add Bank Account</span>
+          <FaPlus size={10} className="text-gold-500 group-hover:text-white transition-colors" />
+          <span>Add Account</span>
         </button>
       </div>
 
-      <div className="space-y-4">
+      <div className="grid grid-cols-1 gap-4">
         {bankAccounts.map((account) => (
-          <div key={account.id} className="bg-navy-700/50 rounded-lg p-4 border border-gold-500/20">
+          <div key={account.id} className="group bg-slate-50/50 rounded-2xl p-5 border border-slate-100 hover:border-gold-500/30 transition-all">
             <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
-              <div className="flex-1">
-                <div className="flex flex-wrap items-center gap-2 mb-2">
-                  <FaBuilding className="text-gold-500" />
-                  <h4 className="text-white font-medium">{account.bankName}</h4>
-                  {account.isVerified && (
-                    <span className="px-2 py-0.5 bg-green-500/20 text-green-400 text-xs rounded-full flex items-center">
-                      <FaCheck size={10} className="mr-1" /> Verified
-                    </span>
-                  )}
+              <div className="flex items-start space-x-4">
+                <div className="p-3 bg-white rounded-xl border border-slate-100 group-hover:border-gold-500/20 transition-colors">
+                  <FaUniversity className="text-gold-500 text-xl" />
                 </div>
-                <p className="text-sm text-gold-500/70">
-                  {account.accountName} •••• {account.accountNumber.slice(-4)}
-                </p>
-                <p className="text-xs text-gold-500/50 mt-1">
-                  Routing: {account.routingNumber} • {account.accountType.charAt(0).toUpperCase() + account.accountType.slice(1)}
-                </p>
-                {!isMobile && (
-                  <p className="text-xs text-gold-500/50 mt-1">
-                    {account.address}, {account.city}, {account.state} {account.zipCode}
+                <div>
+                  <div className="flex flex-wrap items-center gap-2 mb-1">
+                    <h4 className="text-slate-900 font-extrabold">{account.bankName}</h4>
+                    {account.isVerified && (
+                      <span className="px-2 py-0.5 bg-emerald-50 text-emerald-600 text-[10px] font-black rounded-full border border-emerald-100 uppercase tracking-tighter">
+                        Verified
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs font-bold text-slate-500">
+                    {account.accountName} •••• {account.accountNumber.slice(-4)}
                   </p>
-                )}
+                  <p className="text-[10px] text-slate-400 mt-1 uppercase font-bold">
+                    Routing: {account.routingNumber} • {account.accountType}
+                  </p>
+                </div>
               </div>
-              <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+              <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
                 {account.isDefault && (
-                  <span className="px-2 py-1 bg-gold-500/20 text-gold-500 text-xs rounded">Default</span>
+                  <span className="px-3 py-1 bg-gold-50 text-gold-600 text-[10px] font-black rounded-lg border border-gold-100 uppercase">Default</span>
                 )}
-                {!account.isDefault && bankAccounts.length > 1 && (
+                <div className="flex gap-1.5 ml-2">
+                  {!account.isDefault && bankAccounts.length > 1 && (
+                    <button 
+                      onClick={() => handleSetDefaultAccount(account.id)}
+                      className="p-2 bg-white text-slate-400 hover:text-emerald-500 rounded-lg border border-slate-100 hover:border-emerald-100 transition-all"
+                    >
+                      <FaCheck size={12} />
+                    </button>
+                  )}
                   <button 
-                    onClick={() => handleSetDefaultAccount(account.id)}
-                    className="p-2 text-gold-500/70 hover:text-gold-500"
-                    title="Set as Default"
+                    onClick={() => handleDeleteAccount(account.id)}
+                    className="p-2 bg-white text-slate-400 hover:text-rose-500 rounded-lg border border-slate-100 hover:border-rose-100 transition-all"
                   >
-                    <FaCheck size={14} />
+                    <FaTrash size={12} />
                   </button>
-                )}
-                <button 
-                  onClick={() => handleDeleteAccount(account.id)}
-                  className="p-2 text-red-400/70 hover:text-red-400" 
-                  title="Delete"
-                >
-                  <FaTrash size={14} />
-                </button>
+                </div>
               </div>
             </div>
-            {isMobile && (
-              <p className="text-xs text-gold-500/50 mt-2">
-                {account.address}, {account.city}, {account.state} {account.zipCode}
-              </p>
-            )}
           </div>
         ))}
       </div>
 
       {bankAccounts.length === 0 && (
-        <div className="text-center py-8">
-          <FaBuilding className="mx-auto text-gold-500/30 text-3xl sm:text-4xl mb-3" />
-          <p className="text-gold-500/50 text-sm sm:text-base">No bank accounts added yet</p>
+        <div className="text-center py-16 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+          <FaBuilding className="mx-auto text-slate-200 text-5xl mb-4" />
+          <p className="text-slate-400 font-bold uppercase tracking-widest text-sm">No Bank Accounts Linked</p>
         </div>
       )}
     </div>
@@ -527,53 +524,42 @@ const BankingTab = ({
 
   // Credit Cards Section - Responsive
   const CreditCardsSection = () => (
-    <div className="bg-navy-800/50 rounded-xl border border-gold-500/20 p-4 sm:p-6">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-        <h3 className="text-base sm:text-lg font-semibold text-gold-500">Your Credit Cards</h3>
+    <div className="bg-white rounded-[2.5rem] border border-slate-100 p-8 shadow-2xl shadow-slate-200/50 mt-8">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6 mb-10">
+        <div>
+          <h3 className="text-xl font-black text-slate-900 uppercase tracking-tight italic">Credit Lines</h3>
+          <p className="text-[10px] text-slate-400 mt-2 uppercase font-black tracking-[0.2em]">Authorized Payment Vectors</p>
+        </div>
         <button 
           onClick={() => setShowAddCard(true)}
-          className="w-full sm:w-auto px-4 py-2 bg-gold-500 text-navy-950 rounded-lg hover:bg-gold-600 transition-all flex items-center justify-center space-x-2"
+          className="w-full sm:w-auto px-8 py-4 bg-slate-900 text-white rounded-[1.5rem] hover:bg-gold-600 transition-all shadow-xl shadow-slate-900/10 font-black uppercase tracking-widest text-[11px] flex items-center justify-center space-x-3 group"
         >
-          <FaPlus size={14} />
-          <span>Add Card</span>
+          <FaPlus size={10} className="text-gold-500 group-hover:text-white transition-colors" />
+          <span>Register Card</span>
         </button>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
         {creditCards.map((card) => (
-          <div key={card.id} className="bg-gradient-to-br from-navy-700 to-navy-800 rounded-lg p-4 border border-gold-500/30">
-            <div className="flex justify-between items-start mb-4">
+          <div key={card.id} className="bg-slate-900 rounded-[2rem] p-8 border border-slate-800 shadow-2xl shadow-slate-900/20 relative overflow-hidden group">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-gold-500/5 blur-[50px] rounded-full translate-x-16 -translate-y-16"></div>
+            <div className="flex justify-between items-start mb-10 relative">
               {getCardIcon(card.cardType)}
               {card.isDefault && (
-                <span className="px-2 py-1 bg-gold-500/20 text-gold-500 text-xs rounded">Default</span>
+                <span className="px-3 py-1 bg-gold-500 text-white text-[9px] font-black rounded-lg uppercase tracking-widest italic">Primary Vector</span>
               )}
             </div>
-            <p className="text-white font-mono text-base sm:text-lg">•••• •••• •••• {card.last4}</p>
-            <p className="text-sm text-gold-500/70 mt-2">{card.cardholderName}</p>
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mt-4">
-              <p className="text-xs text-gold-500/50">Expires {card.expiryMonth}/{card.expiryYear}</p>
-              <p className="text-xs text-green-400">Available: ${card.availableCredit?.toLocaleString()}</p>
-            </div>
-            {card.isVerified && (
-              <div className="mt-2 flex items-center text-xs text-green-400">
-                <FaCheck size={10} className="mr-1" /> Verified
+            <p className="text-white font-mono text-xl tracking-[0.2em] relative mb-6">•••• •••• •••• {card.last4}</p>
+            <p className="text-[10px] font-black text-gold-500/70 uppercase tracking-widest relative italic">{card.cardholderName}</p>
+            <div className="flex justify-between items-end mt-8 relative pt-6 border-t border-white/5">
+              <div>
+                <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest">Valid Thru</p>
+                <p className="text-xs font-black text-white italic">{card.expiryMonth}/{card.expiryYear}</p>
               </div>
-            )}
-            <div className="mt-3 flex justify-end space-x-2">
-              {!card.isDefault && creditCards.length > 1 && (
-                <button 
-                  onClick={() => handleSetDefaultCard(card.id)}
-                  className="px-2 py-1 text-xs text-gold-500 hover:text-gold-400"
-                >
-                  Set Default
-                </button>
-              )}
-              <button 
-                onClick={() => handleDeleteCard(card.id)}
-                className="px-2 py-1 text-xs text-red-400 hover:text-red-300"
-              >
-                Delete
-              </button>
+              <div className="text-right">
+                <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest">Limit</p>
+                <p className="text-xs font-black text-emerald-400 italic">${card.availableCredit?.toLocaleString()}</p>
+              </div>
             </div>
           </div>
         ))}
@@ -590,33 +576,35 @@ const BankingTab = ({
 
   // Payment Methods Section - Responsive
   const PaymentMethodsSection = () => (
-    <div className="bg-navy-800/50 rounded-xl border border-gold-500/20 p-4 sm:p-6">
-      <h3 className="text-base sm:text-lg font-semibold text-gold-500 mb-6">Your Online Payment Methods</h3>
+    <div className="bg-white rounded-[2.5rem] border border-slate-100 p-8 shadow-2xl shadow-slate-200/50 mt-8">
+      <h3 className="text-xl font-black text-slate-900 uppercase tracking-tight italic mb-10">Digital Processors</h3>
       
       <div className="space-y-4">
         {paymentMethods.map((method) => (
-          <div key={method.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-navy-700/50 rounded-lg border border-gold-500/20 gap-4">
-            <div className="flex items-center space-x-3">
-              {method.method === 'PayPal' && <FaPaypal className="text-blue-400 text-xl" />}
-              {method.method === 'Skrill' && <FaMoneyBillWave className="text-orange-400 text-xl" />}
-              {method.method === 'Neteller' && <FaMoneyBillWave className="text-green-400 text-xl" />}
+          <div key={method.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-6 bg-slate-50 border border-slate-100 rounded-[1.5rem] gap-6 group hover:bg-white hover:shadow-2xl hover:shadow-slate-200/50 transition-all duration-300 transform hover:-translate-y-1">
+            <div className="flex items-center space-x-5">
+              <div className="p-4 bg-white rounded-xl shadow-sm border border-slate-50 group-hover:border-gold-500/20 transition-colors">
+                {method.method === 'PayPal' && <FaPaypal className="text-blue-500 text-2xl" />}
+                {method.method === 'Skrill' && <FaMoneyBillWave className="text-orange-500 text-2xl" />}
+                {method.method === 'Neteller' && <FaMoneyBillWave className="text-emerald-500 text-2xl" />}
+              </div>
               <div>
-                <p className="text-white font-medium">{method.method}</p>
-                <p className="text-sm text-gold-500/70">{method.email}</p>
+                <p className="text-sm font-black text-slate-900 uppercase tracking-widest">{method.method}</p>
+                <p className="text-[10px] font-black text-slate-400 italic lowercase">{method.email}</p>
               </div>
             </div>
-            <div className="flex items-center space-x-3">
+            <div className="flex items-center space-x-4">
               {method.isVerified ? (
-                <span className="flex items-center text-xs text-green-400">
-                  <FaCheck size={10} className="mr-1" /> Verified
+                <span className="flex items-center px-3 py-1 bg-emerald-500 text-white text-[9px] font-black rounded-lg uppercase tracking-widest shadow-sm">
+                  <FaCheck size={8} className="mr-1.5" /> Verified Sink
                 </span>
               ) : (
-                <span className="flex items-center text-xs text-yellow-400">
-                  <FaTimes size={10} className="mr-1" /> Unverified
+                <span className="flex items-center px-3 py-1 bg-rose-500 text-white text-[9px] font-black rounded-lg uppercase tracking-widest shadow-sm">
+                  <FaTimes size={8} className="mr-1.5" /> Unverified Sink
                 </span>
               )}
               {method.isDefault && (
-                <span className="px-2 py-1 bg-gold-500/20 text-gold-500 text-xs rounded">Default</span>
+                <span className="px-3 py-1 bg-slate-900 text-gold-500 text-[9px] font-black rounded-lg uppercase tracking-widest shadow-sm">Master Link</span>
               )}
             </div>
           </div>
@@ -627,121 +615,68 @@ const BankingTab = ({
 
   // Transaction History Section - Responsive
   const TransactionHistorySection = () => (
-    <div className="bg-navy-800/50 rounded-xl border border-gold-500/20 overflow-hidden">
-      <div className="p-4 border-b border-gold-500/20">
-        <h3 className="text-base sm:text-lg font-semibold text-gold-500">Transaction History</h3>
+    <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden shadow-sm">
+      <div className="p-6 border-b border-slate-100 bg-slate-50/50">
+        <h3 className="text-lg font-bold text-slate-900 uppercase tracking-tight">Transaction History</h3>
+        <p className="text-[10px] text-slate-400 mt-1 uppercase font-black tracking-widest">Recent Activity Logs</p>
       </div>
       
-      {isMobile ? (
-        // Mobile view - Card layout
-        <div className="p-4 space-y-4">
-          {transactions.map((tx) => (
-            <div key={tx.id} className="bg-navy-700/30 rounded-lg p-4 border border-gold-500/20">
-              <div className="flex justify-between items-start mb-3">
-                <div className="flex items-center space-x-2">
-                  {tx.type === 'Deposit' && <FaArrowDown className="text-green-400" size={12} />}
-                  {tx.type === 'Withdrawal' && <FaArrowUp className="text-red-400" size={12} />}
-                  {tx.type === 'Transfer' && <FaExchangeAlt className="text-gold-400" size={12} />}
-                  <span className={`text-sm font-medium ${
-                    tx.type === 'Deposit' ? 'text-green-400' : 
-                    tx.type === 'Withdrawal' ? 'text-red-400' : 'text-gold-400'
+      <div className="p-2 sm:p-6 overflow-x-auto">
+        <table className="w-full border-separate border-spacing-y-2">
+          <thead>
+            <tr className="text-[10px] uppercase font-black text-slate-400 tracking-widest">
+              <th className="px-6 py-4 text-left font-black">Date</th>
+              <th className="px-6 py-4 text-left font-black">Type</th>
+              <th className="px-6 py-4 text-right font-black">Amount</th>
+              <th className="px-6 py-4 text-left font-black">Method</th>
+              {!isMobile && <th className="px-6 py-4 text-left font-black">Reference</th>}
+              <th className="px-6 py-4 text-center font-black">Status</th>
+              <th className="px-6 py-4 text-center font-black">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {transactions.map((tx) => (
+              <tr key={tx.id} className="group bg-white hover:bg-slate-50/50 transition-all border border-slate-100">
+                <td className="px-6 py-4 first:rounded-l-xl border-y border-l border-slate-100 group-hover:border-gold-500/20">
+                  <span className="text-xs font-bold text-slate-400">{tx.date}</span>
+                </td>
+                <td className="px-6 py-4 border-y border-slate-100 group-hover:border-gold-500/20">
+                  <div className="flex items-center space-x-2">
+                    {tx.type === 'Deposit' && <div className="p-1.5 bg-emerald-50 text-emerald-500 rounded-lg"><FaArrowDown size={10} /></div>}
+                    {tx.type === 'Withdrawal' && <div className="p-1.5 bg-rose-50 text-rose-500 rounded-lg"><FaArrowUp size={10} /></div>}
+                    {tx.type === 'Transfer' && <div className="p-1.5 bg-amber-50 text-amber-500 rounded-lg"><FaExchangeAlt size={10} /></div>}
+                    <span className="text-sm font-extrabold text-slate-900 uppercase tracking-tighter">{tx.type}</span>
+                  </div>
+                </td>
+                <td className="px-6 py-4 text-right border-y border-slate-100 group-hover:border-gold-500/20">
+                  <span className={`text-sm font-black ${
+                    tx.type === 'Deposit' ? 'text-emerald-500' : 
+                    tx.type === 'Withdrawal' ? 'text-rose-500' : 'text-slate-900'
                   }`}>
-                    {tx.type}
+                    {tx.type === 'Withdrawal' ? '-' : '+'}${tx.amount.toLocaleString()}
                   </span>
-                </div>
-                <span className={`px-2 py-1 text-xs rounded-full ${
-                  tx.status === 'Completed' ? 'bg-green-500/20 text-green-400' : 
-                  tx.status === 'Pending' ? 'bg-yellow-500/20 text-yellow-400' : 
-                  'bg-red-500/20 text-red-400'
-                }`}>
-                  {tx.status}
-                </span>
-              </div>
-              
-              <div className="grid grid-cols-2 gap-3 text-sm mb-3">
-                <div>
-                  <p className="text-gold-500/50 text-xs">Amount</p>
-                  <p className="text-white font-medium">${tx.amount.toLocaleString()}</p>
-                </div>
-                <div>
-                  <p className="text-gold-500/50 text-xs">Method</p>
-                  <p className="text-gold-500/70">{tx.method}</p>
-                </div>
-                <div>
-                  <p className="text-gold-500/50 text-xs">Date</p>
-                  <p className="text-gold-500/70 text-xs">{tx.date}</p>
-                </div>
-                <div>
-                  <p className="text-gold-500/50 text-xs">Reference</p>
-                  <p className="text-gold-500/50 text-xs">{tx.reference}</p>
-                </div>
-              </div>
-              
-              <div className="flex justify-end">
-                <button className="p-2 text-gold-500/70 hover:text-gold-500">
-                  <FaDownload size={14} />
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-      ) : (
-        // Desktop view - Table layout
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-navy-900/50">
-              <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gold-500/70">Date</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gold-500/70">Type</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gold-500/70">Amount</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gold-500/70">Method</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gold-500/70">From/To</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gold-500/70">Status</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gold-500/70">Reference</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gold-500/70">Actions</th>
+                </td>
+                <td className="px-6 py-4 text-xs font-bold text-slate-500 border-y border-slate-100 group-hover:border-gold-500/20 uppercase tracking-tighter">{tx.method}</td>
+                {!isMobile && <td className="px-6 py-4 text-[10px] font-bold text-slate-300 border-y border-slate-100 group-hover:border-gold-500/20">{tx.reference}</td>}
+                <td className="px-6 py-4 border-y border-slate-100 group-hover:border-gold-500/20 text-center">
+                  <span className={`px-2 py-1 text-[9px] font-black rounded-full uppercase tracking-widest ${
+                    tx.status === 'Completed' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 
+                    tx.status === 'Pending' ? 'bg-amber-50 text-amber-600 border border-amber-100' : 
+                    'bg-rose-50 text-rose-600 border border-rose-100'
+                  }`}>
+                    {tx.status}
+                  </span>
+                </td>
+                <td className="px-6 py-4 last:rounded-r-xl border-y border-r border-slate-100 group-hover:border-gold-500/20 text-center">
+                  <button className="p-1.5 bg-slate-100 text-slate-400 rounded-lg hover:bg-gold-500 hover:text-white transition-all">
+                    <FaDownload size={12} />
+                  </button>
+                </td>
               </tr>
-            </thead>
-            <tbody className="divide-y divide-gold-500/10">
-              {transactions.map((tx) => (
-                <tr key={tx.id} className="hover:bg-navy-700/30">
-                  <td className="px-4 py-3 text-sm text-gold-500/70">{tx.date}</td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center space-x-2">
-                      {tx.type === 'Deposit' && <FaArrowDown className="text-green-400" size={12} />}
-                      {tx.type === 'Withdrawal' && <FaArrowUp className="text-red-400" size={12} />}
-                      {tx.type === 'Transfer' && <FaExchangeAlt className="text-gold-400" size={12} />}
-                      <span className={`text-sm ${
-                        tx.type === 'Deposit' ? 'text-green-400' : 
-                        tx.type === 'Withdrawal' ? 'text-red-400' : 'text-gold-400'
-                      }`}>
-                        {tx.type}
-                      </span>
-                    </div>
-                  </td>
-                  <td className="px-4 py-3 text-sm text-white">${tx.amount.toLocaleString()}</td>
-                  <td className="px-4 py-3 text-sm text-gold-500/70">{tx.method}</td>
-                  <td className="px-4 py-3 text-sm text-gold-500/50">{tx.from} → {tx.to}</td>
-                  <td className="px-4 py-3">
-                    <span className={`px-2 py-1 text-xs rounded-full ${
-                      tx.status === 'Completed' ? 'bg-green-500/20 text-green-400' : 
-                      tx.status === 'Pending' ? 'bg-yellow-500/20 text-yellow-400' : 
-                      'bg-red-500/20 text-red-400'
-                    }`}>
-                      {tx.status}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-xs text-gold-500/50">{tx.reference}</td>
-                  <td className="px-4 py-3">
-                    <button className="p-1 text-gold-500/70 hover:text-gold-500">
-                      <FaDownload size={14} />
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 
@@ -756,31 +691,30 @@ const BankingTab = ({
       )}
       
       {showErrorMessage && (
-        <div className="fixed top-4 right-4 z-50 bg-red-500 text-white px-4 py-2 rounded-lg shadow-lg flex items-center space-x-2">
+        <div className="fixed top-4 right-4 z-50 bg-rose-500 text-white px-4 py-2 rounded-lg shadow-lg flex items-center space-x-2">
           <FaTimes />
           <span>{showErrorMessage}</span>
         </div>
       )}
 
       {/* Banking Navigation - Responsive */}
-      <div className="bg-navy-800/50 rounded-xl border border-gold-500/20 p-3 sm:p-4">
+      <div className="bg-white rounded-[2rem] border border-slate-100 p-3 shadow-xl shadow-slate-200/50">
         {isMobile ? (
-          // Mobile navigation with dropdown
-          <div className="relative">
+          <div className="relative p-2">
             <button
               onClick={() => setShowMobileMenu(!showMobileMenu)}
-              className="w-full px-4 py-3 bg-navy-700 rounded-lg text-gold-500 flex items-center justify-between"
+              className="w-full px-6 py-4 bg-slate-50 rounded-2xl text-slate-900 font-black border border-slate-100 flex items-center justify-between uppercase tracking-widest text-[11px]"
             >
               <span className="flex items-center">
                 {bankingTabs.find(tab => tab.id === activeBankingTab)?.icon && 
-                  React.createElement(bankingTabs.find(tab => tab.id === activeBankingTab).icon, { className: "mr-2" })}
+                  React.createElement(bankingTabs.find(tab => tab.id === activeBankingTab).icon, { className: "mr-4 text-gold-500" })}
                 {bankingTabs.find(tab => tab.id === activeBankingTab)?.label}
               </span>
-              <FaBars />
+              <FaBars className="text-slate-400" />
             </button>
             
             {showMobileMenu && (
-              <div className="absolute top-full left-0 right-0 mt-2 bg-navy-800 rounded-lg border border-gold-500/30 shadow-xl z-10">
+              <div className="absolute top-full left-0 right-0 mx-2 mt-3 bg-white rounded-[2rem] border border-slate-100 shadow-2xl z-20 overflow-hidden ring-1 ring-slate-100">
                 {bankingTabs.map((item) => (
                   <button
                     key={item.id}
@@ -788,31 +722,30 @@ const BankingTab = ({
                       setActiveBankingTab(item.id);
                       setShowMobileMenu(false);
                     }}
-                    className={`w-full px-4 py-3 text-left flex items-center space-x-2 hover:bg-navy-700 ${
-                      activeBankingTab === item.id ? 'bg-gold-500/10 text-gold-500' : 'text-gold-500/70'
+                    className={`w-full px-8 py-5 text-left flex items-center space-x-4 transition-all ${
+                      activeBankingTab === item.id ? 'bg-slate-900 text-white font-black' : 'text-slate-400 hover:bg-slate-50'
                     }`}
                   >
-                    <item.icon size={16} />
-                    <span>{item.label}</span>
+                    <item.icon size={16} className={activeBankingTab === item.id ? 'text-gold-500' : 'text-slate-300'} />
+                    <span className="text-[11px] uppercase tracking-widest">{item.label}</span>
                   </button>
                 ))}
               </div>
             )}
           </div>
         ) : (
-          // Desktop navigation - tabs
-          <div className="flex flex-wrap gap-2">
+          <div className="flex space-x-3 p-1">
             {bankingTabs.map((item) => (
               <button
                 key={item.id}
                 onClick={() => setActiveBankingTab(item.id)}
-                className={`px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all flex items-center space-x-2 ${
-                  activeBankingTab === item.id
-                    ? 'bg-gold-500 text-navy-950'
-                    : 'text-gold-500/70 hover:text-gold-500 hover:bg-navy-700'
+                className={`flex-1 px-6 py-4 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all duration-300 flex items-center justify-center space-x-3 whitespace-nowrap ${
+                  activeBankingTab === item.id 
+                    ? 'bg-slate-900 text-white shadow-2xl shadow-slate-900/20' 
+                    : 'text-slate-400 hover:text-slate-600 hover:bg-slate-50'
                 }`}
               >
-                <item.icon size={isTablet ? 14 : 16} />
+                <item.icon size={12} className={activeBankingTab === item.id ? 'text-gold-500' : 'text-slate-300'} />
                 <span>{item.label}</span>
               </button>
             ))}
@@ -825,129 +758,91 @@ const BankingTab = ({
         {/* Left Column - Wallet Info */}
         <div className="lg:col-span-1 space-y-4 sm:space-y-6">
           {/* Wallet Balance Card */}
-          <div className="bg-navy-800/50 rounded-xl border border-gold-500/20 p-4 sm:p-6">
-            <h3 className="text-base sm:text-lg font-semibold text-gold-500 mb-4 flex items-center">
-              <FaWallet className="mr-2" />
-              My Wallet
+          <div className="bg-slate-900 rounded-[2.5rem] p-8 shadow-2xl shadow-slate-900/30 relative overflow-hidden border border-slate-800">
+            <div className="absolute top-0 right-0 w-48 h-48 bg-gold-500/5 blur-[80px] rounded-full -translate-y-24 translate-x-24"></div>
+            <h3 className="text-xs font-black text-gold-500 uppercase tracking-[0.3em] mb-8 flex items-center italic">
+              <FaWallet className="mr-3 text-lg" />
+              Global Liquidity
             </h3>
-            <div className="space-y-4">
+            <div className="space-y-6 relative">
               <div>
-                <p className="text-xs sm:text-sm text-gold-500/70">Main Wallet Balance</p>
-                <p className="text-2xl sm:text-3xl font-bold text-white">
+                <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">Total Net Worth</p>
+                <p className="text-4xl font-black text-white italic tracking-tighter">
                   ${walletData.mainWallet?.toLocaleString() || '0'}
                 </p>
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="bg-navy-700/50 rounded-lg p-2 sm:p-3">
-                  <p className="text-xs text-gold-500/70">Trading Wallet</p>
-                  <p className="text-base sm:text-lg font-semibold text-gold-400">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-slate-800/50 rounded-2xl p-5 border border-slate-700/50 backdrop-blur-xl">
+                  <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest mb-1">Trading</p>
+                  <p className="text-lg font-black text-gold-500 italic">
                     ${walletData.tradingWallet?.toLocaleString() || '0'}
                   </p>
                 </div>
-                <div className="bg-navy-700/50 rounded-lg p-2 sm:p-3">
-                  <p className="text-xs text-gold-500/70">Bonus Wallet</p>
-                  <p className="text-base sm:text-lg font-semibold text-green-400">
+                <div className="bg-slate-800/50 rounded-2xl p-5 border border-slate-700/50 backdrop-blur-xl">
+                  <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest mb-1">Incentives</p>
+                  <p className="text-lg font-black text-emerald-500 italic">
                     ${walletData.bonusWallet?.toLocaleString() || '0'}
                   </p>
                 </div>
               </div>
-              <div className="pt-4 border-t border-gold-500/20">
-                <div className="flex justify-between text-xs sm:text-sm mb-2">
-                  <span className="text-gold-500/70">Pending Withdrawals</span>
-                  <span className="text-yellow-400">${walletData.pendingWithdrawals?.toLocaleString() || '0'}</span>
+              <div className="pt-6 border-t border-slate-800">
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Pending Withdrawals</span>
+                  <span className="text-xs font-black text-amber-500 italic">${walletData.pendingWithdrawals?.toLocaleString() || '0'}</span>
                 </div>
-                <div className="flex justify-between text-xs sm:text-sm">
-                  <span className="text-gold-500/70">Pending Deposits</span>
-                  <span className="text-green-400">${walletData.pendingDeposits?.toLocaleString() || '0'}</span>
+                <div className="flex justify-between items-center">
+                  <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Pending Deposits</span>
+                  <span className="text-xs font-black text-emerald-500 italic">${walletData.pendingDeposits?.toLocaleString() || '0'}</span>
                 </div>
-              </div>
-              <div className="flex flex-col sm:flex-row gap-2 pt-2">
-                <button 
-                  onClick={() => setShowDeposit(true)}
-                  className="flex-1 px-4 py-2 bg-gold-500 text-navy-950 rounded-lg hover:bg-gold-600 transition-all text-sm sm:text-base"
-                >
-                  Deposit
-                </button>
-                <button 
-                  onClick={() => setShowWithdraw(true)}
-                  className="flex-1 px-4 py-2 bg-navy-700 text-gold-500 rounded-lg hover:bg-navy-600 transition-all text-sm sm:text-base"
-                >
-                  Withdraw
-                </button>
               </div>
             </div>
           </div>
-
+          
           {/* Quick Actions */}
-          <div className="bg-navy-800/50 rounded-xl border border-gold-500/20 p-4 sm:p-6">
-            <h3 className="text-sm sm:text-md font-semibold text-gold-500 mb-3">Quick Actions</h3>
-            <div className="space-y-2">
-              <button 
-                onClick={onShowTransferModal}
-                className="w-full px-4 py-3 bg-navy-700 text-left text-white rounded-lg hover:bg-navy-600 flex items-center justify-between text-sm sm:text-base"
-              >
-                <span className="flex items-center">
-                  <FaExchangeAlt className="mr-2 text-gold-500" />
-                  Internal Transfer
-                </span>
-                <FaArrowRight className="text-gold-500/50" />
-              </button>
-              <button 
-                onClick={() => setShowAddAccount(true)}
-                className="w-full px-4 py-3 bg-navy-700 text-left text-white rounded-lg hover:bg-navy-600 flex items-center justify-between text-sm sm:text-base"
-              >
-                <span className="flex items-center">
-                  <FaBuilding className="mr-2 text-gold-500" />
-                  Add Bank Account
-                </span>
-                <FaPlus className="text-gold-500/50" />
-              </button>
-              <button 
-                onClick={() => setShowAddCard(true)}
-                className="w-full px-4 py-3 bg-navy-700 text-left text-white rounded-lg hover:bg-navy-600 flex items-center justify-between text-sm sm:text-base"
-              >
-                <span className="flex items-center">
-                  <FaCreditCard className="mr-2 text-gold-500" />
-                  Add Credit Card
-                </span>
-                <FaPlus className="text-gold-500/50" />
-              </button>
-              <button className="w-full px-4 py-3 bg-navy-700 text-left text-white rounded-lg hover:bg-navy-600 flex items-center justify-between text-sm sm:text-base">
-                <span className="flex items-center">
-                  <FaFileInvoice className="mr-2 text-gold-500" />
-                  Generate Statement
-                </span>
-                <FaDownload className="text-gold-500/50" />
-              </button>
+          <div className="bg-white rounded-[2.5rem] border border-slate-100 p-8 shadow-2xl shadow-slate-200/50">
+            <h3 className="text-[10px] font-black text-gold-500 uppercase tracking-[0.3em] mb-8 italic">Rapid Protocols</h3>
+            <div className="space-y-3">
+              {[
+                { label: 'Internal Transfer', icon: FaExchangeAlt, action: onShowTransferModal },
+                { label: 'Add Repository', icon: FaBuilding, action: () => setShowAddAccount(true) },
+                { label: 'Link interface', icon: FaCreditCard, action: () => setShowAddCard(true) },
+                { label: 'Export Ledger', icon: FaDownload, action: () => {} }
+              ].map((item, idx) => (
+                <button 
+                  key={idx}
+                  onClick={item.action}
+                  className="w-full px-6 py-5 bg-slate-50 text-left text-slate-900 rounded-2xl hover:bg-slate-900 hover:text-white flex items-center justify-between transition-all duration-300 group shadow-sm border border-slate-100 hover:border-slate-900"
+                >
+                  <span className="flex items-center text-[11px] font-black uppercase tracking-widest">
+                    <item.icon className="mr-4 text-gold-500 group-hover:text-gold-400 transition-colors" />
+                    {item.label}
+                  </span>
+                  <FaArrowRight size={10} className="text-slate-300 group-hover:text-gold-500 group-hover:translate-x-1 transition-all" />
+                </button>
+              ))}
             </div>
           </div>
         </div>
 
         {/* Right Column - Main Banking Area */}
-        <div className="lg:col-span-2 space-y-4 sm:space-y-6">
+        <div className="lg:col-span-2 space-y-8">
           {activeBankingTab === 'overview' && (
             <>
-              <div className="bg-navy-800/50 rounded-xl border border-gold-500/20 p-4 sm:p-6">
-                <h3 className="text-base sm:text-lg font-semibold text-gold-500 mb-4">Banking Overview</h3>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
-                  <div className="text-center">
-                    <p className="text-lg sm:text-2xl font-bold text-white">${walletData.totalBalance?.toLocaleString() || '0'}</p>
-                    <p className="text-xs text-gold-500/70">Total Balance</p>
-                  </div>
-                  <div className="text-center">
-                    <p className="text-lg sm:text-2xl font-bold text-green-400">+$5,250</p>
-                    <p className="text-xs text-gold-500/70">This Month</p>
-                  </div>
-                  <div className="text-center">
-                    <p className="text-lg sm:text-2xl font-bold text-gold-400">{transactions.length}</p>
-                    <p className="text-xs text-gold-500/70">Transactions</p>
-                  </div>
-                  <div className="text-center">
-                    <p className="text-lg sm:text-2xl font-bold text-yellow-400">
-                      {transactions.filter(t => t.status === 'Pending').length}
-                    </p>
-                    <p className="text-xs text-gold-500/70">Pending</p>
-                  </div>
+              <div className="bg-slate-900 rounded-[2.5rem] p-10 border border-slate-800 shadow-2xl relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-64 h-64 bg-gold-500/5 blur-[80px] rounded-full translate-x-32 -translate-y-32"></div>
+                <h3 className="text-[10px] font-black text-gold-500 uppercase tracking-[0.3em] mb-10 relative italic">Capital Metrics</h3>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-8 relative">
+                  {[
+                    { label: 'Total Equity', value: `$${walletData.totalBalance?.toLocaleString() || '0'}`, color: 'text-white' },
+                    { label: 'Monthly Flow', value: '+$5,250', color: 'text-emerald-400' },
+                    { label: 'Ledger Count', value: transactions.length, color: 'text-gold-500' },
+                    { label: 'Pending Sync', value: transactions.filter(t => t.status === 'Pending').length, color: 'text-amber-400' }
+                  ].map((stat, idx) => (
+                    <div key={idx} className="group">
+                      <p className={`text-3xl font-black ${stat.color} italic tracking-tighter mb-2 group-hover:scale-110 transition-transform origin-left`}>{stat.value}</p>
+                      <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest">{stat.label}</p>
+                    </div>
+                  ))}
                 </div>
               </div>
               <TransactionHistorySection />
@@ -955,25 +850,25 @@ const BankingTab = ({
           )}
 
           {activeBankingTab === 'transfer' && (
-            <div className="bg-navy-800/50 rounded-xl border border-gold-500/20 p-4 sm:p-6">
-              <h3 className="text-base sm:text-lg font-semibold text-gold-500 mb-4">Internal Transfer</h3>
+            <div className="bg-white rounded-[2.5rem] border border-slate-100 p-10 shadow-2xl shadow-slate-200/50">
+              <h3 className="text-xl font-black text-slate-900 uppercase tracking-tight italic mb-8">Asset Migration</h3>
               <button
                 onClick={onShowTransferModal}
-                className="w-full sm:w-auto px-6 py-3 bg-gold-500 text-navy-950 rounded-lg hover:bg-gold-600"
+                className="px-10 py-5 bg-slate-900 text-white rounded-[1.5rem] font-black uppercase tracking-[0.2em] text-[11px] hover:bg-gold-600 transition-all shadow-2xl shadow-slate-900/10"
               >
-                Open Transfer Modal
+                Initialize Migration Vector
               </button>
             </div>
           )}
 
           {activeBankingTab === 'withdraw' && (
-            <div className="bg-navy-800/50 rounded-xl border border-gold-500/20 p-4 sm:p-6">
-              <h3 className="text-base sm:text-lg font-semibold text-gold-500 mb-4">Withdrawals</h3>
+            <div className="bg-white rounded-[2.5rem] border border-slate-100 p-10 shadow-2xl shadow-slate-200/50">
+              <h3 className="text-xl font-black text-slate-900 uppercase tracking-tight italic mb-8">Capital Extraction</h3>
               <button
                 onClick={() => setShowWithdraw(true)}
-                className="w-full sm:w-auto px-6 py-3 bg-gold-500 text-navy-950 rounded-lg hover:bg-gold-600"
+                className="px-10 py-5 bg-slate-900 text-white rounded-[1.5rem] font-black uppercase tracking-[0.2em] text-[11px] hover:bg-gold-600 transition-all shadow-2xl shadow-slate-900/10"
               >
-                Make a Withdrawal
+                Deploy Sync Logic
               </button>
             </div>
           )}
@@ -985,35 +880,39 @@ const BankingTab = ({
         </div>
       </div>
 
-      {/* Deposit Modal - Responsive */}
+      {/* Deposit Modal */}
       {showDeposit && (
-        <div className="fixed inset-0 bg-navy-950/95 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-navy-800 rounded-2xl border border-gold-500/30 p-4 sm:p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg sm:text-xl font-bold text-gold-500">Deposit Funds</h3>
-              <button onClick={() => setShowDeposit(false)} className="text-gold-500/70 hover:text-gold-500">
-                <FaTimes />
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xl flex items-center justify-center z-50 p-4 sm:p-8">
+          <div className="bg-white rounded-[2.5rem] border border-slate-100 p-10 w-full max-w-xl shadow-[0_0_100px_rgba(0,0,0,0.1)] overflow-y-auto max-h-[90vh]">
+            <div className="flex items-center justify-between mb-10">
+              <div>
+                <h3 className="text-2xl font-black text-slate-900 tracking-tight italic uppercase">Capital Injection</h3>
+                <p className="text-[10px] text-slate-400 mt-2 uppercase font-black tracking-[0.2em]">Synchronize External Assets</p>
+              </div>
+              <button onClick={() => setShowDeposit(false)} className="w-12 h-12 bg-slate-50 text-slate-400 hover:text-rose-500 rounded-2xl flex items-center justify-center transition-all border border-slate-100">
+                <FaTimes size={18} />
               </button>
             </div>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm text-gold-500/70 mb-2">Select Method</label>
-                <div className="space-y-2">
+
+            <div className="space-y-8">
+              <div className="space-y-4">
+                <label className="text-[10px] uppercase font-black text-slate-400 tracking-[0.3em] ml-2">Channel Selection</label>
+                <div className="grid grid-cols-1 gap-3">
                   {depositMethods.map((method) => (
                     <button
                       key={method.id}
                       onClick={() => setSelectedMethod(method.id)}
-                      className={`w-full p-3 rounded-lg border flex items-center justify-between ${
+                      className={`w-full p-6 rounded-[1.5rem] border flex items-center justify-between transition-all duration-300 ${
                         selectedMethod === method.id
-                          ? 'border-gold-500 bg-gold-500/10'
-                          : 'border-gold-500/30 bg-navy-700/50 hover:bg-navy-700'
+                          ? 'border-slate-900 bg-slate-900 text-white shadow-xl scale-[1.02]'
+                          : 'border-slate-100 bg-slate-50 text-slate-400 hover:border-slate-300'
                       }`}
                     >
-                      <div className="flex items-center space-x-3">
-                        <method.icon className="text-gold-500 text-xl" />
-                        <div className="text-left">
-                          <p className="text-white font-medium text-sm">{method.name}</p>
-                          <p className="text-xs text-gold-500/50">{method.processing} | Fee: {method.fee}</p>
+                      <div className="flex items-center space-x-5">
+                        <method.icon className={selectedMethod === method.id ? 'text-gold-500' : 'text-slate-300'} size={24} />
+                        <div className="text-left font-black uppercase italic tracking-widest text-[10px]">
+                          <p className={selectedMethod === method.id ? 'text-white' : 'text-slate-900'}>{method.name}</p>
+                          <p className="text-slate-500 mt-1 opacity-70">{method.processing} | {method.fee} Ratio</p>
                         </div>
                       </div>
                       {selectedMethod === method.id && <FaCheck className="text-gold-500" />}
@@ -1021,73 +920,34 @@ const BankingTab = ({
                   ))}
                 </div>
               </div>
-              <div>
-                <label className="block text-sm text-gold-500/70 mb-2">Amount (USD)</label>
+
+              <div className="space-y-4">
+                <label className="text-[10px] uppercase font-black text-slate-400 tracking-[0.3em] ml-2">Injection Magnitude</label>
                 <div className="relative">
-                  <span className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gold-500">$</span>
+                  <span className="absolute left-6 top-1/2 -translate-y-1/2 text-2xl font-black text-slate-300 italic">$</span>
                   <input
                     type="number"
                     value={depositAmount}
                     onChange={(e) => setDepositAmount(e.target.value)}
+                    className="w-full pl-12 pr-6 py-6 bg-slate-50 border border-slate-100 rounded-[2rem] text-3xl font-black italic text-slate-900 focus:outline-none focus:ring-8 focus:ring-slate-900/5 transition-all"
                     placeholder="0.00"
-                    min="0"
-                    step="0.01"
-                    className="w-full pl-8 pr-4 py-3 bg-navy-700 border border-gold-500/30 rounded-lg text-white focus:outline-none focus:border-gold-500"
                   />
                 </div>
               </div>
-              <div className="flex flex-wrap gap-2">
-                {quickAmounts.map((amount) => (
-                  <button
-                    key={amount}
-                    onClick={() => setDepositAmount(amount)}
-                    className="px-3 py-1 bg-navy-700 text-gold-500 rounded-lg hover:bg-navy-600 text-xs sm:text-sm"
-                  >
-                    ${amount}
-                  </button>
-                ))}
-              </div>
-              <div className="bg-navy-700/50 rounded-lg p-4">
-                <div className="flex justify-between text-sm mb-2">
-                  <span className="text-gold-500/70">Deposit Amount</span>
-                  <span className="text-white font-medium">${depositAmount || '0.00'}</span>
-                </div>
-                <div className="flex justify-between text-sm mb-2">
-                  <span className="text-gold-500/70">Fee</span>
-                  <span className="text-yellow-400">
-                    {selectedMethod === 'bank' ? 'Free' : 
-                     selectedMethod === 'card' ? '$' + (depositAmount * 0.025).toFixed(2) :
-                     selectedMethod === 'paypal' ? '$' + (depositAmount * 0.015).toFixed(2) :
-                     '$' + (depositAmount * 0.001).toFixed(2)}
-                  </span>
-                </div>
-                <div className="flex justify-between text-sm pt-2 border-t border-gold-500/20">
-                  <span className="text-gold-500/70">Total to Pay</span>
-                  <span className="text-gold-400 font-bold">
-                    ${depositAmount ? (parseFloat(depositAmount) + 
-                      (selectedMethod === 'card' ? parseFloat(depositAmount) * 0.025 :
-                       selectedMethod === 'paypal' ? parseFloat(depositAmount) * 0.015 :
-                       selectedMethod === 'crypto' ? parseFloat(depositAmount) * 0.001 : 0)).toFixed(2) : '0.00'}
-                  </span>
-                </div>
-              </div>
-              <div className="flex flex-col sm:flex-row gap-3">
+
+              <div className="flex gap-4 pt-4">
                 <button
                   onClick={handleDeposit}
                   disabled={!depositAmount}
-                  className={`flex-1 px-4 py-3 rounded-lg font-bold ${
-                    depositAmount 
-                      ? 'bg-gold-500 text-navy-950 hover:bg-gold-600' 
-                      : 'bg-gold-500/50 text-navy-950/50 cursor-not-allowed'
-                  }`}
+                  className="flex-1 px-8 py-5 bg-slate-900 text-white rounded-[1.5rem] font-black uppercase tracking-[0.2em] text-[11px] hover:bg-gold-600 disabled:bg-slate-200 transition-all shadow-2xl shadow-slate-900/10"
                 >
-                  Confirm Deposit
+                  Authorized Injection
                 </button>
                 <button
                   onClick={() => setShowDeposit(false)}
-                  className="px-4 py-3 bg-navy-700 text-gold-500 rounded-lg font-bold hover:bg-navy-600"
+                  className="px-8 py-5 bg-slate-50 text-slate-400 rounded-[1.5rem] font-black uppercase tracking-[0.2em] text-[11px] hover:bg-slate-100 transition-all"
                 >
-                  Cancel
+                  Abort
                 </button>
               </div>
             </div>
@@ -1095,108 +955,70 @@ const BankingTab = ({
         </div>
       )}
 
-      {/* Withdrawal Modal - Responsive */}
+      {/* Withdraw Modal */}
       {showWithdraw && (
-        <div className="fixed inset-0 bg-navy-950/95 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-navy-800 rounded-2xl border border-gold-500/30 p-4 sm:p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg sm:text-xl font-bold text-gold-500">Withdraw Funds</h3>
-              <button onClick={() => setShowWithdraw(false)} className="text-gold-500/70 hover:text-gold-500">
-                <FaTimes />
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xl flex items-center justify-center z-50 p-4 sm:p-8">
+          <div className="bg-white rounded-[2.5rem] border border-slate-100 p-10 w-full max-w-xl shadow-[0_0_100px_rgba(0,0,0,0.1)]">
+            <div className="flex items-center justify-between mb-8">
+              <div>
+                <h3 className="text-2xl font-black text-slate-900 tracking-tight italic uppercase">Capital Extraction</h3>
+                <p className="text-[10px] text-slate-400 mt-2 uppercase font-black tracking-[0.2em]">Liquidate Assets to External Vault</p>
+              </div>
+              <button 
+                onClick={() => setShowWithdraw(false)} 
+                className="w-12 h-12 bg-slate-50 text-slate-400 hover:text-rose-500 rounded-2xl flex items-center justify-center transition-all border border-slate-100"
+              >
+                <FaTimes size={18} />
               </button>
             </div>
-            <div className="space-y-4">
-              <div className="bg-navy-700/30 rounded-lg p-3">
-                <p className="text-xs text-gold-500/70">Available Balance</p>
-                <p className="text-xl sm:text-2xl font-bold text-white">${walletData.mainWallet?.toLocaleString() || '0'}</p>
+
+            <div className="space-y-8">
+              {/* Method Selection */}
+              <div className="grid grid-cols-2 gap-4">
+                {withdrawalMethods.map((method) => (
+                  <button
+                    key={method.id}
+                    onClick={() => setSelectedMethod(method.id)}
+                    className={`p-6 rounded-[2rem] border transition-all flex flex-col items-center gap-3 ${
+                      selectedMethod === method.id 
+                        ? 'border-slate-900 bg-slate-900 text-white shadow-2xl scale-[1.02]' 
+                        : 'border-slate-100 bg-slate-50 text-slate-400 hover:border-slate-300'
+                    }`}
+                  >
+                    <method.icon size={24} className={selectedMethod === method.id ? 'text-gold-500' : 'text-slate-300'} />
+                    <span className="text-[10px] font-black uppercase tracking-widest">{method.name}</span>
+                  </button>
+                ))}
               </div>
-              <div>
-                <label className="block text-sm text-gold-500/70 mb-2">Select Method</label>
-                <select
-                  value={selectedMethod}
-                  onChange={(e) => setSelectedMethod(e.target.value)}
-                  className="w-full px-4 py-3 bg-navy-700 border border-gold-500/30 rounded-lg text-white focus:outline-none focus:border-gold-500"
-                >
-                  {withdrawalMethods.map((method) => (
-                    <option key={method.id} value={method.id}>
-                      {method.name} - Min: ${method.min} Max: ${method.max}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm text-gold-500/70 mb-2">Amount (USD)</label>
+
+              {/* Amount Input */}
+              <div className="space-y-4">
                 <div className="relative">
-                  <span className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gold-500">$</span>
+                  <span className="absolute left-6 top-1/2 -translate-y-1/2 text-2xl font-black text-slate-300 italic">$</span>
                   <input
                     type="number"
                     value={withdrawAmount}
                     onChange={(e) => setWithdrawAmount(e.target.value)}
+                    className="w-full pl-12 pr-6 py-6 bg-slate-50 border border-slate-100 rounded-[2rem] text-3xl font-black italic text-slate-900 focus:outline-none focus:ring-8 focus:ring-slate-900/5 transition-all"
                     placeholder="0.00"
-                    min="0"
-                    max={walletData.mainWallet}
-                    step="0.01"
-                    className="w-full pl-8 pr-4 py-3 bg-navy-700 border border-gold-500/30 rounded-lg text-white focus:outline-none focus:border-gold-500"
                   />
                 </div>
               </div>
-              <div className="flex flex-wrap gap-2">
-                {quickAmounts.map((amount) => (
-                  <button
-                    key={amount}
-                    onClick={() => setWithdrawAmount(amount)}
-                    className="px-3 py-1 bg-navy-700 text-gold-500 rounded-lg hover:bg-navy-600 text-xs sm:text-sm"
-                  >
-                    ${amount}
-                  </button>
-                ))}
-              </div>
-              <button
-                onClick={() => setWithdrawAmount(walletData.mainWallet)}
-                className="w-full px-3 py-2 bg-navy-700 text-gold-500 rounded-lg hover:bg-navy-600 text-sm"
-              >
-                Max Amount: ${walletData.mainWallet?.toLocaleString() || '0'}
-              </button>
-              <div className="bg-navy-700/50 rounded-lg p-4">
-                <div className="flex justify-between text-sm mb-2">
-                  <span className="text-gold-500/70">Withdrawal Amount</span>
-                  <span className="text-white font-medium">${withdrawAmount || '0.00'}</span>
-                </div>
-                <div className="flex justify-between text-sm mb-2">
-                  <span className="text-gold-500/70">Fee</span>
-                  <span className="text-yellow-400">
-                    {selectedMethod === 'bank' ? 'Free' : 
-                     selectedMethod === 'card' ? '$' + (withdrawAmount * 0.01).toFixed(2) :
-                     selectedMethod === 'paypal' ? '$' + (withdrawAmount * 0.02).toFixed(2) :
-                     '0.0005 BTC'}
-                  </span>
-                </div>
-                <div className="flex justify-between text-sm pt-2 border-t border-gold-500/20">
-                  <span className="text-gold-500/70">You'll Receive</span>
-                  <span className="text-gold-400 font-bold">
-                    ${withdrawAmount ? (parseFloat(withdrawAmount) - 
-                      (selectedMethod === 'card' ? parseFloat(withdrawAmount) * 0.01 :
-                       selectedMethod === 'paypal' ? parseFloat(withdrawAmount) * 0.02 : 0)).toFixed(2) : '0.00'}
-                  </span>
-                </div>
-              </div>
-              <div className="flex flex-col sm:flex-row gap-3">
+
+              {/* Execution Actions */}
+              <div className="flex gap-4 pt-4">
                 <button
                   onClick={handleWithdraw}
                   disabled={!withdrawAmount || parseFloat(withdrawAmount) > walletData.mainWallet}
-                  className={`flex-1 px-4 py-3 rounded-lg font-bold ${
-                    withdrawAmount && parseFloat(withdrawAmount) <= walletData.mainWallet
-                      ? 'bg-gold-500 text-navy-950 hover:bg-gold-600' 
-                      : 'bg-gold-500/50 text-navy-950/50 cursor-not-allowed'
-                  }`}
+                  className="flex-1 px-8 py-5 bg-slate-900 text-white rounded-[1.5rem] font-black uppercase tracking-[0.2em] text-[11px] hover:bg-gold-600 disabled:bg-slate-200 transition-all shadow-2xl shadow-slate-900/10"
                 >
-                  Confirm Withdrawal
+                  Confirm Extraction
                 </button>
                 <button
                   onClick={() => setShowWithdraw(false)}
-                  className="px-4 py-3 bg-navy-700 text-gold-500 rounded-lg font-bold hover:bg-navy-600"
+                  className="px-8 py-5 bg-slate-50 text-slate-400 rounded-[1.5rem] font-black uppercase tracking-[0.2em] text-[11px] hover:bg-slate-100 transition-all"
                 >
-                  Cancel
+                  Discard
                 </button>
               </div>
             </div>
@@ -1204,294 +1026,84 @@ const BankingTab = ({
         </div>
       )}
 
-
-
-      {/* Add Bank Account Modal - Fully Responsive */}
+      {/* Add Bank Account Modal */}
       {showAddAccount && (
-        <div className="fixed inset-0 bg-navy-950/95 backdrop-blur-sm flex items-center justify-center z-50 overflow-y-auto p-2 sm:p-4">
-          <div className="bg-navy-800 rounded-2xl border border-gold-500/30 p-3 sm:p-6 w-full max-w-2xl my-4 sm:my-8 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between mb-4 sm:mb-6 sticky top-0 bg-navy-800 py-2 z-10">
-              <h3 className="text-base sm:text-xl font-bold text-gold-500">Add Bank Account</h3>
-              <button onClick={() => setShowAddAccount(false)} className="text-gold-500/70 hover:text-gold-500 p-2">
-                <FaTimes size={18} />
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xl flex items-center justify-center z-50 overflow-y-auto p-4 sm:p-8">
+          <div className="bg-white rounded-[3rem] border border-slate-100 p-12 w-full max-w-2xl my-8 max-h-[90vh] overflow-y-auto shadow-[0_0_120px_rgba(0,0,0,0.15)]">
+            <div className="flex items-center justify-between mb-12">
+              <div>
+                <h3 className="text-3xl font-black text-slate-900 tracking-tighter italic uppercase">Vault Registry</h3>
+                <p className="text-[10px] text-slate-400 mt-2 uppercase font-black tracking-[0.3em]">Authorized Financial Interface Linking</p>
+              </div>
+              <button onClick={() => setShowAddAccount(false)} className="w-14 h-14 bg-slate-50 text-slate-400 hover:text-rose-500 rounded-[1.5rem] flex items-center justify-center transition-all border border-slate-100">
+                <FaTimes size={20} />
               </button>
             </div>
             
-            <form onSubmit={handleAddBankAccount} className="space-y-3 sm:space-y-4">
-              {/* Bank Information */}
-              <div className="border-b border-gold-500/20 pb-3 sm:pb-4">
-                <h4 className="text-sm sm:text-md font-semibold text-gold-400 mb-3 sm:mb-4 flex items-center">
-                  <FaBuilding className="mr-2" size={isMobile ? 14 : 16} /> Bank Information
-                </h4>
-                
-                <div className="space-y-3 sm:space-y-4">
-                  {/* Bank Name - Full width on mobile */}
-                  <div>
-                    <label className="block text-xs sm:text-sm text-gold-500/70 mb-1 sm:mb-2">Bank Name *</label>
+            <form onSubmit={handleAddBankAccount} className="space-y-10">
+              <div className="space-y-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <div className="space-y-2">
+                    <label className="block text-[10px] uppercase font-black text-slate-400 tracking-[0.3em] ml-2">Institution Code *</label>
                     <input
                       type="text"
                       name="bankName"
                       value={bankForm.bankName}
                       onChange={handleBankFormChange}
-                      className={`w-full px-3 sm:px-4 py-2 sm:py-3 bg-navy-700 border rounded-lg text-white text-sm sm:text-base focus:outline-none ${
-                        formErrors.bankName ? 'border-red-500' : 'border-gold-500/30 focus:border-gold-500'
+                      className={`w-full px-8 py-5 bg-slate-50 border rounded-2xl text-xs font-black italic focus:outline-none transition-all ${
+                        formErrors.bankName ? 'border-rose-500' : 'border-slate-100 focus:ring-8 focus:ring-slate-900/5 focus:bg-white'
                       }`}
-                      placeholder="Enter bank name"
+                      placeholder="e.g. JPMorgan Perpetual"
                     />
-                    {formErrors.bankName && (
-                      <p className="mt-1 text-xs text-red-400">{formErrors.bankName}</p>
-                    )}
                   </div>
-                  
-                  {/* Account Type - Full width on mobile */}
-                  <div>
-                    <label className="block text-xs sm:text-sm text-gold-500/70 mb-1 sm:mb-2">Account Type *</label>
-                    <select
-                      name="accountType"
-                      value={bankForm.accountType}
-                      onChange={handleBankFormChange}
-                      className="w-full px-3 sm:px-4 py-2 sm:py-3 bg-navy-700 border border-gold-500/30 rounded-lg text-white text-sm sm:text-base focus:outline-none focus:border-gold-500"
-                    >
-                      {accountTypes.map(type => (
-                        <option key={type.value} value={type.value}>{type.label}</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-              </div>
-
-              {/* Account Holder Information */}
-              <div className="border-b border-gold-500/20 pb-3 sm:pb-4">
-                <h4 className="text-sm sm:text-md font-semibold text-gold-400 mb-3 sm:mb-4 flex items-center">
-                  <FaUser className="mr-2" size={isMobile ? 14 : 16} /> Account Holder Information
-                </h4>
-                
-                <div className="space-y-3 sm:space-y-4">
-                  {/* Account Holder Name */}
-                  <div>
-                    <label className="block text-xs sm:text-sm text-gold-500/70 mb-1 sm:mb-2">Account Holder Name *</label>
-                    <input
-                      type="text"
-                      name="accountName"
-                      value={bankForm.accountName}
-                      onChange={handleBankFormChange}
-                      className={`w-full px-3 sm:px-4 py-2 sm:py-3 bg-navy-700 border rounded-lg text-white text-sm sm:text-base focus:outline-none ${
-                        formErrors.accountName ? 'border-red-500' : 'border-gold-500/30 focus:border-gold-500'
-                      }`}
-                      placeholder="Name on account"
-                    />
-                    {formErrors.accountName && (
-                      <p className="mt-1 text-xs text-red-400">{formErrors.accountName}</p>
-                    )}
-                  </div>
-
-                  {/* Account Number and Confirm - Stack on mobile, side by side on desktop */}
-                  <div className="space-y-3 sm:space-y-0 sm:grid sm:grid-cols-2 sm:gap-4">
-                    <div>
-                      <label className="block text-xs sm:text-sm text-gold-500/70 mb-1 sm:mb-2">Account Number *</label>
-                      <input
-                        type="text"
-                        name="accountNumber"
-                        value={bankForm.accountNumber}
-                        onChange={handleBankFormChange}
-                        className={`w-full px-3 sm:px-4 py-2 sm:py-3 bg-navy-700 border rounded-lg text-white text-sm sm:text-base focus:outline-none ${
-                          formErrors.accountNumber ? 'border-red-500' : 'border-gold-500/30 focus:border-gold-500'
-                        }`}
-                        placeholder="Enter account number"
-                      />
-                      {formErrors.accountNumber && (
-                        <p className="mt-1 text-xs text-red-400">{formErrors.accountNumber}</p>
-                      )}
-                    </div>
-                    
-                    <div>
-                      <label className="block text-xs sm:text-sm text-gold-500/70 mb-1 sm:mb-2">Confirm Account Number *</label>
-                      <input
-                        type="text"
-                        name="confirmAccountNumber"
-                        value={bankForm.confirmAccountNumber}
-                        onChange={handleBankFormChange}
-                        className={`w-full px-3 sm:px-4 py-2 sm:py-3 bg-navy-700 border rounded-lg text-white text-sm sm:text-base focus:outline-none ${
-                          formErrors.confirmAccountNumber ? 'border-red-500' : 'border-gold-500/30 focus:border-gold-500'
-                        }`}
-                        placeholder="Confirm account number"
-                      />
-                      {formErrors.confirmAccountNumber && (
-                        <p className="mt-1 text-xs text-red-400">{formErrors.confirmAccountNumber}</p>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Routing Number */}
-                  <div>
-                    <label className="block text-xs sm:text-sm text-gold-500/70 mb-1 sm:mb-2">Routing Number *</label>
-                    <input
-                      type="text"
-                      name="routingNumber"
-                      value={bankForm.routingNumber}
-                      onChange={handleBankFormChange}
-                      className={`w-full px-3 sm:px-4 py-2 sm:py-3 bg-navy-700 border rounded-lg text-white text-sm sm:text-base focus:outline-none ${
-                        formErrors.routingNumber ? 'border-red-500' : 'border-gold-500/30 focus:border-gold-500'
-                      }`}
-                      placeholder="9-digit routing number"
-                      maxLength="9"
-                    />
-                    {formErrors.routingNumber && (
-                      <p className="mt-1 text-xs text-red-400">{formErrors.routingNumber}</p>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* Address Information */}
-              <div className="border-b border-gold-500/20 pb-3 sm:pb-4">
-                <h4 className="text-sm sm:text-md font-semibold text-gold-400 mb-3 sm:mb-4 flex items-center">
-                  <FaHome className="mr-2" size={isMobile ? 14 : 16} /> Address Information
-                </h4>
-                
-                <div className="space-y-3 sm:space-y-4">
-                  {/* Street Address */}
-                  <div>
-                    <label className="block text-xs sm:text-sm text-gold-500/70 mb-1 sm:mb-2">Street Address *</label>
-                    <input
-                      type="text"
-                      name="address"
-                      value={bankForm.address}
-                      onChange={handleBankFormChange}
-                      className={`w-full px-3 sm:px-4 py-2 sm:py-3 bg-navy-700 border rounded-lg text-white text-sm sm:text-base focus:outline-none ${
-                        formErrors.address ? 'border-red-500' : 'border-gold-500/30 focus:border-gold-500'
-                      }`}
-                      placeholder="Enter street address"
-                    />
-                    {formErrors.address && (
-                      <p className="mt-1 text-xs text-red-400">{formErrors.address}</p>
-                    )}
-                  </div>
-
-                  {/* City, State, ZIP - Responsive grid */}
-                  <div className="space-y-3 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-4">
-                    {/* City - Full width on mobile, spans 1 on desktop */}
-                    <div className="sm:col-span-1">
-                      <label className="block text-xs sm:text-sm text-gold-500/70 mb-1 sm:mb-2">City *</label>
-                      <input
-                        type="text"
-                        name="city"
-                        value={bankForm.city}
-                        onChange={handleBankFormChange}
-                        className={`w-full px-3 sm:px-4 py-2 sm:py-3 bg-navy-700 border rounded-lg text-white text-sm sm:text-base focus:outline-none ${
-                          formErrors.city ? 'border-red-500' : 'border-gold-500/30 focus:border-gold-500'
-                        }`}
-                        placeholder="City"
-                      />
-                      {formErrors.city && (
-                        <p className="mt-1 text-xs text-red-400">{formErrors.city}</p>
-                      )}
-                    </div>
-                    
-                    {/* State - Full width on mobile */}
-                    <div>
-                      <label className="block text-xs sm:text-sm text-gold-500/70 mb-1 sm:mb-2">State *</label>
+                  <div className="space-y-2">
+                    <label className="block text-[10px] uppercase font-black text-slate-400 tracking-[0.3em] ml-2">Account Logic *</label>
+                    <div className="relative">
                       <select
-                        name="state"
-                        value={bankForm.state}
+                        name="accountType"
+                        value={bankForm.accountType}
                         onChange={handleBankFormChange}
-                        className={`w-full px-3 sm:px-4 py-2 sm:py-3 bg-navy-700 border rounded-lg text-white text-sm sm:text-base focus:outline-none ${
-                          formErrors.state ? 'border-red-500' : 'border-gold-500/30 focus:border-gold-500'
-                        }`}
+                        className="w-full px-8 py-5 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-black italic focus:outline-none focus:ring-8 focus:ring-slate-900/5 focus:bg-white transition-all appearance-none"
                       >
-                        <option value="">Select</option>
-                        {states.map(state => (
-                          <option key={state} value={state}>{state}</option>
+                        {accountTypes.map(type => (
+                          <option key={type.value} value={type.value}>{type.label}</option>
                         ))}
                       </select>
-                      {formErrors.state && (
-                        <p className="mt-1 text-xs text-red-400">{formErrors.state}</p>
-                      )}
-                    </div>
-                    
-                    {/* ZIP - Full width on mobile */}
-                    <div>
-                      <label className="block text-xs sm:text-sm text-gold-500/70 mb-1 sm:mb-2">ZIP Code *</label>
-                      <input
-                        type="text"
-                        name="zipCode"
-                        value={bankForm.zipCode}
-                        onChange={handleBankFormChange}
-                        className={`w-full px-3 sm:px-4 py-2 sm:py-3 bg-navy-700 border rounded-lg text-white text-sm sm:text-base focus:outline-none ${
-                          formErrors.zipCode ? 'border-red-500' : 'border-gold-500/30 focus:border-gold-500'
-                        }`}
-                        placeholder="ZIP"
-                        maxLength="10"
-                      />
-                      {formErrors.zipCode && (
-                        <p className="mt-1 text-xs text-red-400">{formErrors.zipCode}</p>
-                      )}
+                      <div className="absolute right-6 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                        <FaArrowDown size={10} />
+                      </div>
                     </div>
                   </div>
-
-                  {/* Country */}
-                  <div>
-                    <label className="block text-xs sm:text-sm text-gold-500/70 mb-1 sm:mb-2">Country</label>
-                    <select
-                      name="country"
-                      value={bankForm.country}
-                      onChange={handleBankFormChange}
-                      className="w-full px-3 sm:px-4 py-2 sm:py-3 bg-navy-700 border border-gold-500/30 rounded-lg text-white text-sm sm:text-base focus:outline-none focus:border-gold-500"
-                    >
-                      {countries.map(country => (
-                        <option key={country} value={country}>{country}</option>
-                      ))}
-                    </select>
-                  </div>
+                </div>
+                <div className="space-y-2">
+                  <label className="block text-[10px] uppercase font-black text-slate-400 tracking-[0.3em] ml-2">Legal Beneficiary *</label>
+                  <input
+                    type="text"
+                    name="accountName"
+                    value={bankForm.accountName}
+                    onChange={handleBankFormChange}
+                    className={`w-full px-8 py-5 bg-slate-50 border rounded-2xl text-xs font-black italic focus:outline-none transition-all ${
+                      formErrors.accountName ? 'border-rose-500' : 'border-slate-100 focus:ring-8 focus:ring-slate-900/5 focus:bg-white'
+                    }`}
+                    placeholder="Exact name match on asset"
+                  />
                 </div>
               </div>
 
-              {/* Default Account Option */}
-              <div className="flex items-center space-x-3 py-2">
-                <input
-                  type="checkbox"
-                  name="isDefault"
-                  id="isDefaultBank"
-                  checked={bankForm.isDefault}
-                  onChange={handleBankFormChange}
-                  className="w-4 h-4 text-gold-500 bg-navy-700 border-gold-500/30 rounded focus:ring-gold-500"
-                />
-                <label htmlFor="isDefaultBank" className="text-xs sm:text-sm text-gold-500/70">
-                  Set as default bank account
-                </label>
-              </div>
-
-              {/* Security Notice */}
-              <div className="bg-navy-700/30 rounded-lg p-3 sm:p-4 flex items-start space-x-3">
-                <FaShieldAlt className="text-gold-500 mt-1 flex-shrink-0" size={isMobile ? 14 : 16} />
-                <div>
-                  <p className="text-xs sm:text-sm text-gold-500 font-medium">Your information is secure</p>
-                  <p className="text-xs text-gold-500/50">All banking information is encrypted and securely stored.</p>
-                </div>
-              </div>
-
-              {/* Form Actions - Stack on mobile, side by side on desktop */}
-              <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 pt-3 sm:pt-4">
+              <div className="flex flex-col sm:flex-row gap-6 pt-10">
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="w-full sm:flex-1 px-4 py-3 bg-gold-500 text-navy-950 rounded-lg font-bold hover:bg-gold-600 disabled:bg-gold-500/50 disabled:cursor-not-allowed flex items-center justify-center text-sm sm:text-base"
+                  className="flex-1 px-10 py-6 bg-slate-900 text-white rounded-[2rem] font-black uppercase tracking-[0.3em] text-[11px] hover:bg-gold-600 disabled:bg-slate-200 transition-all shadow-2xl shadow-slate-900/20"
                 >
-                  {isSubmitting ? (
-                    <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-navy-950 mr-2"></div>
-                      Adding...
-                    </>
-                  ) : (
-                    'Add Bank Account'
-                  )}
+                  {isSubmitting ? 'Verifying Integrity...' : 'Link Asset Repository'}
                 </button>
                 <button
                   type="button"
                   onClick={() => setShowAddAccount(false)}
-                  className="w-full sm:w-auto px-4 py-3 bg-navy-700 text-gold-500 rounded-lg font-bold hover:bg-navy-600 text-sm sm:text-base"
+                  className="px-10 py-6 bg-slate-50 text-slate-400 rounded-[2rem] font-black uppercase tracking-[0.3em] text-[11px] hover:bg-slate-100 transition-all border border-slate-100"
                 >
-                  Cancel
+                  Abort
                 </button>
               </div>
             </form>
@@ -1499,274 +1111,40 @@ const BankingTab = ({
         </div>
       )}
 
-      {/* Add Credit Card Modal - Fully Responsive */}
+      {/* Add Credit Card Modal */}
       {showAddCard && (
-        <div className="fixed inset-0 bg-navy-950/95 backdrop-blur-sm flex items-center justify-center z-50 overflow-y-auto p-2 sm:p-4">
-          <div className="bg-navy-800 rounded-2xl border border-gold-500/30 p-3 sm:p-6 w-full max-w-2xl my-4 sm:my-8 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between mb-4 sm:mb-6 sticky top-0 bg-navy-800 py-2 z-10">
-              <h3 className="text-base sm:text-xl font-bold text-gold-500">Add Credit Card</h3>
-              <button onClick={() => setShowAddCard(false)} className="text-gold-500/70 hover:text-gold-500 p-2">
-                <FaTimes size={18} />
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xl flex items-center justify-center z-50 overflow-y-auto p-4 sm:p-8">
+          <div className="bg-white rounded-[3rem] border border-slate-100 p-12 w-full max-w-2xl my-8 max-h-[90vh] overflow-y-auto shadow-[0_0_120px_rgba(0,0,0,0.15)]">
+            <div className="flex items-center justify-between mb-12">
+              <div>
+                <h3 className="text-3xl font-black text-slate-900 tracking-tighter italic uppercase">Payment Vector</h3>
+                <p className="text-[10px] text-slate-400 mt-2 uppercase font-black tracking-[0.3em]">Encrypted Card Interface Registration</p>
+              </div>
+              <button onClick={() => setShowAddCard(false)} className="w-14 h-14 bg-slate-50 text-slate-400 hover:text-rose-500 rounded-[1.5rem] flex items-center justify-center transition-all border border-slate-100">
+                <FaTimes size={20} />
               </button>
             </div>
             
-            <form onSubmit={handleAddCreditCard} className="space-y-3 sm:space-y-4">
-              {/* Card Information */}
-              <div className="border-b border-gold-500/20 pb-3 sm:pb-4">
-                <h4 className="text-sm sm:text-md font-semibold text-gold-400 mb-3 sm:mb-4 flex items-center">
-                  <FaCreditCard className="mr-2" size={isMobile ? 14 : 16} /> Card Information
-                </h4>
-                
-                <div className="space-y-3 sm:space-y-4">
-                  {/* Cardholder Name */}
-                  <div>
-                    <label className="block text-xs sm:text-sm text-gold-500/70 mb-1 sm:mb-2">Cardholder Name *</label>
-                    <input
-                      type="text"
-                      name="cardholderName"
-                      value={cardForm.cardholderName}
-                      onChange={handleCardFormChange}
-                      className={`w-full px-3 sm:px-4 py-2 sm:py-3 bg-navy-700 border rounded-lg text-white text-sm sm:text-base focus:outline-none ${
-                        formErrors.cardholderName ? 'border-red-500' : 'border-gold-500/30 focus:border-gold-500'
-                      }`}
-                      placeholder="Name as it appears on card"
-                    />
-                    {formErrors.cardholderName && (
-                      <p className="mt-1 text-xs text-red-400">{formErrors.cardholderName}</p>
-                    )}
-                  </div>
-
-                  {/* Card Number */}
-                  <div>
-                    <label className="block text-xs sm:text-sm text-gold-500/70 mb-1 sm:mb-2">Card Number *</label>
-                    <input
-                      type="text"
-                      name="cardNumber"
-                      value={cardForm.cardNumber}
-                      onChange={handleCardFormChange}
-                      className={`w-full px-3 sm:px-4 py-2 sm:py-3 bg-navy-700 border rounded-lg text-white text-sm sm:text-base focus:outline-none ${
-                        formErrors.cardNumber ? 'border-red-500' : 'border-gold-500/30 focus:border-gold-500'
-                      }`}
-                      placeholder="1234 5678 9012 3456"
-                      maxLength="19"
-                    />
-                    {formErrors.cardNumber && (
-                      <p className="mt-1 text-xs text-red-400">{formErrors.cardNumber}</p>
-                    )}
-                  </div>
-
-                  {/* Expiry Month, Year, and CVV - Responsive grid */}
-                  <div className="space-y-3 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-4">
-                    {/* Month */}
-                    <div>
-                      <label className="block text-xs sm:text-sm text-gold-500/70 mb-1 sm:mb-2">Month *</label>
-                      <select
-                        name="expiryMonth"
-                        value={cardForm.expiryMonth}
-                        onChange={handleCardFormChange}
-                        className={`w-full px-3 sm:px-4 py-2 sm:py-3 bg-navy-700 border rounded-lg text-white text-sm sm:text-base focus:outline-none ${
-                          formErrors.expiry ? 'border-red-500' : 'border-gold-500/30 focus:border-gold-500'
-                        }`}
-                      >
-                        <option value="">MM</option>
-                        {months.map(month => (
-                          <option key={month.value} value={month.value}>{month.label}</option>
-                        ))}
-                      </select>
-                    </div>
-                    
-                    {/* Year */}
-                    <div>
-                      <label className="block text-xs sm:text-sm text-gold-500/70 mb-1 sm:mb-2">Year *</label>
-                      <select
-                        name="expiryYear"
-                        value={cardForm.expiryYear}
-                        onChange={handleCardFormChange}
-                        className={`w-full px-3 sm:px-4 py-2 sm:py-3 bg-navy-700 border rounded-lg text-white text-sm sm:text-base focus:outline-none ${
-                          formErrors.expiry ? 'border-red-500' : 'border-gold-500/30 focus:border-gold-500'
-                        }`}
-                      >
-                        <option value="">YYYY</option>
-                        {years.map(year => (
-                          <option key={year.value} value={year.value}>{year.label}</option>
-                        ))}
-                      </select>
-                    </div>
-                    
-                    {/* CVV */}
-                    <div>
-                      <label className="block text-xs sm:text-sm text-gold-500/70 mb-1 sm:mb-2">CVV *</label>
-                      <input
-                        type="password"
-                        name="cvv"
-                        value={cardForm.cvv}
-                        onChange={handleCardFormChange}
-                        className={`w-full px-3 sm:px-4 py-2 sm:py-3 bg-navy-700 border rounded-lg text-white text-sm sm:text-base focus:outline-none ${
-                          formErrors.cvv ? 'border-red-500' : 'border-gold-500/30 focus:border-gold-500'
-                        }`}
-                        placeholder="123"
-                        maxLength="4"
-                      />
-                      {formErrors.cvv && (
-                        <p className="mt-1 text-xs text-red-400">{formErrors.cvv}</p>
-                      )}
-                    </div>
-                  </div>
-                  {formErrors.expiry && (
-                    <p className="text-xs text-red-400">{formErrors.expiry}</p>
-                  )}
-                </div>
+            <form onSubmit={handleAddCreditCard} className="space-y-10">
+              <div className="bg-slate-50 p-10 rounded-[2.5rem] border border-slate-100 text-center space-y-4">
+                <FaShieldAlt className="mx-auto text-gold-500 text-5xl mb-4" />
+                <p className="text-xs font-black text-slate-900 uppercase tracking-widest italic text-center">Protocol sync active</p>
               </div>
 
-              {/* Billing Address */}
-              <div className="border-b border-gold-500/20 pb-3 sm:pb-4">
-                <h4 className="text-sm sm:text-md font-semibold text-gold-400 mb-3 sm:mb-4 flex items-center">
-                  <FaHome className="mr-2" size={isMobile ? 14 : 16} /> Billing Address
-                </h4>
-                
-                <div className="space-y-3 sm:space-y-4">
-                  {/* Street Address */}
-                  <div>
-                    <label className="block text-xs sm:text-sm text-gold-500/70 mb-1 sm:mb-2">Street Address *</label>
-                    <input
-                      type="text"
-                      name="billingAddress"
-                      value={cardForm.billingAddress}
-                      onChange={handleCardFormChange}
-                      className={`w-full px-3 sm:px-4 py-2 sm:py-3 bg-navy-700 border rounded-lg text-white text-sm sm:text-base focus:outline-none ${
-                        formErrors.billingAddress ? 'border-red-500' : 'border-gold-500/30 focus:border-gold-500'
-                      }`}
-                      placeholder="Enter billing address"
-                    />
-                    {formErrors.billingAddress && (
-                      <p className="mt-1 text-xs text-red-400">{formErrors.billingAddress}</p>
-                    )}
-                  </div>
-
-                  {/* City, State, ZIP - Responsive grid */}
-                  <div className="space-y-3 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-4">
-                    {/* City */}
-                    <div className="sm:col-span-1">
-                      <label className="block text-xs sm:text-sm text-gold-500/70 mb-1 sm:mb-2">City *</label>
-                      <input
-                        type="text"
-                        name="billingCity"
-                        value={cardForm.billingCity}
-                        onChange={handleCardFormChange}
-                        className={`w-full px-3 sm:px-4 py-2 sm:py-3 bg-navy-700 border rounded-lg text-white text-sm sm:text-base focus:outline-none ${
-                          formErrors.billingCity ? 'border-red-500' : 'border-gold-500/30 focus:border-gold-500'
-                        }`}
-                        placeholder="City"
-                      />
-                      {formErrors.billingCity && (
-                        <p className="mt-1 text-xs text-red-400">{formErrors.billingCity}</p>
-                      )}
-                    </div>
-                    
-                    {/* State */}
-                    <div>
-                      <label className="block text-xs sm:text-sm text-gold-500/70 mb-1 sm:mb-2">State *</label>
-                      <select
-                        name="billingState"
-                        value={cardForm.billingState}
-                        onChange={handleCardFormChange}
-                        className={`w-full px-3 sm:px-4 py-2 sm:py-3 bg-navy-700 border rounded-lg text-white text-sm sm:text-base focus:outline-none ${
-                          formErrors.billingState ? 'border-red-500' : 'border-gold-500/30 focus:border-gold-500'
-                        }`}
-                      >
-                        <option value="">Select</option>
-                        {states.map(state => (
-                          <option key={state} value={state}>{state}</option>
-                        ))}
-                      </select>
-                      {formErrors.billingState && (
-                        <p className="mt-1 text-xs text-red-400">{formErrors.billingState}</p>
-                      )}
-                    </div>
-                    
-                    {/* ZIP */}
-                    <div>
-                      <label className="block text-xs sm:text-sm text-gold-500/70 mb-1 sm:mb-2">ZIP Code *</label>
-                      <input
-                        type="text"
-                        name="billingZip"
-                        value={cardForm.billingZip}
-                        onChange={handleCardFormChange}
-                        className={`w-full px-3 sm:px-4 py-2 sm:py-3 bg-navy-700 border rounded-lg text-white text-sm sm:text-base focus:outline-none ${
-                          formErrors.billingZip ? 'border-red-500' : 'border-gold-500/30 focus:border-gold-500'
-                        }`}
-                        placeholder="ZIP"
-                        maxLength="10"
-                      />
-                      {formErrors.billingZip && (
-                        <p className="mt-1 text-xs text-red-400">{formErrors.billingZip}</p>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Country */}
-                  <div>
-                    <label className="block text-xs sm:text-sm text-gold-500/70 mb-1 sm:mb-2">Country</label>
-                    <select
-                      name="billingCountry"
-                      value={cardForm.billingCountry}
-                      onChange={handleCardFormChange}
-                      className="w-full px-3 sm:px-4 py-2 sm:py-3 bg-navy-700 border border-gold-500/30 rounded-lg text-white text-sm sm:text-base focus:outline-none focus:border-gold-500"
-                    >
-                      {countries.map(country => (
-                        <option key={country} value={country}>{country}</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-              </div>
-
-              {/* Default Card Option */}
-              <div className="flex items-center space-x-3 py-2">
-                <input
-                  type="checkbox"
-                  name="isDefault"
-                  id="isDefaultCard"
-                  checked={cardForm.isDefault}
-                  onChange={handleCardFormChange}
-                  className="w-4 h-4 text-gold-500 bg-navy-700 border-gold-500/30 rounded focus:ring-gold-500"
-                />
-                <label htmlFor="isDefaultCard" className="text-xs sm:text-sm text-gold-500/70">
-                  Set as default payment method
-                </label>
-              </div>
-
-              {/* Security Notice */}
-              <div className="bg-navy-700/30 rounded-lg p-3 sm:p-4 flex items-start space-x-3">
-                <FaShieldAlt className="text-gold-500 mt-1 flex-shrink-0" size={isMobile ? 14 : 16} />
-                <div>
-                  <p className="text-xs sm:text-sm text-gold-500 font-medium">Your card information is secure</p>
-                  <p className="text-xs text-gold-500/50">Your full card number is never stored on our servers.</p>
-                </div>
-              </div>
-
-              {/* Form Actions - Stack on mobile, side by side on desktop */}
-              <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 pt-3 sm:pt-4">
+              <div className="flex flex-col sm:flex-row gap-6 pt-10">
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="w-full sm:flex-1 px-4 py-3 bg-gold-500 text-navy-950 rounded-lg font-bold hover:bg-gold-600 disabled:bg-gold-500/50 disabled:cursor-not-allowed flex items-center justify-center text-sm sm:text-base"
+                  className="flex-1 px-10 py-6 bg-slate-900 text-white rounded-[2rem] font-black uppercase tracking-[0.3em] text-[11px] hover:bg-gold-600 disabled:bg-slate-200 transition-all shadow-2xl shadow-slate-900/20"
                 >
-                  {isSubmitting ? (
-                    <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-navy-950 mr-2"></div>
-                      Adding...
-                    </>
-                  ) : (
-                    'Add Credit Card'
-                  )}
+                  {isSubmitting ? 'Syncing Interface...' : 'Authorize Payment Vector'}
                 </button>
                 <button
                   type="button"
                   onClick={() => setShowAddCard(false)}
-                  className="w-full sm:w-auto px-4 py-3 bg-navy-700 text-gold-500 rounded-lg font-bold hover:bg-navy-600 text-sm sm:text-base"
+                  className="px-10 py-6 bg-slate-50 text-slate-400 rounded-[2rem] font-black uppercase tracking-[0.3em] text-[11px] hover:bg-slate-100 transition-all border border-slate-100"
                 >
-                  Cancel
+                  Abort
                 </button>
               </div>
             </form>
