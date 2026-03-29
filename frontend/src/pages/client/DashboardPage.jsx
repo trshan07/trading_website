@@ -1,8 +1,7 @@
-// frontend/src/pages/client/DashboardPage.jsx
 import React, { useState, useEffect, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
-  FaBolt, FaChartLine, FaTimes, FaBars, FaBell, 
+import {
+  FaBolt, FaChartLine, FaTimes, FaBars, FaBell,
   FaUser, FaSignOutAlt, FaCog, FaSearch, FaFilter,
   FaArrowUp, FaArrowDown, FaWallet, FaExchangeAlt,
   FaFileAlt, FaChartBar, FaDatabase, FaHistory,
@@ -132,10 +131,11 @@ const DashboardPage = () => {
 
   const mobileNavItems = [
     { id: 'trading', label: 'Trading', icon: FaChartLine },
-    { id: 'banking', label: 'Banking', icon: FaWallet },
-    { id: 'documents', label: 'Documents', icon: FaFileAlt },
     { id: 'markets', label: 'Markets', icon: FaChartBar },
     { id: 'portfolio', label: 'Portfolio', icon: FaDatabase },
+    { id: 'banking', label: 'Banking', icon: FaWallet },
+    { id: 'documents', label: 'Documents', icon: FaFileAlt },
+    { id: 'settings', label: 'Settings', icon: FaCog },
   ];
 
   useEffect(() => {
@@ -184,7 +184,7 @@ const DashboardPage = () => {
   return (
     <div className="min-h-screen bg-slate-50 flex overflow-hidden font-sans">
       {/* Permanent Sidebar (Desktop) */}
-      <Sidebar 
+      <Sidebar
         activeTab={activeMainTab}
         onTabChange={(tab) => {
           setActiveMainTab(tab);
@@ -198,7 +198,7 @@ const DashboardPage = () => {
 
       {/* Content Wrapper */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        <Header 
+        <Header
           portfolio={portfolio}
           showBalance={showBalance}
           onToggleBalance={() => setShowBalance(!showBalance)}
@@ -214,7 +214,7 @@ const DashboardPage = () => {
           <PriceTicker data={marketData} />
 
           <main className="px-4 md:px-10 py-10 max-w-[1600px] mx-auto w-full">
-            <WelcomeHeader 
+            <WelcomeHeader
               user={user}
               portfolio={portfolio}
               onDeposit={() => setActiveMainTab('banking')}
@@ -224,7 +224,7 @@ const DashboardPage = () => {
             {/* Content Logic */}
             <div className="transition-all duration-300">
               {activeMainTab === 'trading' && (
-                <TradingTab 
+                <TradingTab
                   portfolio={portfolio}
                   showBalance={showBalance}
                   onToggleBalance={() => setShowBalance(!showBalance)}
@@ -239,7 +239,7 @@ const DashboardPage = () => {
               )}
 
               {activeMainTab === 'banking' && (
-                <BankingTab 
+                <BankingTab
                   walletData={walletData}
                   bankAccounts={bankAccounts}
                   creditCards={creditCards}
@@ -249,7 +249,7 @@ const DashboardPage = () => {
               )}
 
               {activeMainTab === 'documents' && (
-                <DocumentsTab 
+                <DocumentsTab
                   documents={documents}
                   onUpload={() => setShowUploadModal(true)}
                 />
@@ -258,10 +258,10 @@ const DashboardPage = () => {
               {activeMainTab === 'markets' && <MarketsTab />}
 
               {activeMainTab === 'portfolio' && (
-                <PortfolioTab 
-                  portfolio={portfolio} 
-                  portfolioHistory={portfolioHistory} 
-                  positions={positions} 
+                <PortfolioTab
+                  portfolio={portfolio}
+                  portfolioHistory={portfolioHistory}
+                  positions={positions}
                 />
               )}
             </div>
@@ -291,23 +291,88 @@ const DashboardPage = () => {
           {/* Mobile Navigation Drawer */}
           {showMobileMenu && (
             <div className="fixed inset-0 z-[100] flex lg:hidden">
-              <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-md" onClick={() => setShowMobileMenu(false)}></div>
-              <div className="relative w-80 bg-white shadow-2xl flex flex-col animate-in slide-in-from-left duration-300">
-                <div className="p-8 border-b border-slate-100 flex justify-between items-center">
-                  <h2 className="text-2xl font-black italic tracking-tighter">RIZAL<span className="text-gold-500">.</span></h2>
-                  <button onClick={() => setShowMobileMenu(false)} className="p-2"><FaTimes /></button>
+              <div 
+                className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" 
+                onClick={() => setShowMobileMenu(false)}
+              />
+              
+              <div className="relative w-[280px] bg-white shadow-2xl flex flex-col h-full overflow-hidden animate-in slide-in-from-left duration-300">
+                {/* Drawer Header */}
+                <div className="p-6 border-b border-slate-100 flex justify-between items-center shrink-0">
+                  <div className="flex items-center space-x-2">
+                    <div className="w-8 h-8 flex items-center justify-center bg-slate-900 rounded-lg text-gold-500 shadow-md">
+                      <FaChartLine size={14} />
+                    </div>
+                    <h2 className="text-xl font-black italic tracking-tighter text-slate-900">RIZAL<span className="text-gold-500">.</span></h2>
+                  </div>
+                  <button onClick={() => setShowMobileMenu(false)} className="p-2 text-slate-400 hover:text-slate-900 hover:bg-slate-50 rounded-xl transition-all">
+                    <FaTimes size={16} />
+                  </button>
                 </div>
-                <div className="flex-1 p-4 space-y-1">
-                  {mobileNavItems.map(item => (
-                    <button
-                      key={item.id}
-                      onClick={() => { setActiveMainTab(item.id); setShowMobileMenu(false); }}
-                      className={`w-full px-6 py-4 rounded-2xl flex items-center space-x-4 ${activeMainTab === item.id ? 'bg-slate-900 text-white shadow-xl' : 'text-slate-400'}`}
+                
+                {/* Scrollable Body */}
+                <div className="flex-1 overflow-y-auto">
+                  {/* Account Snapshot Mobile */}
+                  <div className="p-5">
+                    <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-[1.5rem] p-5 shadow-xl relative overflow-hidden">
+                      <div className="absolute top-0 right-0 w-20 h-20 bg-gold-400/10 rounded-full -translate-y-8 translate-x-8 blur-xl"></div>
+                      <div className="relative z-10">
+                        <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-1">Total Equity</p>
+                        <h3 className="text-xl font-black text-white italic tracking-tight mb-3">
+                          {showBalance ? `$${(portfolio?.equity ?? 0).toLocaleString()}` : '••••••'}
+                        </h3>
+                        <div className="flex justify-between items-center pt-3 border-t border-white/10">
+                           <div>
+                              <p className="text-[8px] font-black uppercase text-slate-500 tracking-widest">Free Margin</p>
+                              <p className="text-xs font-bold text-white mt-0.5">
+                                {showBalance ? `$${(portfolio?.availableBalance ?? 0).toLocaleString()}` : '••••'}
+                              </p>
+                           </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Nav Links */}
+                  <div className="px-3 pb-6 space-y-1">
+                    {mobileNavItems.map(item => (
+                      <button
+                        key={item.id}
+                        onClick={() => { setActiveMainTab(item.id); setShowMobileMenu(false); }}
+                        className={`w-full px-5 py-3.5 rounded-xl flex items-center space-x-3 transition-all ${
+                          activeMainTab === item.id 
+                            ? 'bg-slate-900 text-white shadow-lg' 
+                            : 'text-slate-400 hover:bg-slate-50 hover:text-slate-900'
+                        }`}
+                      >
+                        <div className={`p-1.5 rounded-lg ${activeMainTab === item.id ? 'bg-gold-500 text-white' : 'bg-transparent text-slate-400'}`}>
+                          <item.icon size={14} />
+                        </div>
+                        <span className="text-[11px] font-black uppercase tracking-widest">{item.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                
+                {/* Sticky Mobile Footer / User Profile */}
+                <div className="p-4 shrink-0 border-t border-slate-100 bg-white">
+                  <div className="bg-slate-50 rounded-2xl p-3 border border-slate-100 flex items-center justify-between">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-8 h-8 bg-slate-900 rounded-xl flex items-center justify-center text-gold-500 font-black italic shadow-md">
+                         {user?.firstName?.charAt(0)}
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-black text-slate-900 tracking-tight uppercase leading-tight">{user?.firstName}</p>
+                        <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest leading-tight mt-0.5">{user?.selectedAccountType}</p>
+                      </div>
+                    </div>
+                    <button 
+                      onClick={handleLogout}
+                      className="p-2 text-slate-300 hover:text-rose-500 bg-white hover:bg-rose-50 rounded-lg transition-all shadow-sm border border-slate-100"
                     >
-                      <item.icon />
-                      <span className="text-xs font-black uppercase tracking-widest">{item.label}</span>
+                      <FaSignOutAlt size={12} />
                     </button>
-                  ))}
+                  </div>
                 </div>
               </div>
             </div>

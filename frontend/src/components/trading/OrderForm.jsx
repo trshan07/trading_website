@@ -105,7 +105,7 @@ const OrderForm = ({ onSubmit, symbol = 'BTCUSD', compact = false }) => {
           />
 
           {/* Quick Amount Buttons */}
-          <div className="grid grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             {quickAmounts.map(qty => (
               <button
                 key={qty}

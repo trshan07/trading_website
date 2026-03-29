@@ -28,9 +28,9 @@ const TradingTab = ({
   return (
     <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
       {/* Main Execution Terminal */}
-      <div className={`grid ${isMobile ? 'grid-cols-1' : 'lg:grid-cols-12'} gap-8 items-start`}>
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         {/* Left Column: Chart & Market Depth */}
-        <div className={isMobile ? 'col-span-1' : 'lg:col-span-9 space-y-8'}>
+        <div className="col-span-1 lg:col-span-9 space-y-8">
           {/* Chart Section - Professional Glassmorphism */}
           <div className="bg-white rounded-[3rem] border border-slate-100 overflow-hidden shadow-2xl shadow-slate-200/50 group">
              <div className="p-8 border-b border-slate-50 flex justify-between items-center bg-slate-50/50">
@@ -59,7 +59,7 @@ const TradingTab = ({
         </div>
 
         {/* Right Column: Execution Panel */}
-        <div className={isMobile ? 'col-span-1' : 'lg:col-span-3 h-full'}>
+        <div className="col-span-1 lg:col-span-3 h-full">
           <div className="sticky top-28">
             <OrderForm 
               onSubmit={onPlaceOrder} 
@@ -72,7 +72,7 @@ const TradingTab = ({
       {/* Operations Panel (Positions & Orders) */}
       <div className="bg-white rounded-[3rem] border border-slate-100 overflow-hidden shadow-2xl shadow-slate-200/50">
         <div className="border-b border-slate-50 bg-slate-50/50 p-4">
-          <div className="flex space-x-2">
+          <div className="flex space-x-2 overflow-x-auto pb-2 scrollbar-hide">
             {[
               { id: 'positions', label: 'Open Positions', count: positions.length },
               { id: 'orders', label: 'Limit Orders', count: orders.length },
@@ -81,7 +81,7 @@ const TradingTab = ({
               <button
                 key={tab.id}
                 onClick={() => setActiveSubTab(tab.id)}
-                className={`px-8 py-4 text-[10px] font-black uppercase tracking-widest rounded-[1.5rem] transition-all duration-300 flex items-center ${
+                className={`px-4 sm:px-8 py-4 text-[10px] font-black uppercase tracking-widest rounded-[1.5rem] transition-all duration-300 flex items-center whitespace-nowrap ${
                   activeSubTab === tab.id
                     ? 'bg-slate-900 text-white shadow-2xl shadow-slate-900/20 translate-y-[-2px]'
                     : 'text-slate-400 hover:text-slate-900 hover:bg-white border border-transparent hover:border-slate-100'

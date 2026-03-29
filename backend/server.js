@@ -29,8 +29,9 @@ app.use(helmet({
 const allowedOrigins = (process.env.CLIENT_URL || 'http://localhost:3000').split(',');
 app.use(cors({
     origin: (origin, callback) => {
-        // Allow requests with no origin (like mobile apps or curl requests)
-        if (!origin) return callback(null, true);
+        // Allow requests with no origin, or when in development mode (to support mobile LAN testing)
+        if (!origin || process.env.NODE_ENV === 'development') return callback(null, true);
+        
         if (allowedOrigins.indexOf(origin) !== -1 || allowedOrigins.includes(origin)) {
             callback(null, true);
         } else {
