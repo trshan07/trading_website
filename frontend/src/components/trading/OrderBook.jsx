@@ -66,7 +66,7 @@ const OrderBook = ({ symbol = 'BTC/USD' }) => {
   const bidSentiment = (bidTotalSize / (bidTotalSize + askTotalSize)) * 100;
 
   return (
-    <div className="bg-white rounded-[2.5rem] border border-slate-100 p-1 shadow-2xl shadow-slate-200/50 group overflow-hidden">
+    <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 p-1 shadow-2xl shadow-slate-200/50 dark:shadow-black/20 group overflow-hidden transition-colors">
       <div className="p-8">
         {/* Console Header */}
         <div className="flex justify-between items-center mb-10">
@@ -75,29 +75,29 @@ const OrderBook = ({ symbol = 'BTC/USD' }) => {
               <FaLayerGroup className="text-gold-500" size={14} />
             </div>
             <div>
-              <h3 className="text-[11px] font-black uppercase text-slate-900 tracking-[0.3em] italic leading-none">Depth Terminal</h3>
-              <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mt-1.5 flex items-center">
+              <h3 className="text-[11px] font-black uppercase text-slate-900 dark:text-white tracking-[0.3em] italic leading-none transition-colors">Depth Terminal</h3>
+              <p className="text-[8px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mt-1.5 flex items-center transition-colors">
                 <span className="w-1 h-1 bg-emerald-500 rounded-full mr-2 animate-pulse"></span>
                 Orderbook.v2 / Neural Sync
               </p>
             </div>
           </div>
-          <div className="px-5 py-2.5 bg-slate-50 rounded-2xl border border-slate-100 flex items-center space-x-4">
+          <div className="px-5 py-2.5 bg-slate-50 dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 flex items-center space-x-4 transition-colors">
             <div className="flex flex-col items-end">
-              <span className="text-[7px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Live Spread</span>
-              <span className="text-[11px] font-black text-slate-900 italic tracking-tighter">${spread.value.toFixed(2)}</span>
+              <span className="text-[7px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-0.5">Live Spread</span>
+              <span className="text-[11px] font-black text-slate-900 dark:text-white italic tracking-tighter transition-colors">${spread.value.toFixed(2)}</span>
             </div>
-            <div className="h-6 w-[1px] bg-slate-200"></div>
+            <div className="h-6 w-[1px] bg-slate-200 dark:bg-slate-700"></div>
             <div className="flex flex-col items-end">
-              <span className="text-[7px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Impact</span>
-              <span className="text-[11px] font-black text-emerald-500 italic tracking-tighter">{spread.percentage.toFixed(4)}%</span>
+              <span className="text-[7px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-0.5 transition-colors">Impact</span>
+              <span className="text-[11px] font-black text-emerald-500 italic tracking-tighter transition-colors">{spread.percentage.toFixed(4)}%</span>
             </div>
           </div>
         </div>
 
         {/* Market Gravity / Sentiment Bar */}
         <div className="mb-10 px-2">
-           <div className="flex justify-between items-center text-[8px] font-black uppercase tracking-widest mb-2.5 text-slate-400">
+           <div className="flex justify-between items-center text-[8px] font-black uppercase tracking-widest mb-2.5 text-slate-400 dark:text-slate-500 transition-colors">
               <div className="flex items-center space-x-2">
                  <FaBolt className="text-emerald-500" />
                  <span>Buy Force: {bidSentiment.toFixed(1)}%</span>
@@ -107,20 +107,20 @@ const OrderBook = ({ symbol = 'BTC/USD' }) => {
                  <span>Sell Load: {(100 - bidSentiment).toFixed(1)}%</span>
               </div>
            </div>
-           <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden flex shadow-inner">
+           <div className="h-1.5 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden flex shadow-inner transition-colors">
               <div 
-                className="h-full bg-emerald-500 transition-all duration-1000 ease-out shadow-[0_0_10px_#10b981]" 
+                className="h-full bg-emerald-500 transition-all duration-1000 ease-out shadow-[0_0_100px_#10b981]" 
                 style={{ width: `${bidSentiment}%` }}
               ></div>
               <div 
-                className="h-full bg-rose-500 transition-all duration-1000 ease-out shadow-[0_0_10px_#f43f5e]" 
+                className="h-full bg-rose-500 transition-all duration-1000 ease-out shadow-[0_0_100px_#f43f5e]" 
                 style={{ width: `${100 - bidSentiment}%` }}
               ></div>
            </div>
         </div>
 
         {/* Table Headers */}
-        <div className="grid grid-cols-3 text-[8px] uppercase font-black text-slate-400 mb-6 px-4 tracking-[0.2em] border-b border-slate-50 pb-4">
+        <div className="grid grid-cols-3 text-[8px] uppercase font-black text-slate-400 dark:text-slate-500 mb-6 px-4 tracking-[0.2em] border-b border-slate-50 dark:border-slate-800 pb-4 transition-colors">
           <span>Execution Price</span>
           <span className="text-right">Portal Size</span>
           <span className="text-right">Volume Map</span>
@@ -129,12 +129,12 @@ const OrderBook = ({ symbol = 'BTC/USD' }) => {
         {/* Asks Section */}
         <div className="space-y-0.5 mb-6">
           {asks.slice(0, 8).reverse().map((ask, i) => (
-            <div key={i} className="relative group overflow-hidden rounded-xl hover:bg-slate-50 transition-all duration-300">
+            <div key={i} className="relative group overflow-hidden rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-all duration-300">
               <div className="absolute right-0 top-0 bottom-0 bg-gradient-to-l from-rose-500/10 to-transparent transition-all duration-500" style={{ width: `${(ask.cumulative / maxCumulative) * 100}%` }} />
               <div className="relative grid grid-cols-3 text-[11px] py-2.5 px-4 items-center">
                 <span className="text-rose-500 font-black italic tracking-tighter">${ask.price.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
-                <span className="text-right text-slate-900 font-black">{ask.size.toFixed(4)}</span>
-                <span className="text-right text-slate-400 font-bold tabular-nums italic">${(ask.total / 1000).toFixed(1)}k</span>
+                <span className="text-right text-slate-900 dark:text-white font-black transition-colors">{ask.size.toFixed(4)}</span>
+                <span className="text-right text-slate-400 dark:text-slate-500 font-bold tabular-nums italic transition-colors">${(ask.total / 1000).toFixed(1)}k</span>
               </div>
             </div>
           ))}
@@ -171,21 +171,21 @@ const OrderBook = ({ symbol = 'BTC/USD' }) => {
         {/* Bids Section */}
         <div className="space-y-0.5">
           {bids.slice(0, 8).map((bid, i) => (
-            <div key={i} className="relative group overflow-hidden rounded-xl hover:bg-slate-50 transition-all duration-300">
+            <div key={i} className="relative group overflow-hidden rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-all duration-300">
               <div className="absolute right-0 top-0 bottom-0 bg-gradient-to-l from-emerald-500/10 to-transparent transition-all duration-500" style={{ width: `${(bid.cumulative / maxCumulative) * 100}%` }} />
               <div className="relative grid grid-cols-3 text-[11px] py-2.5 px-4 items-center">
                 <span className="text-emerald-500 font-black italic tracking-tighter">${bid.price.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
-                <span className="text-right text-slate-900 font-black">{bid.size.toFixed(4)}</span>
-                <span className="text-right text-slate-400 font-bold tabular-nums italic">${(bid.total / 1000).toFixed(1)}k</span>
+                <span className="text-right text-slate-900 dark:text-white font-black transition-colors">{bid.size.toFixed(4)}</span>
+                <span className="text-right text-slate-400 dark:text-slate-500 font-bold tabular-nums italic transition-colors">${(bid.total / 1000).toFixed(1)}k</span>
               </div>
             </div>
           ))}
         </div>
 
         {/* View Selection Footer */}
-        <div className="mt-10 pt-8 border-t border-slate-50 flex justify-center space-x-4">
+        <div className="mt-10 pt-8 border-t border-slate-50 dark:border-slate-800 transition-colors flex justify-center space-x-4">
            {['Global Book', 'Limit Data', 'Price Map'].map(label => (
-             <button key={label} className="px-5 py-2.5 text-[7px] font-black uppercase text-slate-400 tracking-[0.2em] border border-slate-100 rounded-xl hover:bg-slate-900 hover:text-white hover:border-slate-900 transition-all">
+             <button key={label} className="px-5 py-2.5 text-[7px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-[0.2em] border border-slate-100 dark:border-slate-800 rounded-xl hover:bg-slate-900 dark:hover:bg-gold-500 hover:text-white dark:hover:text-slate-900 hover:border-slate-900 dark:hover:border-gold-500 transition-all">
                {label}
              </button>
            ))}

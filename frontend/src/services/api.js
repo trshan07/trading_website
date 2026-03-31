@@ -34,7 +34,8 @@ api.interceptors.response.use(
     if (error.response && error.response.status === 401) {
       localStorage.removeItem('token');
       localStorage.removeItem('user');
-      // Redirect to login if needed, or handle in context
+      localStorage.removeItem('trading_mode');
+      console.warn('[AUTH] Session Revoked - 401 Unauthorized');
     }
     return Promise.reject(error);
   }

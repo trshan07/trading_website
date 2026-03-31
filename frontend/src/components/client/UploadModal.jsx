@@ -14,20 +14,20 @@ const UploadModal = ({ isOpen, onClose, onUpload }) => {
 
   return (
     <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xl flex items-center justify-center z-[100] p-4 sm:p-8">
-      <div className="bg-white rounded-[3rem] border border-slate-100 p-12 w-full max-w-xl shadow-[0_0_120px_rgba(0,0,0,0.15)] relative overflow-hidden ring-1 ring-slate-100 group">
+      <div className="bg-white dark:bg-slate-900 rounded-[3rem] border border-slate-100 dark:border-slate-800 p-12 w-full max-w-xl shadow-[0_0_120px_rgba(0,0,0,0.15)] relative overflow-hidden ring-1 ring-slate-100 dark:ring-slate-800 group">
         {/* Decorative background element */}
         <div className="absolute -top-24 -right-24 w-64 h-64 bg-gold-500/10 blur-[80px] rounded-full group-hover:bg-gold-500/20 transition-all duration-700"></div>
 
         <div className="flex items-center justify-between mb-10 relative z-10">
           <div>
-            <h3 className="text-3xl font-black text-slate-900 tracking-tighter italic uppercase">Vault Ingestion</h3>
+            <h3 className="text-3xl font-black text-slate-900 dark:text-white tracking-tighter italic uppercase transition-colors">Vault Ingestion</h3>
             <p className="text-[10px] text-slate-400 mt-2 uppercase font-black tracking-[0.3em] flex items-center">
               <FaShieldAlt className="mr-2 text-gold-500" /> Secure Protocol Transmission
             </p>
           </div>
           <button
             onClick={onClose}
-            className="w-14 h-14 bg-slate-50 text-slate-400 hover:text-rose-500 rounded-[1.5rem] flex items-center justify-center transition-all border border-slate-100 hover:shadow-xl group/close"
+            className="w-14 h-14 bg-slate-50 dark:bg-slate-800 text-slate-400 dark:text-slate-500 hover:text-rose-500 dark:hover:text-rose-400 rounded-[1.5rem] flex items-center justify-center transition-all border border-slate-100 dark:border-slate-700 hover:shadow-xl group/close"
           >
             <FaTimes size={20} className="group-hover/close:rotate-90 transition-transform duration-500" />
           </button>
@@ -38,7 +38,7 @@ const UploadModal = ({ isOpen, onClose, onUpload }) => {
           <div className="space-y-4">
             <label className="text-[10px] uppercase font-black text-slate-400 tracking-[0.3em] ml-2">Artifact Classification</label>
             <div className="relative group/select">
-              <select className="w-full px-8 py-5 bg-slate-50 border border-slate-100 rounded-[1.5rem] text-xs font-black italic text-slate-900 focus:outline-none focus:ring-8 focus:ring-slate-900/5 transition-all appearance-none">
+              <select className="w-full px-8 py-5 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-[1.5rem] text-xs font-black italic text-slate-900 dark:text-white focus:outline-none focus:ring-8 focus:ring-slate-900/5 dark:focus:ring-gold-500/10 transition-all appearance-none">
                 <option>Identity Proof (Passport/License)</option>
                 <option>Residency Verification (Utility)</option>
                 <option>Financial Statement (Flow)</option>
@@ -54,7 +54,7 @@ const UploadModal = ({ isOpen, onClose, onUpload }) => {
           {/* Upload Area */}
           <div className="space-y-4">
             <label className="text-[10px] uppercase font-black text-slate-400 tracking-[0.3em] ml-2">Payload Transfer</label>
-            <div className="border-4 border-dashed border-slate-50 rounded-[2.5rem] p-12 text-center group/upload hover:bg-slate-50/50 hover:border-gold-500/20 transition-all duration-500 bg-slate-50/30">
+            <div className="border-4 border-dashed border-slate-50 dark:border-slate-800 rounded-[2.5rem] p-12 text-center group/upload hover:bg-slate-50/50 dark:hover:bg-slate-800/20 hover:border-gold-500/20 transition-all duration-500 bg-slate-50/30 dark:bg-slate-800/10">
               <input
                 type="file"
                 id="file-upload"
@@ -66,10 +66,10 @@ const UploadModal = ({ isOpen, onClose, onUpload }) => {
                 htmlFor="file-upload"
                 className="cursor-pointer flex flex-col items-center"
               >
-                <div className="w-20 h-20 bg-white rounded-[2rem] shadow-xl flex items-center justify-center mb-6 group-hover/upload:scale-110 group-hover/upload:rotate-3 transition-all duration-500 border border-slate-100">
+                <div className="w-20 h-20 bg-white dark:bg-slate-800 rounded-[2rem] shadow-xl flex items-center justify-center mb-6 group-hover/upload:scale-110 group-hover/upload:rotate-3 transition-all duration-500 border border-slate-100 dark:border-slate-700">
                   <FaCloudUploadAlt className="text-gold-500 text-3xl group-hover/upload:animate-bounce" />
                 </div>
-                <p className="text-slate-900 text-xs font-black uppercase tracking-widest mb-2 italic">Deploy File Stream</p>
+                <p className="text-slate-900 dark:text-white text-xs font-black uppercase tracking-widest mb-2 italic transition-colors">Deploy File Stream</p>
                 <p className="text-slate-400 text-[9px] uppercase font-black tracking-widest opacity-60">PDF, JPG, PNG | MAGNITUDE 10MB MAX</p>
               </label>
             </div>
@@ -77,12 +77,12 @@ const UploadModal = ({ isOpen, onClose, onUpload }) => {
 
           {/* Action Buttons */}
           <div className="flex flex-col sm:flex-row gap-6 pt-4">
-            <button className="flex-1 px-10 py-6 bg-slate-900 text-white rounded-[2rem] font-black uppercase tracking-[0.3em] text-[11px] hover:bg-gold-600 transition-all duration-500 shadow-2xl shadow-slate-900/20 transform hover:-translate-y-1">
+            <button className="flex-1 px-10 py-6 bg-slate-900 dark:bg-gold-500 text-white dark:text-slate-900 rounded-[2rem] font-black uppercase tracking-[0.3em] text-[11px] hover:bg-gold-600 dark:hover:bg-gold-400 transition-all duration-500 shadow-2xl shadow-slate-900/20 transform hover:-translate-y-1">
               Finalize Transmission
             </button>
             <button
               onClick={onClose}
-              className="px-10 py-6 bg-slate-50 text-slate-400 rounded-[2rem] font-black uppercase tracking-[0.3em] text-[11px] hover:bg-slate-100 transition-all border border-slate-100"
+              className="px-10 py-6 bg-slate-50 dark:bg-slate-800 text-slate-400 dark:text-slate-500 rounded-[2rem] font-black uppercase tracking-[0.3em] text-[11px] hover:bg-slate-100 dark:hover:bg-slate-700 transition-all border border-slate-100 dark:border-slate-700"
             >
               Discard
             </button>

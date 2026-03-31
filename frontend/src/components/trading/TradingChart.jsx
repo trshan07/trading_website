@@ -1,11 +1,14 @@
-// frontend/src/components/trading/TradingChart.jsx
 import React, { useState, useEffect } from 'react';
 import {
   AreaChart, Area, LineChart, Line, BarChart, Bar, ComposedChart,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
 } from 'recharts';
+import { useTheme } from '../../context/ThemeContext';
 
-const TradingChart = ({ type = 'line', data = [], symbol = 'BTCUSD' }) => {
+const TradingChart = ({ type = 'line', data = [], symbol = 'BTCUSD', theme: propTheme }) => {
+  const { theme: contextTheme } = useTheme();
+  const theme = propTheme || contextTheme;
+  const isDark = theme === 'dark';
   const [chartData, setChartData] = useState([]);
 
   useEffect(() => {
@@ -63,10 +66,10 @@ const TradingChart = ({ type = 'line', data = [], symbol = 'BTCUSD' }) => {
   const CustomTooltip = ({ active, payload, label }) => {
     if (active && payload && payload.length) {
       return (
-        <div className="bg-navy-800 border border-gold-500 rounded-lg p-3 shadow-xl">
-          <p className="text-gold-500 text-sm font-medium mb-2">{label}</p>
+        <div className={`border rounded-xl p-4 shadow-2xl backdrop-blur-md transition-colors duration-300 ${isDark ? 'bg-slate-900/90 border-slate-700' : 'bg-white/90 border-slate-200'}`}>
+          <p className="text-gold-500 text-[10px] font-black uppercase tracking-widest mb-3 italic">{label}</p>
           {payload.map((entry, index) => (
-            <p key={index} className="text-sm" style={{ color: entry.color }}>
+            <p key={index} className="text-sm font-black italic" style={{ color: entry.color }}>
               {entry.name}: ${entry.value?.toLocaleString()}
             </p>
           ))}
@@ -76,34 +79,44 @@ const TradingChart = ({ type = 'line', data = [], symbol = 'BTCUSD' }) => {
     return null;
   };
 
+  const themeColors = {
+    grid: isDark ? '#1e293b' : '#f1f5f9',
+    axis: isDark ? '#64748b' : '#94a3b8',
+    text: isDark ? '#94a3b8' : '#64748b',
+    gold: '#EAB308' // gold-500
+  };
+
   if (type === 'candlestick') {
     return (
       <ResponsiveContainer width="100%" height="100%">
         <ComposedChart data={chartData} margin={{ top: 10, right: 30, left: 10, bottom: 10 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.3} />
+          <CartesianGrid strokeDasharray="3 3" stroke={themeColors.grid} />
           <XAxis 
             dataKey="time" 
-            stroke="#FFD700" 
-            tick={{ fill: '#FFD700', fontSize: 10 }}
-            tickLine={{ stroke: '#FFD700' }}
+            stroke={themeColors.axis} 
+            tick={{ fill: themeColors.text, fontSize: 9, fontWeight: 900 }}
+            tickLine={{ stroke: themeColors.axis }}
             minTickGap={30}
+            axisLine={false}
           />
           <YAxis 
             yAxisId="left"
-            stroke="#FFD700" 
-            tick={{ fill: '#FFD700', fontSize: 10 }}
-            tickLine={{ stroke: '#FFD700' }}
+            stroke={themeColors.axis} 
+            tick={{ fill: themeColors.text, fontSize: 9, fontWeight: 900 }}
+            tickLine={{ stroke: themeColors.axis }}
             tickFormatter={formatYAxis}
             domain={['auto', 'auto']}
+            axisLine={false}
           />
           <YAxis 
             yAxisId="right"
             orientation="right"
-            stroke="#FFD700" 
-            tick={{ fill: '#FFD700', fontSize: 10 }}
-            tickLine={{ stroke: '#FFD700' }}
+            stroke={themeColors.axis} 
+            tick={{ fill: themeColors.text, fontSize: 9, fontWeight: 900 }}
+            tickLine={{ stroke: themeColors.axis }}
             tickFormatter={formatYAxis}
             domain={['auto', 'auto']}
+            axisLine={false}
           />
           <Tooltip content={<CustomTooltip />} />
           
@@ -136,10 +149,10 @@ const TradingChart = ({ type = 'line', data = [], symbol = 'BTCUSD' }) => {
             yAxisId="left"
             type="monotone"
             dataKey="price"
-            stroke="#FFD700"
-            strokeWidth={2}
+            stroke={themeColors.gold}
+            strokeWidth={3}
             dot={false}
-            activeDot={{ r: 6, fill: '#FFD700' }}
+            activeDot={{ r: 6, fill: themeColors.gold }}
             name="Price"
           />
           
@@ -147,10 +160,11 @@ const TradingChart = ({ type = 'line', data = [], symbol = 'BTCUSD' }) => {
           <Bar
             yAxisId="right"
             dataKey="volume"
-            fill="#FFD700"
+            fill={isDark ? '#334155' : '#cbd5e1'}
             opacity={0.3}
             name="Volume"
-            barSize={20}
+            barSize={12}
+            radius={[4, 4, 0, 0]}
           />
         </ComposedChart>
       </ResponsiveContainer>
@@ -163,34 +177,36 @@ const TradingChart = ({ type = 'line', data = [], symbol = 'BTCUSD' }) => {
         <AreaChart data={chartData} margin={{ top: 10, right: 30, left: 10, bottom: 10 }}>
           <defs>
             <linearGradient id="colorPrice" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="#FFD700" stopOpacity={0.3}/>
-              <stop offset="95%" stopColor="#FFD700" stopOpacity={0}/>
+              <stop offset="5%" stopColor={themeColors.gold} stopOpacity={0.3}/>
+              <stop offset="95%" stopColor={themeColors.gold} stopOpacity={0}/>
             </linearGradient>
           </defs>
-          <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.3} />
+          <CartesianGrid strokeDasharray="3 3" stroke={themeColors.grid} />
           <XAxis 
             dataKey="time" 
-            stroke="#FFD700" 
-            tick={{ fill: '#FFD700', fontSize: 10 }}
-            tickLine={{ stroke: '#FFD700' }}
+            stroke={themeColors.axis} 
+            tick={{ fill: themeColors.text, fontSize: 9, fontWeight: 900 }}
+            tickLine={{ stroke: themeColors.axis }}
+            axisLine={false}
           />
           <YAxis 
-            stroke="#FFD700" 
-            tick={{ fill: '#FFD700', fontSize: 10 }}
-            tickLine={{ stroke: '#FFD700' }}
+            stroke={themeColors.axis} 
+            tick={{ fill: themeColors.text, fontSize: 9, fontWeight: 900 }}
+            tickLine={{ stroke: themeColors.axis }}
             tickFormatter={formatYAxis}
+            axisLine={false}
           />
           <Tooltip content={<CustomTooltip />} />
           <Area 
             type="monotone" 
             dataKey="price" 
-            stroke="#FFD700" 
-            strokeWidth={2}
+            stroke={themeColors.gold} 
+            strokeWidth={3}
             fillOpacity={1} 
             fill="url(#colorPrice)" 
             name="Price"
             dot={false}
-            activeDot={{ r: 6, fill: '#FFD700' }}
+            activeDot={{ r: 6, fill: themeColors.gold }}
           />
         </AreaChart>
       </ResponsiveContainer>
@@ -201,27 +217,29 @@ const TradingChart = ({ type = 'line', data = [], symbol = 'BTCUSD' }) => {
   return (
     <ResponsiveContainer width="100%" height="100%">
       <LineChart data={chartData} margin={{ top: 10, right: 30, left: 10, bottom: 10 }}>
-        <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.3} />
+        <CartesianGrid strokeDasharray="3 3" stroke={themeColors.grid} />
         <XAxis 
           dataKey="time" 
-          stroke="#FFD700" 
-          tick={{ fill: '#FFD700', fontSize: 10 }}
-          tickLine={{ stroke: '#FFD700' }}
+          stroke={themeColors.axis} 
+          tick={{ fill: themeColors.text, fontSize: 9, fontWeight: 900 }}
+          tickLine={{ stroke: themeColors.axis }}
+          axisLine={false}
         />
         <YAxis 
-          stroke="#FFD700" 
-          tick={{ fill: '#FFD700', fontSize: 10 }}
-          tickLine={{ stroke: '#FFD700' }}
+          stroke={themeColors.axis} 
+          tick={{ fill: themeColors.text, fontSize: 9, fontWeight: 900 }}
+          tickLine={{ stroke: themeColors.axis }}
           tickFormatter={formatYAxis}
+          axisLine={false}
         />
         <Tooltip content={<CustomTooltip />} />
         <Line 
           type="monotone" 
           dataKey="price" 
-          stroke="#FFD700" 
-          strokeWidth={2}
+          stroke={themeColors.gold} 
+          strokeWidth={3}
           dot={false}
-          activeDot={{ r: 6, fill: '#FFD700' }}
+          activeDot={{ r: 6, fill: themeColors.gold }}
           name="Price"
         />
       </LineChart>

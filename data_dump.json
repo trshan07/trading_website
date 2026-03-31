@@ -1,0 +1,334 @@
+{
+  "users": [
+    {
+      "id": 1,
+      "email": "admin@trade.local",
+      "role": "admin"
+    },
+    {
+      "id": 2,
+      "email": "test_1773589273612@test.com",
+      "role": "client"
+    },
+    {
+      "id": 3,
+      "email": "test_1773589285572@test.com",
+      "role": "client"
+    },
+    {
+      "id": 4,
+      "email": "test_1773589305680@test.com",
+      "role": "client"
+    },
+    {
+      "id": 5,
+      "email": "dkalharafernando@gmail.com",
+      "role": "client"
+    },
+    {
+      "id": 6,
+      "email": "guest_815319@rizalstrade.demo",
+      "role": "client"
+    },
+    {
+      "id": 7,
+      "email": "guest_715235@rizalstrade.demo",
+      "role": "client"
+    },
+    {
+      "id": 8,
+      "email": "test_debug@trade.com",
+      "role": "client"
+    },
+    {
+      "id": 9,
+      "email": "yasiru@gmail.com",
+      "role": "client"
+    },
+    {
+      "id": 10,
+      "email": "guest_535451@rizalstrade.demo",
+      "role": "client"
+    },
+    {
+      "id": 11,
+      "email": "guest_887912@rizalstrade.demo",
+      "role": "client"
+    },
+    {
+      "id": 12,
+      "email": "guest_871279@rizalstrade.demo",
+      "role": "client"
+    },
+    {
+      "id": 13,
+      "email": "dinushafdo9998@gmail.com",
+      "role": "client"
+    },
+    {
+      "id": 14,
+      "email": "guest_536953@rizalstrade.demo",
+      "role": "client"
+    },
+    {
+      "id": 15,
+      "email": "dineth@gmail.com",
+      "role": "client"
+    },
+    {
+      "id": 16,
+      "email": "guest_503095@rizalstrade.demo",
+      "role": "client"
+    },
+    {
+      "id": 17,
+      "email": "guest_907522@rizalstrade.demo",
+      "role": "client"
+    },
+    {
+      "id": 18,
+      "email": "guest_445317@rizalstrade.demo",
+      "role": "client"
+    },
+    {
+      "id": 19,
+      "email": "guest_550877@rizalstrade.demo",
+      "role": "client"
+    },
+    {
+      "id": 20,
+      "email": "guest_134949@rizalstrade.demo",
+      "role": "client"
+    }
+  ],
+  "accounts": [
+    {
+      "id": 1,
+      "user_id": 14,
+      "account_type": "demo",
+      "account_number": "RT80270517807"
+    },
+    {
+      "id": 2,
+      "user_id": 14,
+      "account_type": "real",
+      "account_number": "RT80270539845"
+    },
+    {
+      "id": 3,
+      "user_id": 15,
+      "account_type": "demo",
+      "account_number": "RT81488535746"
+    },
+    {
+      "id": 4,
+      "user_id": 15,
+      "account_type": "real",
+      "account_number": "RT81488554780"
+    },
+    {
+      "id": 5,
+      "user_id": 16,
+      "account_type": "demo",
+      "account_number": "RT95613827295"
+    },
+    {
+      "id": 6,
+      "user_id": 16,
+      "account_type": "real",
+      "account_number": "RT95613843742"
+    },
+    {
+      "id": 7,
+      "user_id": 17,
+      "account_type": "demo",
+      "account_number": "RT95624043310"
+    },
+    {
+      "id": 8,
+      "user_id": 17,
+      "account_type": "real",
+      "account_number": "RT95624045464"
+    },
+    {
+      "id": 9,
+      "user_id": 18,
+      "account_type": "demo",
+      "account_number": "RT96325809126"
+    },
+    {
+      "id": 10,
+      "user_id": 18,
+      "account_type": "real",
+      "account_number": "RT96325816157"
+    },
+    {
+      "id": 11,
+      "user_id": 19,
+      "account_type": "demo",
+      "account_number": "RT96702499217"
+    },
+    {
+      "id": 12,
+      "user_id": 19,
+      "account_type": "real",
+      "account_number": "RT96702516424"
+    },
+    {
+      "id": 13,
+      "user_id": 20,
+      "account_type": "demo",
+      "account_number": "RT96948047593"
+    },
+    {
+      "id": 14,
+      "user_id": 20,
+      "account_type": "real",
+      "account_number": "RT96948061099"
+    },
+    {
+      "id": 15,
+      "user_id": 2,
+      "account_type": "demo",
+      "account_number": "RT36877262219"
+    },
+    {
+      "id": 16,
+      "user_id": 2,
+      "account_type": "real",
+      "account_number": "RT36877282890"
+    },
+    {
+      "id": 17,
+      "user_id": 3,
+      "account_type": "demo",
+      "account_number": "RT36877287015"
+    },
+    {
+      "id": 18,
+      "user_id": 3,
+      "account_type": "real",
+      "account_number": "RT36877290859"
+    },
+    {
+      "id": 19,
+      "user_id": 4,
+      "account_type": "demo",
+      "account_number": "RT36877295909"
+    },
+    {
+      "id": 20,
+      "user_id": 4,
+      "account_type": "real",
+      "account_number": "RT36877298421"
+    },
+    {
+      "id": 21,
+      "user_id": 5,
+      "account_type": "demo",
+      "account_number": "RT36877302867"
+    },
+    {
+      "id": 22,
+      "user_id": 5,
+      "account_type": "real",
+      "account_number": "RT36877304005"
+    },
+    {
+      "id": 23,
+      "user_id": 6,
+      "account_type": "demo",
+      "account_number": "RT36877307658"
+    },
+    {
+      "id": 24,
+      "user_id": 6,
+      "account_type": "real",
+      "account_number": "RT36877310206"
+    },
+    {
+      "id": 25,
+      "user_id": 7,
+      "account_type": "demo",
+      "account_number": "RT36877313882"
+    },
+    {
+      "id": 26,
+      "user_id": 7,
+      "account_type": "real",
+      "account_number": "RT36877315095"
+    },
+    {
+      "id": 27,
+      "user_id": 8,
+      "account_type": "demo",
+      "account_number": "RT36877319470"
+    },
+    {
+      "id": 28,
+      "user_id": 8,
+      "account_type": "real",
+      "account_number": "RT36877322459"
+    },
+    {
+      "id": 29,
+      "user_id": 9,
+      "account_type": "demo",
+      "account_number": "RT36877325763"
+    },
+    {
+      "id": 30,
+      "user_id": 9,
+      "account_type": "real",
+      "account_number": "RT36877327838"
+    },
+    {
+      "id": 31,
+      "user_id": 10,
+      "account_type": "demo",
+      "account_number": "RT36877332145"
+    },
+    {
+      "id": 32,
+      "user_id": 10,
+      "account_type": "real",
+      "account_number": "RT36877335830"
+    },
+    {
+      "id": 33,
+      "user_id": 11,
+      "account_type": "demo",
+      "account_number": "RT36877339629"
+    },
+    {
+      "id": 34,
+      "user_id": 11,
+      "account_type": "real",
+      "account_number": "RT36877341495"
+    },
+    {
+      "id": 35,
+      "user_id": 12,
+      "account_type": "demo",
+      "account_number": "RT36877345670"
+    },
+    {
+      "id": 36,
+      "user_id": 12,
+      "account_type": "real",
+      "account_number": "RT36877347211"
+    },
+    {
+      "id": 37,
+      "user_id": 13,
+      "account_type": "demo",
+      "account_number": "RT36877349070"
+    },
+    {
+      "id": 38,
+      "user_id": 13,
+      "account_type": "real",
+      "account_number": "RT36877352595"
+    }
+  ]
+}

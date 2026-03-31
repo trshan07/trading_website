@@ -13,16 +13,16 @@ const AccountSummary = ({ portfolio, showBalance, onToggleBalance }) => {
       {[
         { label: 'Total Balance', value: portfolio.totalBalance, showEye: true },
         { label: 'Equity', value: portfolio.equity },
-        { label: 'Margin', value: portfolio.margin, color: 'text-amber-600' },
-        { label: 'Margin Level', value: `${portfolio.marginLevel}%`, raw: true, color: 'text-gold-600' },
+        { label: 'Margin', value: portfolio.margin, color: 'text-amber-600 dark:text-amber-500' },
+        { label: 'Margin Level', value: `${portfolio.marginLevel}%`, raw: true, color: 'text-gold-600 dark:text-gold-500' },
         { label: 'Daily P&L', value: portfolio.dailyPnL, isPnL: true },
         { label: 'Positions', value: portfolio.positionsCount || 0, raw: true }
       ].map((item, idx) => (
-        <div key={idx} className="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm transition-all hover:shadow-md">
+        <div key={idx} className="bg-white dark:bg-slate-900 rounded-2xl p-4 border border-slate-100 dark:border-slate-800 shadow-sm dark:shadow-black/20 transition-all hover:shadow-md dark:hover:shadow-black/40 transition-colors">
           <div className="flex items-center justify-between mb-2">
-            <p className="text-[10px] uppercase tracking-wider font-bold text-slate-400">{item.label}</p>
+            <p className="text-[10px] uppercase tracking-wider font-bold text-slate-400 dark:text-slate-500 transition-colors">{item.label}</p>
             {item.showEye && (
-              <button onClick={onToggleBalance} className="text-slate-300 hover:text-gold-600 transition-colors">
+              <button onClick={onToggleBalance} className="text-slate-300 dark:text-slate-600 hover:text-gold-600 dark:hover:text-gold-400 transition-colors">
                 {showBalance ? <FaEye size={14} /> : <FaEyeSlash size={14} />}
               </button>
             )}
@@ -34,12 +34,12 @@ const AccountSummary = ({ portfolio, showBalance, onToggleBalance }) => {
               ) : (
                 <FaArrowDown className="text-rose-500 mr-1.5" size={12} />
               ) }
-              <p className={`text-xl font-bold ${item.value >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
+              <p className={`text-xl font-bold transition-colors ${item.value >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
                 ${formatBalance(Math.abs(item.value))}
               </p>
             </div>
           ) : (
-            <p className={`text-xl font-bold ${item.color || 'text-slate-900'}`}>
+            <p className={`text-xl font-bold transition-colors ${item.color || 'text-slate-900 dark:text-white'}`}>
               {item.raw ? item.value : `$${formatBalance(item.value)}`}
             </p>
           )}

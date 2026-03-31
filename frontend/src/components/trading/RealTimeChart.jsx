@@ -168,11 +168,6 @@ const RealTimeChart = ({
       // Fit content
       chart.timeScale().fitContent();
 
-      // Add some styling to the price scale
-      chart.priceScale('right').applyOptions({
-        borderColor: theme === 'dark' ? '#ffd700' : '#94a3b8',
-      });
-
     } catch (error) {
       console.error('Error creating chart:', error);
     }
@@ -198,7 +193,34 @@ const RealTimeChart = ({
         chartRef.current = null;
       }
     };
-  }, [symbol, theme]);
+  }, [symbol]); // Only re-run if symbol changes
+
+  // Dynamic Theme/Options Update
+  useEffect(() => {
+    if (chartRef.current) {
+        const isDark = theme === 'dark';
+        chartRef.current.applyOptions({
+            layout: {
+                background: { color: isDark ? '#0f172a' : '#ffffff' },
+                textColor: isDark ? '#ffd700' : '#1e293b',
+            },
+            grid: {
+                vertLines: { color: isDark ? '#1e293b' : '#f1f5f9' },
+                horzLines: { color: isDark ? '#1e293b' : '#f1f5f9' },
+            },
+            crosshair: {
+                vertLine: { labelBackgroundColor: isDark ? '#1e293b' : '#f1f5f9' },
+                horzLine: { labelBackgroundColor: isDark ? '#1e293b' : '#f1f5f9' },
+            },
+            rightPriceScale: {
+                borderColor: isDark ? '#ffd70033' : '#94a3b8',
+            },
+            timeScale: {
+                borderColor: isDark ? '#ffd70033' : '#94a3b8',
+            },
+        });
+    }
+  }, [theme]);
 
   return (
     <div 

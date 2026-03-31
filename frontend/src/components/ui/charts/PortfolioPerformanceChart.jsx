@@ -1,9 +1,13 @@
 // frontend/src/components/charts/PortfolioPerformanceChart.jsx
 import React, { useState, useEffect } from 'react';
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { useTheme } from '../../../context/ThemeContext';
 
 // Professional Portfolio Performance Chart Component
 const PortfolioPerformanceChart = ({ data, timeframe, height }) => {
+  const { theme } = useTheme();
+  const isDark = theme === 'dark';
+  
   const [chartData, setChartData] = useState([]);
   const [metrics, setMetrics] = useState({
     totalReturn: 0,
@@ -24,37 +28,20 @@ const PortfolioPerformanceChart = ({ data, timeframe, height }) => {
   const generatePortfolioData = () => {
     const now = new Date();
     const newData = [];
-    let value = portfolio?.totalBalance || 100000;
+    let value = 100000; // Default base
     let peak = value;
     let maxDrawdown = 0;
     
     // Determine number of data points based on timeframe
     let points = 30;
-    let dateFormat = 'MM/DD';
     
     switch(timeframe) {
-      case '1D':
-        points = 24;
-        dateFormat = 'HH:mm';
-        break;
-      case '1W':
-        points = 7;
-        dateFormat = 'MM/DD';
-        break;
-      case '1M':
-        points = 30;
-        dateFormat = 'MM/DD';
-        break;
-      case '3M':
-        points = 90;
-        dateFormat = 'MM/DD';
-        break;
-      case '1Y':
-        points = 365;
-        dateFormat = 'MM/DD';
-        break;
-      default:
-        points = 30;
+      case '1D': points = 24; break;
+      case '1W': points = 7; break;
+      case '1M': points = 30; break;
+      case '3M': points = 90; break;
+      case '1Y': points = 365; break;
+      default: points = 30;
     }
 
     for (let i = points; i >= 0; i--) {
@@ -69,17 +56,14 @@ const PortfolioPerformanceChart = ({ data, timeframe, height }) => {
       const dailyReturn = (Math.random() - 0.48) * 0.02;
       value = value * (1 + dailyReturn);
       
-      // Add some volatility spikes
       if (Math.random() > 0.9) {
         value = value * (1 + (Math.random() - 0.5) * 0.05);
       }
 
-      // Track max drawdown
       if (value > peak) peak = value;
       const drawdown = ((peak - value) / peak) * 100;
       if (drawdown > maxDrawdown) maxDrawdown = drawdown;
 
-      // Format date based on timeframe
       let formattedDate;
       if (timeframe === '1D') {
         formattedDate = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -97,9 +81,8 @@ const PortfolioPerformanceChart = ({ data, timeframe, height }) => {
       });
     }
 
-    // Calculate metrics
     const totalReturn = ((value - 100000) / 100000) * 100;
-    const dailyChange = ((newData[newData.length - 1].value - newData[newData.length - 2].value) / newData[newData.length - 2].value) * 100;
+    const dailyChange = newData.length > 1 ? ((newData[newData.length - 1].value - newData[newData.length - 2].value) / newData[newData.length - 2].value) * 100 : 0;
     
     setChartData(newData);
     setMetrics({
@@ -117,7 +100,6 @@ const PortfolioPerformanceChart = ({ data, timeframe, height }) => {
     const totalReturn = ((values[values.length - 1] - values[0]) / values[0]) * 100;
     const dailyChange = ((values[values.length - 1] - values[values.length - 2]) / values[values.length - 2]) * 100;
     
-    // Calculate max drawdown
     let peak = values[0];
     let maxDrawdown = 0;
     values.forEach(value => {
@@ -129,7 +111,7 @@ const PortfolioPerformanceChart = ({ data, timeframe, height }) => {
     setMetrics({
       totalReturn: totalReturn.toFixed(2),
       dailyChange: dailyChange.toFixed(2),
-      sharpeRatio: (Math.random() * 2 + 1).toFixed(2), // In real app, calculate from returns
+      sharpeRatio: (Math.random() * 2 + 1).toFixed(2),
       maxDrawdown: maxDrawdown.toFixed(2)
     });
   };
@@ -138,21 +120,21 @@ const PortfolioPerformanceChart = ({ data, timeframe, height }) => {
     if (active && payload && payload.length) {
       const data = payload[0].payload;
       return (
-        <div className="bg-navy-800 border border-gold-500 rounded-lg p-4 shadow-xl">
-          <p className="text-gold-500 text-sm font-medium mb-2">{label}</p>
-          <div className="space-y-1">
-            <p className="text-white text-sm">
-              Value: <span className="text-gold-400 font-medium">{data.formattedValue}</span>
-            </p>
-            <p className="text-xs">
-              Daily Change: 
-              <span className={data.dailyReturn > 0 ? 'text-green-400 ml-2' : 'text-red-400 ml-2'}>
-                {data.dailyReturn > 0 ? '+' : ''}{data.dailyReturn?.toFixed(2) || '0'}%
-              </span>
-            </p>
-            <p className="text-xs text-red-400">
-              Drawdown: {data.drawdown?.toFixed(2) || '0'}%
-            </p>
+        <div className={`border rounded-xl p-4 shadow-2xl backdrop-blur-md transition-colors duration-300 ${isDark ? 'bg-slate-900/90 border-slate-700' : 'bg-white/90 border-slate-200'}`}>
+          <p className="text-gold-500 text-[10px] font-black uppercase tracking-widest mb-3 italic">{label}</p>
+          <div className="space-y-1.5">
+             <p className={`text-sm font-black italic ${isDark ? 'text-white' : 'text-slate-900'}`}>
+               Value: <span className="text-gold-500">{data.formattedValue}</span>
+             </p>
+             <p className={`text-[10px] font-bold ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+               Daily Change: 
+               <span className={data.dailyReturn > 0 ? 'text-emerald-500 ml-2' : 'text-rose-500 ml-2'}>
+                 {data.dailyReturn > 0 ? '+' : ''}{data.dailyReturn?.toFixed(2) || '0'}%
+               </span>
+             </p>
+             <p className="text-[10px] font-black uppercase tracking-tighter text-rose-500">
+               Drawdown: {data.drawdown?.toFixed(2) || '0'}%
+             </p>
           </div>
         </div>
       );
@@ -160,88 +142,77 @@ const PortfolioPerformanceChart = ({ data, timeframe, height }) => {
     return null;
   };
 
+  const themeColors = {
+    grid: isDark ? '#1e293b' : '#f1f5f9',
+    axis: isDark ? '#64748b' : '#94a3b8',
+    text: isDark ? '#94a3b8' : '#64748b',
+    gold: '#EAB308' // gold-500
+  };
+
   return (
-    <div className="w-full">
+    <div className="w-full transition-colors duration-300">
       {/* Performance Metrics Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        <div className="bg-navy-700/50 rounded-lg p-4">
-          <p className="text-xs text-gold-400/70 mb-1">Total Return</p>
-          <p className={`text-xl font-bold ${parseFloat(metrics.totalReturn) >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-            {parseFloat(metrics.totalReturn) >= 0 ? '+' : ''}{metrics.totalReturn}%
-          </p>
-        </div>
-        <div className="bg-navy-700/50 rounded-lg p-4">
-          <p className="text-xs text-gold-400/70 mb-1">24h Change</p>
-          <p className={`text-xl font-bold ${parseFloat(metrics.dailyChange) >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-            {parseFloat(metrics.dailyChange) >= 0 ? '+' : ''}{metrics.dailyChange}%
-          </p>
-        </div>
-        <div className="bg-navy-700/50 rounded-lg p-4">
-          <p className="text-xs text-gold-400/70 mb-1">Sharpe Ratio</p>
-          <p className="text-xl font-bold text-gold-400">{metrics.sharpeRatio}</p>
-        </div>
-        <div className="bg-navy-700/50 rounded-lg p-4">
-          <p className="text-xs text-gold-400/70 mb-1">Max Drawdown</p>
-          <p className="text-xl font-bold text-red-400">{metrics.maxDrawdown}%</p>
-        </div>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        {[
+          { label: 'Total Return', value: metrics.totalReturn, suffix: '%', isTrend: true },
+          { label: '24h Change', value: metrics.dailyChange, suffix: '%', isTrend: true },
+          { label: 'Sharpe Ratio', value: metrics.sharpeRatio, suffix: '', isTrend: false },
+          { label: 'Max Drawdown', value: metrics.maxDrawdown, suffix: '%', isTrend: false, negative: true }
+        ].map((item, idx) => (
+          <div key={idx} className="bg-slate-50 dark:bg-slate-800/50 rounded-2xl p-5 border border-slate-100 dark:border-slate-800 transition-colors">
+            <p className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1.5">{item.label}</p>
+            <p className={`text-xl font-black italic tracking-tighter ${
+              item.isTrend 
+                ? (parseFloat(item.value) >= 0 ? 'text-emerald-500' : 'text-rose-500')
+                : (item.negative ? 'text-rose-500' : 'text-gold-500')
+            }`}>
+              {item.isTrend && parseFloat(item.value) >= 0 ? '+' : ''}{item.value}{item.suffix}
+            </p>
+          </div>
+        ))}
       </div>
 
       {/* Chart */}
-      <ResponsiveContainer width="100%" height={height || 300}>
-        <AreaChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+      <ResponsiveContainer width="100%" height={height || 350}>
+        <AreaChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
           <defs>
             <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="#FFD700" stopOpacity={0.3}/>
-              <stop offset="95%" stopColor="#FFD700" stopOpacity={0}/>
+              <stop offset="5%" stopColor={themeColors.gold} stopOpacity={0.3}/>
+              <stop offset="95%" stopColor={themeColors.gold} stopOpacity={0}/>
             </linearGradient>
           </defs>
-          <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.3} />
+          <CartesianGrid strokeDasharray="3 3" stroke={themeColors.grid} />
           <XAxis 
             dataKey="date" 
-            stroke="#FFD700" 
-            tick={{ fill: '#FFD700', fontSize: isMobile ? 8 : 10 }}
-            tickLine={{ stroke: '#FFD700' }}
+            stroke={themeColors.axis} 
+            tick={{ fill: themeColors.text, fontSize: 9, fontWeight: 900 }}
+            tickLine={{ stroke: themeColors.axis }}
             interval="preserveStartEnd"
             minTickGap={30}
+            axisLine={false}
           />
           <YAxis 
-            stroke="#FFD700" 
-            tick={{ fill: '#FFD700', fontSize: isMobile ? 8 : 10 }}
-            tickLine={{ stroke: '#FFD700' }}
+            stroke={themeColors.axis} 
+            tick={{ fill: themeColors.text, fontSize: 9, fontWeight: 900 }}
+            tickLine={{ stroke: themeColors.axis }}
             tickFormatter={(value) => `$${(value / 1000).toFixed(1)}k`}
             domain={['auto', 'auto']}
+            axisLine={false}
           />
-          <Tooltip content={<CustomTooltip />} />
+          <Tooltip content={<CustomTooltip />} cursor={{ stroke: themeColors.gold, strokeWidth: 1, strokeDasharray: '4 4' }} />
           <Area 
             type="monotone" 
             dataKey="value" 
-            stroke="#FFD700" 
-            strokeWidth={2}
+            stroke={themeColors.gold} 
+            strokeWidth={3}
             fillOpacity={1} 
             fill="url(#colorValue)" 
             name="Portfolio Value"
             dot={false}
-            activeDot={{ r: 6, fill: '#FFD700', stroke: '#0A1929', strokeWidth: 2 }}
+            activeDot={{ r: 6, fill: themeColors.gold, stroke: isDark ? '#0f172a' : '#ffffff', strokeWidth: 2 }}
           />
         </AreaChart>
       </ResponsiveContainer>
-
-      {/* Time Range Selector */}
-      <div className="flex justify-end space-x-2 mt-4">
-        {['1D', '1W', '1M', '3M', '1Y'].map((range) => (
-          <button
-            key={range}
-            onClick={() => setSelectedTimeframe(range)}
-            className={`px-3 py-1 text-xs rounded-lg transition-colors ${
-              timeframe === range
-                ? 'bg-gold-500 text-navy-950'
-                : 'bg-navy-700 text-gold-400 hover:bg-navy-600'
-            }`}
-          >
-            {range}
-          </button>
-        ))}
-      </div>
     </div>
   );
 };

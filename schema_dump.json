@@ -1,0 +1,118 @@
+{
+  "users": [
+    {
+      "column_name": "id",
+      "data_type": "integer"
+    },
+    {
+      "column_name": "email",
+      "data_type": "character varying"
+    },
+    {
+      "column_name": "password_hash",
+      "data_type": "character varying"
+    },
+    {
+      "column_name": "first_name",
+      "data_type": "character varying"
+    },
+    {
+      "column_name": "last_name",
+      "data_type": "character varying"
+    },
+    {
+      "column_name": "phone",
+      "data_type": "character varying"
+    },
+    {
+      "column_name": "country",
+      "data_type": "character varying"
+    },
+    {
+      "column_name": "date_of_birth",
+      "data_type": "date"
+    },
+    {
+      "column_name": "account_type",
+      "data_type": "character varying"
+    },
+    {
+      "column_name": "balance",
+      "data_type": "numeric"
+    },
+    {
+      "column_name": "equity",
+      "data_type": "numeric"
+    },
+    {
+      "column_name": "margin_used",
+      "data_type": "numeric"
+    },
+    {
+      "column_name": "free_margin",
+      "data_type": "numeric"
+    },
+    {
+      "column_name": "is_active",
+      "data_type": "boolean"
+    },
+    {
+      "column_name": "is_verified",
+      "data_type": "boolean"
+    },
+    {
+      "column_name": "role",
+      "data_type": "character varying"
+    },
+    {
+      "column_name": "last_login",
+      "data_type": "timestamp without time zone"
+    },
+    {
+      "column_name": "created_at",
+      "data_type": "timestamp without time zone"
+    },
+    {
+      "column_name": "updated_at",
+      "data_type": "timestamp without time zone"
+    }
+  ],
+  "accounts": [
+    {
+      "column_name": "id",
+      "data_type": "integer"
+    },
+    {
+      "column_name": "user_id",
+      "data_type": "integer"
+    },
+    {
+      "column_name": "account_number",
+      "data_type": "character varying"
+    },
+    {
+      "column_name": "account_type",
+      "data_type": "character varying"
+    },
+    {
+      "column_name": "balance",
+      "data_type": "numeric"
+    },
+    {
+      "column_name": "currency",
+      "data_type": "character varying"
+    },
+    {
+      "column_name": "status",
+      "data_type": "character varying"
+    },
+    {
+      "column_name": "created_at",
+      "data_type": "timestamp without time zone"
+    },
+    {
+      "column_name": "updated_at",
+      "data_type": "timestamp without time zone"
+    }
+  ]
+}

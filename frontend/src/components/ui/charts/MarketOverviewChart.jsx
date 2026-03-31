@@ -1,8 +1,12 @@
 // frontend/src/components/charts/MarketOverviewChart.jsx
 import React, { useState, useEffect } from 'react';
 import { ComposedChart, Area, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { useTheme } from '../../../context/ThemeContext';
 
 const MarketOverviewChart = ({ symbol = 'BTC/USD', data = [], height = 200 }) => {
+  const { theme } = useTheme();
+  const isDark = theme === 'dark';
+  
   const [chartData, setChartData] = useState([]);
   const [stats, setStats] = useState({
     currentPrice: 0,
@@ -108,49 +112,61 @@ const MarketOverviewChart = ({ symbol = 'BTC/USD', data = [], height = 200 }) =>
     if (active && payload && payload.length) {
       const data = payload[0].payload;
       return (
-        <div className="bg-navy-800 border border-gold-500 rounded-lg p-3 shadow-xl">
-          <p className="text-gold-500 text-xs mb-2">{label}</p>
-          <p className="text-white text-sm">
-            Price: <span className="text-gold-400 font-medium">${data.price.toLocaleString()}</span>
-          </p>
-          <p className="text-xs text-gold-400/70">
-            Volume: {(data.volume / 1000).toFixed(1)}K
-          </p>
-          <p className={`text-xs ${data.change >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-            {data.change >= 0 ? '+' : ''}{data.change}%
-          </p>
+        <div className={`border rounded-xl p-4 shadow-2xl backdrop-blur-md transition-colors duration-300 ${isDark ? 'bg-slate-900/90 border-slate-700' : 'bg-white/90 border-slate-200'}`}>
+          <p className="text-gold-500 text-[10px] font-black uppercase tracking-widest mb-3 italic">{label}</p>
+          <div className="space-y-1.5">
+             <p className={`text-sm font-black italic ${isDark ? 'text-white' : 'text-slate-900'}`}>
+               Price: <span className="text-gold-500">${data.price.toLocaleString()}</span>
+             </p>
+             <p className={`text-[10px] font-bold ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+               Volume: <span className="text-slate-700 dark:text-slate-300">{(data.volume / 1000).toFixed(1)}K</span>
+             </p>
+             <p className={`text-[10px] font-black uppercase tracking-tighter ${data.change >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
+               {data.change >= 0 ? '▲' : '▼'} {Math.abs(data.change)}%
+             </p>
+          </div>
         </div>
       );
     }
     return null;
   };
 
+  const themeColors = {
+    grid: isDark ? '#1e293b' : '#f1f5f9',
+    axis: isDark ? '#64748b' : '#94a3b8',
+    text: isDark ? '#94a3b8' : '#64748b',
+    gold: '#EAB308' // gold-500
+  };
+
   return (
-    <div className="w-full">
+    <div className="w-full transition-colors duration-300">
       {/* Market Stats */}
-      <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
+      <div className="flex flex-wrap items-center justify-between gap-4 mb-8">
         <div className="flex items-center space-x-4">
-          <div>
-            <p className="text-xs text-gold-400/70">{symbol}</p>
-            <p className="text-xl font-bold text-white">${stats.currentPrice.toLocaleString()}</p>
+          <div className="p-3 bg-slate-900 dark:bg-gold-500 rounded-xl text-gold-500 dark:text-slate-900 shadow-lg transition-colors">
+             <span className="text-[10px] font-black uppercase tracking-widest">{symbol.split('/')[0]}</span>
           </div>
-          <div className={`px-2 py-1 rounded text-sm ${stats.priceChange >= 0 ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
+          <div>
+            <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest leading-none mb-1.5">{symbol}</p>
+            <p className="text-2xl font-black text-slate-900 dark:text-white italic tracking-tighter transition-colors">${stats.currentPrice.toLocaleString()}</p>
+          </div>
+          <div className={`px-4 py-1.5 rounded-full text-[10px] font-black italic uppercase tracking-widest transition-all ${stats.priceChange >= 0 ? 'bg-emerald-500/10 text-emerald-500' : 'bg-rose-500/10 text-rose-500'}`}>
             {stats.priceChange >= 0 ? '+' : ''}{stats.priceChange.toFixed(2)}%
           </div>
         </div>
         
-        <div className="flex space-x-4 text-sm">
-          <div>
-            <p className="text-xs text-gold-400/70">24h High</p>
-            <p className="text-green-400 font-medium">${stats.high24h.toLocaleString()}</p>
+        <div className="flex space-x-6">
+          <div className="text-right">
+            <p className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1">24h High</p>
+            <p className="text-xs font-black text-emerald-500 italic">${stats.high24h.toLocaleString()}</p>
           </div>
-          <div>
-            <p className="text-xs text-gold-400/70">24h Low</p>
-            <p className="text-red-400 font-medium">${stats.low24h.toLocaleString()}</p>
+          <div className="text-right">
+            <p className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1">24h Low</p>
+            <p className="text-xs font-black text-rose-500 italic">${stats.low24h.toLocaleString()}</p>
           </div>
-          <div>
-            <p className="text-xs text-gold-400/70">Volume</p>
-            <p className="text-white font-medium">${(stats.volume24h / 1e6).toFixed(2)}M</p>
+          <div className="hidden sm:block text-right">
+            <p className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1">Total Vol</p>
+            <p className={`text-xs font-black italic ${isDark ? 'text-white' : 'text-slate-900'}`}>${(stats.volume24h / 1e6).toFixed(2)}M</p>
           </div>
         </div>
       </div>
@@ -158,49 +174,54 @@ const MarketOverviewChart = ({ symbol = 'BTC/USD', data = [], height = 200 }) =>
       {/* Chart */}
       <ResponsiveContainer width="100%" height={height}>
         <ComposedChart data={chartData} margin={{ top: 5, right: 5, left: 0, bottom: 5 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.2} />
+          <CartesianGrid strokeDasharray="3 3" stroke={themeColors.grid} />
           <XAxis 
             dataKey="time" 
-            stroke="#FFD700" 
-            tick={{ fill: '#FFD700', fontSize: 10 }}
-            tickLine={{ stroke: '#FFD700' }}
+            stroke={themeColors.axis} 
+            tick={{ fill: themeColors.text, fontSize: 9, fontWeight: 900 }}
+            tickLine={{ stroke: themeColors.axis }}
             interval="preserveStartEnd"
+            axisLine={false}
           />
           <YAxis 
             yAxisId="price"
-            stroke="#FFD700" 
-            tick={{ fill: '#FFD700', fontSize: 10 }}
-            tickLine={{ stroke: '#FFD700' }}
+            stroke={themeColors.axis} 
+            tick={{ fill: themeColors.text, fontSize: 9, fontWeight: 900 }}
+            tickLine={{ stroke: themeColors.axis }}
             domain={['auto', 'auto']}
             tickFormatter={(value) => `$${value.toFixed(0)}`}
+            axisLine={false}
           />
           <YAxis 
             yAxisId="volume"
             orientation="right"
-            stroke="#FFD700" 
-            tick={{ fill: '#FFD700', fontSize: 10 }}
-            tickLine={{ stroke: '#FFD700' }}
+            stroke={themeColors.axis} 
+            tick={{ fill: themeColors.text, fontSize: 9, fontWeight: 900 }}
+            tickLine={{ stroke: themeColors.axis }}
             tickFormatter={(value) => `${(value / 1000).toFixed(0)}K`}
             hide={true}
+            axisLine={false}
           />
-          <Tooltip content={<CustomTooltip />} />
+          <Tooltip content={<CustomTooltip />} cursor={{ stroke: themeColors.gold, strokeWidth: 1, strokeDasharray: '4 4' }} />
           <Area
             yAxisId="price"
             type="monotone"
             dataKey="price"
-            stroke="#FFD700"
-            fill="#FFD700"
-            fillOpacity={0.1}
+            stroke={themeColors.gold}
+            fill={themeColors.gold}
+            fillOpacity={isDark ? 0.05 : 0.1}
             name="Price"
             dot={false}
+            strokeWidth={3}
           />
           <Bar
             yAxisId="volume"
             dataKey="volume"
-            fill="#FFD700"
+            fill={isDark ? '#334155' : '#cbd5e1'}
             opacity={0.3}
             name="Volume"
-            barSize={20}
+            barSize={12}
+            radius={[4, 4, 0, 0]}
           />
         </ComposedChart>
       </ResponsiveContainer>

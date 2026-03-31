@@ -54,3 +54,32 @@ CREATE TRIGGER update_accounts_updated_at
     BEFORE UPDATE ON accounts
     FOR EACH ROW
     EXECUTE FUNCTION update_updated_at_column();
+
+-- Create trades table
+CREATE TABLE IF NOT EXISTS trades (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+    account_id INTEGER REFERENCES accounts(id) ON DELETE CASCADE,
+    symbol VARCHAR(20) NOT NULL,
+    side VARCHAR(10) NOT NULL CHECK (side IN ('buy', 'sell')),
+    type VARCHAR(20) DEFAULT 'market',
+    amount DECIMAL(15,8) NOT NULL,
+    entry_price DECIMAL(15,8) NOT NULL,
+    exit_price DECIMAL(15,8),
+    pnl DECIMAL(15,8) DEFAULT 0,
+    status VARCHAR(20) DEFAULT 'open' CHECK (status IN ('open', 'closed')),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Create indexes for trades for performance
+CREATE INDEX IF NOT EXISTS idx_trades_user_id ON trades(user_id);
+CREATE INDEX IF NOT EXISTS idx_trades_account_id ON trades(account_id);
+CREATE INDEX IF NOT EXISTS idx_trades_status ON trades(status);
+
+-- Create trigger for trades updated_at
+DROP TRIGGER IF EXISTS update_trades_updated_at ON trades;
+CREATE TRIGGER update_trades_updated_at
+    BEFORE UPDATE ON trades
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();

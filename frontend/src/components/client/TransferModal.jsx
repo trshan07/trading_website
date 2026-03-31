@@ -22,20 +22,20 @@ const TransferModal = ({ isOpen, onClose, walletData, onConfirm }) => {
 
   return (
     <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xl flex items-center justify-center z-[100] p-4 sm:p-8">
-      <div className="bg-white rounded-[3rem] border border-slate-100 p-12 w-full max-w-2xl shadow-[0_0_120px_rgba(0,0,0,0.15)] relative overflow-hidden ring-1 ring-slate-100">
+      <div className="bg-white dark:bg-slate-900 rounded-[3rem] border border-slate-100 dark:border-slate-800 p-12 w-full max-w-2xl shadow-[0_0_120px_rgba(0,0,0,0.15)] relative overflow-hidden ring-1 ring-slate-100 dark:ring-slate-800">
         {/* Animated Background Element */}
         <div className="absolute top-0 right-0 w-64 h-64 bg-gold-500/5 blur-[100px] rounded-full translate-x-32 -translate-y-32"></div>
         
         <div className="flex items-center justify-between mb-12 relative z-10">
           <div>
-            <h3 className="text-3xl font-black text-slate-900 tracking-tighter italic uppercase">Migration Protocol</h3>
+            <h3 className="text-3xl font-black text-slate-900 dark:text-white tracking-tighter italic uppercase transition-colors">Migration Protocol</h3>
             <p className="text-[10px] text-slate-400 mt-2 uppercase font-black tracking-[0.3em] flex items-center">
               <FaSync className={`mr-2 ${isSyncing ? 'animate-spin' : ''}`} /> Asset Redistribution Matrix
             </p>
           </div>
           <button
             onClick={onClose}
-            className="w-14 h-14 bg-slate-50 text-slate-400 hover:text-rose-500 rounded-[1.5rem] flex items-center justify-center transition-all border border-slate-100 hover:shadow-xl group"
+            className="w-14 h-14 bg-slate-50 dark:bg-slate-800 text-slate-400 dark:text-slate-500 hover:text-rose-500 dark:hover:text-rose-400 rounded-[1.5rem] flex items-center justify-center transition-all border border-slate-100 dark:border-slate-700 hover:shadow-xl group"
           >
             <FaTimes size={20} className="group-hover:rotate-90 transition-transform duration-500" />
           </button>
@@ -50,12 +50,12 @@ const TransferModal = ({ isOpen, onClose, walletData, onConfirm }) => {
                 onClick={() => setFromAccount('wallet')}
                 className={`p-6 rounded-[2rem] border transition-all duration-300 text-left group ${
                   fromAccount === 'wallet' 
-                    ? 'border-slate-900 bg-slate-900 text-white shadow-2xl scale-[1.02]' 
-                    : 'border-slate-100 bg-slate-50 text-slate-400 hover:border-slate-300'
+                    ? 'border-slate-900 dark:border-gold-500 bg-slate-900 dark:bg-gold-500 text-white dark:text-slate-900 shadow-2xl scale-[1.02]' 
+                    : 'border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 text-slate-400 hover:border-slate-300 dark:hover:border-slate-600'
                 }`}
               >
                 <FaWallet className={`mb-4 text-xl ${fromAccount === 'wallet' ? 'text-gold-500' : 'text-slate-300'}`} />
-                <p className={`text-[11px] font-black uppercase tracking-widest ${fromAccount === 'wallet' ? 'text-white' : 'text-slate-900'}`}>Primary Vault</p>
+                <p className={`text-[11px] font-black uppercase tracking-widest ${fromAccount === 'wallet' ? 'text-white dark:text-slate-900' : 'text-slate-900 dark:text-slate-100'}`}>Primary Vault</p>
                 <p className="text-[9px] font-medium opacity-60 mt-1">${walletData.mainWallet?.toLocaleString()}</p>
               </button>
 
@@ -63,12 +63,12 @@ const TransferModal = ({ isOpen, onClose, walletData, onConfirm }) => {
                 onClick={() => setFromAccount('trading')}
                 className={`p-6 rounded-[2rem] border transition-all duration-300 text-left group ${
                   fromAccount === 'trading' 
-                    ? 'border-slate-900 bg-slate-900 text-white shadow-2xl scale-[1.02]' 
-                    : 'border-slate-100 bg-slate-50 text-slate-400 hover:border-slate-300'
+                    ? 'border-slate-900 dark:border-gold-500 bg-slate-900 dark:bg-gold-500 text-white dark:text-slate-900 shadow-2xl scale-[1.02]' 
+                    : 'border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 text-slate-400 hover:border-slate-300 dark:hover:border-slate-600'
                 }`}
               >
                 <FaChartLine className={`mb-4 text-xl ${fromAccount === 'trading' ? 'text-gold-500' : 'text-slate-300'}`} />
-                <p className={`text-[11px] font-black uppercase tracking-widest ${fromAccount === 'trading' ? 'text-white' : 'text-slate-900'}`}>Active Margin</p>
+                <p className={`text-[11px] font-black uppercase tracking-widest ${fromAccount === 'trading' ? 'text-white dark:text-slate-900' : 'text-slate-900 dark:text-slate-100'}`}>Active Margin</p>
                 <p className="text-[9px] font-medium opacity-60 mt-1">${walletData.tradingWallet?.toLocaleString()}</p>
               </button>
             </div>
@@ -89,7 +89,7 @@ const TransferModal = ({ isOpen, onClose, walletData, onConfirm }) => {
               <select
                 value={toAccount}
                 onChange={(e) => setToAccount(e.target.value)}
-                className="w-full px-8 py-5 bg-slate-50 border border-slate-100 rounded-[1.5rem] text-xs font-black italic text-slate-900 focus:outline-none focus:ring-8 focus:ring-slate-900/5 transition-all appearance-none"
+                className="w-full px-8 py-5 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-[1.5rem] text-xs font-black italic text-slate-900 dark:text-white focus:outline-none focus:ring-8 focus:ring-slate-900/5 dark:focus:ring-gold-500/10 transition-all appearance-none"
               >
                 <option value="trading">Trading Environment (MT5 Cloud)</option>
                 <option value="wallet">Personal Liquidity Vault</option>
@@ -105,13 +105,13 @@ const TransferModal = ({ isOpen, onClose, walletData, onConfirm }) => {
           <div className="space-y-4">
             <label className="text-[10px] uppercase font-black text-slate-400 tracking-[0.3em] ml-2">Injection Magnitude</label>
             <div className="relative group">
-              <span className="absolute left-8 top-1/2 -translate-y-1/2 text-3xl font-black text-slate-200 italic transition-colors group-focus-within:text-gold-500">$</span>
+              <span className="absolute left-8 top-1/2 -translate-y-1/2 text-3xl font-black text-slate-200 dark:text-slate-700 italic transition-colors group-focus-within:text-gold-500">$</span>
               <input
                 type="number"
                 value={transferAmount}
                 onChange={(e) => setTransferAmount(e.target.value)}
                 placeholder="0.00"
-                className="w-full pl-16 pr-8 py-8 bg-slate-50 border border-slate-100 rounded-[2.5rem] text-4xl font-black italic text-slate-900 focus:outline-none focus:ring-12 focus:ring-slate-900/5 transition-all"
+                className="w-full pl-16 pr-8 py-8 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-[2.5rem] text-4xl font-black italic text-slate-900 dark:text-white focus:outline-none focus:ring-12 focus:ring-slate-900/5 dark:focus:ring-gold-500/10 transition-all"
               />
             </div>
           </div>
@@ -121,13 +121,13 @@ const TransferModal = ({ isOpen, onClose, walletData, onConfirm }) => {
             <button
               onClick={handleConfirm}
               disabled={!transferAmount || isSyncing}
-              className="flex-1 px-10 py-6 bg-slate-900 text-white rounded-[2rem] font-black uppercase tracking-[0.3em] text-[11px] hover:bg-gold-600 disabled:bg-slate-200 transition-all duration-500 shadow-2xl shadow-slate-900/20 transform hover:-translate-y-1"
+              className="flex-1 px-10 py-6 bg-slate-900 dark:bg-gold-500 text-white dark:text-slate-900 rounded-[2rem] font-black uppercase tracking-[0.3em] text-[11px] hover:bg-gold-600 dark:hover:bg-gold-400 disabled:bg-slate-200 dark:disabled:bg-slate-800 transition-all duration-500 shadow-2xl shadow-slate-900/20 dark:shadow-gold-500/10 transform hover:-translate-y-1"
             >
               {isSyncing ? 'Synchronizing Nodes...' : 'Execute Redistribution'}
             </button>
             <button
               onClick={onClose}
-              className="px-10 py-6 bg-slate-50 text-slate-400 rounded-[2rem] font-black uppercase tracking-[0.3em] text-[11px] hover:bg-slate-100 transition-all border border-slate-100"
+              className="px-10 py-6 bg-slate-50 dark:bg-slate-800 text-slate-400 dark:text-slate-500 rounded-[2rem] font-black uppercase tracking-[0.3em] text-[11px] hover:bg-slate-100 dark:hover:bg-slate-700 transition-all border border-slate-100 dark:border-slate-700"
             >
               Abort
             </button>

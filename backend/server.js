@@ -18,6 +18,8 @@ require('./src/config/database');
 // Import routes
 const authRoutes = require('./src/routes/authRoutes');
 const adminRoutes = require('./src/routes/adminRoutes');
+const tradingRoutes = require('./src/routes/tradingRoutes');
+const userRoutes = require('./src/routes/userRoutes');
 const { protect, admin } = require('./src/middleware/authMiddleware');
 
 // Basic middleware
@@ -99,26 +101,11 @@ app.use('/api/auth', authRoutes);
 // Admin routes
 app.use('/api/admin', adminRoutes);
 
-// Protected user route
-app.get('/api/user/profile', protect, async (req, res) => {
-    try {
-        const Account = require('./src/models/Account');
-        const accounts = await Account.findByUserId(req.user.id);
-        
-        res.json({ 
-            success: true,
-            data: {
-                user: {
-                    ...req.user,
-                    accounts: accounts
-                }
-            }
-        });
-    } catch (error) {
-        console.error('Profile fetch error:', error);
-        res.status(500).json({ success: false, message: 'Error fetching profile' });
-    }
-});
+// Trading routes
+app.use('/api/trading', tradingRoutes);
+
+// User routes
+app.use('/api/users', userRoutes);
 
 // Admin dashboard route
 app.get('/api/admin/dashboard', protect, admin, (req, res) => {

@@ -70,11 +70,16 @@ const handleSubmit = async (e) => {
     setIsLoading(true);
     setErrorMsg("");
     try {
-      const data = await authService.demoLogin();
-      // Guests are always in demo mode
-      contextLogin({ ...data, selectedAccountType: 'demo' }, data.token);
-      toast.success("Guest Connection Established! Welcome to the Demo Terminal.");
-      navigate('/dashboard');
+      const response = await authService.demoLogin();
+      if (response.success && response.data) {
+        const guestData = response.data;
+        // Guests are always in demo mode
+        contextLogin({ ...guestData, selectedAccountType: 'demo' }, guestData.token);
+        toast.success("Guest Connection Established! Welcome to the Demo Terminal.");
+        navigate('/dashboard');
+      } else {
+        throw new Error("Invalid demo connection protocol");
+      }
     } catch (err) {
       console.error('Demo Login error:', err);
       setErrorMsg("Failed to establish guest connection. Please try manual registration.");

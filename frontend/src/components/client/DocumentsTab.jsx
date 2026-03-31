@@ -47,36 +47,36 @@ const DocumentsTab = ({ documents, onUpload }) => {
   return (
     <div className="space-y-8">
       {/* Header Section */}
-      <div className="bg-white rounded-[2.5rem] border border-slate-100 p-10 shadow-2xl shadow-slate-200/50">
+      <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 p-10 shadow-2xl shadow-slate-200/50">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6 mb-12">
           <div>
-            <h3 className="text-2xl font-black text-slate-900 uppercase tracking-tight italic">Secure Vault</h3>
-            <p className="text-[10px] text-slate-400 mt-2 uppercase font-black tracking-[0.3em]">Compliance & Identity Records</p>
+            <h3 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tight italic transition-colors">Secure Vault</h3>
+            <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-2 uppercase font-black tracking-[0.3em] transition-colors">Compliance & Identity Records</p>
           </div>
           <button 
             onClick={onUpload}
-            className="w-full sm:w-auto px-8 py-4 bg-slate-900 text-white rounded-[1.5rem] hover:bg-gold-600 shadow-2xl shadow-slate-900/10 transition-all font-black uppercase tracking-[0.2em] text-[11px] flex items-center justify-center space-x-3 group"
+            className="w-full sm:w-auto px-8 py-4 bg-slate-900 dark:bg-gold-500 text-white dark:text-slate-900 rounded-[1.5rem] hover:bg-gold-600 dark:hover:bg-gold-400 shadow-2xl shadow-slate-900/10 dark:shadow-gold-500/10 transition-all font-black uppercase tracking-[0.2em] text-[11px] flex items-center justify-center space-x-3 group"
           >
-            <FaUpload size={12} className="text-gold-500 group-hover:text-white transition-colors" />
+            <FaUpload size={12} className="text-gold-500 dark:text-slate-900 group-hover:text-white dark:group-hover:text-slate-900 transition-colors" />
             <span>Upload Document</span>
           </button>
         </div>
 
         {/* Document Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-          <div className="bg-emerald-500/5 rounded-[2rem] p-8 border border-emerald-500/10 shadow-sm relative overflow-hidden group hover:scale-[1.02] transition-transform">
+          <div className="bg-emerald-500/5 dark:bg-emerald-500/10 rounded-[2rem] p-8 border border-emerald-500/10 dark:border-emerald-500/20 shadow-sm relative overflow-hidden group hover:scale-[1.02] transition-all">
             <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-500/5 blur-2xl rounded-full translate-x-12 -translate-y-12"></div>
-            <p className="text-4xl font-black text-emerald-600 italic tracking-tighter relative">
+            <p className="text-4xl font-black text-emerald-600 dark:text-emerald-400 italic tracking-tighter relative transition-colors">
               {documents.filter(d => d.status === 'Verified').length}
             </p>
-            <p className="text-[9px] uppercase font-black text-emerald-600/60 tracking-[0.3em] mt-2 relative">Verified Assets</p>
+            <p className="text-[9px] uppercase font-black text-emerald-600/60 dark:text-emerald-400/60 tracking-[0.3em] mt-2 relative transition-colors">Verified Assets</p>
           </div>
-          <div className="bg-gold-500/5 rounded-[2rem] p-8 border border-gold-500/10 shadow-sm relative overflow-hidden group hover:scale-[1.02] transition-transform">
+          <div className="bg-gold-500/5 dark:bg-gold-500/10 rounded-[2rem] p-8 border border-gold-500/10 dark:border-gold-500/20 shadow-sm relative overflow-hidden group hover:scale-[1.02] transition-all">
             <div className="absolute top-0 right-0 w-24 h-24 bg-gold-500/5 blur-2xl rounded-full translate-x-12 -translate-y-12"></div>
-            <p className="text-4xl font-black text-gold-600 italic tracking-tighter relative">
+            <p className="text-4xl font-black text-gold-600 dark:text-gold-400 italic tracking-tighter relative transition-colors">
               {documents.filter(d => d.status === 'Pending').length}
             </p>
-            <p className="text-[9px] uppercase font-black text-gold-600/60 tracking-[0.3em] mt-2 relative">Review Pending</p>
+            <p className="text-[9px] uppercase font-black text-gold-600/60 dark:text-gold-400/60 tracking-[0.3em] mt-2 relative transition-colors">Review Pending</p>
           </div>
           <div className="bg-slate-900 rounded-[2rem] p-8 border border-slate-800 shadow-2xl shadow-slate-900/10 relative overflow-hidden group hover:scale-[1.02] transition-transform">
             <div className="absolute top-0 right-0 w-24 h-24 bg-white/5 blur-2xl rounded-full translate-x-12 -translate-y-12"></div>
@@ -86,14 +86,14 @@ const DocumentsTab = ({ documents, onUpload }) => {
         </div>
 
         {/* Search and Filter */}
-        <div className="flex flex-col xl:flex-row items-center justify-between gap-6 mb-10 bg-slate-50/50 p-4 rounded-[2rem] border border-slate-100">
+        <div className="flex flex-col xl:flex-row items-center justify-between gap-6 mb-10 bg-slate-50/50 dark:bg-slate-800/10 p-4 rounded-[2rem] border border-slate-100 dark:border-slate-800 transition-colors">
           <div className="relative w-full xl:max-w-md">
             <input
               type="text"
               placeholder="Filter vault archive..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-14 pr-6 py-4 bg-white border border-slate-100 rounded-2xl text-slate-900 text-xs font-black italic focus:outline-none focus:ring-4 focus:ring-slate-900/5 transition-all shadow-inner placeholder-slate-300"
+              className="w-full pl-14 pr-6 py-4 bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl text-slate-900 dark:text-white text-xs font-black italic focus:outline-none focus:ring-4 focus:ring-slate-900/5 dark:focus:ring-gold-500/10 transition-all shadow-inner placeholder-slate-300 dark:placeholder-slate-500"
             />
             <div className="absolute left-6 top-1/2 -translate-y-1/2 text-gold-500">
               <FaFileAlt size={14} />
@@ -106,8 +106,8 @@ const DocumentsTab = ({ documents, onUpload }) => {
                 onClick={() => setSelectedCategory(cat)}
                 className={`px-6 py-3.5 rounded-xl text-[9px] font-black uppercase tracking-[0.2em] whitespace-nowrap transition-all duration-300 ${
                   selectedCategory === cat
-                    ? 'bg-slate-900 text-white shadow-2xl shadow-slate-900/20'
-                    : 'bg-white text-slate-400 border border-slate-100 hover:border-slate-900 hover:text-slate-900 shadow-sm'
+                    ? 'bg-slate-900 dark:bg-gold-500 text-white dark:text-slate-900 shadow-2xl shadow-slate-900/20 dark:shadow-gold-500/10'
+                    : 'bg-white dark:bg-slate-800 text-slate-400 dark:text-slate-500 border border-slate-100 dark:border-slate-700 hover:border-slate-900 dark:hover:border-gold-500 hover:text-slate-900 dark:hover:text-white shadow-sm'
                 }`}
               >
                 {cat === 'all' ? 'Entire Vault' : cat}
@@ -137,13 +137,13 @@ const DocumentsTab = ({ documents, onUpload }) => {
               </thead>
               <tbody className="space-y-4">
                 {filteredDocuments.map((doc) => (
-                  <tr key={doc.id} className="group bg-slate-50/30 hover:bg-white hover:shadow-2xl hover:shadow-slate-200/50 transition-all duration-300 transform hover:-translate-y-1">
-                    <td className="px-8 py-6 rounded-l-[2rem] border-y border-l border-slate-50 group-hover:border-gold-500/20">
+                  <tr key={doc.id} className="group bg-slate-50/30 dark:bg-slate-800/20 hover:bg-white dark:hover:bg-slate-800 hover:shadow-2xl hover:shadow-slate-200/50 dark:hover:shadow-black/30 transition-all duration-300 transform hover:-translate-y-1">
+                    <td className="px-8 py-6 rounded-l-[2rem] border-y border-l border-slate-50 dark:border-slate-800 group-hover:border-gold-500/20 transition-colors">
                       <div className="flex items-center space-x-4">
-                        <div className="p-3 bg-white rounded-xl shadow-sm border border-slate-50 group-hover:border-gold-500/20 transition-colors">
+                        <div className="p-3 bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-50 dark:border-slate-800 group-hover:border-gold-500/20 transition-colors">
                           {getFileIcon(doc.type)}
                         </div>
-                        <span className="text-sm font-black text-slate-900 uppercase tracking-tight italic">{doc.name}</span>
+                        <span className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-tight italic transition-colors">{doc.name}</span>
                       </div>
                     </td>
                     {!isMobile && (
@@ -161,12 +161,12 @@ const DocumentsTab = ({ documents, onUpload }) => {
                         {doc.status}
                       </span>
                     </td>
-                    <td className="px-8 py-6 last:rounded-r-[2rem] border-y border-r border-slate-50 group-hover:border-gold-500/20 text-center">
+                    <td className="px-8 py-6 last:rounded-r-[2rem] border-y border-r border-slate-50 dark:border-slate-800 group-hover:border-gold-500/20 text-center transition-colors">
                       <div className="flex justify-center space-x-3">
-                        <button className="p-2.5 bg-white text-slate-400 rounded-xl border border-slate-100 hover:bg-slate-900 hover:text-white transition-all shadow-sm">
+                        <button className="p-2.5 bg-white dark:bg-slate-950 text-slate-400 dark:text-slate-600 rounded-xl border border-slate-100 dark:border-slate-800 hover:bg-slate-900 dark:hover:bg-gold-500 hover:text-white dark:hover:text-slate-900 transition-all shadow-sm">
                           <FaEye size={14} />
                         </button>
-                        <button className="p-2.5 bg-white text-slate-400 rounded-xl border border-slate-100 hover:bg-gold-500 hover:text-white transition-all shadow-sm">
+                        <button className="p-2.5 bg-white dark:bg-slate-950 text-slate-400 dark:text-slate-600 rounded-xl border border-slate-100 dark:border-slate-800 hover:bg-gold-500 dark:hover:bg-gold-400 hover:text-white dark:hover:text-slate-900 transition-all shadow-sm">
                           <FaDownload size={14} />
                         </button>
                       </div>

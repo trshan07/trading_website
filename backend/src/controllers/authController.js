@@ -158,6 +158,7 @@ const login = async (req, res) => {
         // Get accounts only for clients
         let accounts = [];
         if (user.role === 'client') {
+            await Account.ensureAccounts(user.id); // Auto-repair missing accounts
             accounts = await Account.findByUserId(user.id);
         }
 

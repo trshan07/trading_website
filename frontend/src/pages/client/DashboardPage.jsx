@@ -1,31 +1,64 @@
 import React, { useState, useEffect, useContext } from 'react';
-import { useNavigate } from 'react-router-dom';
-import {
-  FaBolt, FaChartLine, FaTimes, FaBars, FaBell,
-  FaUser, FaSignOutAlt, FaCog, FaSearch, FaFilter,
-  FaArrowUp, FaArrowDown, FaWallet, FaExchangeAlt,
-  FaFileAlt, FaChartBar, FaDatabase, FaHistory,
-  FaSun, FaDownload
-} from 'react-icons/fa';
+import { useNavigate, useLocation } from 'react-router-dom';
 
-// Import dashboard components
+// Import Custom Hooks
+import { useDashboardData } from '../../hooks/useDashboardData';
+
+// Import Dashboard Components
 import Sidebar from '../../components/client/Sidebar';
 import Header from '../../components/client/Header';
 import TradingTab from '../../components/client/TradingTab';
 import BankingTab from '../../components/client/BankingTab';
 import DocumentsTab from '../../components/client/DocumentsTab';
+import SettingsTab from '../../components/client/SettingsTab';
 import MarketsTab from '../../components/client/MarketsTab';
 import PortfolioTab from '../../components/client/PortfolioTab';
 import PriceTicker from '../../components/trading/PriceTicker';
 import WelcomeHeader from '../../components/ui/WelcomeHeader';
 import { AuthContext } from '../../context/AuthContext';
-import RealTimeChart from '../../components/trading/RealTimeChart';
+
+// Import newly added components
+import QuickTradeModal from '../../components/trading/QuickTradeModal';
+import QuickCategories from '../../components/client/QuickCategories';
+import MobileSidebar from '../../components/client/MobileSidebar';
+import TransferModal from '../../components/ui/TransferModal';
+import UploadDocumentModal from '../../components/ui/UploadDocumentModal';
 
 const DashboardPage = () => {
-  const { user, logout, loading: authLoading } = useContext(AuthContext);
+  const { user, logout, loading: authLoading, selectedAccountType, switchAccountType } = useContext(AuthContext);
   const navigate = useNavigate();
+
+  // Find the selected account based on the session
+  const activeAccount = user?.accounts?.find(acc => {
+    const type = acc.account_type || acc.type || '';
+    return type.toLowerCase() === (selectedAccountType || 'demo').toLowerCase();
+  }) || {
+    id: user?.accounts?.[0]?.id || 'dummy', // Try to get an ID if possible
+    balance: 0,
+    type: selectedAccountType || 'demo',
+    account_number: 'N/A'
+  };
+
+  const { pathname } = useLocation();
   const [loading, setLoading] = useState(true);
   const [activeMainTab, setActiveMainTab] = useState('trading');
+
+  useEffect(() => {
+    const tabMatch = pathname.match(/\/dashboard\/([a-z-]+)/);
+    if (tabMatch && tabMatch[1]) {
+      const tab = tabMatch[1];
+      // Map some URL paths to tab IDs if they differ
+      const tabMap = {
+        'funding': 'banking',
+        'deposit': 'banking',
+        'withdrawal': 'banking',
+        'history': 'banking',
+        'profile': 'settings',
+        'statements': 'documents'
+      };
+      setActiveMainTab(tabMap[tab] || tab);
+    }
+  }, [pathname]);
   const [showBalance, setShowBalance] = useState(true);
   const [showOrderForm, setShowOrderForm] = useState(false);
   const [showTransferModal, setShowTransferModal] = useState(false);
@@ -33,18 +66,47 @@ const DashboardPage = () => {
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1200);
 
-  // Find the selected account based on the session
-  const activeAccount = user?.accounts?.find(acc => acc.type === user?.selectedAccountType) || {
-    balance: 0,
-    type: user?.selectedAccountType || 'demo',
-    account_number: 'N/A'
+  // Fetch all mock state from custom hook
+  const {
+    bankAccounts,
+    creditCards,
+    transactions,
+    documents,
+    positions,
+    orders,
+    marketData,
+    portfolioHistory,
+    notifications,
+    handleAddBankAccount,
+    handleDeleteBankAccount,
+    handleSetDefaultBankAccount,
+    handleAddCreditCard,
+    handleDeleteCreditCard,
+    handleSetDefaultCreditCard,
+    handleDeposit,
+    handleWithdraw,
+    handleTransfer,
+    handlePlaceOrder,
+    handleUploadDocument,
+    handleClosePosition,
+    handleCancelOrder
+  } = useDashboardData(selectedAccountType);
+
+  const isDemo = selectedAccountType === 'demo';
+
+  const walletData = {
+    mainWallet: activeAccount?.balance || 0,
+    tradingWallet: 0, // Placeholder if you have separate trading/main wallets
+    totalBalance: activeAccount?.balance || 0,
+    equity: activeAccount?.balance || 0,
   };
+
 
   // Dynamic Portfolio Data
   const [portfolio, setPortfolio] = useState({
-    totalBalance: activeAccount.balance,
-    availableBalance: activeAccount.balance,
-    equity: activeAccount.balance,
+    totalBalance: 0,
+    availableBalance: 0,
+    equity: 0,
     margin: 0,
     marginLevel: 0,
     dailyPnL: 0,
@@ -55,88 +117,21 @@ const DashboardPage = () => {
     positionsCount: 0
   });
 
-  const [walletData, setWalletData] = useState({
-    mainWallet: activeAccount.balance,
-    tradingWallet: activeAccount.balance,
-    totalBalance: activeAccount.balance
-  });
-
   useEffect(() => {
     if (user && activeAccount) {
       setPortfolio(prev => ({
         ...prev,
-        totalBalance: activeAccount.balance,
-        availableBalance: activeAccount.balance,
-        equity: activeAccount.balance,
-      }));
-      setWalletData(prev => ({
-        ...prev,
-        mainWallet: activeAccount.balance,
-        tradingWallet: activeAccount.balance,
-        totalBalance: activeAccount.balance,
+        totalBalance: activeAccount.balance || 0,
+        availableBalance: activeAccount.balance || 0,
+        equity: activeAccount.balance || 0,
       }));
     }
-  }, [user?.id, activeAccount.balance]);
+  }, [user]);
 
   const handleLogout = () => {
     logout();
     navigate('/login');
   };
-
-  // Data mocks (staying consistent with previous state)
-  const [bankAccounts, setBankAccounts] = useState([
-    { id: 1, bankName: 'Chase Bank', accountNumber: '****1234', accountName: 'John Smith', isVerified: true, isDefault: true, balance: 25000.00 },
-    { id: 2, bankName: 'Bank of America', accountNumber: '****5678', accountName: 'John Smith', isVerified: true, isDefault: false, balance: 15000.00 }
-  ]);
-
-  const [creditCards, setCreditCards] = useState([
-    { id: 1, cardType: 'Visa', last4: '4242', expiryDate: '05/26', cardholderName: 'John Smith', isVerified: true, isDefault: true },
-    { id: 2, cardType: 'Mastercard', last4: '8888', expiryDate: '08/25', cardholderName: 'John Smith', isVerified: true, isDefault: false }
-  ]);
-
-  const [transactions] = useState([
-    { id: 1, type: 'Deposit', amount: 5000, method: 'Bank Transfer', status: 'Completed', date: '2024-03-07 10:30 AM', reference: 'DEP-2024-001' },
-    { id: 2, type: 'Withdrawal', amount: 1000, method: 'Credit Card', status: 'Pending', date: '2024-03-06 02:15 PM', reference: 'WDR-2024-002' }
-  ]);
-
-  const [documents, setDocuments] = useState([
-    { id: 1, name: 'Passport.pdf', uploadDate: '2024-03-01', category: 'Identity Proof', status: 'Verified' },
-    { id: 2, name: 'Bank_Statement.pdf', uploadDate: '2024-03-01', category: 'Address Proof', status: 'Verified' }
-  ]);
-
-  const [positions, setPositions] = useState([
-    { id: 1, symbol: 'BTC/USD', type: 'LONG', quantity: 0.5, entryPrice: 42500, currentPrice: 43250, pnl: 375, margin: 2125 },
-    { id: 2, symbol: 'ETH/USD', type: 'SHORT', quantity: 5, entryPrice: 2850, currentPrice: 2820, pnl: 150, margin: 1425 }
-  ]);
-
-  const [orders, setOrders] = useState([
-    { id: 1, symbol: 'BTC/USD', type: 'LIMIT', side: 'BUY', quantity: 0.1, price: 42000, status: 'OPEN' }
-  ]);
-
-  const [marketData, setMarketData] = useState({
-    'BTC/USD': { price: 43250, change: 2.5, volume: 1520000000 },
-    'ETH/USD': { price: 2820, change: 1.8, volume: 850000000 },
-    'EUR/USD': { price: 1.0875, change: 0.23, volume: 1200000000 }
-  });
-
-  const portfolioHistory = [
-    { date: '2024-03-01', value: 50200 },
-    { date: '2024-03-07', value: 53450 }
-  ];
-
-  const [notifications] = useState([
-    { id: 1, message: 'BTC/USD reached resistance level', type: 'info', read: false },
-    { id: 3, message: 'Deposit confirmed: $5,000', type: 'success', read: true }
-  ]);
-
-  const mobileNavItems = [
-    { id: 'trading', label: 'Trading', icon: FaChartLine },
-    { id: 'markets', label: 'Markets', icon: FaChartBar },
-    { id: 'portfolio', label: 'Portfolio', icon: FaDatabase },
-    { id: 'banking', label: 'Banking', icon: FaWallet },
-    { id: 'documents', label: 'Documents', icon: FaFileAlt },
-    { id: 'settings', label: 'Settings', icon: FaCog },
-  ];
 
   useEffect(() => {
     const timer = setTimeout(() => setLoading(false), 1000);
@@ -151,38 +146,23 @@ const DashboardPage = () => {
     };
   }, [windowWidth]);
 
-  // Real-time simulation
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setMarketData(prev => {
-        const newData = { ...prev };
-        Object.keys(newData).forEach(key => {
-          newData[key].price *= (1 + (Math.random() - 0.5) * 0.001);
-          newData[key].change += (Math.random() - 0.5) * 0.1;
-        });
-        return newData;
-      });
-    }, 5000);
-    return () => clearInterval(interval);
-  }, []);
-
-  const handlePlaceOrder = () => setShowOrderForm(false);
-  const handleClosePosition = (id) => setPositions(p => p.filter(pos => pos.id !== id));
-  const handleCancelOrder = (id) => setOrders(o => o.filter(ord => ord.id !== id));
+  const onOrderPlaced = (order) => {
+    handlePlaceOrder(order);
+    setShowOrderForm(false);
+  };
 
   const unreadNotifications = notifications.filter(n => !n.read).length;
-  const isMobile = windowWidth < 768;
 
   if (loading || authLoading) {
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
+      <div className="min-h-screen bg-white dark:bg-slate-900 flex items-center justify-center transition-colors duration-300">
         <div className="w-16 h-16 border-4 border-gold-500 border-t-transparent rounded-full animate-spin"></div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 flex overflow-hidden font-sans">
+    <div className="min-h-screen bg-[var(--bg-primary)] flex overflow-hidden font-sans transition-colors duration-300">
       {/* Permanent Sidebar (Desktop) */}
       <Sidebar
         activeTab={activeMainTab}
@@ -207,19 +187,46 @@ const DashboardPage = () => {
           user={user}
           onLogout={handleLogout}
           onMenuClick={() => setShowMobileMenu(true)}
+          isDemo={isDemo}
+          onSwitchAccount={switchAccountType}
         />
 
         {/* Scrollable Region */}
-        <div className="flex-1 overflow-y-auto relative">
+        <div className="flex-1 overflow-y-auto relative custom-scrollbar">
           <PriceTicker data={marketData} />
 
           <main className="px-4 md:px-10 py-10 max-w-[1600px] mx-auto w-full">
+            {/* Demo Mode Banner */}
+            {isDemo && (
+              <div className="mb-8 p-4 bg-amber-500/10 border border-amber-500/20 rounded-[2rem] flex flex-col md:flex-row items-center justify-between gap-4 transition-all hover:bg-amber-500/20">
+                <div className="flex items-center space-x-4">
+                  <div className="p-3 bg-amber-500 text-slate-900 rounded-2xl animate-pulse shadow-lg shadow-amber-500/20">
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                  <div className="text-center md:text-left">
+                    <p className="text-[10px] font-black text-amber-500 uppercase tracking-widest leading-none mb-1">Simulated Practice Mode Active</p>
+                    <p className="text-sm font-medium text-slate-400">You are currently operating with simulated funds ($50,000.00 Grant). Real profits/losses are not applicable.</p>
+                  </div>
+                </div>
+                <button 
+                  onClick={() => setActiveMainTab('settings')} 
+                  className="px-6 py-3 bg-white dark:bg-slate-800 text-slate-900 dark:text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-transform border border-slate-100 dark:border-slate-700 shadow-xl"
+                >
+                  Apply for Real Account
+                </button>
+              </div>
+            )}
+
             <WelcomeHeader
               user={user}
               portfolio={portfolio}
               onDeposit={() => setActiveMainTab('banking')}
               onTrade={() => setActiveMainTab('trading')}
             />
+
+            <QuickCategories onSelectCategory={setActiveMainTab} />
 
             {/* Content Logic */}
             <div className="transition-all duration-300">
@@ -245,6 +252,16 @@ const DashboardPage = () => {
                   creditCards={creditCards}
                   transactions={transactions}
                   onTransfer={() => setShowTransferModal(true)}
+                  onShowTransferModal={() => setShowTransferModal(true)}
+                  onDeposit={handleDeposit}
+                  onWithdraw={handleWithdraw}
+                  onAddBankAccount={handleAddBankAccount}
+                  onDeleteBankAccount={handleDeleteBankAccount}
+                  onSetDefaultBankAccount={handleSetDefaultBankAccount}
+                  onAddCreditCard={handleAddCreditCard}
+                  onDeleteCreditCard={handleDeleteCreditCard}
+                  onSetDefaultCreditCard={handleSetDefaultCreditCard}
+                  isDemo={isDemo}
                 />
               )}
 
@@ -252,6 +269,7 @@ const DashboardPage = () => {
                 <DocumentsTab
                   documents={documents}
                   onUpload={() => setShowUploadModal(true)}
+                  onUploadFile={handleUploadDocument}
                 />
               )}
 
@@ -264,119 +282,44 @@ const DashboardPage = () => {
                   positions={positions}
                 />
               )}
+
+              {activeMainTab === 'settings' && <SettingsTab />}
             </div>
           </main>
 
-          {/* Quick Trade Modal */}
-          {showOrderForm && (
-            <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-              <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-md" onClick={() => setShowOrderForm(false)}></div>
-              <div className="relative w-full max-w-md bg-white rounded-[3rem] shadow-2xl overflow-hidden border border-white">
-                <div className="p-8 border-b border-slate-50 flex justify-between items-center bg-slate-50/50">
-                  <h2 className="text-xl font-black text-slate-900 uppercase italic">Execution</h2>
-                  <button onClick={() => setShowOrderForm(false)} className="p-2 hover:bg-slate-200 rounded-xl transition-all"><FaTimes /></button>
-                </div>
-                <div className="p-10 text-center">
-                  <div className="w-20 h-20 bg-slate-900 rounded-[2rem] flex items-center justify-center mx-auto mb-6 shadow-2xl shadow-slate-900/30">
-                    <FaBolt className="text-white text-2xl" />
-                  </div>
-                  <h3 className="text-2xl font-black text-slate-900 italic tracking-tight mb-2">Instant Trade</h3>
-                  <p className="text-slate-400 font-medium text-sm mb-8">Execute trades instantly with zero latency at current market rates.</p>
-                  <button onClick={handlePlaceOrder} className="w-full py-5 bg-slate-900 text-white rounded-[1.5rem] font-black uppercase tracking-widest text-[11px] hover:bg-gold-600 transition-all shadow-2xl shadow-slate-900/20 transform hover:-translate-y-1">Initialize Terminal Flow</button>
-                </div>
-              </div>
-            </div>
-          )}
+          {/* Extracted Components */}
+          <QuickTradeModal
+            show={showOrderForm}
+            onClose={() => setShowOrderForm(false)}
+            onPlaceOrder={onOrderPlaced}
+          />
 
-          {/* Mobile Navigation Drawer */}
-          {showMobileMenu && (
-            <div className="fixed inset-0 z-[100] flex lg:hidden">
-              <div 
-                className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" 
-                onClick={() => setShowMobileMenu(false)}
-              />
-              
-              <div className="relative w-[280px] bg-white shadow-2xl flex flex-col h-full overflow-hidden animate-in slide-in-from-left duration-300">
-                {/* Drawer Header */}
-                <div className="p-6 border-b border-slate-100 flex justify-between items-center shrink-0">
-                  <div className="flex items-center space-x-2">
-                    <div className="w-8 h-8 flex items-center justify-center bg-slate-900 rounded-lg text-gold-500 shadow-md">
-                      <FaChartLine size={14} />
-                    </div>
-                    <h2 className="text-xl font-black italic tracking-tighter text-slate-900">RIZAL<span className="text-gold-500">.</span></h2>
-                  </div>
-                  <button onClick={() => setShowMobileMenu(false)} className="p-2 text-slate-400 hover:text-slate-900 hover:bg-slate-50 rounded-xl transition-all">
-                    <FaTimes size={16} />
-                  </button>
-                </div>
-                
-                {/* Scrollable Body */}
-                <div className="flex-1 overflow-y-auto">
-                  {/* Account Snapshot Mobile */}
-                  <div className="p-5">
-                    <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-[1.5rem] p-5 shadow-xl relative overflow-hidden">
-                      <div className="absolute top-0 right-0 w-20 h-20 bg-gold-400/10 rounded-full -translate-y-8 translate-x-8 blur-xl"></div>
-                      <div className="relative z-10">
-                        <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-1">Total Equity</p>
-                        <h3 className="text-xl font-black text-white italic tracking-tight mb-3">
-                          {showBalance ? `$${(portfolio?.equity ?? 0).toLocaleString()}` : '••••••'}
-                        </h3>
-                        <div className="flex justify-between items-center pt-3 border-t border-white/10">
-                           <div>
-                              <p className="text-[8px] font-black uppercase text-slate-500 tracking-widest">Free Margin</p>
-                              <p className="text-xs font-bold text-white mt-0.5">
-                                {showBalance ? `$${(portfolio?.availableBalance ?? 0).toLocaleString()}` : '••••'}
-                              </p>
-                           </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+          <MobileSidebar
+            show={showMobileMenu}
+            onClose={() => setShowMobileMenu(false)}
+            activeMainTab={activeMainTab}
+            setActiveMainTab={setActiveMainTab}
+            user={user}
+            portfolio={portfolio}
+            showBalance={showBalance}
+            onLogout={handleLogout}
+            onSwitchAccount={switchAccountType}
+          />
 
-                  {/* Nav Links */}
-                  <div className="px-3 pb-6 space-y-1">
-                    {mobileNavItems.map(item => (
-                      <button
-                        key={item.id}
-                        onClick={() => { setActiveMainTab(item.id); setShowMobileMenu(false); }}
-                        className={`w-full px-5 py-3.5 rounded-xl flex items-center space-x-3 transition-all ${
-                          activeMainTab === item.id 
-                            ? 'bg-slate-900 text-white shadow-lg' 
-                            : 'text-slate-400 hover:bg-slate-50 hover:text-slate-900'
-                        }`}
-                      >
-                        <div className={`p-1.5 rounded-lg ${activeMainTab === item.id ? 'bg-gold-500 text-white' : 'bg-transparent text-slate-400'}`}>
-                          <item.icon size={14} />
-                        </div>
-                        <span className="text-[11px] font-black uppercase tracking-widest">{item.label}</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                
-                {/* Sticky Mobile Footer / User Profile */}
-                <div className="p-4 shrink-0 border-t border-slate-100 bg-white">
-                  <div className="bg-slate-50 rounded-2xl p-3 border border-slate-100 flex items-center justify-between">
-                    <div className="flex items-center space-x-3">
-                      <div className="w-8 h-8 bg-slate-900 rounded-xl flex items-center justify-center text-gold-500 font-black italic shadow-md">
-                         {user?.firstName?.charAt(0)}
-                      </div>
-                      <div>
-                        <p className="text-[10px] font-black text-slate-900 tracking-tight uppercase leading-tight">{user?.firstName}</p>
-                        <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest leading-tight mt-0.5">{user?.selectedAccountType}</p>
-                      </div>
-                    </div>
-                    <button 
-                      onClick={handleLogout}
-                      className="p-2 text-slate-300 hover:text-rose-500 bg-white hover:bg-rose-50 rounded-lg transition-all shadow-sm border border-slate-100"
-                    >
-                      <FaSignOutAlt size={12} />
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
+          {/* Functional Modals */}
+          <TransferModal
+            show={showTransferModal}
+            onClose={() => setShowTransferModal(false)}
+            onTransfer={handleTransfer}
+            walletData={walletData}
+          />
+
+          <UploadDocumentModal
+            show={showUploadModal}
+            onClose={() => setShowUploadModal(false)}
+            onUpload={handleUploadDocument}
+          />
+
         </div>
       </div>
 

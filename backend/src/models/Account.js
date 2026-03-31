@@ -24,6 +24,23 @@ class Account {
         return rows;
     }
 
+    static async ensureAccounts(userId) {
+        const accounts = await this.findByUserId(userId);
+        const types = accounts.map(a => a.account_type);
+        
+        const results = [];
+        if (!types.includes('demo')) {
+            console.log(`[Account] Creating missing demo account for user ${userId}`);
+            results.push(await this.create(userId, 'demo'));
+        }
+        if (!types.includes('real')) {
+            console.log(`[Account] Creating missing real account for user ${userId}`);
+            results.push(await this.create(userId, 'real'));
+        }
+        
+        return results;
+    }
+
     static async findByAccountNumber(accountNumber) {
         const query = 'SELECT * FROM accounts WHERE account_number = $1';
         const { rows } = await db.query(query, [accountNumber]);

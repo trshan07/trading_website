@@ -25,15 +25,6 @@ import PromotionsPage from "../pages/public/PromotionsPage";
 
 // Client Dashboard Pages
 import DashboardPage from "../pages/client/DashboardPage";
-import TradingPage from "../pages/client/TradingPage";
-import ChartsPage from "../pages/client/ChartsPage";
-import FundingPage from "../pages/client/FundingPage";
-import DepositPage from "../pages/client/DepositPage";
-import WithdrawalPage from "../pages/client/WithdrawalPage";
-import HistoryPage from "../pages/client/HistoryPage";
-import ProfilePage from "../pages/client/ProfilePage";
-import SettingsPage from "../pages/client/SettingsPage";
-import StatementsPage from "../pages/client/StatementsPage";
 
 // Admin Pages
 import AdminDashboardPage from "../pages/admin/AdminDashboardPage";
@@ -80,49 +71,9 @@ const AppRoutes = () => {
           <DashboardPage />
         </ProtectedRoute>
       } />
-      <Route path="/dashboard/trading" element={
+      <Route path="/dashboard/:tab" element={
         <ProtectedRoute allowedRoles={['client']}>
-          <TradingPage />
-        </ProtectedRoute>
-      } />
-      <Route path="/dashboard/charts" element={
-        <ProtectedRoute allowedRoles={['client']}>
-          <ChartsPage />
-        </ProtectedRoute>
-      } />
-      <Route path="/dashboard/funding" element={
-        <ProtectedRoute allowedRoles={['client']}>
-          <FundingPage />
-        </ProtectedRoute>
-      } />
-      <Route path="/dashboard/deposit" element={
-        <ProtectedRoute allowedRoles={['client']}>
-          <DepositPage />
-        </ProtectedRoute>
-      } />
-      <Route path="/dashboard/withdrawal" element={
-        <ProtectedRoute allowedRoles={['client']}>
-          <WithdrawalPage />
-        </ProtectedRoute>
-      } />
-      <Route path="/dashboard/history" element={
-        <ProtectedRoute allowedRoles={['client']}>
-          <HistoryPage />
-        </ProtectedRoute>
-      } />
-      <Route path="/dashboard/profile" element={
-        <ProtectedRoute allowedRoles={['client']}>
-          <ProfilePage />
-        </ProtectedRoute>
-      } />
-      <Route path="/dashboard/settings" element={
-        <ProtectedRoute allowedRoles={['client']}>
-          <SettingsPage />
-        </ProtectedRoute>
-      } />
-      <Route path="/dashboard/statements" element={
-        <ProtectedRoute allowedRoles={['client']}>
-          <StatementsPage />
+          <DashboardPage />
         </ProtectedRoute>
       } />
 

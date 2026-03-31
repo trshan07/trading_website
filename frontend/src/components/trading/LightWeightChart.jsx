@@ -171,7 +171,35 @@ const LightweightChart = ({
         chartRef.current.remove();
       }
     };
-  }, [symbol, theme]);
+  }, [symbol]); // Only re-run if symbol changes
+
+  // Dynamic Theme/Options Update
+  useEffect(() => {
+    if (chartRef.current) {
+        const isDark = theme === 'dark';
+        chartRef.current.applyOptions({
+            layout: {
+                background: { color: isDark ? '#0f172a' : '#ffffff' },
+                textColor: isDark ? '#ffd700' : '#1e293b',
+            },
+            grid: {
+                vertLines: { color: isDark ? '#1e293b' : '#f1f5f9' },
+                horzLines: { color: isDark ? '#1e293b' : '#f1f5f9' },
+            },
+            crosshair: {
+                vertLine: { labelBackgroundColor: isDark ? '#1e293b' : '#f1f5f9' },
+                horzLine: { labelBackgroundColor: isDark ? '#1e293b' : '#f1f5f9' },
+            },
+            rightPriceScale: {
+                borderColor: isDark ? '#ffd70033' : '#94a3b8',
+                textColor: isDark ? '#ffd700' : '#1e293b',
+            },
+            timeScale: {
+                borderColor: isDark ? '#ffd70033' : '#94a3b8',
+            },
+        });
+    }
+  }, [theme]);
 
   return (
     <div 

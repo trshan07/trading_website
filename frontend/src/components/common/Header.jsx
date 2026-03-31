@@ -1,9 +1,10 @@
 // frontend/src/components/common/Header.jsx
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { motion } from 'framer-motion';  // Make sure this import is present
+import { motion } from 'framer-motion';
 import { FaBars, FaTimes } from 'react-icons/fa';
 import { HiOutlineChartBar } from 'react-icons/hi';
+import ThemeToggle from '../ui/ThemeToggle';
 
 const Header = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -28,10 +29,10 @@ const Header = () => {
 
   return (
     <header
-      className={`fixed w-full z-50 transition-all duration-300 ${
+      className={`fixed w-full z-50 transition-all duration-300 border-b ${
         scrolled
-          ? 'bg-navy-900 shadow-lg py-2'
-          : 'bg-transparent py-4'
+          ? 'bg-white/80 dark:bg-slate-900/80 backdrop-blur-md shadow-lg py-2 border-slate-200 dark:border-slate-800'
+          : 'bg-transparent py-4 border-transparent'
       }`}
     >
       <nav className="container mx-auto px-4 md:px-6">
@@ -40,7 +41,7 @@ const Header = () => {
           <Link to="/" className="flex items-center space-x-2">
             <HiOutlineChartBar className="h-8 w-8 text-gold-500" />
             <span className="text-2xl font-bold">
-              <span className="text-white">Rizal's</span>
+              <span className="text-slate-900 dark:text-white transition-colors">Rizal's</span>
               <span className="text-gold-500">Trade</span>
             </span>
           </Link>
@@ -54,7 +55,7 @@ const Header = () => {
                 className={`nav-link ${
                   location.pathname === link.path
                     ? 'text-gold-500 after:w-full'
-                    : 'text-white'
+                    : 'text-slate-600 dark:text-slate-300 hover:text-gold-500 transition-colors'
                 }`}
               >
                 {link.name}
@@ -62,29 +63,34 @@ const Header = () => {
             ))}
           </div>
 
-          {/* Desktop Auth Buttons */}
-          <div className="hidden lg:flex items-center space-x-4">
+          {/* Desktop Auth Buttons & Theme Toggle */}
+          <div className="hidden lg:flex items-center space-x-6">
+            <ThemeToggle />
+            
             <Link
               to="/login"
-              className="text-white hover:text-gold-500 font-medium transition-colors duration-300"
+              className="text-slate-600 dark:text-slate-300 hover:text-gold-500 font-medium transition-colors duration-300"
             >
               Login
             </Link>
             <Link
               to="/register"
-              className="btn-primary"
+              className="btn-gold dark:bg-gold-500 dark:text-slate-900 px-6 py-2.5 rounded-full font-bold shadow-lg shadow-gold-500/20"
             >
               Get Started
             </Link>
           </div>
 
-          {/* Mobile Menu Button */}
-          <button
-            onClick={() => setIsOpen(!isOpen)}
-            className="lg:hidden text-white hover:text-gold-500 transition-colors"
-          >
-            {isOpen ? <FaTimes size={24} /> : <FaBars size={24} />}
-          </button>
+          {/* Mobile Menu Button & Toggle */}
+          <div className="flex items-center space-x-4 lg:hidden">
+            <ThemeToggle />
+            <button
+              onClick={() => setIsOpen(!isOpen)}
+              className="text-slate-900 dark:text-white hover:text-gold-500 transition-colors"
+            >
+              {isOpen ? <FaTimes size={24} /> : <FaBars size={24} />}
+            </button>
+          </div>
         </div>
 
         {/* Mobile Navigation */}
@@ -94,33 +100,33 @@ const Header = () => {
           transition={{ duration: 0.3 }}
           className="lg:hidden overflow-hidden"
         >
-          <div className="pt-4 pb-3 space-y-3">
+          <div className="pt-4 pb-6 space-y-3 bg-white dark:bg-slate-900 rounded-2xl p-4 mt-2 shadow-2xl border border-slate-100 dark:border-slate-800">
             {navLinks.map((link) => (
               <Link
                 key={link.path}
                 to={link.path}
                 onClick={() => setIsOpen(false)}
-                className={`block py-2 text-base font-medium transition-colors ${
+                className={`block py-3 text-base font-bold transition-colors ${
                   location.pathname === link.path
                     ? 'text-gold-500'
-                    : 'text-white hover:text-gold-500'
+                    : 'text-slate-600 dark:text-slate-300 hover:text-gold-500'
                 }`}
               >
                 {link.name}
               </Link>
             ))}
-            <div className="pt-4 flex flex-col space-y-3">
+            <div className="pt-4 flex flex-col space-y-4">
               <Link
                 to="/login"
                 onClick={() => setIsOpen(false)}
-                className="text-white hover:text-gold-500 font-medium transition-colors text-center py-2"
+                className="text-slate-900 dark:text-white hover:text-gold-500 font-bold transition-colors text-center py-2"
               >
                 Login
               </Link>
               <Link
                 to="/register"
                 onClick={() => setIsOpen(false)}
-                className="btn-primary text-center"
+                className="btn-gold text-center w-full py-4 rounded-2xl"
               >
                 Get Started
               </Link>
