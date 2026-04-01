@@ -13,11 +13,11 @@ import {
 } from 'react-icons/fa';
 
 const BankingTab = ({ 
-  walletData, 
-  bankAccounts, 
-  creditCards, 
-  paymentMethods, 
-  transactions,
+  walletData = {}, 
+  bankAccounts = [], 
+  creditCards = [], 
+  paymentMethods = [], 
+  transactions = [],
   onTransfer,
   onDeposit,
   onWithdraw,
@@ -64,11 +64,6 @@ const BankingTab = ({
     confirmAccountNumber: '',
     routingNumber: '',
     accountType: 'checking',
-    address: '',
-    city: '',
-    state: '',
-    zipCode: '',
-    country: 'USA',
     isDefault: false
   });
 
@@ -164,14 +159,6 @@ const BankingTab = ({
       errors.routingNumber = 'Routing number is required';
     } else if (!/^\d{9}$/.test(bankForm.routingNumber)) {
       errors.routingNumber = 'Routing number must be 9 digits';
-    }
-    if (!bankForm.address.trim()) errors.address = 'Address is required';
-    if (!bankForm.city.trim()) errors.city = 'City is required';
-    if (!bankForm.state) errors.state = 'State is required';
-    if (!bankForm.zipCode.trim()) {
-      errors.zipCode = 'ZIP code is required';
-    } else if (!/^\d{5}(-\d{4})?$/.test(bankForm.zipCode)) {
-      errors.zipCode = 'Invalid ZIP code';
     }
 
     return errors;
@@ -286,15 +273,11 @@ const BankingTab = ({
         confirmAccountNumber: '',
         routingNumber: '',
         accountType: 'checking',
-        address: '',
-        city: '',
-        state: '',
-        zipCode: '',
-        country: 'USA',
         isDefault: false
       });
       
       setShowAddAccount(false);
+      setShowAddCard(false);
     } catch (error) {
       setShowErrorMessage('Failed to add bank account. Please try again.');
       setTimeout(() => setShowErrorMessage(''), 3000);
@@ -1204,17 +1187,17 @@ const BankingTab = ({
       {showAddCard && renderModal(
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xl flex items-center justify-center z-50 overflow-y-auto p-4 sm:p-8">
           <div className="bg-white dark:bg-slate-900 rounded-[3rem] border border-slate-100 dark:border-slate-800 w-full max-w-2xl my-8 max-h-[90vh] overflow-hidden shadow-[0_0_120px_rgba(0,0,0,0.15)] transition-colors">
-            <form onSubmit={handleAddCreditCard} className="flex flex-col max-h-[90vh]">
+            <form onSubmit={handleAddBankAccount} className="flex flex-col max-h-[90vh]">
               <div className="relative px-8 sm:px-12 pt-10 pb-8 border-b border-slate-100 dark:border-slate-800 bg-gradient-to-br from-slate-50 via-white to-amber-50/40 dark:from-slate-900 dark:via-slate-900 dark:to-gold-500/5">
                 <div className="absolute top-0 right-0 w-40 h-40 bg-gold-500/10 blur-3xl rounded-full translate-x-14 -translate-y-10 pointer-events-none" />
                 <div className="relative flex items-start justify-between gap-6">
                   <div>
                     <div className="inline-flex items-center gap-3 px-4 py-2 rounded-full bg-white/80 dark:bg-slate-800/80 border border-slate-100 dark:border-slate-700 shadow-sm mb-5">
                       <FaShieldAlt className="text-gold-500 text-sm" />
-                      <span className="text-[10px] font-black uppercase tracking-[0.28em] text-slate-500 dark:text-slate-400">Secure Vault Sync</span>
+                      <span className="text-[10px] font-black uppercase tracking-[0.28em] text-slate-500 dark:text-slate-400">Bank Profile Setup</span>
                     </div>
-                    <h3 className="text-3xl font-black text-slate-900 dark:text-white tracking-tighter italic uppercase transition-colors">Payment Vector</h3>
-                    <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-2 uppercase font-black tracking-[0.3em] transition-colors">Encrypted Card Interface Registration</p>
+                    <h3 className="text-3xl font-black text-slate-900 dark:text-white tracking-tighter italic uppercase transition-colors">Bank Details</h3>
+                    <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-2 uppercase font-black tracking-[0.3em] transition-colors">Only Essential Payout Information</p>
                   </div>
                   <button onClick={() => setShowAddCard(false)} type="button" className="w-14 h-14 bg-white dark:bg-slate-800 text-slate-400 dark:text-slate-500 hover:text-rose-500 dark:hover:text-rose-400 rounded-[1.5rem] flex items-center justify-center transition-all border border-slate-100 dark:border-slate-700 shadow-sm">
                     <FaTimes size={20} />
@@ -1227,171 +1210,124 @@ const BankingTab = ({
                   <div className="relative overflow-hidden bg-slate-50 dark:bg-slate-800/10 p-8 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 text-center space-y-4 transition-colors">
                     <div className="absolute inset-y-0 left-0 w-1.5 bg-gradient-to-b from-gold-500 via-amber-400 to-transparent" />
                     <FaShieldAlt className="mx-auto text-gold-500 text-4xl mb-3" />
-                    <p className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-widest italic text-center transition-colors">Protocol sync active</p>
-                    <p className="text-sm text-slate-500 dark:text-slate-400 font-medium max-w-lg mx-auto">Link a payment card with a cleaner authorization flow, stronger hierarchy, and easier review before submission.</p>
+                    <p className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-widest italic text-center transition-colors">Secure account linking</p>
+                    <p className="text-sm text-slate-500 dark:text-slate-400 font-medium max-w-lg mx-auto">Share only the bank details required for deposits and withdrawals.</p>
                   </div>
 
                   <div className="bg-white dark:bg-slate-950/30 rounded-[2.25rem] border border-slate-100 dark:border-slate-800 p-6 sm:p-8 shadow-sm">
                     <div className="flex items-center justify-between gap-4 mb-8">
                       <div>
-                        <p className="text-[10px] font-black uppercase tracking-[0.24em] text-gold-500 mb-2">Card Identity</p>
-                        <h4 className="text-lg font-black italic text-slate-900 dark:text-white">Primary Authorization Details</h4>
+                        <p className="text-[10px] font-black uppercase tracking-[0.24em] text-gold-500 mb-2">Required Details</p>
+                        <h4 className="text-lg font-black italic text-slate-900 dark:text-white">Bank Information</h4>
                       </div>
                       <div className="hidden sm:flex items-center gap-2 px-3 py-2 rounded-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700">
                         <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                        <span className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500">Verified Input</span>
+                        <span className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500">Verified Fields</span>
                       </div>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <div className="space-y-2 md:col-span-2">
-                  <label className="block text-[10px] uppercase font-black text-slate-400 tracking-[0.3em] ml-2">Cardholder Name *</label>
+                <div className="space-y-2">
+                  <label className="block text-[10px] uppercase font-black text-slate-400 tracking-[0.3em] ml-2">Bank Name *</label>
                   <input
                     type="text"
-                    name="cardholderName"
-                    value={cardForm.cardholderName}
-                    onChange={handleCardFormChange}
+                    name="bankName"
+                    value={bankForm.bankName}
+                    onChange={handleBankFormChange}
                     className={`w-full px-8 py-5 bg-slate-50 dark:bg-slate-800 border rounded-2xl text-xs font-black italic focus:outline-none transition-all ${
-                      formErrors.cardholderName ? 'border-rose-500 text-slate-900 dark:text-white' : 'border-slate-100 dark:border-slate-700 focus:ring-8 focus:ring-slate-900/5 dark:focus:ring-gold-500/10 focus:bg-white dark:focus:bg-slate-800 text-slate-900 dark:text-white'
+                      formErrors.bankName ? 'border-rose-500 text-slate-900 dark:text-white' : 'border-slate-100 dark:border-slate-700 focus:ring-8 focus:ring-slate-900/5 dark:focus:ring-gold-500/10 focus:bg-white dark:focus:bg-slate-800 text-slate-900 dark:text-white'
                     }`}
-                    placeholder="Name exactly as printed on card"
+                    placeholder="e.g. JPMorgan Chase"
                   />
-                  {formErrors.cardholderName && <p className="text-rose-500 text-[10px] font-black uppercase tracking-wider ml-2">{formErrors.cardholderName}</p>}
+                  {formErrors.bankName && <p className="text-rose-500 text-[10px] font-black uppercase tracking-wider ml-2">{formErrors.bankName}</p>}
+                </div>
+
+                <div className="space-y-2">
+                  <label className="block text-[10px] uppercase font-black text-slate-400 tracking-[0.3em] ml-2">Account Type *</label>
+                  <select
+                    name="accountType"
+                    value={bankForm.accountType}
+                    onChange={handleBankFormChange}
+                    className="w-full px-8 py-5 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl text-xs font-black italic text-slate-900 dark:text-white focus:outline-none focus:ring-8 focus:ring-slate-900/5 dark:focus:ring-gold-500/10 focus:bg-white dark:focus:bg-slate-800 transition-all appearance-none"
+                  >
+                    {accountTypes.map(type => (
+                      <option key={type.value} value={type.value} className="dark:bg-slate-900">{type.label}</option>
+                    ))}
+                  </select>
                 </div>
 
                 <div className="space-y-2 md:col-span-2">
-                  <label className="block text-[10px] uppercase font-black text-slate-400 tracking-[0.3em] ml-2">Card Number *</label>
+                  <label className="block text-[10px] uppercase font-black text-slate-400 tracking-[0.3em] ml-2">Account Holder Name *</label>
                   <input
                     type="text"
-                    name="cardNumber"
-                    value={cardForm.cardNumber}
-                    onChange={handleCardFormChange}
+                    name="accountName"
+                    value={bankForm.accountName}
+                    onChange={handleBankFormChange}
                     className={`w-full px-8 py-5 bg-slate-50 dark:bg-slate-800 border rounded-2xl text-xs font-black italic focus:outline-none transition-all ${
-                      formErrors.cardNumber ? 'border-rose-500 text-slate-900 dark:text-white' : 'border-slate-100 dark:border-slate-700 focus:ring-8 focus:ring-slate-900/5 dark:focus:ring-gold-500/10 focus:bg-white dark:focus:bg-slate-800 text-slate-900 dark:text-white'
+                      formErrors.accountName ? 'border-rose-500 text-slate-900 dark:text-white' : 'border-slate-100 dark:border-slate-700 focus:ring-8 focus:ring-slate-900/5 dark:focus:ring-gold-500/10 focus:bg-white dark:focus:bg-slate-800 text-slate-900 dark:text-white'
                     }`}
-                    placeholder="1234 5678 9012 3456"
+                    placeholder="Name on the bank account"
+                  />
+                  {formErrors.accountName && <p className="text-rose-500 text-[10px] font-black uppercase tracking-wider ml-2">{formErrors.accountName}</p>}
+                </div>
+
+                <div className="space-y-2 md:col-span-2">
+                  <label className="block text-[10px] uppercase font-black text-slate-400 tracking-[0.3em] ml-2">Account Number *</label>
+                  <input
+                    type="text"
+                    name="accountNumber"
+                    value={bankForm.accountNumber}
+                    onChange={handleBankFormChange}
+                    className={`w-full px-8 py-5 bg-slate-50 dark:bg-slate-800 border rounded-2xl text-xs font-black italic focus:outline-none transition-all ${
+                      formErrors.accountNumber ? 'border-rose-500 text-slate-900 dark:text-white' : 'border-slate-100 dark:border-slate-700 focus:ring-8 focus:ring-slate-900/5 dark:focus:ring-gold-500/10 focus:bg-white dark:focus:bg-slate-800 text-slate-900 dark:text-white'
+                    }`}
+                    placeholder="8 to 17 digits"
                     inputMode="numeric"
                   />
-                  {formErrors.cardNumber && <p className="text-rose-500 text-[10px] font-black uppercase tracking-wider ml-2">{formErrors.cardNumber}</p>}
-                </div>
-
-                <div className="space-y-2">
-                  <label className="block text-[10px] uppercase font-black text-slate-400 tracking-[0.3em] ml-2">Expiry Month *</label>
-                  <select
-                    name="expiryMonth"
-                    value={cardForm.expiryMonth}
-                    onChange={handleCardFormChange}
-                    className="w-full px-8 py-5 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl text-xs font-black italic text-slate-900 dark:text-white focus:outline-none focus:ring-8 focus:ring-slate-900/5 dark:focus:ring-gold-500/10 focus:bg-white dark:focus:bg-slate-800 transition-all appearance-none"
-                  >
-                    <option value="">Month</option>
-                    {months.map(month => (
-                      <option key={month.value} value={month.value} className="dark:bg-slate-900">{month.label}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="space-y-2">
-                  <label className="block text-[10px] uppercase font-black text-slate-400 tracking-[0.3em] ml-2">Expiry Year *</label>
-                  <select
-                    name="expiryYear"
-                    value={cardForm.expiryYear}
-                    onChange={handleCardFormChange}
-                    className="w-full px-8 py-5 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl text-xs font-black italic text-slate-900 dark:text-white focus:outline-none focus:ring-8 focus:ring-slate-900/5 dark:focus:ring-gold-500/10 focus:bg-white dark:focus:bg-slate-800 transition-all appearance-none"
-                  >
-                    <option value="">Year</option>
-                    {years.map(year => (
-                      <option key={year.value} value={year.value} className="dark:bg-slate-900">{year.label}</option>
-                    ))}
-                  </select>
-                </div>
-                {formErrors.expiry && <p className="text-rose-500 text-[10px] font-black uppercase tracking-wider ml-2 md:col-span-2">{formErrors.expiry}</p>}
-
-                <div className="space-y-2">
-                  <label className="block text-[10px] uppercase font-black text-slate-400 tracking-[0.3em] ml-2">Security Code *</label>
-                  <input
-                    type="password"
-                    name="cvv"
-                    value={cardForm.cvv}
-                    onChange={handleCardFormChange}
-                    className={`w-full px-8 py-5 bg-slate-50 dark:bg-slate-800 border rounded-2xl text-xs font-black italic focus:outline-none transition-all ${
-                      formErrors.cvv ? 'border-rose-500 text-slate-900 dark:text-white' : 'border-slate-100 dark:border-slate-700 focus:ring-8 focus:ring-slate-900/5 dark:focus:ring-gold-500/10 focus:bg-white dark:focus:bg-slate-800 text-slate-900 dark:text-white'
-                    }`}
-                    placeholder="CVV"
-                    inputMode="numeric"
-                  />
-                  {formErrors.cvv && <p className="text-rose-500 text-[10px] font-black uppercase tracking-wider ml-2">{formErrors.cvv}</p>}
-                </div>
-
-                <div className="space-y-2">
-                  <label className="block text-[10px] uppercase font-black text-slate-400 tracking-[0.3em] ml-2">Billing ZIP *</label>
-                  <input
-                    type="text"
-                    name="billingZip"
-                    value={cardForm.billingZip}
-                    onChange={handleCardFormChange}
-                    className={`w-full px-8 py-5 bg-slate-50 dark:bg-slate-800 border rounded-2xl text-xs font-black italic focus:outline-none transition-all ${
-                      formErrors.billingZip ? 'border-rose-500 text-slate-900 dark:text-white' : 'border-slate-100 dark:border-slate-700 focus:ring-8 focus:ring-slate-900/5 dark:focus:ring-gold-500/10 focus:bg-white dark:focus:bg-slate-800 text-slate-900 dark:text-white'
-                    }`}
-                    placeholder="ZIP / Postal code"
-                  />
-                  {formErrors.billingZip && <p className="text-rose-500 text-[10px] font-black uppercase tracking-wider ml-2">{formErrors.billingZip}</p>}
+                  {formErrors.accountNumber && <p className="text-rose-500 text-[10px] font-black uppercase tracking-wider ml-2">{formErrors.accountNumber}</p>}
                 </div>
 
                 <div className="space-y-2 md:col-span-2">
-                  <label className="block text-[10px] uppercase font-black text-slate-400 tracking-[0.3em] ml-2">Billing Address *</label>
+                  <label className="block text-[10px] uppercase font-black text-slate-400 tracking-[0.3em] ml-2">Confirm Account Number *</label>
                   <input
                     type="text"
-                    name="billingAddress"
-                    value={cardForm.billingAddress}
-                    onChange={handleCardFormChange}
+                    name="confirmAccountNumber"
+                    value={bankForm.confirmAccountNumber}
+                    onChange={handleBankFormChange}
                     className={`w-full px-8 py-5 bg-slate-50 dark:bg-slate-800 border rounded-2xl text-xs font-black italic focus:outline-none transition-all ${
-                      formErrors.billingAddress ? 'border-rose-500 text-slate-900 dark:text-white' : 'border-slate-100 dark:border-slate-700 focus:ring-8 focus:ring-slate-900/5 dark:focus:ring-gold-500/10 focus:bg-white dark:focus:bg-slate-800 text-slate-900 dark:text-white'
+                      formErrors.confirmAccountNumber ? 'border-rose-500 text-slate-900 dark:text-white' : 'border-slate-100 dark:border-slate-700 focus:ring-8 focus:ring-slate-900/5 dark:focus:ring-gold-500/10 focus:bg-white dark:focus:bg-slate-800 text-slate-900 dark:text-white'
                     }`}
-                    placeholder="Street address"
+                    placeholder="Re-enter account number"
+                    inputMode="numeric"
                   />
-                  {formErrors.billingAddress && <p className="text-rose-500 text-[10px] font-black uppercase tracking-wider ml-2">{formErrors.billingAddress}</p>}
+                  {formErrors.confirmAccountNumber && <p className="text-rose-500 text-[10px] font-black uppercase tracking-wider ml-2">{formErrors.confirmAccountNumber}</p>}
                 </div>
 
-                <div className="space-y-2">
-                  <label className="block text-[10px] uppercase font-black text-slate-400 tracking-[0.3em] ml-2">Billing City *</label>
+                <div className="space-y-2 md:col-span-2">
+                  <label className="block text-[10px] uppercase font-black text-slate-400 tracking-[0.3em] ml-2">Routing Number *</label>
                   <input
                     type="text"
-                    name="billingCity"
-                    value={cardForm.billingCity}
-                    onChange={handleCardFormChange}
+                    name="routingNumber"
+                    value={bankForm.routingNumber}
+                    onChange={handleBankFormChange}
                     className={`w-full px-8 py-5 bg-slate-50 dark:bg-slate-800 border rounded-2xl text-xs font-black italic focus:outline-none transition-all ${
-                      formErrors.billingCity ? 'border-rose-500 text-slate-900 dark:text-white' : 'border-slate-100 dark:border-slate-700 focus:ring-8 focus:ring-slate-900/5 dark:focus:ring-gold-500/10 focus:bg-white dark:focus:bg-slate-800 text-slate-900 dark:text-white'
+                      formErrors.routingNumber ? 'border-rose-500 text-slate-900 dark:text-white' : 'border-slate-100 dark:border-slate-700 focus:ring-8 focus:ring-slate-900/5 dark:focus:ring-gold-500/10 focus:bg-white dark:focus:bg-slate-800 text-slate-900 dark:text-white'
                     }`}
-                    placeholder="City"
+                    placeholder="9-digit routing number"
+                    inputMode="numeric"
                   />
-                  {formErrors.billingCity && <p className="text-rose-500 text-[10px] font-black uppercase tracking-wider ml-2">{formErrors.billingCity}</p>}
-                </div>
-
-                <div className="space-y-2">
-                  <label className="block text-[10px] uppercase font-black text-slate-400 tracking-[0.3em] ml-2">Billing State *</label>
-                  <select
-                    name="billingState"
-                    value={cardForm.billingState}
-                    onChange={handleCardFormChange}
-                    className="w-full px-8 py-5 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl text-xs font-black italic text-slate-900 dark:text-white focus:outline-none focus:ring-8 focus:ring-slate-900/5 dark:focus:ring-gold-500/10 focus:bg-white dark:focus:bg-slate-800 transition-all appearance-none"
-                  >
-                    <option value="">State</option>
-                    {states.map(state => (
-                      <option key={state} value={state} className="dark:bg-slate-900">{state}</option>
-                    ))}
-                  </select>
-                  {formErrors.billingState && <p className="text-rose-500 text-[10px] font-black uppercase tracking-wider ml-2">{formErrors.billingState}</p>}
+                  {formErrors.routingNumber && <p className="text-rose-500 text-[10px] font-black uppercase tracking-wider ml-2">{formErrors.routingNumber}</p>}
                 </div>
 
                 <label className="md:col-span-2 flex items-center gap-3 px-2 text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">
                   <input
                     type="checkbox"
                     name="isDefault"
-                    checked={cardForm.isDefault}
-                    onChange={handleCardFormChange}
+                    checked={bankForm.isDefault}
+                    onChange={handleBankFormChange}
                     className="w-4 h-4 accent-gold-500"
                   />
-                  Set As Default Payment Vector
+                  Set as default bank account
                 </label>
                     </div>
                   </div>
@@ -1405,7 +1341,7 @@ const BankingTab = ({
                   disabled={isSubmitting}
                   className="flex-1 px-10 py-6 bg-slate-900 dark:bg-gold-500 text-white dark:text-slate-900 rounded-[2rem] font-black uppercase tracking-[0.3em] text-[11px] hover:bg-gold-600 dark:hover:bg-gold-400 disabled:bg-slate-200 dark:disabled:bg-slate-800 transition-all shadow-2xl shadow-slate-900/20 dark:shadow-gold-500/10"
                 >
-                  {isSubmitting ? 'Syncing Interface...' : 'Authorize Payment Vector'}
+                  {isSubmitting ? 'Saving Bank Details...' : 'Save Bank Details'}
                 </button>
                 <button
                   type="button"
