@@ -80,7 +80,7 @@ export const useDashboardData = (accountType = 'demo') => {
             return {
               id: pos.id,
               symbol: pos.symbol,
-              type: side === 'BUY' ? 'LONG' : 'SHORT',
+              type: side === 'BUY' ? 'BUY' : 'SELL',
               quantity: amount,
               entryPrice: entryPrice,
               currentPrice: currentPrice,
@@ -123,6 +123,19 @@ export const useDashboardData = (accountType = 'demo') => {
     { id: 3, message: 'Deposit confirmed: $5,000', type: 'success', read: true }
   ]);
 
+  const addNotification = (message, type = 'info') => {
+    setNotifications(prev => [
+      {
+        id: Date.now(),
+        message,
+        type,
+        read: false,
+        createdAt: new Date().toISOString()
+      },
+      ...prev
+    ]);
+  };
+
   // Real-time market data simulation
   useEffect(() => {
     const interval = setInterval(() => {
@@ -164,6 +177,7 @@ export const useDashboardData = (accountType = 'demo') => {
       reference: `DEP-${Math.random().toString(36).substring(7).toUpperCase()}`
     };
     setTransactions(prev => [newTx, ...prev]);
+    addNotification(`Deposit initiated via ${method}: $${parseFloat(amount).toLocaleString()}`, 'success');
     // Note: Balance update logic would typically happen in a real backend, 
     // but here we'll let DashboardPage handle it via walletData if needed.
   };
@@ -179,6 +193,7 @@ export const useDashboardData = (accountType = 'demo') => {
       reference: `WDR-${Math.random().toString(36).substring(7).toUpperCase()}`
     };
     setTransactions(prev => [newTx, ...prev]);
+    addNotification(`Withdrawal requested via ${method}: $${parseFloat(amount).toLocaleString()}`, 'warning');
   };
 
   const handleTransfer = (amount, from, to) => {
@@ -192,6 +207,7 @@ export const useDashboardData = (accountType = 'demo') => {
       reference: `TRF-${Math.random().toString(36).substring(7).toUpperCase()}`
     };
     setTransactions(prev => [newTx, ...prev]);
+    addNotification(`Internal transfer completed: $${parseFloat(amount).toLocaleString()}`, 'info');
   };
 
   const handlePlaceOrder = async (order) => {
@@ -201,8 +217,13 @@ export const useDashboardData = (accountType = 'demo') => {
     }
 
     try {
-        const entryPrice = order.price || marketData[order.symbol || 'BTCUSD']?.price || 43000;
         const usdInvestment = parseFloat(order.amount);
+        if (isNaN(usdInvestment) || usdInvestment <= 0) {
+            toast.error("Please enter a valid investment amount.");
+            return false;
+        }
+
+        const entryPrice = order.price || marketData[order.symbol || 'BTCUSD']?.price || 43000;
         const quantity = usdInvestment / entryPrice;
 
         const response = await tradingService.executeTrade({
@@ -219,6 +240,7 @@ export const useDashboardData = (accountType = 'demo') => {
             // Instead of manually adding raw data, refresh from server to get correct mapping
             await fetchPositions();
             toast.success(`${order.side} Order Executed!`);
+            addNotification(`${order.side} ${order.symbol || 'BTCUSD'} order executed successfully`, 'success');
             // Refresh user data to update balances
             refreshUser();
             return true;
@@ -237,6 +259,7 @@ export const useDashboardData = (accountType = 'demo') => {
       ...doc
     };
     setDocuments(prev => [newDoc, ...prev]);
+    addNotification(`${doc.name || 'Document'} uploaded for review`, 'info');
   };
 
   const handleClosePosition = async (id) => {
@@ -250,6 +273,7 @@ export const useDashboardData = (accountType = 'demo') => {
           if (response.success) {
               await fetchPositions();
               toast.success("Position Closed Successfully");
+              addNotification(`Position ${position.symbol} closed successfully`, 'success');
               // Refresh user data to update balances
               refreshUser();
               return true;
@@ -262,6 +286,16 @@ export const useDashboardData = (accountType = 'demo') => {
   
   const handleCancelOrder = (id) => setOrders(o => o.filter(ord => ord.id !== id));
 
+  const handleMarkNotificationRead = (id) => {
+    setNotifications(prev => prev.map((notification) => (
+      notification.id === id ? { ...notification, read: true } : notification
+    )));
+  };
+
+  const handleMarkAllNotificationsRead = () => {
+    setNotifications(prev => prev.map((notification) => ({ ...notification, read: true })));
+  };
+
   return {
     bankAccounts,
     creditCards,
@@ -272,6 +306,8 @@ export const useDashboardData = (accountType = 'demo') => {
     marketData,
     portfolioHistory,
     notifications,
+    handleMarkNotificationRead,
+    handleMarkAllNotificationsRead,
     handleAddBankAccount,
     handleDeleteBankAccount,
     handleSetDefaultBankAccount,

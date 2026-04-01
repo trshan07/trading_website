@@ -1,22 +1,77 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { FaEye, FaBolt, FaBell, FaBars, FaChevronDown, FaExchangeAlt, FaShieldAlt, FaUserEdit } from 'react-icons/fa';
+import { FaEye, FaBolt, FaBell, FaBars, FaChevronDown, FaExchangeAlt, FaTimes } from 'react-icons/fa';
 import { HiMagnifyingGlass } from 'react-icons/hi2';
 import ThemeToggle from '../ui/ThemeToggle';
+
+// All searchable instruments for the global header search
+const ALL_INSTRUMENTS = [
+  { symbol: 'BTCUSDT', name: 'Bitcoin', category: 'Crypto', price: 43250 },
+  { symbol: 'ETHUSDT', name: 'Ethereum', category: 'Crypto', price: 2820 },
+  { symbol: 'BNBUSDT', name: 'Binance Coin', category: 'Crypto', price: 380 },
+  { symbol: 'SOLUSDT', name: 'Solana', category: 'Crypto', price: 105 },
+  { symbol: 'ADAUSDT', name: 'Cardano', category: 'Crypto', price: 0.58 },
+  { symbol: 'EURUSD', name: 'Euro / US Dollar', category: 'Forex', price: 1.0875 },
+  { symbol: 'GBPUSD', name: 'British Pound', category: 'Forex', price: 1.265 },
+  { symbol: 'USDJPY', name: 'Japanese Yen', category: 'Forex', price: 148.5 },
+  { symbol: 'AAPL', name: 'Apple Inc.', category: 'Stocks', price: 185.2 },
+  { symbol: 'MSFT', name: 'Microsoft', category: 'Stocks', price: 410.5 },
+  { symbol: 'TSLA', name: 'Tesla', category: 'Stocks', price: 195.3 },
+  { symbol: 'GOOGL', name: 'Alphabet Inc.', category: 'Stocks', price: 141.8 },
+  { symbol: 'SPX', name: 'S&P 500', category: 'Indices', price: 4850 },
+  { symbol: 'NDX', name: 'Nasdaq 100', category: 'Indices', price: 16800 },
+  { symbol: 'DJI', name: 'Dow Jones', category: 'Indices', price: 38500 },
+  { symbol: 'SPY', name: 'SPDR S&P 500 ETF', category: 'Funds', price: 484.5 },
+  { symbol: 'QQQ', name: 'Invesco QQQ', category: 'Funds', price: 412.3 },
+  { symbol: 'US10Y', name: 'US 10-Yr Treasury', category: 'Bonds', price: 4.15 },
+  { symbol: 'VIX', name: 'Volatility Index', category: 'Options', price: 13.5 },
+  { symbol: 'DXY', name: 'US Dollar Index', category: 'Economy', price: 104.2 },
+];
+
+const CATEGORY_COLORS = {
+  Crypto: 'text-amber-500 bg-amber-50 dark:bg-amber-500/10',
+  Forex: 'text-blue-500 bg-blue-50 dark:bg-blue-500/10',
+  Stocks: 'text-emerald-500 bg-emerald-50 dark:bg-emerald-500/10',
+  Indices: 'text-purple-500 bg-purple-50 dark:bg-purple-500/10',
+  Funds: 'text-indigo-500 bg-indigo-50 dark:bg-indigo-500/10',
+  Bonds: 'text-slate-500 bg-slate-50 dark:bg-slate-800',
+  Options: 'text-rose-500 bg-rose-50 dark:bg-rose-500/10',
+  Economy: 'text-gold-500 bg-gold-50 dark:bg-gold-500/10',
+};
 
 const Header = ({ 
   portfolio = {}, 
   showBalance = true, 
-  onToggleBalance = () => {}, 
+  onToggleBalance = () => {},
   onQuickTrade = () => {},
   unreadNotifications = 0,
+  notifications = [],
+  onMarkNotificationRead = () => {},
+  onMarkAllNotificationsRead = () => {},
   onLogout = () => {},
   onMenuClick = () => {},
   user = { firstName: 'Trader', lastName: '', selectedAccountType: 'demo' },
   isDemo = false,
-  onSwitchAccount = () => {}
+  onSwitchAccount = () => {},
+  onSelectSymbol = () => {},
 }) => {
   const [showDropdown, setShowDropdown] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showSearchResults, setShowSearchResults] = useState(false);
+  const [searchFocused, setSearchFocused] = useState(false);
   const dropdownRef = useRef(null);
+  const searchRef = useRef(null);
+  const notificationRef = useRef(null);
+  const previousUnreadCountRef = useRef(unreadNotifications);
+
+  // Filter instruments based on query
+  const searchResults = searchQuery.trim().length > 0
+    ? ALL_INSTRUMENTS.filter(inst =>
+        inst.symbol.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        inst.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        inst.category.toLowerCase().includes(searchQuery.toLowerCase())
+      ).slice(0, 8)
+    : ALL_INSTRUMENTS.slice(0, 6); // show top 6 as suggestions when focused with no query
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -24,14 +79,68 @@ const Header = ({
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
         setShowDropdown(false);
       }
+      if (searchRef.current && !searchRef.current.contains(event.target)) {
+        setShowSearchResults(false);
+        setSearchFocused(false);
+      }
+      if (notificationRef.current && !notificationRef.current.contains(event.target)) {
+        setShowNotifications(false);
+      }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  useEffect(() => {
+    if (previousUnreadCountRef.current < unreadNotifications) {
+      const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+
+      oscillator.type = 'sine';
+      oscillator.frequency.setValueAtTime(880, audioContext.currentTime);
+      oscillator.frequency.exponentialRampToValueAtTime(660, audioContext.currentTime + 0.18);
+      gainNode.gain.setValueAtTime(0.0001, audioContext.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.05, audioContext.currentTime + 0.02);
+      gainNode.gain.exponentialRampToValueAtTime(0.0001, audioContext.currentTime + 0.22);
+
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+      oscillator.start();
+      oscillator.stop(audioContext.currentTime + 0.24);
+    }
+
+    previousUnreadCountRef.current = unreadNotifications;
+  }, [unreadNotifications]);
+
   const handleSwitch = (type) => {
     onSwitchAccount(type);
     setShowDropdown(false);
+  };
+
+  const handleNotificationClick = (notification) => {
+    onMarkNotificationRead(notification.id);
+  };
+
+  const handleSelectInstrument = (instrument) => {
+    onSelectSymbol(instrument.symbol);
+    setSearchQuery('');
+    setShowSearchResults(false);
+    setSearchFocused(false);
+  };
+
+  const handleSearchKeyDown = (event) => {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      if (searchResults.length > 0) {
+        handleSelectInstrument(searchResults[0]);
+      }
+    }
+
+    if (event.key === 'Escape') {
+      setShowSearchResults(false);
+      setSearchFocused(false);
+    }
   };
 
   return (
@@ -46,13 +155,88 @@ const Header = ({
             <FaBars size={18} />
           </button>
 
-          <div className="hidden md:flex items-center relative group">
-            <HiMagnifyingGlass className="absolute left-4 text-slate-400 group-focus-within:text-gold-500 transition-colors" size={20} />
-            <input 
-              type="text" 
-              placeholder="Search markets, assets, news..." 
-              className="pl-12 pr-6 py-3 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-xs font-bold text-slate-900 dark:text-white w-80 focus:outline-none focus:ring-4 focus:ring-slate-900/5 dark:focus:ring-gold-500/10 focus:bg-white dark:focus:bg-slate-700 transition-all"
+          {/* Global Search */}
+          <div className="hidden md:flex items-center relative group w-full max-w-[18rem] lg:max-w-none" ref={searchRef}>
+            <HiMagnifyingGlass
+              className="absolute left-4 text-slate-400 group-focus-within:text-gold-500 transition-colors z-10"
+              size={18}
             />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                setShowSearchResults(true);
+              }}
+              onKeyDown={handleSearchKeyDown}
+              onFocus={() => {
+                setSearchFocused(true);
+                setShowSearchResults(true);
+              }}
+              placeholder="Search markets, assets, news..."
+              className="pl-12 pr-10 py-3 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-xs font-bold text-slate-900 dark:text-white w-full md:w-72 lg:w-80 focus:outline-none focus:ring-4 focus:ring-slate-900/5 dark:focus:ring-gold-500/10 focus:bg-white dark:focus:bg-slate-700 transition-all placeholder-slate-400"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => { setSearchQuery(''); setShowSearchResults(false); }}
+                className="absolute right-4 text-slate-400 hover:text-slate-700 dark:hover:text-white transition-colors"
+              >
+                <FaTimes size={12} />
+              </button>
+            )}
+
+            {/* Search Results Dropdown */}
+            {showSearchResults && searchFocused && (
+              <div className="absolute top-full left-0 mt-2 w-[min(24rem,calc(100vw-2rem))] md:w-96 bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-2xl shadow-slate-200/50 dark:shadow-black/40 overflow-hidden z-50">
+                {/* Header */}
+                <div className="px-4 py-3 border-b border-slate-50 dark:border-slate-800 flex items-center justify-between">
+                  <span className="text-[9px] font-black uppercase tracking-[0.25em] text-slate-400 dark:text-slate-500">
+                    {searchQuery ? `Results for "${searchQuery}"` : 'Trending Instruments'}
+                  </span>
+                  <span className="text-[9px] font-black text-gold-500">{searchResults.length} found</span>
+                </div>
+
+                {searchResults.length === 0 ? (
+                  <div className="px-4 py-6 text-center">
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">No instruments found</p>
+                    <p className="text-[9px] text-slate-300 dark:text-slate-600 mt-1">Try searching BTC, EUR, AAPL...</p>
+                  </div>
+                ) : (
+                  <div className="py-2 max-h-72 overflow-y-auto custom-scrollbar">
+                    {searchResults.map((inst) => {
+                      const colorClass = CATEGORY_COLORS[inst.category] || 'text-slate-500 bg-slate-50';
+                      return (
+                        <button
+                          key={inst.symbol}
+                          onClick={() => handleSelectInstrument(inst)}
+                          className="w-full flex items-center justify-between px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all group/item"
+                        >
+                          <div className="flex items-center space-x-3">
+                            <span className={`text-[8px] font-black px-2 py-0.5 rounded-lg uppercase tracking-widest ${colorClass}`}>
+                              {inst.category}
+                            </span>
+                            <div className="text-left">
+                              <p className="text-xs font-black text-slate-900 dark:text-white italic uppercase tracking-tight leading-none">{inst.symbol}</p>
+                              <p className="text-[9px] text-slate-400 dark:text-slate-500 font-medium mt-0.5">{inst.name}</p>
+                            </div>
+                          </div>
+                          <p className="text-xs font-black text-slate-700 dark:text-slate-300 tabular-nums italic">
+                            ${inst.price.toLocaleString()}
+                          </p>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {/* Footer hint */}
+                <div className="px-4 py-2.5 border-t border-slate-50 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50">
+                  <p className="text-[8px] font-black text-slate-300 dark:text-slate-600 uppercase tracking-widest">
+                    Press Enter to view all results · Click to open chart
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
@@ -81,86 +265,131 @@ const Header = ({
             </button>
 
             {/* Notifications */}
-            <button className="relative p-3 bg-slate-900 dark:bg-slate-800 text-white dark:text-gold-500 rounded-2xl shadow-xl hover:bg-slate-800 dark:hover:bg-slate-700 transition-all group">
-              <FaBell size={18} className="group-hover:rotate-12 transition-transform" />
-              {unreadNotifications > 0 && (
-                <span className="absolute -top-1.5 -right-1.5 w-6 h-6 bg-rose-500 text-white text-[10px] font-black rounded-full flex items-center justify-center border-4 border-white dark:border-slate-800 shadow-lg">
-                  {unreadNotifications}
-                </span>
+            <div className="relative" ref={notificationRef}>
+              <button
+                onClick={() => setShowNotifications((current) => !current)}
+                className="relative p-3 bg-slate-900 dark:bg-slate-800 text-white dark:text-gold-500 rounded-2xl shadow-xl hover:bg-slate-800 dark:hover:bg-slate-700 transition-all group"
+              >
+                <FaBell size={18} className="group-hover:rotate-12 transition-transform" />
+                {unreadNotifications > 0 && (
+                  <span className="absolute -top-1.5 -right-1.5 min-w-[1.5rem] h-6 px-1.5 bg-rose-500 text-white text-[10px] font-black rounded-full flex items-center justify-center border-4 border-white dark:border-slate-800 shadow-lg">
+                    {unreadNotifications}
+                  </span>
+                )}
+              </button>
+
+              {showNotifications && (
+                <div className="absolute top-full right-0 mt-2 w-[min(22rem,calc(100vw-2rem))] bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-2xl z-50 overflow-hidden">
+                  <div className="px-4 py-3 border-b border-slate-50 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50 flex items-center justify-between gap-4">
+                    <div>
+                      <p className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Notification Center</p>
+                      <p className="text-sm font-black text-slate-900 dark:text-white italic">{unreadNotifications} unread</p>
+                    </div>
+                    {notifications.length > 0 && (
+                      <button
+                        onClick={onMarkAllNotificationsRead}
+                        className="text-[9px] font-black uppercase tracking-widest text-gold-500 hover:text-gold-400 transition-colors"
+                      >
+                        Mark all read
+                      </button>
+                    )}
+                  </div>
+
+                  {notifications.length === 0 ? (
+                    <div className="px-4 py-8 text-center">
+                      <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">No notifications yet</p>
+                      <p className="text-[9px] text-slate-300 dark:text-slate-600 mt-1">Fresh account activity will appear here.</p>
+                    </div>
+                  ) : (
+                    <div className="max-h-80 overflow-y-auto custom-scrollbar">
+                      {notifications.map((notification) => {
+                        const toneClass = notification.type === 'success'
+                          ? 'bg-emerald-500'
+                          : notification.type === 'warning'
+                            ? 'bg-amber-500'
+                            : notification.type === 'error'
+                              ? 'bg-rose-500'
+                              : 'bg-blue-500';
+
+                        return (
+                          <button
+                            key={notification.id}
+                            onClick={() => handleNotificationClick(notification)}
+                            className={`w-full px-4 py-3 text-left border-b border-slate-50 dark:border-slate-800 last:border-0 transition-all hover:bg-slate-50 dark:hover:bg-slate-800 ${
+                              notification.read ? 'opacity-70' : ''
+                            }`}
+                          >
+                            <div className="flex items-start gap-3">
+                              <span className={`mt-1.5 w-2.5 h-2.5 rounded-full shrink-0 ${toneClass}`} />
+                              <div className="min-w-0">
+                                <p className={`text-xs font-black leading-relaxed ${notification.read ? 'text-slate-500 dark:text-slate-400' : 'text-slate-900 dark:text-white'}`}>
+                                  {notification.message}
+                                </p>
+                                <p className="text-[9px] font-black uppercase tracking-widest text-slate-300 dark:text-slate-600 mt-1">
+                                  {notification.read ? 'Read' : 'Unread'}
+                                </p>
+                              </div>
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
               )}
-            </button>
+            </div>
 
             {/* Account Selector & Profile Dropdown */}
             <div className="relative" ref={dropdownRef}>
-              <div 
+              <div
                 onClick={() => setShowDropdown(!showDropdown)}
                 className="hidden lg:flex items-center p-1 bg-slate-100 dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 ml-4 group cursor-pointer hover:bg-white dark:hover:bg-slate-700 transition-all shadow-sm"
               >
-                  <div className="w-10 h-10 bg-slate-900 dark:bg-gold-500 rounded-[1.1rem] flex items-center justify-center text-gold-500 dark:text-slate-900 font-black italic shadow-lg">
-                      {user?.firstName?.charAt(0)}
-                  </div>
-                  <div className="px-4 py-1 text-right">
-                      <p className="text-[11px] font-black text-slate-900 dark:text-white uppercase tracking-tight leading-none mb-1">
-                          {user?.firstName} {user?.lastName}
-                      </p>
-                      <div className="flex items-center justify-end">
-                          <span className={`w-1.5 h-1.5 rounded-full mr-2 shadow-[0_0_8px_currentColor] ${
-                            isDemo ? 'bg-amber-500 text-amber-500' : 'bg-emerald-500 text-emerald-500'
-                          }`}></span>
-                          <span className={`text-[9px] font-black uppercase tracking-widest ${
-                            isDemo ? 'text-amber-500/80' : 'text-emerald-500/80'
-                          }`}>
-                              {isDemo ? 'Practice' : 'Real'} Mode
-                          </span>
-                      </div>
-                  </div>
-                  <FaChevronDown className={`mx-2 text-[10px] text-slate-400 transition-transform duration-300 ${showDropdown ? 'rotate-180' : ''}`} />
+                <div className="w-10 h-10 bg-slate-900 dark:bg-gold-500 rounded-[1.1rem] flex items-center justify-center text-gold-500 dark:text-slate-900 font-black italic shadow-lg">
+                  {user?.firstName?.charAt(0)}
+                </div>
+                <div className="px-3 hidden xl:block">
+                  <p className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-tight leading-none">
+                    {user?.firstName} {user?.lastName}
+                  </p>
+                  <p className="text-[9px] font-bold text-slate-400 dark:text-slate-500 mt-0.5 uppercase tracking-wider">
+                    {isDemo ? '⚡ Demo Mode' : '🟢 Live Account'}
+                  </p>
+                </div>
+                <FaChevronDown
+                  size={10}
+                  className={`mr-2 text-slate-400 transition-transform duration-300 ${showDropdown ? 'rotate-180' : ''}`}
+                />
               </div>
 
-              {/* Dropdown Menu */}
               {showDropdown && (
-                <div className="absolute right-0 mt-4 w-64 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[2rem] shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200 z-50">
-                  <div className="p-6 border-b border-slate-50 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50">
-                    <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1">Active Portfolio</p>
-                    <p className="text-sm font-black text-slate-900 dark:text-white uppercase italic tracking-tight">
-                      {isDemo ? 'Demo Trading Account' : 'Live Trading Account'}
-                    </p>
+                <div className="absolute top-full right-0 mt-2 w-[min(16rem,calc(100vw-2rem))] bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-2xl z-50 overflow-hidden">
+                  <div className="p-4 border-b border-slate-50 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50">
+                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Signed in as</p>
+                    <p className="text-sm font-black text-slate-900 dark:text-white italic">{user?.firstName} {user?.lastName}</p>
                   </div>
-                  
-                  <div className="p-4 space-y-1">
-                    <button 
-                      onClick={() => handleSwitch(isDemo ? 'real' : 'demo')}
-                      className={`w-full flex items-center space-x-4 p-4 rounded-2xl transition-all group ${
-                        isDemo 
-                          ? 'hover:bg-emerald-50 text-slate-600 hover:text-emerald-600 dark:hover:bg-emerald-500/10 dark:text-slate-400 dark:hover:text-emerald-400' 
-                          : 'hover:bg-amber-50 text-slate-600 hover:text-amber-600 dark:hover:bg-amber-500/10 dark:text-slate-400 dark:hover:text-amber-400'
-                      }`}
-                    >
-                      <div className={`p-3 rounded-xl transition-all shrink-0 ${
-                        isDemo 
-                          ? 'bg-emerald-500/10 text-emerald-500 group-hover:bg-emerald-500 group-hover:text-white' 
-                          : 'bg-amber-500/10 text-amber-500 group-hover:bg-amber-500 group-hover:text-white'
-                      }`}>
-                        <FaExchangeAlt size={14} />
-                      </div>
-                      <div className="text-left">
-                        <p className="text-[10px] font-black uppercase tracking-widest">
-                          Switch to {isDemo ? 'Real' : 'Demo'}
-                        </p>
-                        <p className="text-[9px] font-medium opacity-60">
-                          {isDemo ? 'Execute live market trades' : 'Practice with virtual funds'}
-                        </p>
-                      </div>
-                    </button>
-                  </div>
-
-                  <div className="p-4 bg-slate-50/50 dark:bg-slate-800/50">
-                    <button 
-                      onClick={onLogout}
-                      className="w-full py-4 rounded-2xl text-[10px] font-black text-rose-500 hover:bg-rose-500 hover:text-white uppercase tracking-[0.2em] transition-all border border-rose-500/20 hover:border-transparent italic"
-                    >
-                      Terminate Session
-                    </button>
+                  <div className="p-2">
+                    {[
+                      { icon: FaExchangeAlt, label: isDemo ? 'Switch to Live' : 'Switch to Demo', action: () => handleSwitch(isDemo ? 'real' : 'demo') },
+                    ].map(({ icon: Icon, label, action }) => (
+                      <button
+                        key={label}
+                        onClick={action}
+                        className="w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white transition-all text-left"
+                      >
+                        <Icon size={12} className="text-gold-500" />
+                        <span>{label}</span>
+                      </button>
+                    ))}
+                    <div className="border-t border-slate-50 dark:border-slate-800 mt-1 pt-1">
+                      <button
+                        onClick={onLogout}
+                        className="w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10 transition-all text-left"
+                      >
+                        <FaTimes size={12} />
+                        <span>Sign Out</span>
+                      </button>
+                    </div>
                   </div>
                 </div>
               )}
@@ -173,3 +402,4 @@ const Header = ({
 };
 
 export default Header;
+

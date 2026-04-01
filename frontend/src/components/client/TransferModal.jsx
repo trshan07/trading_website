@@ -22,13 +22,13 @@ const TransferModal = ({ isOpen, onClose, walletData, onConfirm }) => {
 
   return (
     <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xl flex items-center justify-center z-[100] p-4 sm:p-8">
-      <div className="bg-white dark:bg-slate-900 rounded-[3rem] border border-slate-100 dark:border-slate-800 p-12 w-full max-w-2xl shadow-[0_0_120px_rgba(0,0,0,0.15)] relative overflow-hidden ring-1 ring-slate-100 dark:ring-slate-800">
+      <div className="bg-white dark:bg-slate-900 rounded-[3rem] border border-slate-100 dark:border-slate-800 p-6 sm:p-12 w-full max-w-2xl max-h-[90vh] overflow-y-auto custom-scrollbar shadow-[0_0_120px_rgba(0,0,0,0.15)] relative ring-1 ring-slate-100 dark:ring-slate-800">
         {/* Animated Background Element */}
         <div className="absolute top-0 right-0 w-64 h-64 bg-gold-500/5 blur-[100px] rounded-full translate-x-32 -translate-y-32"></div>
         
-        <div className="flex items-center justify-between mb-12 relative z-10">
+        <div className="flex items-start sm:items-center justify-between gap-4 mb-8 sm:mb-12 relative z-10">
           <div>
-            <h3 className="text-3xl font-black text-slate-900 dark:text-white tracking-tighter italic uppercase transition-colors">Migration Protocol</h3>
+            <h3 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tighter italic uppercase transition-colors">Migration Protocol</h3>
             <p className="text-[10px] text-slate-400 mt-2 uppercase font-black tracking-[0.3em] flex items-center">
               <FaSync className={`mr-2 ${isSyncing ? 'animate-spin' : ''}`} /> Asset Redistribution Matrix
             </p>
@@ -105,13 +105,13 @@ const TransferModal = ({ isOpen, onClose, walletData, onConfirm }) => {
           <div className="space-y-4">
             <label className="text-[10px] uppercase font-black text-slate-400 tracking-[0.3em] ml-2">Injection Magnitude</label>
             <div className="relative group">
-              <span className="absolute left-8 top-1/2 -translate-y-1/2 text-3xl font-black text-slate-200 dark:text-slate-700 italic transition-colors group-focus-within:text-gold-500">$</span>
+              <span className="absolute left-6 sm:left-8 top-1/2 -translate-y-1/2 text-2xl sm:text-3xl font-black text-slate-200 dark:text-slate-700 italic transition-colors group-focus-within:text-gold-500">$</span>
               <input
                 type="number"
                 value={transferAmount}
                 onChange={(e) => setTransferAmount(e.target.value)}
                 placeholder="0.00"
-                className="w-full pl-16 pr-8 py-8 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-[2.5rem] text-4xl font-black italic text-slate-900 dark:text-white focus:outline-none focus:ring-12 focus:ring-slate-900/5 dark:focus:ring-gold-500/10 transition-all"
+                className="w-full pl-14 sm:pl-16 pr-6 sm:pr-8 py-6 sm:py-8 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-[2.5rem] text-3xl sm:text-4xl font-black italic text-slate-900 dark:text-white focus:outline-none focus:ring-12 focus:ring-slate-900/5 dark:focus:ring-gold-500/10 transition-all"
               />
             </div>
           </div>

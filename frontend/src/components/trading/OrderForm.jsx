@@ -169,15 +169,17 @@ const OrderForm = ({ onSubmit, symbol = 'BTCUSD', compact = false }) => {
           {/* Submit Button */}
           <button
             type="submit"
-            className={`w-full py-6 rounded-[1.5rem] font-black uppercase tracking-[0.3em] text-[11px] text-white transition-all duration-500 transform active:scale-[0.95] group relative overflow-hidden ${
+            className={`w-full min-h-[72px] px-6 py-5 rounded-[1.5rem] font-black uppercase tracking-[0.18em] sm:tracking-[0.24em] text-[10px] sm:text-[11px] text-white transition-all duration-500 transform active:scale-[0.95] group relative overflow-hidden ${
               side === 'buy'
                 ? 'bg-emerald-600 hover:bg-emerald-500 shadow-2xl shadow-emerald-600/40'
                 : 'bg-rose-600 hover:bg-rose-500 shadow-2xl shadow-rose-600/40'
             }`}
           >
-            <span className="relative z-10 flex items-center justify-center">
-              Execute {side === 'buy' ? 'Buy' : 'Sell'} Order
-              <FaChartLine className="ml-4 opacity-0 group-hover:opacity-100 -translate-x-2 group-hover:translate-x-0 transition-all" />
+            <span className="relative z-10 flex items-center justify-center gap-3 text-center leading-tight">
+              <span className="block">
+                Execute {side === 'buy' ? 'Buy' : 'Sell'} Order
+              </span>
+              <FaChartLine className="hidden sm:block shrink-0 opacity-70 group-hover:opacity-100 transition-opacity" />
             </span>
             <div className="absolute inset-0 bg-white/10 translate-y-full group-hover:translate-y-0 transition-transform duration-500"></div>
           </button>

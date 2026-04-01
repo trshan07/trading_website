@@ -14,13 +14,13 @@ const UploadModal = ({ isOpen, onClose, onUpload }) => {
 
   return (
     <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xl flex items-center justify-center z-[100] p-4 sm:p-8">
-      <div className="bg-white dark:bg-slate-900 rounded-[3rem] border border-slate-100 dark:border-slate-800 p-12 w-full max-w-xl shadow-[0_0_120px_rgba(0,0,0,0.15)] relative overflow-hidden ring-1 ring-slate-100 dark:ring-slate-800 group">
+      <div className="bg-white dark:bg-slate-900 rounded-[3rem] border border-slate-100 dark:border-slate-800 p-6 sm:p-12 w-full max-w-xl max-h-[90vh] overflow-y-auto custom-scrollbar shadow-[0_0_120px_rgba(0,0,0,0.15)] relative ring-1 ring-slate-100 dark:ring-slate-800 group">
         {/* Decorative background element */}
         <div className="absolute -top-24 -right-24 w-64 h-64 bg-gold-500/10 blur-[80px] rounded-full group-hover:bg-gold-500/20 transition-all duration-700"></div>
 
-        <div className="flex items-center justify-between mb-10 relative z-10">
+        <div className="flex items-start sm:items-center justify-between gap-4 mb-8 sm:mb-10 relative z-10">
           <div>
-            <h3 className="text-3xl font-black text-slate-900 dark:text-white tracking-tighter italic uppercase transition-colors">Vault Ingestion</h3>
+            <h3 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tighter italic uppercase transition-colors">Vault Ingestion</h3>
             <p className="text-[10px] text-slate-400 mt-2 uppercase font-black tracking-[0.3em] flex items-center">
               <FaShieldAlt className="mr-2 text-gold-500" /> Secure Protocol Transmission
             </p>
@@ -54,7 +54,7 @@ const UploadModal = ({ isOpen, onClose, onUpload }) => {
           {/* Upload Area */}
           <div className="space-y-4">
             <label className="text-[10px] uppercase font-black text-slate-400 tracking-[0.3em] ml-2">Payload Transfer</label>
-            <div className="border-4 border-dashed border-slate-50 dark:border-slate-800 rounded-[2.5rem] p-12 text-center group/upload hover:bg-slate-50/50 dark:hover:bg-slate-800/20 hover:border-gold-500/20 transition-all duration-500 bg-slate-50/30 dark:bg-slate-800/10">
+            <div className="border-4 border-dashed border-slate-50 dark:border-slate-800 rounded-[2.5rem] p-8 sm:p-12 text-center group/upload hover:bg-slate-50/50 dark:hover:bg-slate-800/20 hover:border-gold-500/20 transition-all duration-500 bg-slate-50/30 dark:bg-slate-800/10">
               <input
                 type="file"
                 id="file-upload"
@@ -76,13 +76,13 @@ const UploadModal = ({ isOpen, onClose, onUpload }) => {
           </div>
 
           {/* Action Buttons */}
-          <div className="flex flex-col sm:flex-row gap-6 pt-4">
-            <button className="flex-1 px-10 py-6 bg-slate-900 dark:bg-gold-500 text-white dark:text-slate-900 rounded-[2rem] font-black uppercase tracking-[0.3em] text-[11px] hover:bg-gold-600 dark:hover:bg-gold-400 transition-all duration-500 shadow-2xl shadow-slate-900/20 transform hover:-translate-y-1">
+          <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 pt-4">
+            <button className="flex-1 px-8 sm:px-10 py-5 sm:py-6 bg-slate-900 dark:bg-gold-500 text-white dark:text-slate-900 rounded-[2rem] font-black uppercase tracking-[0.24em] sm:tracking-[0.3em] text-[10px] sm:text-[11px] hover:bg-gold-600 dark:hover:bg-gold-400 transition-all duration-500 shadow-2xl shadow-slate-900/20 transform hover:-translate-y-1">
               Finalize Transmission
             </button>
             <button
               onClick={onClose}
-              className="px-10 py-6 bg-slate-50 dark:bg-slate-800 text-slate-400 dark:text-slate-500 rounded-[2rem] font-black uppercase tracking-[0.3em] text-[11px] hover:bg-slate-100 dark:hover:bg-slate-700 transition-all border border-slate-100 dark:border-slate-700"
+              className="px-8 sm:px-10 py-5 sm:py-6 bg-slate-50 dark:bg-slate-800 text-slate-400 dark:text-slate-500 rounded-[2rem] font-black uppercase tracking-[0.24em] sm:tracking-[0.3em] text-[10px] sm:text-[11px] hover:bg-slate-100 dark:hover:bg-slate-700 transition-all border border-slate-100 dark:border-slate-700"
             >
               Discard
             </button>

@@ -86,6 +86,10 @@ const staggerContainer = {
     }
 };
 
+const MotionDiv = motion.div;
+const MotionHeading = motion.h1;
+const MotionParagraph = motion.p;
+
 const ConditionsPage = () => {
     return (
         <main className="bg-[#000F29] min-h-screen relative overflow-hidden font-sans selection:bg-gold/30">
@@ -106,36 +110,36 @@ const ConditionsPage = () => {
                 {/* Compact Header */}
                 <section className="relative pt-44 pb-16 md:pt-48 md:pb-24 overflow-hidden border-b border-white/5">
                     <Container className="relative z-10">
-                        <motion.div 
+                        <MotionDiv 
                             initial="hidden"
                             animate="visible"
                             variants={staggerContainer}
                             className="max-w-5xl mx-auto flex flex-col items-center text-center"
                         >
-                            <motion.div variants={fadeInUp} className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gold/10 border border-gold/20 mb-8">
+                            <MotionDiv variants={fadeInUp} className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gold/10 border border-gold/20 mb-8">
                                 <span className="w-2 h-2 rounded-full bg-gold animate-pulse" />
                                 <span className="text-gold text-[10px] font-bold tracking-[0.2em] uppercase">Premium Environment</span>
-                            </motion.div>
+                            </MotionDiv>
                             
-                            <motion.h1 variants={fadeInUp} className="text-4xl sm:text-5xl md:text-7xl font-display font-bold text-white mb-6 md:mb-8 leading-tight">
+                            <MotionHeading variants={fadeInUp} className="text-4xl sm:text-5xl md:text-7xl font-display font-bold text-white mb-6 md:mb-8 leading-tight">
                                 Institutional <br />
                                 <span className="gradient-text italic">Trading Conditions</span>
-                            </motion.h1>
+                            </MotionHeading>
                             
-                            <motion.p variants={fadeInUp} className="text-base md:text-xl text-white/50 mb-10 md:mb-12 max-w-2xl leading-relaxed font-medium px-4">
+                            <MotionParagraph variants={fadeInUp} className="text-base md:text-xl text-white/50 mb-10 md:mb-12 max-w-2xl leading-relaxed font-medium px-4">
                                 Engineered for speed, transparency, and top-tier safeguards. Your operations stay predictable and protected in live market conditions.
-                            </motion.p>
+                            </MotionParagraph>
 
-                            <motion.div variants={fadeInUp} className="grid grid-cols-1 sm:grid-cols-3 gap-4 md:gap-6 w-full max-w-4xl px-4 md:px-0">
-                                {trustStats.map((stat, idx) => (
+                            <MotionDiv variants={fadeInUp} className="grid grid-cols-1 sm:grid-cols-3 gap-4 md:gap-6 w-full max-w-4xl px-4 md:px-0">
+                                {trustStats.map((stat) => (
                                     <div key={stat.label} className="glass-card rounded-[1.5rem] md:rounded-[2rem] p-6 md:p-8 border border-white/5 flex flex-col items-center text-center group hover:bg-white/[0.05] transition-all duration-500">
                                         <div className="text-gold mb-3 md:mb-4 opacity-70 group-hover:opacity-100 group-hover:scale-110 transition-all">{stat.icon}</div>
                                         <h3 className="text-xl md:text-2xl font-display font-bold text-white mb-1">{stat.value}</h3>
                                         <p className="text-[9px] md:text-[10px] text-white/30 uppercase tracking-[0.1em] font-black">{stat.label}</p>
                                     </div>
                                 ))}
-                            </motion.div>
-                        </motion.div>
+                            </MotionDiv>
+                        </MotionDiv>
                     </Container>
                 </section>
 
@@ -144,7 +148,7 @@ const ConditionsPage = () => {
                     <Container>
                         <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-6 pb-20">
                             {conditionBlocks.map((block, index) => (
-                                <motion.div 
+                                <MotionDiv 
                                     key={block.title}
                                     initial={{ opacity: 0, y: 30 }}
                                     whileInView={{ opacity: 1, y: 0 }}
@@ -180,12 +184,12 @@ const ConditionsPage = () => {
                                             </div>
                                         ))}
                                     </div>
-                                </motion.div>
+                                </MotionDiv>
                             ))}
                         </div>
 
                         {/* Highly Compact CTA */}
-                        <motion.div 
+                        <MotionDiv 
                             initial={{ opacity: 0, y: 30 }}
                             whileInView={{ opacity: 1, y: 0 }}
                             viewport={{ once: true }}
@@ -206,7 +210,7 @@ const ConditionsPage = () => {
                                     </button>
                                 </a>
                             </div>
-                        </motion.div>
+                        </MotionDiv>
 
                     </Container>
                 </section>

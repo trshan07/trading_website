@@ -42,6 +42,7 @@ const DashboardPage = () => {
   const { pathname } = useLocation();
   const [loading, setLoading] = useState(true);
   const [activeMainTab, setActiveMainTab] = useState('trading');
+  const [marketSymbol, setMarketSymbol] = useState('BTCUSDT');
 
   useEffect(() => {
     const tabMatch = pathname.match(/\/dashboard\/([a-z-]+)/);
@@ -66,6 +67,26 @@ const DashboardPage = () => {
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1200);
 
+  const handleCategorySelect = (categoryId) => {
+    if (categoryId === 'markets') {
+      setActiveMainTab('markets');
+      return;
+    }
+    const symbolsMap = {
+      stocks: 'AAPL',
+      funds: 'SPY',
+      futures: 'ES1!',
+      forex: 'EURUSD',
+      crypto: 'BTCUSDT',
+      indices: 'SPX',
+      bonds: 'US10Y',
+      economy: 'DXY',
+      options: 'VIX'
+    };
+    setMarketSymbol(symbolsMap[categoryId] || 'BTCUSDT');
+    setActiveMainTab('markets');
+  };
+
   // Fetch all mock state from custom hook
   const {
     bankAccounts,
@@ -77,6 +98,8 @@ const DashboardPage = () => {
     marketData,
     portfolioHistory,
     notifications,
+    handleMarkNotificationRead,
+    handleMarkAllNotificationsRead,
     handleAddBankAccount,
     handleDeleteBankAccount,
     handleSetDefaultBankAccount,
@@ -184,17 +207,25 @@ const DashboardPage = () => {
           onToggleBalance={() => setShowBalance(!showBalance)}
           onQuickTrade={() => setShowOrderForm(true)}
           unreadNotifications={unreadNotifications}
+          notifications={notifications}
+          onMarkNotificationRead={handleMarkNotificationRead}
+          onMarkAllNotificationsRead={handleMarkAllNotificationsRead}
           user={user}
           onLogout={handleLogout}
           onMenuClick={() => setShowMobileMenu(true)}
           isDemo={isDemo}
           onSwitchAccount={switchAccountType}
+          onSelectSymbol={(symbol) => {
+            setMarketSymbol(symbol);
+            setActiveMainTab('markets');
+          }}
         />
+
+        {/* Fixed Price Ticker */}
+        <PriceTicker data={marketData} />
 
         {/* Scrollable Region */}
         <div className="flex-1 overflow-y-auto relative custom-scrollbar">
-          <PriceTicker data={marketData} />
-
           <main className="px-4 md:px-10 py-10 max-w-[1600px] mx-auto w-full">
             {/* Demo Mode Banner */}
             {isDemo && (
@@ -226,7 +257,7 @@ const DashboardPage = () => {
               onTrade={() => setActiveMainTab('trading')}
             />
 
-            <QuickCategories onSelectCategory={setActiveMainTab} />
+            <QuickCategories onSelectCategory={handleCategorySelect} />
 
             {/* Content Logic */}
             <div className="transition-all duration-300">
@@ -273,7 +304,12 @@ const DashboardPage = () => {
                 />
               )}
 
-              {activeMainTab === 'markets' && <MarketsTab />}
+              {activeMainTab === 'markets' && (
+                <MarketsTab
+                  symbol={marketSymbol}
+                  onSymbolChange={(sym) => setMarketSymbol(sym)}
+                />
+              )}
 
               {activeMainTab === 'portfolio' && (
                 <PortfolioTab

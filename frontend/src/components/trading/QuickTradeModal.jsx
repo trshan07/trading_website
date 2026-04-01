@@ -22,10 +22,10 @@ const QuickTradeModal = ({ show, onClose, onPlaceOrder }) => {
           <p className="text-slate-400 dark:text-slate-500 font-medium text-sm mb-8 transition-colors">Execute trades instantly with zero latency at current market rates.</p>
           <button 
             onClick={() => onPlaceOrder({
-              symbol: 'BTC/USD',
-              type: 'INSTANT',
-              side: 'BUY',
-              quantity: 0.1,
+              symbol: 'BTCUSD',
+              type: 'instant',
+              side: 'buy',
+              amount: 4325,
               price: 43250
             })} 
             className="w-full py-5 bg-slate-900 dark:bg-gold-500 text-white dark:text-slate-900 rounded-[1.5rem] font-black uppercase tracking-widest text-[11px] hover:bg-gold-600 dark:hover:bg-gold-400 transition-all shadow-2xl shadow-slate-900/20 dark:shadow-gold-500/20 transform hover:-translate-y-1"

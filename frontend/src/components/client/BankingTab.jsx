@@ -1,5 +1,6 @@
 // frontend/src/components/client/BankingTab.jsx
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { 
   FaWallet, FaExchangeAlt, FaMoneyBillWave, FaLandmark,
   FaCreditCard, FaMobileAlt, FaHistory, FaArrowRight,
@@ -88,6 +89,11 @@ const BankingTab = ({
 
   const [formErrors, setFormErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const renderModal = (content) => {
+    if (typeof document === 'undefined') return null;
+    return createPortal(content, document.body);
+  };
 
   const bankingTabs = [
     { id: 'overview', label: 'Overview', icon: FaUniversity },
@@ -444,6 +450,53 @@ const BankingTab = ({
     }
   };
 
+  const openTransferFlow = () => {
+    if (onShowTransferModal) {
+      onShowTransferModal();
+      return;
+    }
+
+    setShowErrorMessage('Transfer flow is unavailable right now.');
+    setTimeout(() => setShowErrorMessage(''), 3000);
+  };
+
+  const handleExportLedger = () => {
+    if (!transactions || transactions.length === 0) {
+      setShowErrorMessage('No transaction history available to export.');
+      setTimeout(() => setShowErrorMessage(''), 3000);
+      return;
+    }
+
+    const escapeCsv = (value) => `"${String(value ?? '').replace(/"/g, '""')}"`;
+    const rows = [
+      ['Date', 'Type', 'Amount', 'Method', 'Status', 'Reference'],
+      ...transactions.map((tx) => [
+        tx.date,
+        tx.type,
+        tx.amount,
+        tx.method,
+        tx.status,
+        tx.reference
+      ])
+    ];
+
+    const csvContent = rows.map((row) => row.map(escapeCsv).join(',')).join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = window.URL.createObjectURL(blob);
+    const link = window.document.createElement('a');
+    const dateStamp = new Date().toISOString().split('T')[0];
+
+    link.href = url;
+    link.setAttribute('download', `banking-ledger-${dateStamp}.csv`);
+    window.document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(url);
+
+    setShowSuccessMessage('Ledger exported successfully!');
+    setTimeout(() => setShowSuccessMessage(''), 3000);
+  };
+
   const getCardIcon = (cardType) => {
     switch(cardType) {
       case 'Visa': return <FaCcVisa className="text-blue-400 text-xl sm:text-2xl" />;
@@ -777,9 +830,9 @@ const BankingTab = ({
       </div>
 
       {/* Banking Content */}
-      <div className={`grid ${isMobile ? 'grid-cols-1' : 'lg:grid-cols-3'} gap-4 sm:gap-6`}>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left Column - Wallet Info */}
-        <div className="lg:col-span-1 space-y-4 sm:space-y-6">
+        <div className="col-span-1 space-y-6">
           {/* Wallet Balance Card */}
           <div className="bg-slate-900 dark:bg-slate-800 rounded-[2.5rem] p-8 shadow-2xl shadow-slate-900/30 dark:shadow-black/40 relative overflow-hidden border border-slate-800 dark:border-slate-700 transition-colors duration-300">
             <div className="absolute top-0 right-0 w-48 h-48 bg-gold-500/5 blur-[80px] rounded-full -translate-y-24 translate-x-24"></div>
@@ -826,10 +879,10 @@ const BankingTab = ({
             <h3 className="text-[10px] font-black text-gold-500 uppercase tracking-[0.3em] mb-8 italic">Rapid Protocols</h3>
             <div className="space-y-3">
               {[
-                { label: 'Internal Transfer', icon: FaExchangeAlt, action: onShowTransferModal || onTransfer },
+                { label: 'Internal Transfer', icon: FaExchangeAlt, action: openTransferFlow },
                 { label: 'Add Repository', icon: FaBuilding, action: () => setShowAddAccount(true) },
                 { label: 'Link interface', icon: FaCreditCard, action: () => setShowAddCard(true) },
-                { label: 'Export Ledger', icon: FaDownload, action: () => {} }
+                { label: 'Export Ledger', icon: FaDownload, action: handleExportLedger }
               ].map((item, idx) => (
                 <button 
                   key={idx}
@@ -876,7 +929,7 @@ const BankingTab = ({
             <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 p-10 shadow-2xl shadow-slate-200/50 dark:shadow-black/20 transition-colors">
               <h3 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tight italic mb-8 transition-colors">Asset Migration</h3>
               <button
-                onClick={onShowTransferModal || onTransfer}
+                onClick={openTransferFlow}
                 className="px-10 py-5 bg-slate-900 dark:bg-gold-500 text-white dark:text-slate-900 rounded-[1.5rem] font-black uppercase tracking-[0.2em] text-[11px] hover:bg-gold-600 dark:hover:bg-gold-400 transition-all shadow-2xl shadow-slate-900/10 dark:shadow-gold-500/10"
               >
                 Initialize Migration Vector
@@ -917,9 +970,9 @@ const BankingTab = ({
       </div>
 
       {/* Deposit Modal */}
-      {showDeposit && (
+      {showDeposit && renderModal(
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xl flex items-center justify-center z-50 p-4 sm:p-8">
-          <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 p-10 w-full max-w-xl shadow-[0_0_100px_rgba(0,0,0,0.1)] overflow-y-auto max-h-[90vh]">
+          <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 p-6 sm:p-10 w-full max-w-xl shadow-[0_0_100px_rgba(0,0,0,0.1)] overflow-y-auto max-h-[90vh] custom-scrollbar">
             <div className="flex items-center justify-between mb-10">
               <div>
                 <h3 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight italic uppercase transition-colors">Capital Injection</h3>
@@ -971,7 +1024,7 @@ const BankingTab = ({
                 </div>
               </div>
 
-              <div className="flex gap-4 pt-4">
+              <div className="flex flex-col sm:flex-row gap-4 pt-4">
                 <button
                   onClick={handleDeposit}
                   disabled={!depositAmount}
@@ -992,9 +1045,9 @@ const BankingTab = ({
       )}
 
       {/* Withdraw Modal */}
-      {showWithdraw && (
+      {showWithdraw && renderModal(
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xl flex items-center justify-center z-50 p-4 sm:p-8">
-          <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 p-10 w-full max-w-xl shadow-[0_0_100px_rgba(0,0,0,0.1)]">
+          <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 p-6 sm:p-10 w-full max-w-xl shadow-[0_0_100px_rgba(0,0,0,0.1)] max-h-[90vh] overflow-y-auto custom-scrollbar">
             <div className="flex items-center justify-between mb-8">
               <div>
                 <h3 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight italic uppercase transition-colors">Capital Extraction</h3>
@@ -1010,7 +1063,7 @@ const BankingTab = ({
 
             <div className="space-y-8">
               {/* Method Selection */}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {withdrawalMethods.map((method) => (
                   <button
                     key={method.id}
@@ -1042,7 +1095,7 @@ const BankingTab = ({
               </div>
 
               {/* Execution Actions */}
-              <div className="flex gap-4 pt-4">
+              <div className="flex flex-col sm:flex-row gap-4 pt-4">
                 <button
                   onClick={handleWithdraw}
                   disabled={!withdrawAmount || parseFloat(withdrawAmount) > walletData.mainWallet}
@@ -1063,9 +1116,9 @@ const BankingTab = ({
       )}
 
       {/* Add Bank Account Modal */}
-      {showAddAccount && (
+      {showAddAccount && renderModal(
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xl flex items-center justify-center z-50 overflow-y-auto p-4 sm:p-8">
-          <div className="bg-white dark:bg-slate-900 rounded-[3rem] border border-slate-100 dark:border-slate-800 p-12 w-full max-w-2xl my-8 max-h-[90vh] overflow-y-auto shadow-[0_0_120px_rgba(0,0,0,0.15)] transition-colors">
+          <div className="bg-white dark:bg-slate-900 rounded-[3rem] border border-slate-100 dark:border-slate-800 p-6 sm:p-12 w-full max-w-2xl my-8 max-h-[90vh] overflow-y-auto custom-scrollbar shadow-[0_0_120px_rgba(0,0,0,0.15)] transition-colors">
             <div className="flex items-center justify-between mb-12">
               <div>
                 <h3 className="text-3xl font-black text-slate-900 dark:text-white tracking-tighter italic uppercase transition-colors">Vault Registry</h3>
@@ -1148,26 +1201,205 @@ const BankingTab = ({
       )}
 
       {/* Add Credit Card Modal */}
-      {showAddCard && (
+      {showAddCard && renderModal(
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xl flex items-center justify-center z-50 overflow-y-auto p-4 sm:p-8">
-          <div className="bg-white dark:bg-slate-900 rounded-[3rem] border border-slate-100 dark:border-slate-800 p-12 w-full max-w-2xl my-8 max-h-[90vh] overflow-y-auto shadow-[0_0_120px_rgba(0,0,0,0.15)] transition-colors">
-            <div className="flex items-center justify-between mb-12">
-              <div>
-                <h3 className="text-3xl font-black text-slate-900 dark:text-white tracking-tighter italic uppercase transition-colors">Payment Vector</h3>
-                <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-2 uppercase font-black tracking-[0.3em] transition-colors">Encrypted Card Interface Registration</p>
-              </div>
-              <button onClick={() => setShowAddCard(false)} className="w-14 h-14 bg-slate-50 dark:bg-slate-800 text-slate-400 dark:text-slate-500 hover:text-rose-500 dark:hover:text-rose-400 rounded-[1.5rem] flex items-center justify-center transition-all border border-slate-100 dark:border-slate-700">
-                <FaTimes size={20} />
-              </button>
-            </div>
-            
-            <form onSubmit={handleAddCreditCard} className="space-y-10">
-              <div className="bg-slate-50 dark:bg-slate-800/10 p-10 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 text-center space-y-4 transition-colors">
-                <FaShieldAlt className="mx-auto text-gold-500 text-5xl mb-4" />
-                <p className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-widest italic text-center transition-colors">Protocol sync active</p>
+          <div className="bg-white dark:bg-slate-900 rounded-[3rem] border border-slate-100 dark:border-slate-800 w-full max-w-2xl my-8 max-h-[90vh] overflow-hidden shadow-[0_0_120px_rgba(0,0,0,0.15)] transition-colors">
+            <form onSubmit={handleAddCreditCard} className="flex flex-col max-h-[90vh]">
+              <div className="relative px-8 sm:px-12 pt-10 pb-8 border-b border-slate-100 dark:border-slate-800 bg-gradient-to-br from-slate-50 via-white to-amber-50/40 dark:from-slate-900 dark:via-slate-900 dark:to-gold-500/5">
+                <div className="absolute top-0 right-0 w-40 h-40 bg-gold-500/10 blur-3xl rounded-full translate-x-14 -translate-y-10 pointer-events-none" />
+                <div className="relative flex items-start justify-between gap-6">
+                  <div>
+                    <div className="inline-flex items-center gap-3 px-4 py-2 rounded-full bg-white/80 dark:bg-slate-800/80 border border-slate-100 dark:border-slate-700 shadow-sm mb-5">
+                      <FaShieldAlt className="text-gold-500 text-sm" />
+                      <span className="text-[10px] font-black uppercase tracking-[0.28em] text-slate-500 dark:text-slate-400">Secure Vault Sync</span>
+                    </div>
+                    <h3 className="text-3xl font-black text-slate-900 dark:text-white tracking-tighter italic uppercase transition-colors">Payment Vector</h3>
+                    <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-2 uppercase font-black tracking-[0.3em] transition-colors">Encrypted Card Interface Registration</p>
+                  </div>
+                  <button onClick={() => setShowAddCard(false)} type="button" className="w-14 h-14 bg-white dark:bg-slate-800 text-slate-400 dark:text-slate-500 hover:text-rose-500 dark:hover:text-rose-400 rounded-[1.5rem] flex items-center justify-center transition-all border border-slate-100 dark:border-slate-700 shadow-sm">
+                    <FaTimes size={20} />
+                  </button>
+                </div>
               </div>
 
-              <div className="flex flex-col sm:flex-row gap-6 pt-10">
+              <div className="flex-1 overflow-y-auto custom-scrollbar px-8 sm:px-12 py-8 pr-5 sm:pr-8">
+                <div className="space-y-8">
+                  <div className="relative overflow-hidden bg-slate-50 dark:bg-slate-800/10 p-8 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 text-center space-y-4 transition-colors">
+                    <div className="absolute inset-y-0 left-0 w-1.5 bg-gradient-to-b from-gold-500 via-amber-400 to-transparent" />
+                    <FaShieldAlt className="mx-auto text-gold-500 text-4xl mb-3" />
+                    <p className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-widest italic text-center transition-colors">Protocol sync active</p>
+                    <p className="text-sm text-slate-500 dark:text-slate-400 font-medium max-w-lg mx-auto">Link a payment card with a cleaner authorization flow, stronger hierarchy, and easier review before submission.</p>
+                  </div>
+
+                  <div className="bg-white dark:bg-slate-950/30 rounded-[2.25rem] border border-slate-100 dark:border-slate-800 p-6 sm:p-8 shadow-sm">
+                    <div className="flex items-center justify-between gap-4 mb-8">
+                      <div>
+                        <p className="text-[10px] font-black uppercase tracking-[0.24em] text-gold-500 mb-2">Card Identity</p>
+                        <h4 className="text-lg font-black italic text-slate-900 dark:text-white">Primary Authorization Details</h4>
+                      </div>
+                      <div className="hidden sm:flex items-center gap-2 px-3 py-2 rounded-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700">
+                        <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                        <span className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500">Verified Input</span>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="space-y-2 md:col-span-2">
+                  <label className="block text-[10px] uppercase font-black text-slate-400 tracking-[0.3em] ml-2">Cardholder Name *</label>
+                  <input
+                    type="text"
+                    name="cardholderName"
+                    value={cardForm.cardholderName}
+                    onChange={handleCardFormChange}
+                    className={`w-full px-8 py-5 bg-slate-50 dark:bg-slate-800 border rounded-2xl text-xs font-black italic focus:outline-none transition-all ${
+                      formErrors.cardholderName ? 'border-rose-500 text-slate-900 dark:text-white' : 'border-slate-100 dark:border-slate-700 focus:ring-8 focus:ring-slate-900/5 dark:focus:ring-gold-500/10 focus:bg-white dark:focus:bg-slate-800 text-slate-900 dark:text-white'
+                    }`}
+                    placeholder="Name exactly as printed on card"
+                  />
+                  {formErrors.cardholderName && <p className="text-rose-500 text-[10px] font-black uppercase tracking-wider ml-2">{formErrors.cardholderName}</p>}
+                </div>
+
+                <div className="space-y-2 md:col-span-2">
+                  <label className="block text-[10px] uppercase font-black text-slate-400 tracking-[0.3em] ml-2">Card Number *</label>
+                  <input
+                    type="text"
+                    name="cardNumber"
+                    value={cardForm.cardNumber}
+                    onChange={handleCardFormChange}
+                    className={`w-full px-8 py-5 bg-slate-50 dark:bg-slate-800 border rounded-2xl text-xs font-black italic focus:outline-none transition-all ${
+                      formErrors.cardNumber ? 'border-rose-500 text-slate-900 dark:text-white' : 'border-slate-100 dark:border-slate-700 focus:ring-8 focus:ring-slate-900/5 dark:focus:ring-gold-500/10 focus:bg-white dark:focus:bg-slate-800 text-slate-900 dark:text-white'
+                    }`}
+                    placeholder="1234 5678 9012 3456"
+                    inputMode="numeric"
+                  />
+                  {formErrors.cardNumber && <p className="text-rose-500 text-[10px] font-black uppercase tracking-wider ml-2">{formErrors.cardNumber}</p>}
+                </div>
+
+                <div className="space-y-2">
+                  <label className="block text-[10px] uppercase font-black text-slate-400 tracking-[0.3em] ml-2">Expiry Month *</label>
+                  <select
+                    name="expiryMonth"
+                    value={cardForm.expiryMonth}
+                    onChange={handleCardFormChange}
+                    className="w-full px-8 py-5 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl text-xs font-black italic text-slate-900 dark:text-white focus:outline-none focus:ring-8 focus:ring-slate-900/5 dark:focus:ring-gold-500/10 focus:bg-white dark:focus:bg-slate-800 transition-all appearance-none"
+                  >
+                    <option value="">Month</option>
+                    {months.map(month => (
+                      <option key={month.value} value={month.value} className="dark:bg-slate-900">{month.label}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="block text-[10px] uppercase font-black text-slate-400 tracking-[0.3em] ml-2">Expiry Year *</label>
+                  <select
+                    name="expiryYear"
+                    value={cardForm.expiryYear}
+                    onChange={handleCardFormChange}
+                    className="w-full px-8 py-5 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl text-xs font-black italic text-slate-900 dark:text-white focus:outline-none focus:ring-8 focus:ring-slate-900/5 dark:focus:ring-gold-500/10 focus:bg-white dark:focus:bg-slate-800 transition-all appearance-none"
+                  >
+                    <option value="">Year</option>
+                    {years.map(year => (
+                      <option key={year.value} value={year.value} className="dark:bg-slate-900">{year.label}</option>
+                    ))}
+                  </select>
+                </div>
+                {formErrors.expiry && <p className="text-rose-500 text-[10px] font-black uppercase tracking-wider ml-2 md:col-span-2">{formErrors.expiry}</p>}
+
+                <div className="space-y-2">
+                  <label className="block text-[10px] uppercase font-black text-slate-400 tracking-[0.3em] ml-2">Security Code *</label>
+                  <input
+                    type="password"
+                    name="cvv"
+                    value={cardForm.cvv}
+                    onChange={handleCardFormChange}
+                    className={`w-full px-8 py-5 bg-slate-50 dark:bg-slate-800 border rounded-2xl text-xs font-black italic focus:outline-none transition-all ${
+                      formErrors.cvv ? 'border-rose-500 text-slate-900 dark:text-white' : 'border-slate-100 dark:border-slate-700 focus:ring-8 focus:ring-slate-900/5 dark:focus:ring-gold-500/10 focus:bg-white dark:focus:bg-slate-800 text-slate-900 dark:text-white'
+                    }`}
+                    placeholder="CVV"
+                    inputMode="numeric"
+                  />
+                  {formErrors.cvv && <p className="text-rose-500 text-[10px] font-black uppercase tracking-wider ml-2">{formErrors.cvv}</p>}
+                </div>
+
+                <div className="space-y-2">
+                  <label className="block text-[10px] uppercase font-black text-slate-400 tracking-[0.3em] ml-2">Billing ZIP *</label>
+                  <input
+                    type="text"
+                    name="billingZip"
+                    value={cardForm.billingZip}
+                    onChange={handleCardFormChange}
+                    className={`w-full px-8 py-5 bg-slate-50 dark:bg-slate-800 border rounded-2xl text-xs font-black italic focus:outline-none transition-all ${
+                      formErrors.billingZip ? 'border-rose-500 text-slate-900 dark:text-white' : 'border-slate-100 dark:border-slate-700 focus:ring-8 focus:ring-slate-900/5 dark:focus:ring-gold-500/10 focus:bg-white dark:focus:bg-slate-800 text-slate-900 dark:text-white'
+                    }`}
+                    placeholder="ZIP / Postal code"
+                  />
+                  {formErrors.billingZip && <p className="text-rose-500 text-[10px] font-black uppercase tracking-wider ml-2">{formErrors.billingZip}</p>}
+                </div>
+
+                <div className="space-y-2 md:col-span-2">
+                  <label className="block text-[10px] uppercase font-black text-slate-400 tracking-[0.3em] ml-2">Billing Address *</label>
+                  <input
+                    type="text"
+                    name="billingAddress"
+                    value={cardForm.billingAddress}
+                    onChange={handleCardFormChange}
+                    className={`w-full px-8 py-5 bg-slate-50 dark:bg-slate-800 border rounded-2xl text-xs font-black italic focus:outline-none transition-all ${
+                      formErrors.billingAddress ? 'border-rose-500 text-slate-900 dark:text-white' : 'border-slate-100 dark:border-slate-700 focus:ring-8 focus:ring-slate-900/5 dark:focus:ring-gold-500/10 focus:bg-white dark:focus:bg-slate-800 text-slate-900 dark:text-white'
+                    }`}
+                    placeholder="Street address"
+                  />
+                  {formErrors.billingAddress && <p className="text-rose-500 text-[10px] font-black uppercase tracking-wider ml-2">{formErrors.billingAddress}</p>}
+                </div>
+
+                <div className="space-y-2">
+                  <label className="block text-[10px] uppercase font-black text-slate-400 tracking-[0.3em] ml-2">Billing City *</label>
+                  <input
+                    type="text"
+                    name="billingCity"
+                    value={cardForm.billingCity}
+                    onChange={handleCardFormChange}
+                    className={`w-full px-8 py-5 bg-slate-50 dark:bg-slate-800 border rounded-2xl text-xs font-black italic focus:outline-none transition-all ${
+                      formErrors.billingCity ? 'border-rose-500 text-slate-900 dark:text-white' : 'border-slate-100 dark:border-slate-700 focus:ring-8 focus:ring-slate-900/5 dark:focus:ring-gold-500/10 focus:bg-white dark:focus:bg-slate-800 text-slate-900 dark:text-white'
+                    }`}
+                    placeholder="City"
+                  />
+                  {formErrors.billingCity && <p className="text-rose-500 text-[10px] font-black uppercase tracking-wider ml-2">{formErrors.billingCity}</p>}
+                </div>
+
+                <div className="space-y-2">
+                  <label className="block text-[10px] uppercase font-black text-slate-400 tracking-[0.3em] ml-2">Billing State *</label>
+                  <select
+                    name="billingState"
+                    value={cardForm.billingState}
+                    onChange={handleCardFormChange}
+                    className="w-full px-8 py-5 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl text-xs font-black italic text-slate-900 dark:text-white focus:outline-none focus:ring-8 focus:ring-slate-900/5 dark:focus:ring-gold-500/10 focus:bg-white dark:focus:bg-slate-800 transition-all appearance-none"
+                  >
+                    <option value="">State</option>
+                    {states.map(state => (
+                      <option key={state} value={state} className="dark:bg-slate-900">{state}</option>
+                    ))}
+                  </select>
+                  {formErrors.billingState && <p className="text-rose-500 text-[10px] font-black uppercase tracking-wider ml-2">{formErrors.billingState}</p>}
+                </div>
+
+                <label className="md:col-span-2 flex items-center gap-3 px-2 text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">
+                  <input
+                    type="checkbox"
+                    name="isDefault"
+                    checked={cardForm.isDefault}
+                    onChange={handleCardFormChange}
+                    className="w-4 h-4 accent-gold-500"
+                  />
+                  Set As Default Payment Vector
+                </label>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="px-8 sm:px-12 py-6 border-t border-slate-100 dark:border-slate-800 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm">
+                <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 items-stretch sm:items-center">
                 <button
                   type="submit"
                   disabled={isSubmitting}
@@ -1182,6 +1414,7 @@ const BankingTab = ({
                 >
                   Abort
                 </button>
+                </div>
               </div>
             </form>
           </div>

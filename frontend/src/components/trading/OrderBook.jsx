@@ -66,8 +66,8 @@ const OrderBook = ({ symbol = 'BTC/USD' }) => {
   const bidSentiment = (bidTotalSize / (bidTotalSize + askTotalSize)) * 100;
 
   return (
-    <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 p-1 shadow-2xl shadow-slate-200/50 dark:shadow-black/20 group overflow-hidden transition-colors">
-      <div className="p-8">
+    <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 p-1 shadow-xl shadow-slate-200/50 dark:shadow-black/20 group overflow-hidden transition-colors h-full">
+      <div className="p-6 sm:p-8">
         {/* Console Header */}
         <div className="flex justify-between items-center mb-10">
           <div className="flex items-center space-x-4">
@@ -82,15 +82,15 @@ const OrderBook = ({ symbol = 'BTC/USD' }) => {
               </p>
             </div>
           </div>
-          <div className="px-5 py-2.5 bg-slate-50 dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 flex items-center space-x-4 transition-colors">
+          <div className="hidden sm:flex px-3 py-2 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700 items-center space-x-3 transition-colors">
             <div className="flex flex-col items-end">
-              <span className="text-[7px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-0.5">Live Spread</span>
-              <span className="text-[11px] font-black text-slate-900 dark:text-white italic tracking-tighter transition-colors">${spread.value.toFixed(2)}</span>
+              <span className="text-[6px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-0.5">Spread</span>
+              <span className="text-[9px] font-black text-slate-900 dark:text-white italic tracking-tighter transition-colors">${spread.value.toFixed(2)}</span>
             </div>
-            <div className="h-6 w-[1px] bg-slate-200 dark:bg-slate-700"></div>
+            <div className="h-5 w-[1px] bg-slate-200 dark:bg-slate-700"></div>
             <div className="flex flex-col items-end">
-              <span className="text-[7px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-0.5 transition-colors">Impact</span>
-              <span className="text-[11px] font-black text-emerald-500 italic tracking-tighter transition-colors">{spread.percentage.toFixed(4)}%</span>
+              <span className="text-[6px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-0.5 transition-colors">Impact</span>
+              <span className="text-[9px] font-black text-emerald-500 italic tracking-tighter transition-colors">{spread.percentage.toFixed(4)}%</span>
             </div>
           </div>
         </div>
@@ -119,30 +119,9 @@ const OrderBook = ({ symbol = 'BTC/USD' }) => {
            </div>
         </div>
 
-        {/* Table Headers */}
-        <div className="grid grid-cols-3 text-[8px] uppercase font-black text-slate-400 dark:text-slate-500 mb-6 px-4 tracking-[0.2em] border-b border-slate-50 dark:border-slate-800 pb-4 transition-colors">
-          <span>Execution Price</span>
-          <span className="text-right">Portal Size</span>
-          <span className="text-right">Volume Map</span>
-        </div>
-
-        {/* Asks Section */}
-        <div className="space-y-0.5 mb-6">
-          {asks.slice(0, 8).reverse().map((ask, i) => (
-            <div key={i} className="relative group overflow-hidden rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-all duration-300">
-              <div className="absolute right-0 top-0 bottom-0 bg-gradient-to-l from-rose-500/10 to-transparent transition-all duration-500" style={{ width: `${(ask.cumulative / maxCumulative) * 100}%` }} />
-              <div className="relative grid grid-cols-3 text-[11px] py-2.5 px-4 items-center">
-                <span className="text-rose-500 font-black italic tracking-tighter">${ask.price.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
-                <span className="text-right text-slate-900 dark:text-white font-black transition-colors">{ask.size.toFixed(4)}</span>
-                <span className="text-right text-slate-400 dark:text-slate-500 font-bold tabular-nums italic transition-colors">${(ask.total / 1000).toFixed(1)}k</span>
-              </div>
-            </div>
-          ))}
-        </div>
-
         {/* Neural Sync Index Price (Pulse Node) */}
-        <div className="group/node relative px-2 my-8">
-           <div className="bg-slate-900 rounded-[2rem] p-6 border border-slate-800 shadow-2xl shadow-slate-900/20 relative overflow-hidden transition-all duration-500 hover:scale-[1.02] hover:-translate-y-1">
+        <div className="group/node relative my-8">
+           <div className="bg-slate-900 rounded-[2rem] p-6 border border-slate-800 shadow-2xl shadow-slate-900/20 relative overflow-hidden transition-all duration-500 hover:scale-[1.01]">
               <div className="absolute top-0 right-0 w-32 h-32 bg-gold-400/5 blur-3xl rounded-full -translate-y-16 translate-x-16 group-hover/node:bg-gold-400/10 transition-all"></div>
               <div className="relative z-10 flex items-center justify-between">
                  <div className="flex items-center space-x-5">
@@ -168,18 +147,53 @@ const OrderBook = ({ symbol = 'BTC/USD' }) => {
            </div>
         </div>
 
-        {/* Bids Section */}
-        <div className="space-y-0.5">
-          {bids.slice(0, 8).map((bid, i) => (
-            <div key={i} className="relative group overflow-hidden rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-all duration-300">
-              <div className="absolute right-0 top-0 bottom-0 bg-gradient-to-l from-emerald-500/10 to-transparent transition-all duration-500" style={{ width: `${(bid.cumulative / maxCumulative) * 100}%` }} />
-              <div className="relative grid grid-cols-3 text-[11px] py-2.5 px-4 items-center">
-                <span className="text-emerald-500 font-black italic tracking-tighter">${bid.price.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
-                <span className="text-right text-slate-900 dark:text-white font-black transition-colors">{bid.size.toFixed(4)}</span>
-                <span className="text-right text-slate-400 dark:text-slate-500 font-bold tabular-nums italic transition-colors">${(bid.total / 1000).toFixed(1)}k</span>
-              </div>
-            </div>
-          ))}
+        {/* Dual Pane Orderbook */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12">
+           {/* Bids Section (Buyers) */}
+           <div>
+             {/* Table Headers */}
+             <div className="flex justify-between items-center text-[8px] uppercase font-black text-slate-400 dark:text-slate-500 mb-4 px-2 tracking-[0.1em] border-b border-slate-50 dark:border-slate-800 pb-3 transition-colors">
+               <span className="w-1/3 text-left">Size</span>
+               <span className="w-1/3 text-center">Bid Price</span>
+               <span className="w-1/3 text-right">Total</span>
+             </div>
+
+             <div className="space-y-0.5">
+               {bids.slice(0, 10).map((bid, i) => (
+                 <div key={i} className="relative group overflow-hidden rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-all duration-300">
+                   <div className="absolute right-0 top-0 bottom-0 bg-gradient-to-l from-emerald-500/10 to-transparent transition-all duration-500" style={{ width: `${(bid.cumulative / maxCumulative) * 100}%` }} />
+                   <div className="relative flex justify-between items-center text-[10px] py-1.5 px-2">
+                     <span className="w-1/3 text-left text-slate-900 dark:text-white font-black transition-colors">{bid.size.toFixed(3)}</span>
+                     <span className="w-1/3 text-center text-emerald-500 font-black italic tracking-tighter">${bid.price.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                     <span className="w-1/3 text-right text-slate-400 dark:text-slate-500 font-bold tabular-nums italic transition-colors">${(bid.total / 1000).toFixed(1)}k</span>
+                   </div>
+                 </div>
+               ))}
+             </div>
+           </div>
+
+           {/* Asks Section (Sellers) */}
+           <div>
+             {/* Table Headers */}
+             <div className="flex justify-between items-center text-[8px] uppercase font-black text-slate-400 dark:text-slate-500 mb-4 px-2 tracking-[0.1em] border-b border-slate-50 dark:border-slate-800 pb-3 transition-colors">
+               <span className="w-1/3 text-left">Ask Price</span>
+               <span className="w-1/3 text-center">Size</span>
+               <span className="w-1/3 text-right">Total</span>
+             </div>
+
+             <div className="space-y-0.5">
+               {asks.slice(0, 10).reverse().map((ask, i) => (
+                 <div key={i} className="relative group overflow-hidden rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-all duration-300">
+                   <div className="absolute left-0 top-0 bottom-0 bg-gradient-to-r from-rose-500/10 to-transparent transition-all duration-500" style={{ width: `${(ask.cumulative / maxCumulative) * 100}%` }} />
+                   <div className="relative flex justify-between items-center text-[10px] py-1.5 px-2">
+                     <span className="w-1/3 text-left text-rose-500 font-black italic tracking-tighter">${ask.price.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                     <span className="w-1/3 text-center text-slate-900 dark:text-white font-black transition-colors">{ask.size.toFixed(3)}</span>
+                     <span className="w-1/3 text-right text-slate-400 dark:text-slate-500 font-bold tabular-nums italic transition-colors">${(ask.total / 1000).toFixed(1)}k</span>
+                   </div>
+                 </div>
+               ))}
+             </div>
+           </div>
         </div>
 
         {/* View Selection Footer */}
