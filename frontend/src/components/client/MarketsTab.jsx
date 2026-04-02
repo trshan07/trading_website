@@ -48,21 +48,17 @@ const CATEGORY_COLORS = {
   Options: { text: 'text-rose-500', bg: 'bg-rose-50 dark:bg-rose-500/10', border: 'border-rose-100 dark:border-rose-500/20' },
 };
 
-const MarketsTab = ({ symbol: initialSymbol = 'BTCUSDT', onSymbolChange }) => {
+const MarketsTab = ({ symbol, onSymbolChange }) => {
   const { theme } = useTheme();
-  const [activeSymbol, setActiveSymbol] = useState(initialSymbol);
+  const hasExternalSymbol = typeof symbol === 'string' && symbol.trim().length > 0;
+  const isControlled = hasExternalSymbol && typeof onSymbolChange === 'function';
+  const [uncontrolledSymbol, setUncontrolledSymbol] = useState(() => (hasExternalSymbol ? symbol : 'BTCUSDT'));
+  const activeSymbol = isControlled ? symbol : uncontrolledSymbol;
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState('All');
   const [showSearchDropdown, setShowSearchDropdown] = useState(false);
   const [favorites, setFavorites] = useState(['BTCUSDT', 'ETHUSDT']);
   const searchRef = useRef(null);
-
-  // Sync with parent symbol prop
-  useEffect(() => {
-    if (initialSymbol && initialSymbol !== activeSymbol) {
-      setActiveSymbol(initialSymbol);
-    }
-  }, [initialSymbol]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -76,7 +72,9 @@ const MarketsTab = ({ symbol: initialSymbol = 'BTCUSDT', onSymbolChange }) => {
   }, []);
 
   const handleSelectSymbol = (sym) => {
-    setActiveSymbol(sym);
+    if (!isControlled) {
+      setUncontrolledSymbol(sym);
+    }
     setSearchQuery('');
     setShowSearchDropdown(false);
     if (onSymbolChange) onSymbolChange(sym);

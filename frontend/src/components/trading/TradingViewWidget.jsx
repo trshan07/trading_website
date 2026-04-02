@@ -100,6 +100,26 @@ const TradingViewWidget = memo(({
     let isMounted = true;
     let ws = null;
     let fallbackInterval = null;
+    let reconnectTimer = null;
+    const fetchController = new AbortController();
+    let intentionalSocketClose = false;
+
+    const closeSocket = () => {
+      if (!ws) return;
+      intentionalSocketClose = true;
+      ws.onopen = null;
+      ws.onmessage = null;
+      ws.onerror = null;
+      ws.onclose = null;
+      if (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING) {
+        try {
+          ws.close(1000, 'Component cleanup');
+        } catch {
+          // no-op: socket may already be closing
+        }
+      }
+      ws = null;
+    };
 
     // Fetch History
     const fetchHistory = async () => {
@@ -109,7 +129,9 @@ const TradingViewWidget = memo(({
                 throw new Error("Simulate non-crypto Asset");
             }
             const selectedInterval = intervalConfig[activeInterval] || intervalConfig['1M'];
-            const response = await fetch(`https://api.binance.com/api/v3/klines?symbol=${apiSymbol}&interval=${selectedInterval.api}&limit=${selectedInterval.limit}`);
+            const response = await fetch(`https://api.binance.com/api/v3/klines?symbol=${apiSymbol}&interval=${selectedInterval.api}&limit=${selectedInterval.limit}`, {
+              signal: fetchController.signal,
+            });
             if (!response.ok) throw new Error("Invalid Symbol or CORS");
             const data = await response.json();
             if (isMounted && Array.isArray(data)) {
@@ -130,6 +152,9 @@ const TradingViewWidget = memo(({
             }
         } catch (err) {
             // Mock Data Generator for Stocks, Funds, Options, etc.
+            if (!isMounted) return;
+            if (err?.name === 'AbortError') return;
+
             let basePrice = 150.0;
             if (symbol === 'SPY') basePrice = 484.50;
             if (symbol === 'ES1!') basePrice = 4855.25;
@@ -190,7 +215,9 @@ const TradingViewWidget = memo(({
     };
 
     const startBinanceStream = (apiSymbol, interval) => {
-        ws = new WebSocket(`wss://stream.binance.com:9443/ws/${apiSymbol.toLowerCase()}@kline_${interval}`);
+        closeSocket();
+        intentionalSocketClose = false;
+        ws = new WebSocket(`wss://stream.binance.com/ws/${apiSymbol.toLowerCase()}@kline_${interval}`);
         ws.onmessage = (event) => {
             if (!isMounted) return;
             const data = JSON.parse(event.data);
@@ -208,23 +235,24 @@ const TradingViewWidget = memo(({
             setPriceChange(openPrice ? ((nextClose - openPrice) / openPrice) * 100 : 0);
         };
         ws.onerror = () => {};
+        ws.onclose = () => {
+          if (!isMounted || intentionalSocketClose) return;
+          if (reconnectTimer) clearTimeout(reconnectTimer);
+          reconnectTimer = setTimeout(() => {
+            if (!isMounted) return;
+            startBinanceStream(apiSymbol, interval);
+          }, 1500);
+        };
     };
 
     fetchHistory();
 
     return () => {
       isMounted = false;
+      fetchController.abort();
       if (fallbackInterval) clearInterval(fallbackInterval);
-      if (ws) {
-          ws.onopen = null;
-          ws.onmessage = null;
-          ws.onerror = null;
-          if (ws.readyState === WebSocket.OPEN) {
-              ws.close(1000, "Component unmounted");
-          } else if (ws.readyState === WebSocket.CONNECTING) {
-              ws.onopen = () => ws.close(1000, "Component unmounted");
-          }
-      }
+      if (reconnectTimer) clearTimeout(reconnectTimer);
+      closeSocket();
       chart.remove();
     };
   }, [symbol, theme, activeInterval, intervalConfig]);
@@ -271,7 +299,7 @@ const TradingViewWidget = memo(({
   }, [positions, symbol]);
 
   return (
-    <div className={`flex flex-col h-full w-full rounded-[2rem] overflow-hidden shadow-2xl transition-all duration-300 ${
+    <div style={{ height, width }} className={`flex flex-col h-full w-full rounded-[2rem] overflow-hidden shadow-2xl transition-all duration-300 ${
       isDark
         ? 'bg-slate-900 border border-slate-800'
         : 'bg-white border border-slate-200 shadow-slate-200/70'

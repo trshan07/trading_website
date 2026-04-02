@@ -4,7 +4,7 @@ import AdvancedRealTimeChart from '../trading/TradingViewWidget';
 import { FaChartPie, FaWallet, FaArrowUp, FaArrowDown, FaCube, FaHistory, FaCheckCircle } from 'react-icons/fa';
 import { useTheme } from '../../context/ThemeContext';
 
-const PortfolioTab = ({ portfolio = {}, portfolioHistory = [], positions = [] }) => {
+const PortfolioTab = ({ portfolio = {}, positions = [] }) => {
   const { theme } = useTheme();
   
   return (
@@ -107,7 +107,7 @@ const PortfolioTab = ({ portfolio = {}, portfolioHistory = [], positions = [] })
                              <p className="text-sm font-black text-slate-900 dark:text-white tabular-nums italic transition-colors">${(pos.quantity * pos.currentPrice).toLocaleString()}</p>
                           </div>
                           <div className="text-right">
-                             <p className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1.5 font-bold transition-colors">Unrealized</p>
+                             <p className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1.5 transition-colors">Unrealized</p>
                              <p className={`text-sm font-black tabular-nums italic ${pos.pnl >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
                                 {pos.pnl >= 0 ? '+' : ''}{pos.pnl?.toLocaleString()}
                              </p>
@@ -176,4 +176,3 @@ const PortfolioTab = ({ portfolio = {}, portfolioHistory = [], positions = [] })
 };
 
 export default PortfolioTab;
-

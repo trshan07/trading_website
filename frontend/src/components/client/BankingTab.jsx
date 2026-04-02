@@ -11,6 +11,22 @@ import {
   FaCcDiscover, FaCalendarAlt, FaUser, FaBuilding,
   FaIdCard, FaHome, FaPhone, FaEnvelope, FaBars
 } from 'react-icons/fa';
+import {
+  BANK_ACCOUNT_TYPES,
+  BANK_WIZARD_STEPS,
+  BANKING_TABS,
+  BENEFICIARY_RELATIONSHIPS,
+  DEPOSIT_METHODS,
+  INITIAL_BANK_FORM,
+  SUPPORTED_COUNTRIES,
+  SUPPORTED_CURRENCIES,
+  WITHDRAWAL_METHODS,
+} from './banking/config';
+import { maskAccountNumber } from './banking/utils';
+import BankAccountsSection from './banking/sections/BankAccountsSection';
+import CreditCardsSection from './banking/sections/CreditCardsSection';
+import PaymentMethodsSection from './banking/sections/PaymentMethodsSection';
+import TransactionHistorySection from './banking/sections/TransactionHistorySection';
 
 const BankingTab = ({ 
   walletData = {}, 
@@ -18,15 +34,11 @@ const BankingTab = ({
   creditCards = [], 
   paymentMethods = [], 
   transactions = [],
-  onTransfer,
   onDeposit,
   onWithdraw,
   onAddBankAccount,
-  onAddCreditCard,
   onDeleteBankAccount,
-  onDeleteCreditCard,
   onSetDefaultBankAccount,
-  onSetDefaultCreditCard,
   onShowTransferModal,
   isDemo
 }) => {
@@ -42,6 +54,7 @@ const BankingTab = ({
   const [showErrorMessage, setShowErrorMessage] = useState('');
   const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1200);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
+  const [bankFormStep, setBankFormStep] = useState(1);
 
   // Handle window resize
   useEffect(() => {
@@ -54,153 +67,63 @@ const BankingTab = ({
   }, []);
 
   const isMobile = windowWidth < 768;
-  const isTablet = windowWidth >= 768 && windowWidth < 1024;
-
   // Form states for adding bank account
-  const [bankForm, setBankForm] = useState({
-    bankName: '',
-    accountName: '',
-    accountNumber: '',
-    confirmAccountNumber: '',
-    routingNumber: '',
-    accountType: 'checking',
-    isDefault: false
-  });
-
-  // Form states for adding credit card
+  const [bankForm, setBankForm] = useState(() => ({ ...INITIAL_BANK_FORM }));
   const [cardForm, setCardForm] = useState({
     cardholderName: '',
     cardNumber: '',
-    expiryMonth: '',
-    expiryYear: '',
+    expiry: '',
     cvv: '',
     billingAddress: '',
-    billingCity: '',
-    billingState: '',
-    billingZip: '',
-    billingCountry: 'USA',
-    isDefault: false
   });
 
   const [formErrors, setFormErrors] = useState({});
+  const [cardErrors, setCardErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isCardSubmitting, setIsCardSubmitting] = useState(false);
 
   const renderModal = (content) => {
     if (typeof document === 'undefined') return null;
     return createPortal(content, document.body);
   };
 
-  const bankingTabs = [
-    { id: 'overview', label: 'Overview', icon: FaUniversity },
-    { id: 'transfer', label: 'Transfer', icon: FaExchangeAlt },
-    { id: 'withdraw', label: 'Withdraw', icon: FaMoneyBillWave },
-    { id: 'accounts', label: 'Accounts', icon: FaLandmark },
-    { id: 'cards', label: 'Cards', icon: FaCreditCard },
-    { id: 'payment', label: 'Payment', icon: FaMobileAlt },
-    { id: 'history', label: 'History', icon: FaHistory }
-  ];
-
-  const quickAmounts = [100, 500, 1000, 5000, 10000];
-
-  const depositMethods = [
-    { id: 'bank', name: 'Bank Transfer', icon: FaUniversity, processing: '1-3 days', fee: 'Free' },
-    { id: 'card', name: 'Credit/Debit Card', icon: FaCreditCard, processing: 'Instant', fee: '2.5%' },
-    { id: 'paypal', name: 'PayPal', icon: FaPaypal, processing: 'Instant', fee: '1.5%' },
-    { id: 'crypto', name: 'Cryptocurrency', icon: FaBitcoin, processing: '30 min', fee: '0.1%' }
-  ];
-
-  const withdrawalMethods = [
-    { id: 'bank', name: 'Bank Transfer', icon: FaUniversity, processing: '1-3 days', fee: 'Free', min: 50, max: 50000 },
-    { id: 'card', name: 'Credit/Debit Card', icon: FaCreditCard, processing: '3-5 days', fee: '1%', min: 20, max: 10000 },
-    { id: 'paypal', name: 'PayPal', icon: FaPaypal, processing: '24 hours', fee: '2%', min: 10, max: 5000 },
-    { id: 'crypto', name: 'Cryptocurrency', icon: FaBitcoin, processing: '1 hour', fee: '0.0005 BTC', min: 50, max: 50000 }
-  ];
-
-  const accountTypes = [
-    { value: 'checking', label: 'Checking Account' },
-    { value: 'savings', label: 'Savings Account' },
-    { value: 'business', label: 'Business Account' }
-  ];
-
-  const countries = ['USA', 'UK', 'Canada', 'Australia', 'Germany', 'France', 'Japan', 'Singapore'];
-  
-  const months = Array.from({ length: 12 }, (_, i) => {
-    const month = (i + 1).toString().padStart(2, '0');
-    return { value: month, label: month };
-  });
-  
-  const years = Array.from({ length: 10 }, (_, i) => {
-    const year = (new Date().getFullYear() + i).toString();
-    return { value: year, label: year };
-  });
-
-  const states = [
-    'AL', 'AK', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'FL', 'GA',
-    'HI', 'ID', 'IL', 'IN', 'IA', 'KS', 'KY', 'LA', 'ME', 'MD',
-    'MA', 'MI', 'MN', 'MS', 'MO', 'MT', 'NE', 'NV', 'NH', 'NJ',
-    'NM', 'NY', 'NC', 'ND', 'OH', 'OK', 'OR', 'PA', 'RI', 'SC',
-    'SD', 'TN', 'TX', 'UT', 'VT', 'VA', 'WA', 'WV', 'WI', 'WY'
-  ];
-
-  const validateBankForm = () => {
+  const validateBankForm = (step = bankFormStep) => {
     const errors = {};
-    
-    if (!bankForm.bankName.trim()) errors.bankName = 'Bank name is required';
-    if (!bankForm.accountName.trim()) errors.accountName = 'Account holder name is required';
-    if (!bankForm.accountNumber.trim()) {
-      errors.accountNumber = 'Account number is required';
-    } else if (!/^\d{8,17}$/.test(bankForm.accountNumber.replace(/\s/g, ''))) {
-      errors.accountNumber = 'Invalid account number (8-17 digits)';
-    }
-    if (bankForm.accountNumber !== bankForm.confirmAccountNumber) {
-      errors.confirmAccountNumber = 'Account numbers do not match';
-    }
-    if (!bankForm.routingNumber.trim()) {
-      errors.routingNumber = 'Routing number is required';
-    } else if (!/^\d{9}$/.test(bankForm.routingNumber)) {
-      errors.routingNumber = 'Routing number must be 9 digits';
+
+    if (step >= 1) {
+      if (!bankForm.bankName.trim()) errors.bankName = 'Bank name is required';
+      if (!bankForm.branchName.trim()) errors.branchName = 'Branch name is required';
+      if (!bankForm.country) errors.country = 'Country is required';
     }
 
-    return errors;
-  };
+    if (step >= 2) {
+      if (!bankForm.accountHolderName.trim()) errors.accountHolderName = 'Account holder name is required';
+      if (!bankForm.accountNumber.trim()) {
+        errors.accountNumber = 'Account number is required';
+      } else if (!/^[A-Za-z0-9]{8,34}$/.test(bankForm.accountNumber.replace(/\s/g, ''))) {
+        errors.accountNumber = 'Use 8 to 34 letters or digits';
+      }
+      if (!bankForm.accountType) errors.accountType = 'Account type is required';
+      if (!bankForm.currency.trim()) errors.currency = 'Currency is required';
+      if (!bankForm.swiftCode.trim()) {
+        errors.swiftCode = 'SWIFT / BIC code is required';
+      } else if (!/^[A-Za-z0-9]{8,11}$/.test(bankForm.swiftCode.trim())) {
+        errors.swiftCode = 'SWIFT / BIC must be 8 to 11 characters';
+      }
+      if (!bankForm.beneficiaryName.trim()) errors.beneficiaryName = 'Beneficiary name is required';
+      if (!bankForm.relationship) errors.relationship = 'Relationship is required';
+    }
 
-  const validateCardForm = () => {
-    const errors = {};
-    
-    if (!cardForm.cardholderName.trim()) errors.cardholderName = 'Cardholder name is required';
-    
-    if (!cardForm.cardNumber.trim()) {
-      errors.cardNumber = 'Card number is required';
-    } else {
-      const cardNumberClean = cardForm.cardNumber.replace(/\s/g, '');
-      if (!/^\d{13,19}$/.test(cardNumberClean)) {
-        errors.cardNumber = 'Invalid card number';
-      }
+    if (step >= 3) {
+      if (!bankForm.proofOfBankAccountName) errors.proofOfBankAccount = 'Proof of bank account is required';
+      if (!/^\d{4,6}$/.test(bankForm.withdrawalPin)) errors.withdrawalPin = 'PIN must be 4 to 6 digits';
+      if (!/^\d{6}$/.test(bankForm.otpCode)) errors.otpCode = 'OTP must be 6 digits';
     }
-    
-    if (!cardForm.expiryMonth || !cardForm.expiryYear) {
-      errors.expiry = 'Expiry date is required';
-    } else {
-      const currentDate = new Date();
-      const expiryDate = new Date(parseInt(cardForm.expiryYear), parseInt(cardForm.expiryMonth) - 1);
-      if (expiryDate < currentDate) {
-        errors.expiry = 'Card has expired';
-      }
-    }
-    
-    if (!cardForm.cvv.trim()) {
-      errors.cvv = 'CVV is required';
-    } else if (!/^\d{3,4}$/.test(cardForm.cvv)) {
-      errors.cvv = 'Invalid CVV';
-    }
-    
-    if (!cardForm.billingAddress.trim()) errors.billingAddress = 'Billing address is required';
-    if (!cardForm.billingCity.trim()) errors.billingCity = 'City is required';
-    if (!cardForm.billingState) errors.billingState = 'State is required';
-    if (!cardForm.billingZip.trim()) {
-      errors.billingZip = 'ZIP code is required';
-    } else if (!/^\d{5}(-\d{4})?$/.test(cardForm.billingZip)) {
-      errors.billingZip = 'Invalid ZIP code';
+
+    if (step >= 4) {
+      if (!bankForm.confirmOwnership) errors.confirmOwnership = 'You must confirm bank account ownership';
+      if (!bankForm.acceptTerms) errors.acceptTerms = 'You must accept the Terms & Conditions';
+      if (!bankForm.authorizeTransactions) errors.authorizeTransactions = 'Authorization is required';
     }
 
     return errors;
@@ -208,40 +131,160 @@ const BankingTab = ({
 
   const handleBankFormChange = (e) => {
     const { name, value, type, checked } = e.target;
+    let nextValue = type === 'checkbox' ? checked : value;
+
+    if (type !== 'checkbox') {
+      if (name === 'swiftCode' || name === 'iban') nextValue = value.toUpperCase();
+      if (name === 'withdrawalPin' || name === 'otpCode') nextValue = value.replace(/\D/g, '');
+      if (name === 'accountNumber') nextValue = value.replace(/\s/g, '');
+    }
+
     setBankForm(prev => ({
       ...prev,
-      [name]: type === 'checkbox' ? checked : value
+      [name]: nextValue
     }));
     if (formErrors[name]) {
       setFormErrors(prev => ({ ...prev, [name]: '' }));
     }
   };
 
+  const handleBankFileChange = (e) => {
+    const file = e.target.files?.[0] || null;
+    setBankForm(prev => ({
+      ...prev,
+      proofOfBankAccount: file,
+      proofOfBankAccountName: file?.name || ''
+    }));
+    if (formErrors.proofOfBankAccount) {
+      setFormErrors(prev => ({ ...prev, proofOfBankAccount: '' }));
+    }
+  };
+
+  const resetCardForm = () => {
+    setCardForm({
+      cardholderName: '',
+      cardNumber: '',
+      expiry: '',
+      cvv: '',
+      billingAddress: '',
+    });
+    setCardErrors({});
+  };
+
+  const closeCardModal = () => {
+    setShowAddCard(false);
+    resetCardForm();
+  };
+
   const handleCardFormChange = (e) => {
-    const { name, value, type, checked } = e.target;
-    
+    const { name, value } = e.target;
+    let nextValue = value;
+
     if (name === 'cardNumber') {
-      const cleaned = value.replace(/\s/g, '');
-      const formatted = cleaned.replace(/(\d{4})/g, '$1 ').trim();
-      setCardForm(prev => ({ ...prev, [name]: formatted }));
+      const digits = value.replace(/\D/g, '').slice(0, 19);
+      nextValue = digits.replace(/(\d{4})(?=\d)/g, '$1 ').trim();
+    }
+
+    if (name === 'expiry') {
+      const digits = value.replace(/\D/g, '').slice(0, 4);
+      if (digits.length <= 2) {
+        nextValue = digits;
+      } else {
+        nextValue = `${digits.slice(0, 2)}/${digits.slice(2)}`;
+      }
+    }
+
+    if (name === 'cvv') {
+      nextValue = value.replace(/\D/g, '').slice(0, 4);
+    }
+
+    setCardForm((prev) => ({ ...prev, [name]: nextValue }));
+    if (cardErrors[name]) {
+      setCardErrors((prev) => ({ ...prev, [name]: '' }));
+    }
+  };
+
+  const validateCardForm = () => {
+    const errors = {};
+    const cleanCardNumber = cardForm.cardNumber.replace(/\s/g, '');
+
+    if (!cardForm.cardholderName.trim()) errors.cardholderName = 'Cardholder name is required';
+    if (!/^\d{13,19}$/.test(cleanCardNumber)) errors.cardNumber = 'Enter a valid card number';
+
+    if (!/^(0[1-9]|1[0-2])\/\d{2}$/.test(cardForm.expiry)) {
+      errors.expiry = 'Use MM/YY format';
     } else {
-      setCardForm(prev => ({
-        ...prev,
-        [name]: type === 'checkbox' ? checked : value
-      }));
+      const [month, year] = cardForm.expiry.split('/').map((part) => parseInt(part, 10));
+      const now = new Date();
+      const currentMonth = now.getMonth() + 1;
+      const currentYear = now.getFullYear() % 100;
+      if (year < currentYear || (year === currentYear && month < currentMonth)) {
+        errors.expiry = 'Card is expired';
+      }
     }
-    
-    if (formErrors[name]) {
-      setFormErrors(prev => ({ ...prev, [name]: '' }));
+
+    if (!/^\d{3,4}$/.test(cardForm.cvv)) errors.cvv = 'Enter a valid CVV';
+    if (!cardForm.billingAddress.trim()) errors.billingAddress = 'Billing address is required';
+
+    return errors;
+  };
+
+  const handleAddCardDetails = async (e) => {
+    e.preventDefault();
+    const errors = validateCardForm();
+    if (Object.keys(errors).length > 0) {
+      setCardErrors(errors);
+      return;
     }
+
+    setIsCardSubmitting(true);
+    try {
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      setShowSuccessMessage('Card details captured. Process tokenization via Stripe before charging.');
+      setTimeout(() => setShowSuccessMessage(''), 3500);
+      closeCardModal();
+    } catch {
+      setShowErrorMessage('Unable to capture card details. Please try again.');
+      setTimeout(() => setShowErrorMessage(''), 3000);
+    } finally {
+      setIsCardSubmitting(false);
+    }
+  };
+
+  const resetBankForm = () => {
+    setBankForm({ ...INITIAL_BANK_FORM });
+    setBankFormStep(1);
+    setFormErrors({});
+  };
+
+  const closeBankAccountModal = () => {
+    setShowAddAccount(false);
+    resetBankForm();
+  };
+
+  const goToNextBankStep = () => {
+    const errors = validateBankForm(bankFormStep);
+    if (Object.keys(errors).length > 0) {
+      setFormErrors(errors);
+      return;
+    }
+    setFormErrors({});
+    setBankFormStep(prev => Math.min(prev + 1, BANK_WIZARD_STEPS.length));
+  };
+
+  const goToPreviousBankStep = () => {
+    setFormErrors({});
+    setBankFormStep(prev => Math.max(prev - 1, 1));
   };
 
   const handleAddBankAccount = async (e) => {
     e.preventDefault();
-    const errors = validateBankForm();
+    const errors = validateBankForm(4);
     
     if (Object.keys(errors).length > 0) {
       setFormErrors(errors);
+      const firstInvalidStep = [1, 2, 3, 4].find((step) => Object.keys(validateBankForm(step)).length > 0) || 1;
+      setBankFormStep(firstInvalidStep);
       return;
     }
 
@@ -252,105 +295,34 @@ const BankingTab = ({
       
       const newAccount = {
         id: Date.now().toString(),
-        ...bankForm,
+        bankName: bankForm.bankName,
+        branchName: bankForm.branchName,
+        branchCode: bankForm.branchCode,
+        country: bankForm.country,
+        accountName: bankForm.accountHolderName,
+        accountHolderName: bankForm.accountHolderName,
+        accountNumber: bankForm.accountNumber,
+        maskedAccountNumber: maskAccountNumber(bankForm.accountNumber),
+        accountType: bankForm.accountType,
+        currency: bankForm.currency,
+        swiftCode: bankForm.swiftCode.toUpperCase(),
+        iban: bankForm.iban,
+        beneficiaryName: bankForm.beneficiaryName,
+        relationship: bankForm.relationship,
+        proofOfBankAccountName: bankForm.proofOfBankAccountName,
         isVerified: false,
         isDefault: bankForm.isDefault || bankAccounts.length === 0
       };
-      
-      delete newAccount.confirmAccountNumber;
       
       if (onAddBankAccount) {
         onAddBankAccount(newAccount);
       }
       
-      setShowSuccessMessage('Bank account added successfully!');
+      setShowSuccessMessage('Bank account linking request submitted successfully!');
       setTimeout(() => setShowSuccessMessage(''), 3000);
-      
-      setBankForm({
-        bankName: '',
-        accountName: '',
-        accountNumber: '',
-        confirmAccountNumber: '',
-        routingNumber: '',
-        accountType: 'checking',
-        isDefault: false
-      });
-      
-      setShowAddAccount(false);
-      setShowAddCard(false);
-    } catch (error) {
+      closeBankAccountModal();
+    } catch {
       setShowErrorMessage('Failed to add bank account. Please try again.');
-      setTimeout(() => setShowErrorMessage(''), 3000);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const handleAddCreditCard = async (e) => {
-    e.preventDefault();
-    const errors = validateCardForm();
-    
-    if (Object.keys(errors).length > 0) {
-      setFormErrors(errors);
-      return;
-    }
-
-    setIsSubmitting(true);
-    
-    try {
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      const cardNumberClean = cardForm.cardNumber.replace(/\s/g, '');
-      const last4 = cardNumberClean.slice(-4);
-      
-      let cardType = 'Unknown';
-      if (cardNumberClean.startsWith('4')) {
-        cardType = 'Visa';
-      } else if (cardNumberClean.startsWith('5')) {
-        cardType = 'Mastercard';
-      } else if (cardNumberClean.startsWith('3')) {
-        cardType = 'American Express';
-      } else if (cardNumberClean.startsWith('6')) {
-        cardType = 'Discover';
-      }
-      
-      const newCard = {
-        id: Date.now().toString(),
-        ...cardForm,
-        last4,
-        cardType,
-        isVerified: false,
-        isDefault: cardForm.isDefault || creditCards.length === 0,
-        availableCredit: 5000
-      };
-      
-      delete newCard.cvv;
-      delete newCard.cardNumber;
-      
-      if (onAddCreditCard) {
-        onAddCreditCard(newCard);
-      }
-      
-      setShowSuccessMessage('Credit card added successfully!');
-      setTimeout(() => setShowSuccessMessage(''), 3000);
-      
-      setCardForm({
-        cardholderName: '',
-        cardNumber: '',
-        expiryMonth: '',
-        expiryYear: '',
-        cvv: '',
-        billingAddress: '',
-        billingCity: '',
-        billingState: '',
-        billingZip: '',
-        billingCountry: 'USA',
-        isDefault: false
-      });
-      
-      setShowAddCard(false);
-    } catch (error) {
-      setShowErrorMessage('Failed to add credit card. Please try again.');
       setTimeout(() => setShowErrorMessage(''), 3000);
     } finally {
       setIsSubmitting(false);
@@ -407,28 +379,10 @@ const BankingTab = ({
     }
   };
 
-  const handleDeleteCard = (id) => {
-    if (window.confirm('Are you sure you want to delete this credit card?')) {
-      if (onDeleteCreditCard) {
-        onDeleteCreditCard(id);
-      }
-      setShowSuccessMessage('Credit card deleted successfully!');
-      setTimeout(() => setShowSuccessMessage(''), 3000);
-    }
-  };
-
   const handleSetDefaultAccount = (id) => {
     if (onSetDefaultBankAccount) {
       onSetDefaultBankAccount(id);
       setShowSuccessMessage('Default bank account updated!');
-      setTimeout(() => setShowSuccessMessage(''), 3000);
-    }
-  };
-
-  const handleSetDefaultCard = (id) => {
-    if (onSetDefaultCreditCard) {
-      onSetDefaultCreditCard(id);
-      setShowSuccessMessage('Default credit card updated!');
       setTimeout(() => setShowSuccessMessage(''), 3000);
     }
   };
@@ -490,252 +444,17 @@ const BankingTab = ({
     }
   };
 
-  // Bank Accounts Section - Responsive
-  const BankAccountsSection = () => (
-    <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 p-8 shadow-2xl shadow-slate-200/50 dark:shadow-black/20 transition-colors duration-300">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6 mb-10">
-        <div>
-          <h3 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tight italic">Financial Hub</h3>
-          <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-2 uppercase font-black tracking-[0.2em]">Linked Asset Accounts</p>
-        </div>
-        <button 
-          onClick={() => setShowAddAccount(true)}
-          className="w-full sm:w-auto px-8 py-4 bg-slate-900 dark:bg-gold-500 text-white dark:text-slate-900 rounded-[1.5rem] hover:bg-gold-600 dark:hover:bg-gold-400 transition-all shadow-xl shadow-slate-900/10 dark:shadow-gold-500/10 font-black uppercase tracking-widest text-[11px] flex items-center justify-center space-x-3 group"
-        >
-          <FaPlus size={10} className="text-gold-500 dark:text-slate-900 group-hover:text-white transition-colors" />
-          <span>Add Account</span>
-        </button>
-      </div>
-
-      <div className="grid grid-cols-1 gap-4">
-        {bankAccounts.map((account) => (
-          <div key={account.id} className="group bg-slate-50/50 dark:bg-slate-800/40 rounded-2xl p-5 border border-slate-100 dark:border-slate-800 hover:border-gold-500/30 transition-all">
-            <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
-              <div className="flex items-start space-x-4">
-                <div className="p-3 bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700 group-hover:border-gold-500/20 transition-colors">
-                  <FaUniversity className="text-gold-500 text-xl" />
-                </div>
-                <div>
-                  <div className="flex flex-wrap items-center gap-2 mb-1">
-                    <h4 className="text-slate-900 dark:text-white font-extrabold">{account.bankName}</h4>
-                    {account.isVerified && (
-                      <span className="px-2 py-0.5 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[10px] font-black rounded-full border border-emerald-100 dark:border-emerald-500/20 uppercase tracking-tighter">
-                        Verified
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-xs font-bold text-slate-500 dark:text-slate-400">
-                    {account.accountName} •••• {account.accountNumber.slice(-4)}
-                  </p>
-                  <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-1 uppercase font-bold">
-                    Routing: {account.routingNumber} • {account.accountType}
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
-                {account.isDefault && (
-                  <span className="px-3 py-1 bg-gold-50 dark:bg-gold-500/10 text-gold-600 dark:text-gold-400 text-[10px] font-black rounded-lg border border-gold-100 dark:border-gold-500/20 uppercase">Default</span>
-                )}
-                <div className="flex gap-1.5 ml-2">
-                  {!account.isDefault && bankAccounts.length > 1 && (
-                    <button 
-                      onClick={() => handleSetDefaultAccount(account.id)}
-                      className="p-2 bg-white dark:bg-slate-800 text-slate-400 dark:text-slate-500 hover:text-emerald-500 dark:hover:text-emerald-400 rounded-lg border border-slate-100 dark:border-slate-700 hover:border-emerald-100 transition-all"
-                    >
-                      <FaCheck size={12} />
-                    </button>
-                  )}
-                  <button 
-                    onClick={() => handleDeleteAccount(account.id)}
-                    className="p-2 bg-white dark:bg-slate-800 text-slate-400 dark:text-slate-500 hover:text-rose-500 dark:hover:text-rose-400 rounded-lg border border-slate-100 dark:border-slate-700 hover:border-rose-100 transition-all"
-                  >
-                    <FaTrash size={12} />
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {bankAccounts.length === 0 && (
-        <div className="text-center py-16 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-dashed border-slate-200 dark:border-slate-700">
-          <FaBuilding className="mx-auto text-slate-200 dark:text-slate-700 text-5xl mb-4" />
-          <p className="text-slate-400 dark:text-slate-500 font-bold uppercase tracking-widest text-sm">No Bank Accounts Linked</p>
-        </div>
-      )}
-    </div>
-  );
-
-  // CreditCardsSection - Responsive
-  const CreditCardsSection = () => (
-    <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 p-8 shadow-2xl shadow-slate-200/50 dark:shadow-black/20 transition-colors duration-300 mt-8">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6 mb-10">
-        <div>
-          <h3 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tight italic">Credit Lines</h3>
-          <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-2 uppercase font-black tracking-[0.2em]">Authorized Payment Vectors</p>
-        </div>
-        <button 
-          onClick={() => setShowAddCard(true)}
-          className="w-full sm:w-auto px-8 py-4 bg-slate-900 dark:bg-gold-500 text-white dark:text-slate-900 rounded-[1.5rem] hover:bg-gold-600 dark:hover:bg-gold-400 transition-all shadow-xl shadow-slate-900/10 dark:shadow-gold-500/10 font-black uppercase tracking-widest text-[11px] flex items-center justify-center space-x-3 group"
-        >
-          <FaPlus size={10} className="text-gold-500 dark:text-slate-900 group-hover:text-white transition-colors" />
-          <span>Register Card</span>
-        </button>
-      </div>
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-        {creditCards.map((card) => (
-          <div key={card.id} className="bg-slate-900 dark:bg-slate-800 rounded-[2rem] p-8 border border-slate-800 dark:border-slate-700 shadow-2xl shadow-slate-900/20 relative overflow-hidden group">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-gold-500/5 blur-[50px] rounded-full translate-x-16 -translate-y-16"></div>
-            <div className="flex justify-between items-start mb-10 relative">
-              {getCardIcon(card.cardType)}
-              {card.isDefault && (
-                <span className="px-3 py-1 bg-gold-500 text-white text-[9px] font-black rounded-lg uppercase tracking-widest italic shadow-lg shadow-gold-500/20">Primary Vector</span>
-              )}
-            </div>
-            <p className="text-white font-mono text-xl tracking-[0.2em] relative mb-6">•••• •••• •••• {card.last4}</p>
-            <p className="text-[10px] font-black text-gold-500 uppercase tracking-widest relative italic">{card.cardholderName}</p>
-            <div className="flex justify-between items-end mt-8 relative pt-6 border-t border-white/5">
-              <div>
-                <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest">Valid Thru</p>
-                <p className="text-xs font-black text-white italic">{card.expiryMonth}/{card.expiryYear}</p>
-              </div>
-              <div className="text-right">
-                <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest">Limit</p>
-                <p className="text-xs font-black text-emerald-400 italic">${card.availableCredit?.toLocaleString()}</p>
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {creditCards.length === 0 && (
-        <div className="text-center py-8">
-          <FaCreditCard className="mx-auto text-gold-500/30 text-3xl sm:text-4xl mb-3" />
-          <p className="text-gold-500/50 text-sm sm:text-base">No credit cards added yet</p>
-        </div>
-      )}
-    </div>
-  );
-
-  // Payment Methods Section - Responsive
-  const PaymentMethodsSection = () => (
-    <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 p-8 shadow-2xl shadow-slate-200/50 dark:shadow-black/20 transition-colors duration-300 mt-8">
-      <h3 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tight italic mb-10">Digital Processors</h3>
-      
-      <div className="space-y-4">
-        {paymentMethods.map((method) => (
-          <div key={method.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-6 bg-slate-50 dark:bg-slate-800 rounded-[1.5rem] border border-slate-100 dark:border-slate-700 gap-6 group hover:bg-white dark:hover:bg-slate-800/80 hover:shadow-2xl hover:shadow-slate-200/50 dark:hover:shadow-black/20 transition-all duration-300 transform hover:-translate-y-1">
-            <div className="flex items-center space-x-5">
-              <div className="p-4 bg-white dark:bg-slate-700 rounded-xl shadow-sm border border-slate-50 dark:border-slate-600 group-hover:border-gold-500/20 transition-colors">
-                {method.method === 'PayPal' && <FaPaypal className="text-blue-500 text-2xl" />}
-                {method.method === 'Skrill' && <FaMoneyBillWave className="text-orange-500 text-2xl" />}
-                {method.method === 'Neteller' && <FaMoneyBillWave className="text-emerald-500 text-2xl" />}
-              </div>
-              <div>
-                <p className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-widest">{method.method}</p>
-                <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 italic lowercase">{method.email}</p>
-              </div>
-            </div>
-            <div className="flex items-center space-x-4">
-              {method.isVerified ? (
-                <span className="flex items-center px-3 py-1 bg-emerald-500 text-white text-[9px] font-black rounded-lg uppercase tracking-widest shadow-sm">
-                  <FaCheck size={8} className="mr-1.5" /> Verified Sink
-                </span>
-              ) : (
-                <span className="flex items-center px-3 py-1 bg-rose-500 text-white text-[9px] font-black rounded-lg uppercase tracking-widest shadow-sm">
-                  <FaTimes size={8} className="mr-1.5" /> Unverified Sink
-                </span>
-              )}
-              {method.isDefault && (
-                <span className="px-3 py-1 bg-slate-900 dark:bg-gold-500 text-gold-500 dark:text-slate-900 text-[9px] font-black rounded-lg uppercase tracking-widest shadow-sm">Master Link</span>
-              )}
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-
-  // Transaction History Section - Responsive
-  const TransactionHistorySection = () => (
-    <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 overflow-hidden shadow-sm transition-colors duration-300">
-      <div className="p-6 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50">
-        <h3 className="text-lg font-bold text-slate-900 dark:text-white uppercase tracking-tight">Transaction History</h3>
-        <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-1 uppercase font-black tracking-widest">Recent Activity Logs</p>
-      </div>
-      
-      <div className="p-2 sm:p-6 overflow-x-auto">
-        <table className="w-full border-separate border-spacing-y-2">
-          <thead>
-            <tr className="text-[10px] uppercase font-black text-slate-400 dark:text-slate-500 tracking-widest">
-              <th className="px-6 py-4 text-left font-black">Date</th>
-              <th className="px-6 py-4 text-left font-black">Type</th>
-              <th className="px-6 py-4 text-right font-black">Amount</th>
-              <th className="px-6 py-4 text-left font-black">Method</th>
-              {!isMobile && <th className="px-6 py-4 text-left font-black">Reference</th>}
-              <th className="px-6 py-4 text-center font-black">Status</th>
-              <th className="px-6 py-4 text-center font-black">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {transactions.map((tx) => (
-              <tr key={tx.id} className="group bg-white dark:bg-slate-800/40 hover:bg-slate-50/50 dark:hover:bg-slate-800 transition-all border border-slate-100 dark:border-slate-800">
-                <td className="px-6 py-4 first:rounded-l-xl border-y border-l border-slate-100 dark:border-slate-800 group-hover:border-gold-500/20">
-                  <span className="text-xs font-bold text-slate-400 dark:text-slate-500">{tx.date}</span>
-                </td>
-                <td className="px-6 py-4 border-y border-slate-100 dark:border-slate-800 group-hover:border-gold-500/20">
-                  <div className="flex items-center space-x-2">
-                    {tx.type === 'Deposit' && <div className="p-1.5 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-500 rounded-lg"><FaArrowDown size={10} /></div>}
-                    {tx.type === 'Withdrawal' && <div className="p-1.5 bg-rose-50 dark:bg-rose-500/10 text-rose-500 rounded-lg"><FaArrowUp size={10} /></div>}
-                    {tx.type === 'Transfer' && <div className="p-1.5 bg-amber-50 dark:bg-amber-500/10 text-amber-500 rounded-lg"><FaExchangeAlt size={10} /></div>}
-                    <span className="text-sm font-extrabold text-slate-900 dark:text-white uppercase tracking-tighter transition-colors">{tx.type}</span>
-                  </div>
-                </td>
-                <td className="px-6 py-4 text-right border-y border-slate-100 dark:border-slate-800 group-hover:border-gold-500/20">
-                  <span className={`text-sm font-black ${
-                    tx.type === 'Deposit' ? 'text-emerald-500' : 
-                    tx.type === 'Withdrawal' ? 'text-rose-500' : 'text-slate-900 dark:text-white'
-                  }`}>
-                    {tx.type === 'Withdrawal' ? '-' : '+'}${tx.amount.toLocaleString()}
-                  </span>
-                </td>
-                <td className="px-6 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 border-y border-slate-100 dark:border-slate-800 group-hover:border-gold-500/20 uppercase tracking-tighter">{tx.method}</td>
-                {!isMobile && <td className="px-6 py-4 text-[10px] font-bold text-slate-300 dark:text-slate-600 border-y border-slate-100 dark:border-slate-800 group-hover:border-gold-500/20">{tx.reference}</td>}
-                <td className="px-6 py-4 border-y border-slate-100 dark:border-slate-800 group-hover:border-gold-500/20 text-center">
-                  <span className={`px-2 py-1 text-[9px] font-black rounded-full uppercase tracking-widest ${
-                    tx.status === 'Completed' ? 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 border border-emerald-100 dark:border-emerald-500/20' : 
-                    tx.status === 'Pending' ? 'bg-amber-50 dark:bg-amber-500/10 text-amber-600 border border-amber-100 dark:border-amber-500/20' : 
-                    'bg-rose-50 dark:bg-rose-500/10 text-rose-600 border border-rose-100 dark:border-rose-500/20'
-                  }`}>
-                    {tx.status}
-                  </span>
-                </td>
-                <td className="px-6 py-4 last:rounded-r-xl border-y border-r border-slate-100 dark:border-slate-800 group-hover:border-gold-500/20 text-center">
-                  <button className="p-1.5 bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 rounded-lg hover:bg-gold-500 hover:text-white transition-all">
-                    <FaDownload size={12} />
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
-
   return (
     <div className="space-y-4 sm:space-y-6">
       {/* Demo Mode Virtual Environment Banner */}
       {isDemo && (
-        <div className="bg-amber-500/5 border border-amber-500/20 rounded-[2rem] p-6 mb-6">
-          <div className="flex items-center space-x-4">
+        <div className="bg-amber-500/5 border border-amber-500/20 rounded-[2rem] p-4 sm:p-6 mb-6">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-4">
             <div className="p-3 bg-amber-500 text-slate-900 rounded-2xl shadow-lg shadow-amber-500/20">
               <FaShieldAlt size={20} />
             </div>
             <div>
-              <h4 className="text-sm font-black text-amber-500 uppercase tracking-widest italic leading-none mb-1 text-left">Virtual Asset Environment</h4>
+              <h4 className="text-sm font-black text-amber-500 uppercase tracking-[0.14em] sm:tracking-widest italic leading-none mb-1 text-left">Virtual Asset Environment</h4>
               <p className="text-xs font-medium text-slate-400 text-left">All financial actions in this terminal are simulated. No real-world capital is being moved.</p>
             </div>
           </div>
@@ -743,16 +462,16 @@ const BankingTab = ({
       )}
       {/* Success/Error Messages */}
       {showSuccessMessage && (
-        <div className="fixed top-4 right-4 z-50 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg flex items-center space-x-2">
+        <div className="fixed top-3 sm:top-4 left-3 right-3 sm:left-auto sm:right-4 sm:max-w-md z-50 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg flex items-center space-x-2">
           <FaCheck />
-          <span>{showSuccessMessage}</span>
+          <span className="text-sm break-words">{showSuccessMessage}</span>
         </div>
       )}
       
       {showErrorMessage && (
-        <div className="fixed top-4 right-4 z-50 bg-rose-500 text-white px-4 py-2 rounded-lg shadow-lg flex items-center space-x-2">
+        <div className="fixed top-3 sm:top-4 left-3 right-3 sm:left-auto sm:right-4 sm:max-w-md z-50 bg-rose-500 text-white px-4 py-2 rounded-lg shadow-lg flex items-center space-x-2">
           <FaTimes />
-          <span>{showErrorMessage}</span>
+          <span className="text-sm break-words">{showErrorMessage}</span>
         </div>
       )}
 
@@ -765,16 +484,16 @@ const BankingTab = ({
               className="w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 rounded-2xl text-slate-900 dark:text-white font-black border border-slate-100 dark:border-slate-700 flex items-center justify-between uppercase tracking-widest text-[11px]"
             >
               <span className="flex items-center">
-                {bankingTabs.find(tab => tab.id === activeBankingTab)?.icon && 
-                  React.createElement(bankingTabs.find(tab => tab.id === activeBankingTab).icon, { className: "mr-4 text-gold-500" })}
-                {bankingTabs.find(tab => tab.id === activeBankingTab)?.label}
+                {BANKING_TABS.find(tab => tab.id === activeBankingTab)?.icon && 
+                  React.createElement(BANKING_TABS.find(tab => tab.id === activeBankingTab).icon, { className: "mr-4 text-gold-500" })}
+                {BANKING_TABS.find(tab => tab.id === activeBankingTab)?.label}
               </span>
               <FaBars className="text-slate-400 dark:text-slate-500" />
             </button>
             
             {showMobileMenu && (
-              <div className="absolute top-full left-0 right-0 mx-2 mt-3 bg-white dark:bg-slate-900 rounded-[2rem] border border-slate-100 dark:border-slate-800 shadow-2xl z-20 overflow-hidden ring-1 ring-slate-100 dark:ring-slate-800">
-                {bankingTabs.map((item) => (
+              <div className="absolute top-full left-0 right-0 mx-2 mt-3 bg-white dark:bg-slate-900 rounded-[2rem] border border-slate-100 dark:border-slate-800 shadow-2xl z-20 overflow-hidden ring-1 ring-slate-100 dark:ring-slate-800 max-h-[60vh] overflow-y-auto">
+                {BANKING_TABS.map((item) => (
                   <button
                     key={item.id}
                     onClick={() => {
@@ -794,7 +513,7 @@ const BankingTab = ({
           </div>
         ) : (
           <div className="flex space-x-3 p-1">
-            {bankingTabs.map((item) => (
+            {BANKING_TABS.map((item) => (
               <button
                 key={item.id}
                 onClick={() => setActiveBankingTab(item.id)}
@@ -813,7 +532,7 @@ const BankingTab = ({
       </div>
 
       {/* Banking Content */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
         {/* Left Column - Wallet Info */}
         <div className="col-span-1 space-y-6">
           {/* Wallet Balance Card */}
@@ -904,7 +623,7 @@ const BankingTab = ({
                   ))}
                 </div>
               </div>
-              <TransactionHistorySection />
+              <TransactionHistorySection transactions={transactions} isMobile={isMobile} />
             </>
           )}
 
@@ -945,10 +664,24 @@ const BankingTab = ({
             </div>
           )}
 
-          {activeBankingTab === 'accounts' && <BankAccountsSection />}
-          {activeBankingTab === 'cards' && <CreditCardsSection />}
-          {activeBankingTab === 'payment' && <PaymentMethodsSection />}
-          {activeBankingTab === 'history' && <TransactionHistorySection />}
+          {activeBankingTab === 'accounts' && (
+            <BankAccountsSection
+              bankAccounts={bankAccounts}
+              resetBankForm={resetBankForm}
+              setShowAddAccount={setShowAddAccount}
+              handleSetDefaultAccount={handleSetDefaultAccount}
+              handleDeleteAccount={handleDeleteAccount}
+            />
+          )}
+          {activeBankingTab === 'cards' && (
+            <CreditCardsSection
+              creditCards={creditCards}
+              setShowAddCard={setShowAddCard}
+              getCardIcon={getCardIcon}
+            />
+          )}
+          {activeBankingTab === 'payment' && <PaymentMethodsSection paymentMethods={paymentMethods} />}
+          {activeBankingTab === 'history' && <TransactionHistorySection transactions={transactions} isMobile={isMobile} />}
         </div>
       </div>
 
@@ -970,7 +703,7 @@ const BankingTab = ({
               <div className="space-y-4">
                 <label className="text-[10px] uppercase font-black text-slate-400 tracking-[0.3em] ml-2">Channel Selection</label>
                 <div className="grid grid-cols-1 gap-3">
-                  {depositMethods.map((method) => (
+                  {DEPOSIT_METHODS.map((method) => (
                     <button
                       key={method.id}
                       onClick={() => setSelectedMethod(method.id)}
@@ -1047,7 +780,7 @@ const BankingTab = ({
             <div className="space-y-8">
               {/* Method Selection */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {withdrawalMethods.map((method) => (
+                {WITHDRAWAL_METHODS.map((method) => (
                   <button
                     key={method.id}
                     onClick={() => setSelectedMethod(method.id)}
@@ -1098,85 +831,263 @@ const BankingTab = ({
         </div>
       )}
 
-      {/* Add Bank Account Modal */}
+      {/* Redesigned Bank Account Modal */}
       {showAddAccount && renderModal(
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xl flex items-center justify-center z-50 overflow-y-auto p-4 sm:p-8">
-          <div className="bg-white dark:bg-slate-900 rounded-[3rem] border border-slate-100 dark:border-slate-800 p-6 sm:p-12 w-full max-w-2xl my-8 max-h-[90vh] overflow-y-auto custom-scrollbar shadow-[0_0_120px_rgba(0,0,0,0.15)] transition-colors">
-            <div className="flex items-center justify-between mb-12">
-              <div>
-                <h3 className="text-3xl font-black text-slate-900 dark:text-white tracking-tighter italic uppercase transition-colors">Vault Registry</h3>
-                <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-2 uppercase font-black tracking-[0.3em] transition-colors">Authorized Financial Interface Linking</p>
-              </div>
-              <button onClick={() => setShowAddAccount(false)} className="w-14 h-14 bg-slate-50 dark:bg-slate-800 text-slate-400 dark:text-slate-500 hover:text-rose-500 dark:hover:text-rose-400 rounded-[1.5rem] flex items-center justify-center transition-all border border-slate-100 dark:border-slate-700">
-                <FaTimes size={20} />
-              </button>
-            </div>
-            
-            <form onSubmit={handleAddBankAccount} className="space-y-10">
-              <div className="space-y-8">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                  <div className="space-y-2">
-                    <label className="block text-[10px] uppercase font-black text-slate-400 tracking-[0.3em] ml-2">Institution Code *</label>
-                    <input
-                      type="text"
-                      name="bankName"
-                      value={bankForm.bankName}
-                      onChange={handleBankFormChange}
-                      className={`w-full px-8 py-5 bg-slate-50 dark:bg-slate-800 border rounded-2xl text-xs font-black italic focus:outline-none transition-all ${
-                        formErrors.bankName ? 'border-rose-500' : 'border-slate-100 dark:border-slate-700 focus:ring-8 focus:ring-slate-900/5 dark:focus:ring-gold-500/10 focus:bg-white dark:focus:bg-slate-800 text-slate-900 dark:text-white'
-                      }`}
-                      placeholder="e.g. JPMorgan Perpetual"
-                    />
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xl flex items-start sm:items-center justify-center z-50 overflow-y-auto p-3 sm:p-8">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl sm:rounded-[3rem] border border-slate-100 dark:border-slate-800 w-full max-w-4xl my-0 sm:my-8 h-[100dvh] sm:h-auto sm:max-h-[92vh] overflow-hidden shadow-[0_0_120px_rgba(0,0,0,0.15)] transition-colors flex flex-col">
+            <div className="relative px-4 sm:px-10 pt-5 sm:pt-10 pb-5 sm:pb-8 border-b border-slate-100 dark:border-slate-800 bg-gradient-to-br from-slate-50 via-white to-emerald-50/50 dark:from-slate-900 dark:via-slate-900 dark:to-emerald-500/5">
+              <div className="absolute top-0 right-0 w-48 h-48 bg-gold-500/10 blur-3xl rounded-full translate-x-16 -translate-y-10 pointer-events-none" />
+              <div className="relative flex items-start justify-between gap-6">
+                <div className="max-w-2xl">
+                  <div className="inline-flex items-center gap-3 px-3 sm:px-4 py-2 rounded-full bg-white/80 dark:bg-slate-800/80 border border-slate-100 dark:border-slate-700 shadow-sm mb-3 sm:mb-5">
+                    <FaShieldAlt className="text-gold-500 text-sm" />
+                    <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-[0.16em] sm:tracking-[0.28em] text-slate-500 dark:text-slate-400">Secure Banking Setup</span>
                   </div>
-                  <div className="space-y-2">
-                    <label className="block text-[10px] uppercase font-black text-slate-400 tracking-[0.3em] ml-2">Account Logic *</label>
-                    <div className="relative">
-                      <select
-                        name="accountType"
-                        value={bankForm.accountType}
-                        onChange={handleBankFormChange}
-                        className="w-full px-8 py-5 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl text-xs font-black italic text-slate-900 dark:text-white focus:outline-none focus:ring-8 focus:ring-slate-900/5 dark:focus:ring-gold-500/10 focus:bg-white dark:focus:bg-slate-800 transition-all appearance-none"
-                      >
-                        {accountTypes.map(type => (
-                          <option key={type.value} value={type.value} className="dark:bg-slate-900">{type.label}</option>
-                        ))}
-                      </select>
-                      <div className="absolute right-6 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
-                        <FaArrowDown size={10} />
+                  <h3 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tighter italic uppercase transition-colors">Bank Account Linking</h3>
+                  <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-2 sm:mt-3 max-w-xl">A professional payout profile with verification, masked account previews, and step-by-step validation for safer withdrawals.</p>
+                </div>
+                <button onClick={closeBankAccountModal} className="w-11 h-11 sm:w-14 sm:h-14 bg-white dark:bg-slate-800 text-slate-400 dark:text-slate-500 hover:text-rose-500 dark:hover:text-rose-400 rounded-xl sm:rounded-[1.5rem] flex items-center justify-center transition-all border border-slate-100 dark:border-slate-700 shadow-sm shrink-0">
+                  <FaTimes size={18} />
+                </button>
+              </div>
+
+              <div className="relative mt-4 sm:mt-8 flex sm:grid sm:grid-cols-4 gap-2 sm:gap-3 overflow-x-auto pb-1">
+                {BANK_WIZARD_STEPS.map((step) => (
+                  <button
+                    key={step.id}
+                    type="button"
+                    onClick={() => {
+                      if (step.id <= bankFormStep) {
+                        setFormErrors({});
+                        setBankFormStep(step.id);
+                      }
+                    }}
+                    className={`min-w-[8.75rem] sm:min-w-0 rounded-xl sm:rounded-[1.5rem] border px-3 sm:px-4 py-3 sm:py-4 text-left transition-all ${
+                      step.id === bankFormStep
+                        ? 'bg-slate-900 dark:bg-gold-500 text-white dark:text-slate-900 border-slate-900 dark:border-gold-500 shadow-xl'
+                        : step.id < bankFormStep
+                          ? 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-100 dark:border-emerald-500/20'
+                          : 'bg-white/80 dark:bg-slate-800/80 text-slate-400 dark:text-slate-500 border-slate-100 dark:border-slate-700'
+                    }`}
+                  >
+                    <p className="text-[9px] font-black uppercase tracking-[0.16em] sm:tracking-[0.24em] opacity-70">Step {step.id}</p>
+                    <p className="mt-1.5 sm:mt-2 text-[11px] sm:text-xs font-black uppercase tracking-wide">{step.label}</p>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <form onSubmit={handleAddBankAccount} className="flex flex-col flex-1 min-h-0">
+              <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar px-4 sm:px-10 py-5 sm:py-8">
+                {bankFormStep === 1 && (
+                  <div className="space-y-8">
+                    <div className="bg-slate-50 dark:bg-slate-800/10 rounded-[2rem] border border-slate-100 dark:border-slate-800 p-6">
+                      <p className="text-[10px] font-black uppercase tracking-[0.24em] text-gold-500 mb-2">Section 1</p>
+                      <h4 className="text-xl font-black text-slate-900 dark:text-white italic">Financial Institution</h4>
+                      <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">Capture the exact bank and branch identity to reduce payout mismatches.</p>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="md:col-span-2 space-y-2">
+                        <label className="block text-[10px] uppercase font-black text-slate-400 tracking-[0.28em] ml-2">Bank Name *</label>
+                        <input type="text" name="bankName" value={bankForm.bankName} onChange={handleBankFormChange} placeholder="e.g. Commercial Bank, HSBC, Sampath Bank" className={`w-full px-6 py-5 bg-slate-50 dark:bg-slate-800 border rounded-2xl text-sm font-bold text-slate-900 dark:text-white focus:outline-none transition-all ${formErrors.bankName ? 'border-rose-500' : 'border-slate-100 dark:border-slate-700 focus:ring-8 focus:ring-slate-900/5 dark:focus:ring-gold-500/10'}`} />
+                        {formErrors.bankName && <p className="text-rose-500 text-[10px] font-black uppercase tracking-wider ml-2">{formErrors.bankName}</p>}
+                      </div>
+                      <div className="space-y-2">
+                        <label className="block text-[10px] uppercase font-black text-slate-400 tracking-[0.28em] ml-2">Branch Name / Branch Code *</label>
+                        <input type="text" name="branchName" value={bankForm.branchName} onChange={handleBankFormChange} placeholder="Colombo Fort / 001" className={`w-full px-6 py-5 bg-slate-50 dark:bg-slate-800 border rounded-2xl text-sm font-bold text-slate-900 dark:text-white focus:outline-none transition-all ${formErrors.branchName ? 'border-rose-500' : 'border-slate-100 dark:border-slate-700 focus:ring-8 focus:ring-slate-900/5 dark:focus:ring-gold-500/10'}`} />
+                        {formErrors.branchName && <p className="text-rose-500 text-[10px] font-black uppercase tracking-wider ml-2">{formErrors.branchName}</p>}
+                      </div>
+                      <div className="space-y-2">
+                        <label className="block text-[10px] uppercase font-black text-slate-400 tracking-[0.28em] ml-2">Country *</label>
+                        <select name="country" value={bankForm.country} onChange={handleBankFormChange} className={`w-full px-6 py-5 bg-slate-50 dark:bg-slate-800 border rounded-2xl text-sm font-bold text-slate-900 dark:text-white focus:outline-none transition-all ${formErrors.country ? 'border-rose-500' : 'border-slate-100 dark:border-slate-700 focus:ring-8 focus:ring-slate-900/5 dark:focus:ring-gold-500/10'}`}>
+                          {SUPPORTED_COUNTRIES.map((country) => <option key={country} value={country}>{country}</option>)}
+                        </select>
+                        {formErrors.country && <p className="text-rose-500 text-[10px] font-black uppercase tracking-wider ml-2">{formErrors.country}</p>}
                       </div>
                     </div>
                   </div>
-                </div>
-                <div className="space-y-2">
-                  <label className="block text-[10px] uppercase font-black text-slate-400 tracking-[0.3em] ml-2">Legal Beneficiary *</label>
-                  <input
-                    type="text"
-                    name="accountName"
-                    value={bankForm.accountName}
-                    onChange={handleBankFormChange}
-                    className={`w-full px-8 py-5 bg-slate-50 dark:bg-slate-800 border rounded-2xl text-xs font-black italic focus:outline-none transition-all ${
-                      formErrors.accountName ? 'border-rose-500' : 'border-slate-100 dark:border-slate-700 focus:ring-8 focus:ring-slate-900/5 dark:focus:ring-gold-500/10 focus:bg-white dark:focus:bg-slate-800 text-slate-900 dark:text-white'
-                    }`}
-                    placeholder="Exact name match on asset"
-                  />
-                </div>
+                )}
+
+                {bankFormStep === 2 && (
+                  <div className="space-y-8">
+                    <div className="bg-slate-50 dark:bg-slate-800/10 rounded-[2rem] border border-slate-100 dark:border-slate-800 p-6">
+                      <p className="text-[10px] font-black uppercase tracking-[0.24em] text-gold-500 mb-2">Section 2 & 3</p>
+                      <h4 className="text-xl font-black text-slate-900 dark:text-white italic">Account Details & Beneficiary</h4>
+                      <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">Enter the legal banking details exactly as held by the institution.</p>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="md:col-span-2 space-y-2">
+                        <label className="block text-[10px] uppercase font-black text-slate-400 tracking-[0.28em] ml-2">Account Holder Name *</label>
+                        <input type="text" name="accountHolderName" value={bankForm.accountHolderName} onChange={handleBankFormChange} placeholder="Full legal name as per bank" className={`w-full px-6 py-5 bg-slate-50 dark:bg-slate-800 border rounded-2xl text-sm font-bold text-slate-900 dark:text-white focus:outline-none transition-all ${formErrors.accountHolderName ? 'border-rose-500' : 'border-slate-100 dark:border-slate-700 focus:ring-8 focus:ring-slate-900/5 dark:focus:ring-gold-500/10'}`} />
+                        {formErrors.accountHolderName && <p className="text-rose-500 text-[10px] font-black uppercase tracking-wider ml-2">{formErrors.accountHolderName}</p>}
+                      </div>
+                      <div className="space-y-2">
+                        <label className="block text-[10px] uppercase font-black text-slate-400 tracking-[0.28em] ml-2">Account Number *</label>
+                        <input type="text" name="accountNumber" value={bankForm.accountNumber} onChange={handleBankFormChange} placeholder="Account number" className={`w-full px-6 py-5 bg-slate-50 dark:bg-slate-800 border rounded-2xl text-sm font-bold text-slate-900 dark:text-white focus:outline-none transition-all ${formErrors.accountNumber ? 'border-rose-500' : 'border-slate-100 dark:border-slate-700 focus:ring-8 focus:ring-slate-900/5 dark:focus:ring-gold-500/10'}`} />
+                        {formErrors.accountNumber && <p className="text-rose-500 text-[10px] font-black uppercase tracking-wider ml-2">{formErrors.accountNumber}</p>}
+                      </div>
+                      <div className="space-y-2">
+                        <label className="block text-[10px] uppercase font-black text-slate-400 tracking-[0.28em] ml-2">Account Type *</label>
+                        <select name="accountType" value={bankForm.accountType} onChange={handleBankFormChange} className={`w-full px-6 py-5 bg-slate-50 dark:bg-slate-800 border rounded-2xl text-sm font-bold text-slate-900 dark:text-white focus:outline-none transition-all ${formErrors.accountType ? 'border-rose-500' : 'border-slate-100 dark:border-slate-700 focus:ring-8 focus:ring-slate-900/5 dark:focus:ring-gold-500/10'}`}>
+                          {BANK_ACCOUNT_TYPES.map((type) => <option key={type.value} value={type.value}>{type.label}</option>)}
+                        </select>
+                        {formErrors.accountType && <p className="text-rose-500 text-[10px] font-black uppercase tracking-wider ml-2">{formErrors.accountType}</p>}
+                      </div>
+                      <div className="space-y-2">
+                        <label className="block text-[10px] uppercase font-black text-slate-400 tracking-[0.28em] ml-2">Currency *</label>
+                        <select name="currency" value={bankForm.currency} onChange={handleBankFormChange} className={`w-full px-6 py-5 bg-slate-50 dark:bg-slate-800 border rounded-2xl text-sm font-bold text-slate-900 dark:text-white focus:outline-none transition-all ${formErrors.currency ? 'border-rose-500' : 'border-slate-100 dark:border-slate-700 focus:ring-8 focus:ring-slate-900/5 dark:focus:ring-gold-500/10'}`}>
+                          {SUPPORTED_CURRENCIES.map((currency) => <option key={currency} value={currency}>{currency}</option>)}
+                        </select>
+                        {formErrors.currency && <p className="text-rose-500 text-[10px] font-black uppercase tracking-wider ml-2">{formErrors.currency}</p>}
+                      </div>
+                      <div className="space-y-2">
+                        <label className="block text-[10px] uppercase font-black text-slate-400 tracking-[0.28em] ml-2">SWIFT / BIC Code *</label>
+                        <input type="text" name="swiftCode" value={bankForm.swiftCode} onChange={handleBankFormChange} placeholder="Required for international transfers" className={`w-full px-6 py-5 bg-slate-50 dark:bg-slate-800 border rounded-2xl text-sm font-bold uppercase text-slate-900 dark:text-white focus:outline-none transition-all ${formErrors.swiftCode ? 'border-rose-500' : 'border-slate-100 dark:border-slate-700 focus:ring-8 focus:ring-slate-900/5 dark:focus:ring-gold-500/10'}`} />
+                        {formErrors.swiftCode && <p className="text-rose-500 text-[10px] font-black uppercase tracking-wider ml-2">{formErrors.swiftCode}</p>}
+                      </div>
+                      <div className="space-y-2">
+                        <label className="block text-[10px] uppercase font-black text-slate-400 tracking-[0.28em] ml-2">IBAN</label>
+                        <input type="text" name="iban" value={bankForm.iban} onChange={handleBankFormChange} placeholder="Optional" className="w-full px-6 py-5 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl text-sm font-bold text-slate-900 dark:text-white focus:outline-none transition-all focus:ring-8 focus:ring-slate-900/5 dark:focus:ring-gold-500/10" />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="block text-[10px] uppercase font-black text-slate-400 tracking-[0.28em] ml-2">Beneficiary Name *</label>
+                        <input type="text" name="beneficiaryName" value={bankForm.beneficiaryName} onChange={handleBankFormChange} placeholder="Usually same as account holder" className={`w-full px-6 py-5 bg-slate-50 dark:bg-slate-800 border rounded-2xl text-sm font-bold text-slate-900 dark:text-white focus:outline-none transition-all ${formErrors.beneficiaryName ? 'border-rose-500' : 'border-slate-100 dark:border-slate-700 focus:ring-8 focus:ring-slate-900/5 dark:focus:ring-gold-500/10'}`} />
+                        {formErrors.beneficiaryName && <p className="text-rose-500 text-[10px] font-black uppercase tracking-wider ml-2">{formErrors.beneficiaryName}</p>}
+                      </div>
+                      <div className="space-y-2">
+                        <label className="block text-[10px] uppercase font-black text-slate-400 tracking-[0.28em] ml-2">Relationship *</label>
+                        <select name="relationship" value={bankForm.relationship} onChange={handleBankFormChange} className={`w-full px-6 py-5 bg-slate-50 dark:bg-slate-800 border rounded-2xl text-sm font-bold text-slate-900 dark:text-white focus:outline-none transition-all ${formErrors.relationship ? 'border-rose-500' : 'border-slate-100 dark:border-slate-700 focus:ring-8 focus:ring-slate-900/5 dark:focus:ring-gold-500/10'}`}>
+                          {BENEFICIARY_RELATIONSHIPS.map((relationship) => <option key={relationship.value} value={relationship.value}>{relationship.label}</option>)}
+                        </select>
+                        {formErrors.relationship && <p className="text-rose-500 text-[10px] font-black uppercase tracking-wider ml-2">{formErrors.relationship}</p>}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {bankFormStep === 3 && (
+                  <div className="space-y-8">
+                    <div className="bg-slate-50 dark:bg-slate-800/10 rounded-[2rem] border border-slate-100 dark:border-slate-800 p-6">
+                      <p className="text-[10px] font-black uppercase tracking-[0.24em] text-gold-500 mb-2">Section 4</p>
+                      <h4 className="text-xl font-black text-slate-900 dark:text-white italic">Verification</h4>
+                      <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">Match the account with supporting evidence and a secure withdrawal control layer.</p>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="md:col-span-2 space-y-2">
+                        <label className="block text-[10px] uppercase font-black text-slate-400 tracking-[0.28em] ml-2">Upload Proof Of Bank Account *</label>
+                        <label className={`flex items-center justify-between gap-4 px-6 py-5 rounded-2xl border cursor-pointer transition-all ${formErrors.proofOfBankAccount ? 'border-rose-500 bg-rose-50/50 dark:bg-rose-500/5' : 'border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-800'}`}>
+                          <div>
+                            <p className="text-sm font-bold text-slate-900 dark:text-white">{bankForm.proofOfBankAccountName || 'Bank statement / passbook / screenshot'}</p>
+                            <p className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-400 dark:text-slate-500 mt-2">PDF, JPG, PNG accepted</p>
+                          </div>
+                          <FaFileInvoice className="text-gold-500 text-xl" />
+                          <input type="file" name="proofOfBankAccount" onChange={handleBankFileChange} className="hidden" accept=".pdf,.png,.jpg,.jpeg" />
+                        </label>
+                        {formErrors.proofOfBankAccount && <p className="text-rose-500 text-[10px] font-black uppercase tracking-wider ml-2">{formErrors.proofOfBankAccount}</p>}
+                      </div>
+                      <div className="space-y-2">
+                        <label className="block text-[10px] uppercase font-black text-slate-400 tracking-[0.28em] ml-2">Set Withdrawal PIN *</label>
+                        <input type="password" name="withdrawalPin" value={bankForm.withdrawalPin} onChange={handleBankFormChange} placeholder="4 to 6 digits" className={`w-full px-6 py-5 bg-slate-50 dark:bg-slate-800 border rounded-2xl text-sm font-bold text-slate-900 dark:text-white focus:outline-none transition-all ${formErrors.withdrawalPin ? 'border-rose-500' : 'border-slate-100 dark:border-slate-700 focus:ring-8 focus:ring-slate-900/5 dark:focus:ring-gold-500/10'}`} />
+                        {formErrors.withdrawalPin && <p className="text-rose-500 text-[10px] font-black uppercase tracking-wider ml-2">{formErrors.withdrawalPin}</p>}
+                      </div>
+                      <div className="space-y-2">
+                        <label className="block text-[10px] uppercase font-black text-slate-400 tracking-[0.28em] ml-2">OTP Verification Code *</label>
+                        <input type="text" name="otpCode" value={bankForm.otpCode} onChange={handleBankFormChange} placeholder="6-digit code" className={`w-full px-6 py-5 bg-slate-50 dark:bg-slate-800 border rounded-2xl text-sm font-bold text-slate-900 dark:text-white focus:outline-none transition-all ${formErrors.otpCode ? 'border-rose-500' : 'border-slate-100 dark:border-slate-700 focus:ring-8 focus:ring-slate-900/5 dark:focus:ring-gold-500/10'}`} />
+                        {formErrors.otpCode && <p className="text-rose-500 text-[10px] font-black uppercase tracking-wider ml-2">{formErrors.otpCode}</p>}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {bankFormStep === 4 && (
+                  <div className="space-y-8">
+                    <div className="bg-slate-50 dark:bg-slate-800/10 rounded-[2rem] border border-slate-100 dark:border-slate-800 p-6">
+                      <p className="text-[10px] font-black uppercase tracking-[0.24em] text-gold-500 mb-2">Section 5</p>
+                      <h4 className="text-xl font-black text-slate-900 dark:text-white italic">Agreements & Security Review</h4>
+                      <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">Review the payout profile before submission. UI masking is active for stored account previews.</p>
+                    </div>
+
+                    <div className="grid grid-cols-1 lg:grid-cols-[1.2fr_0.8fr] gap-6">
+                      <div className="rounded-[2rem] border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-950/40 p-6 space-y-4">
+                        <div className="flex justify-between items-center">
+                          <p className="text-[10px] font-black uppercase tracking-[0.24em] text-slate-400 dark:text-slate-500">Linked Profile Summary</p>
+                          <span className="px-3 py-1 rounded-full bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-300 text-[10px] font-black uppercase tracking-wider">Masked UI Active</span>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                          <div><p className="text-slate-400 dark:text-slate-500 uppercase text-[10px] font-black tracking-wider">Bank Name</p><p className="text-slate-900 dark:text-white font-bold mt-1">{bankForm.bankName || '-'}</p></div>
+                          <div><p className="text-slate-400 dark:text-slate-500 uppercase text-[10px] font-black tracking-wider">Branch</p><p className="text-slate-900 dark:text-white font-bold mt-1">{bankForm.branchName || bankForm.branchCode || '-'}</p></div>
+                          <div><p className="text-slate-400 dark:text-slate-500 uppercase text-[10px] font-black tracking-wider">Account Holder</p><p className="text-slate-900 dark:text-white font-bold mt-1">{bankForm.accountHolderName || '-'}</p></div>
+                          <div><p className="text-slate-400 dark:text-slate-500 uppercase text-[10px] font-black tracking-wider">Account Number</p><p className="text-slate-900 dark:text-white font-bold mt-1">{maskAccountNumber(bankForm.accountNumber)}</p></div>
+                          <div><p className="text-slate-400 dark:text-slate-500 uppercase text-[10px] font-black tracking-wider">Type / Currency</p><p className="text-slate-900 dark:text-white font-bold mt-1">{bankForm.accountType} / {bankForm.currency}</p></div>
+                          <div><p className="text-slate-400 dark:text-slate-500 uppercase text-[10px] font-black tracking-wider">SWIFT / BIC</p><p className="text-slate-900 dark:text-white font-bold mt-1">{bankForm.swiftCode || '-'}</p></div>
+                          <div><p className="text-slate-400 dark:text-slate-500 uppercase text-[10px] font-black tracking-wider">Beneficiary</p><p className="text-slate-900 dark:text-white font-bold mt-1">{bankForm.beneficiaryName || '-'}</p></div>
+                          <div><p className="text-slate-400 dark:text-slate-500 uppercase text-[10px] font-black tracking-wider">Proof File</p><p className="text-slate-900 dark:text-white font-bold mt-1">{bankForm.proofOfBankAccountName || '-'}</p></div>
+                        </div>
+                      </div>
+
+                      <div className="rounded-[2rem] border border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/20 p-6 space-y-4">
+                        <p className="text-[10px] font-black uppercase tracking-[0.24em] text-gold-500">Security Must-Haves</p>
+                        <p className="text-sm text-slate-500 dark:text-slate-400">Recommended backend enforcement alongside this form:</p>
+                        <ul className="space-y-3 text-sm text-slate-600 dark:text-slate-300">
+                          <li>Encrypt account numbers in the database.</li>
+                          <li>Always mask UI output like `XXXXXX1234`.</li>
+                          <li>Require HTTPS and server-side validation for SWIFT, OTP, ownership, and file metadata.</li>
+                        </ul>
+                      </div>
+                    </div>
+
+                    <div className="rounded-[2rem] border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-950/40 p-6 space-y-4">
+                      <label className="flex items-start gap-3 text-sm font-bold text-slate-700 dark:text-slate-200">
+                        <input type="checkbox" name="confirmOwnership" checked={!!bankForm.confirmOwnership} onChange={handleBankFormChange} className="mt-1 w-4 h-4 accent-gold-500" />
+                        <span>I confirm this bank account belongs to me.</span>
+                      </label>
+                      {formErrors.confirmOwnership && <p className="text-rose-500 text-[10px] font-black uppercase tracking-wider ml-7">{formErrors.confirmOwnership}</p>}
+                      <label className="flex items-start gap-3 text-sm font-bold text-slate-700 dark:text-slate-200">
+                        <input type="checkbox" name="acceptTerms" checked={!!bankForm.acceptTerms} onChange={handleBankFormChange} className="mt-1 w-4 h-4 accent-gold-500" />
+                        <span>I agree to the platform Terms & Conditions.</span>
+                      </label>
+                      {formErrors.acceptTerms && <p className="text-rose-500 text-[10px] font-black uppercase tracking-wider ml-7">{formErrors.acceptTerms}</p>}
+                      <label className="flex items-start gap-3 text-sm font-bold text-slate-700 dark:text-slate-200">
+                        <input type="checkbox" name="authorizeTransactions" checked={!!bankForm.authorizeTransactions} onChange={handleBankFormChange} className="mt-1 w-4 h-4 accent-gold-500" />
+                        <span>I authorize transactions to this account.</span>
+                      </label>
+                      {formErrors.authorizeTransactions && <p className="text-rose-500 text-[10px] font-black uppercase tracking-wider ml-7">{formErrors.authorizeTransactions}</p>}
+                      <label className="flex items-center gap-3 pt-2 text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">
+                        <input type="checkbox" name="isDefault" checked={!!bankForm.isDefault} onChange={handleBankFormChange} className="w-4 h-4 accent-gold-500" />
+                        Set as default bank account
+                      </label>
+                    </div>
+                  </div>
+                )}
               </div>
 
-              <div className="flex flex-col sm:flex-row gap-6 pt-10">
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="flex-1 px-10 py-6 bg-slate-900 dark:bg-gold-500 text-white dark:text-slate-900 rounded-[2rem] font-black uppercase tracking-[0.3em] text-[11px] hover:bg-gold-600 dark:hover:bg-gold-400 disabled:bg-slate-200 dark:disabled:bg-slate-800 transition-all shadow-2xl shadow-slate-900/20 dark:shadow-gold-500/10"
-                >
-                  {isSubmitting ? 'Verifying Integrity...' : 'Link Asset Repository'}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setShowAddAccount(false)}
-                  className="px-10 py-6 bg-slate-50 dark:bg-slate-800 text-slate-400 dark:text-slate-500 rounded-[2rem] font-black uppercase tracking-[0.3em] text-[11px] hover:bg-slate-100 dark:hover:bg-slate-700 transition-all border border-slate-100 dark:border-slate-700"
-                >
-                  Abort
-                </button>
+              <div className="px-4 sm:px-10 py-4 sm:py-6 border-t border-slate-100 dark:border-slate-800 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm">
+                <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 items-stretch sm:items-center">
+                  <button
+                    type="button"
+                    onClick={bankFormStep === 1 ? closeBankAccountModal : goToPreviousBankStep}
+                    className="px-6 sm:px-8 py-4 sm:py-5 bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 rounded-[1.25rem] sm:rounded-[1.5rem] font-black uppercase tracking-[0.18em] sm:tracking-[0.24em] text-[10px] sm:text-[11px] hover:bg-slate-100 dark:hover:bg-slate-700 transition-all border border-slate-100 dark:border-slate-700"
+                  >
+                    {bankFormStep === 1 ? 'Cancel' : 'Back'}
+                  </button>
+                  {bankFormStep < BANK_WIZARD_STEPS.length ? (
+                    <button
+                      type="button"
+                      onClick={goToNextBankStep}
+                      className="flex-1 px-6 sm:px-8 py-4 sm:py-5 bg-slate-900 dark:bg-gold-500 text-white dark:text-slate-900 rounded-[1.25rem] sm:rounded-[1.5rem] font-black uppercase tracking-[0.18em] sm:tracking-[0.24em] text-[10px] sm:text-[11px] hover:bg-gold-600 dark:hover:bg-gold-400 transition-all shadow-2xl shadow-slate-900/20 dark:shadow-gold-500/10"
+                    >
+                      Continue
+                    </button>
+                  ) : (
+                    <button
+                      type="submit"
+                      disabled={isSubmitting}
+                      className="flex-1 px-6 sm:px-8 py-4 sm:py-5 bg-slate-900 dark:bg-gold-500 text-white dark:text-slate-900 rounded-[1.25rem] sm:rounded-[1.5rem] font-black uppercase tracking-[0.18em] sm:tracking-[0.24em] text-[10px] sm:text-[11px] hover:bg-gold-600 dark:hover:bg-gold-400 disabled:bg-slate-200 dark:disabled:bg-slate-800 transition-all shadow-2xl shadow-slate-900/20 dark:shadow-gold-500/10"
+                    >
+                      {isSubmitting ? 'Submitting Verification...' : 'Submit Bank Linking'}
+                    </button>
+                  )}
+                </div>
               </div>
             </form>
           </div>
@@ -1185,170 +1096,150 @@ const BankingTab = ({
 
       {/* Add Credit Card Modal */}
       {showAddCard && renderModal(
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xl flex items-center justify-center z-50 overflow-y-auto p-4 sm:p-8">
-          <div className="bg-white dark:bg-slate-900 rounded-[3rem] border border-slate-100 dark:border-slate-800 w-full max-w-2xl my-8 max-h-[90vh] overflow-hidden shadow-[0_0_120px_rgba(0,0,0,0.15)] transition-colors">
-            <form onSubmit={handleAddBankAccount} className="flex flex-col max-h-[90vh]">
-              <div className="relative px-8 sm:px-12 pt-10 pb-8 border-b border-slate-100 dark:border-slate-800 bg-gradient-to-br from-slate-50 via-white to-amber-50/40 dark:from-slate-900 dark:via-slate-900 dark:to-gold-500/5">
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xl flex items-start sm:items-center justify-center z-50 overflow-y-auto p-3 sm:p-8">
+          <div className="bg-white dark:bg-slate-900 rounded-[3rem] border border-slate-100 dark:border-slate-800 w-full max-w-2xl my-4 sm:my-8 max-h-[90vh] overflow-hidden shadow-[0_0_120px_rgba(0,0,0,0.15)] transition-colors flex flex-col">
+            <form onSubmit={handleAddCardDetails} className="flex flex-col flex-1 min-h-0">
+              <div className="relative px-5 sm:px-12 pt-7 sm:pt-10 pb-6 sm:pb-8 border-b border-slate-100 dark:border-slate-800 bg-gradient-to-br from-slate-50 via-white to-amber-50/40 dark:from-slate-900 dark:via-slate-900 dark:to-gold-500/5">
                 <div className="absolute top-0 right-0 w-40 h-40 bg-gold-500/10 blur-3xl rounded-full translate-x-14 -translate-y-10 pointer-events-none" />
                 <div className="relative flex items-start justify-between gap-6">
                   <div>
-                    <div className="inline-flex items-center gap-3 px-4 py-2 rounded-full bg-white/80 dark:bg-slate-800/80 border border-slate-100 dark:border-slate-700 shadow-sm mb-5">
+                    <div className="inline-flex items-center gap-3 px-3 sm:px-4 py-2 rounded-full bg-white/80 dark:bg-slate-800/80 border border-slate-100 dark:border-slate-700 shadow-sm mb-4 sm:mb-5">
                       <FaShieldAlt className="text-gold-500 text-sm" />
-                      <span className="text-[10px] font-black uppercase tracking-[0.28em] text-slate-500 dark:text-slate-400">Bank Profile Setup</span>
+                      <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-[0.16em] sm:tracking-[0.28em] text-slate-500 dark:text-slate-400">Card Profile Setup</span>
                     </div>
-                    <h3 className="text-3xl font-black text-slate-900 dark:text-white tracking-tighter italic uppercase transition-colors">Bank Details</h3>
-                    <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-2 uppercase font-black tracking-[0.3em] transition-colors">Only Essential Payout Information</p>
+                    <h3 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tighter italic uppercase transition-colors">Card Information</h3>
+                    <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-2 uppercase font-black tracking-[0.18em] sm:tracking-[0.3em] transition-colors">Process Securely Via Stripe Tokenization</p>
                   </div>
-                  <button onClick={() => setShowAddCard(false)} type="button" className="w-14 h-14 bg-white dark:bg-slate-800 text-slate-400 dark:text-slate-500 hover:text-rose-500 dark:hover:text-rose-400 rounded-[1.5rem] flex items-center justify-center transition-all border border-slate-100 dark:border-slate-700 shadow-sm">
-                    <FaTimes size={20} />
+                  <button onClick={closeCardModal} type="button" className="w-12 h-12 sm:w-14 sm:h-14 bg-white dark:bg-slate-800 text-slate-400 dark:text-slate-500 hover:text-rose-500 dark:hover:text-rose-400 rounded-[1rem] sm:rounded-[1.5rem] flex items-center justify-center transition-all border border-slate-100 dark:border-slate-700 shadow-sm">
+                    <FaTimes size={18} />
                   </button>
                 </div>
               </div>
 
-              <div className="flex-1 overflow-y-auto custom-scrollbar px-8 sm:px-12 py-8 pr-5 sm:pr-8">
-                <div className="space-y-8">
-                  <div className="relative overflow-hidden bg-slate-50 dark:bg-slate-800/10 p-8 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 text-center space-y-4 transition-colors">
+              <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar px-4 sm:px-12 py-5 sm:py-8 pr-4 sm:pr-8">
+                <div className="space-y-6 sm:space-y-8">
+                  <div className="relative overflow-hidden bg-slate-50 dark:bg-slate-800/10 p-5 sm:p-8 rounded-[2rem] sm:rounded-[2.5rem] border border-slate-100 dark:border-slate-800 text-center space-y-3 sm:space-y-4 transition-colors">
                     <div className="absolute inset-y-0 left-0 w-1.5 bg-gradient-to-b from-gold-500 via-amber-400 to-transparent" />
-                    <FaShieldAlt className="mx-auto text-gold-500 text-4xl mb-3" />
-                    <p className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-widest italic text-center transition-colors">Secure account linking</p>
-                    <p className="text-sm text-slate-500 dark:text-slate-400 font-medium max-w-lg mx-auto">Share only the bank details required for deposits and withdrawals.</p>
+                    <FaCreditCard className="mx-auto text-gold-500 text-3xl sm:text-4xl mb-2 sm:mb-3" />
+                    <p className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-widest italic text-center transition-colors">Card Details Form</p>
+                    <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-medium max-w-lg mx-auto">Collect card details in UI only, then tokenize and process securely through Stripe or another PCI-compliant provider.</p>
                   </div>
 
-                  <div className="bg-white dark:bg-slate-950/30 rounded-[2.25rem] border border-slate-100 dark:border-slate-800 p-6 sm:p-8 shadow-sm">
-                    <div className="flex items-center justify-between gap-4 mb-8">
+                  <div className="bg-white dark:bg-slate-950/30 rounded-[2rem] sm:rounded-[2.25rem] border border-slate-100 dark:border-slate-800 p-4 sm:p-8 shadow-sm">
+                    <div className="flex items-center justify-between gap-4 mb-6 sm:mb-8">
                       <div>
                         <p className="text-[10px] font-black uppercase tracking-[0.24em] text-gold-500 mb-2">Required Details</p>
-                        <h4 className="text-lg font-black italic text-slate-900 dark:text-white">Bank Information</h4>
+                        <h4 className="text-base sm:text-lg font-black italic text-slate-900 dark:text-white">Card Information</h4>
                       </div>
                       <div className="hidden sm:flex items-center gap-2 px-3 py-2 rounded-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700">
                         <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                        <span className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500">Verified Fields</span>
+                        <span className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500">PCI-Aware UI</span>
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <div className="space-y-2">
-                  <label className="block text-[10px] uppercase font-black text-slate-400 tracking-[0.3em] ml-2">Bank Name *</label>
-                  <input
-                    type="text"
-                    name="bankName"
-                    value={bankForm.bankName}
-                    onChange={handleBankFormChange}
-                    className={`w-full px-8 py-5 bg-slate-50 dark:bg-slate-800 border rounded-2xl text-xs font-black italic focus:outline-none transition-all ${
-                      formErrors.bankName ? 'border-rose-500 text-slate-900 dark:text-white' : 'border-slate-100 dark:border-slate-700 focus:ring-8 focus:ring-slate-900/5 dark:focus:ring-gold-500/10 focus:bg-white dark:focus:bg-slate-800 text-slate-900 dark:text-white'
-                    }`}
-                    placeholder="e.g. JPMorgan Chase"
-                  />
-                  {formErrors.bankName && <p className="text-rose-500 text-[10px] font-black uppercase tracking-wider ml-2">{formErrors.bankName}</p>}
-                </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5 sm:gap-6">
+                      <div className="md:col-span-2 space-y-2">
+                        <label className="block text-[10px] uppercase font-black text-slate-400 tracking-[0.22em] ml-1">Cardholder Name *</label>
+                        <input
+                          type="text"
+                          name="cardholderName"
+                          value={cardForm.cardholderName ?? ''}
+                          onChange={handleCardFormChange}
+                          className={`w-full px-5 sm:px-6 py-4 sm:py-5 bg-slate-50 dark:bg-slate-800 border rounded-2xl text-sm font-bold text-slate-900 dark:text-white focus:outline-none transition-all ${
+                            cardErrors.cardholderName ? 'border-rose-500' : 'border-slate-100 dark:border-slate-700 focus:ring-4 focus:ring-slate-900/5 dark:focus:ring-gold-500/10'
+                          }`}
+                          placeholder="Name on card"
+                          autoComplete="cc-name"
+                        />
+                        {cardErrors.cardholderName && <p className="text-rose-500 text-[10px] font-black uppercase tracking-wider ml-1">{cardErrors.cardholderName}</p>}
+                      </div>
 
-                <div className="space-y-2">
-                  <label className="block text-[10px] uppercase font-black text-slate-400 tracking-[0.3em] ml-2">Account Type *</label>
-                  <select
-                    name="accountType"
-                    value={bankForm.accountType}
-                    onChange={handleBankFormChange}
-                    className="w-full px-8 py-5 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl text-xs font-black italic text-slate-900 dark:text-white focus:outline-none focus:ring-8 focus:ring-slate-900/5 dark:focus:ring-gold-500/10 focus:bg-white dark:focus:bg-slate-800 transition-all appearance-none"
-                  >
-                    {accountTypes.map(type => (
-                      <option key={type.value} value={type.value} className="dark:bg-slate-900">{type.label}</option>
-                    ))}
-                  </select>
-                </div>
+                      <div className="md:col-span-2 space-y-2">
+                        <label className="block text-[10px] uppercase font-black text-slate-400 tracking-[0.22em] ml-1">Card Number *</label>
+                        <input
+                          type="text"
+                          name="cardNumber"
+                          value={cardForm.cardNumber ?? ''}
+                          onChange={handleCardFormChange}
+                          className={`w-full px-5 sm:px-6 py-4 sm:py-5 bg-slate-50 dark:bg-slate-800 border rounded-2xl text-sm font-bold text-slate-900 dark:text-white focus:outline-none transition-all ${
+                            cardErrors.cardNumber ? 'border-rose-500' : 'border-slate-100 dark:border-slate-700 focus:ring-4 focus:ring-slate-900/5 dark:focus:ring-gold-500/10'
+                          }`}
+                          placeholder="1234 5678 9012 3456"
+                          inputMode="numeric"
+                          autoComplete="cc-number"
+                        />
+                        {cardErrors.cardNumber && <p className="text-rose-500 text-[10px] font-black uppercase tracking-wider ml-1">{cardErrors.cardNumber}</p>}
+                      </div>
 
-                <div className="space-y-2 md:col-span-2">
-                  <label className="block text-[10px] uppercase font-black text-slate-400 tracking-[0.3em] ml-2">Account Holder Name *</label>
-                  <input
-                    type="text"
-                    name="accountName"
-                    value={bankForm.accountName}
-                    onChange={handleBankFormChange}
-                    className={`w-full px-8 py-5 bg-slate-50 dark:bg-slate-800 border rounded-2xl text-xs font-black italic focus:outline-none transition-all ${
-                      formErrors.accountName ? 'border-rose-500 text-slate-900 dark:text-white' : 'border-slate-100 dark:border-slate-700 focus:ring-8 focus:ring-slate-900/5 dark:focus:ring-gold-500/10 focus:bg-white dark:focus:bg-slate-800 text-slate-900 dark:text-white'
-                    }`}
-                    placeholder="Name on the bank account"
-                  />
-                  {formErrors.accountName && <p className="text-rose-500 text-[10px] font-black uppercase tracking-wider ml-2">{formErrors.accountName}</p>}
-                </div>
+                      <div className="space-y-2">
+                        <label className="block text-[10px] uppercase font-black text-slate-400 tracking-[0.22em] ml-1">Expiry Date (MM/YY) *</label>
+                        <input
+                          type="text"
+                          name="expiry"
+                          value={cardForm.expiry ?? ''}
+                          onChange={handleCardFormChange}
+                          className={`w-full px-5 sm:px-6 py-4 sm:py-5 bg-slate-50 dark:bg-slate-800 border rounded-2xl text-sm font-bold text-slate-900 dark:text-white focus:outline-none transition-all ${
+                            cardErrors.expiry ? 'border-rose-500' : 'border-slate-100 dark:border-slate-700 focus:ring-4 focus:ring-slate-900/5 dark:focus:ring-gold-500/10'
+                          }`}
+                          placeholder="MM/YY"
+                          inputMode="numeric"
+                          autoComplete="cc-exp"
+                        />
+                        {cardErrors.expiry && <p className="text-rose-500 text-[10px] font-black uppercase tracking-wider ml-1">{cardErrors.expiry}</p>}
+                      </div>
 
-                <div className="space-y-2 md:col-span-2">
-                  <label className="block text-[10px] uppercase font-black text-slate-400 tracking-[0.3em] ml-2">Account Number *</label>
-                  <input
-                    type="text"
-                    name="accountNumber"
-                    value={bankForm.accountNumber}
-                    onChange={handleBankFormChange}
-                    className={`w-full px-8 py-5 bg-slate-50 dark:bg-slate-800 border rounded-2xl text-xs font-black italic focus:outline-none transition-all ${
-                      formErrors.accountNumber ? 'border-rose-500 text-slate-900 dark:text-white' : 'border-slate-100 dark:border-slate-700 focus:ring-8 focus:ring-slate-900/5 dark:focus:ring-gold-500/10 focus:bg-white dark:focus:bg-slate-800 text-slate-900 dark:text-white'
-                    }`}
-                    placeholder="8 to 17 digits"
-                    inputMode="numeric"
-                  />
-                  {formErrors.accountNumber && <p className="text-rose-500 text-[10px] font-black uppercase tracking-wider ml-2">{formErrors.accountNumber}</p>}
-                </div>
+                      <div className="space-y-2">
+                        <label className="block text-[10px] uppercase font-black text-slate-400 tracking-[0.22em] ml-1">CVV *</label>
+                        <input
+                          type="password"
+                          name="cvv"
+                          value={cardForm.cvv ?? ''}
+                          onChange={handleCardFormChange}
+                          className={`w-full px-5 sm:px-6 py-4 sm:py-5 bg-slate-50 dark:bg-slate-800 border rounded-2xl text-sm font-bold text-slate-900 dark:text-white focus:outline-none transition-all ${
+                            cardErrors.cvv ? 'border-rose-500' : 'border-slate-100 dark:border-slate-700 focus:ring-4 focus:ring-slate-900/5 dark:focus:ring-gold-500/10'
+                          }`}
+                          placeholder="123"
+                          inputMode="numeric"
+                          autoComplete="cc-csc"
+                        />
+                        {cardErrors.cvv && <p className="text-rose-500 text-[10px] font-black uppercase tracking-wider ml-1">{cardErrors.cvv}</p>}
+                      </div>
 
-                <div className="space-y-2 md:col-span-2">
-                  <label className="block text-[10px] uppercase font-black text-slate-400 tracking-[0.3em] ml-2">Confirm Account Number *</label>
-                  <input
-                    type="text"
-                    name="confirmAccountNumber"
-                    value={bankForm.confirmAccountNumber}
-                    onChange={handleBankFormChange}
-                    className={`w-full px-8 py-5 bg-slate-50 dark:bg-slate-800 border rounded-2xl text-xs font-black italic focus:outline-none transition-all ${
-                      formErrors.confirmAccountNumber ? 'border-rose-500 text-slate-900 dark:text-white' : 'border-slate-100 dark:border-slate-700 focus:ring-8 focus:ring-slate-900/5 dark:focus:ring-gold-500/10 focus:bg-white dark:focus:bg-slate-800 text-slate-900 dark:text-white'
-                    }`}
-                    placeholder="Re-enter account number"
-                    inputMode="numeric"
-                  />
-                  {formErrors.confirmAccountNumber && <p className="text-rose-500 text-[10px] font-black uppercase tracking-wider ml-2">{formErrors.confirmAccountNumber}</p>}
-                </div>
-
-                <div className="space-y-2 md:col-span-2">
-                  <label className="block text-[10px] uppercase font-black text-slate-400 tracking-[0.3em] ml-2">Routing Number *</label>
-                  <input
-                    type="text"
-                    name="routingNumber"
-                    value={bankForm.routingNumber}
-                    onChange={handleBankFormChange}
-                    className={`w-full px-8 py-5 bg-slate-50 dark:bg-slate-800 border rounded-2xl text-xs font-black italic focus:outline-none transition-all ${
-                      formErrors.routingNumber ? 'border-rose-500 text-slate-900 dark:text-white' : 'border-slate-100 dark:border-slate-700 focus:ring-8 focus:ring-slate-900/5 dark:focus:ring-gold-500/10 focus:bg-white dark:focus:bg-slate-800 text-slate-900 dark:text-white'
-                    }`}
-                    placeholder="9-digit routing number"
-                    inputMode="numeric"
-                  />
-                  {formErrors.routingNumber && <p className="text-rose-500 text-[10px] font-black uppercase tracking-wider ml-2">{formErrors.routingNumber}</p>}
-                </div>
-
-                <label className="md:col-span-2 flex items-center gap-3 px-2 text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">
-                  <input
-                    type="checkbox"
-                    name="isDefault"
-                    checked={bankForm.isDefault}
-                    onChange={handleBankFormChange}
-                    className="w-4 h-4 accent-gold-500"
-                  />
-                  Set as default bank account
-                </label>
+                      <div className="md:col-span-2 space-y-2">
+                        <label className="block text-[10px] uppercase font-black text-slate-400 tracking-[0.22em] ml-1">Billing Address *</label>
+                        <textarea
+                          name="billingAddress"
+                          value={cardForm.billingAddress ?? ''}
+                          onChange={handleCardFormChange}
+                          rows={3}
+                          className={`w-full px-5 sm:px-6 py-4 sm:py-5 bg-slate-50 dark:bg-slate-800 border rounded-2xl text-sm font-bold text-slate-900 dark:text-white focus:outline-none transition-all resize-none ${
+                            cardErrors.billingAddress ? 'border-rose-500' : 'border-slate-100 dark:border-slate-700 focus:ring-4 focus:ring-slate-900/5 dark:focus:ring-gold-500/10'
+                          }`}
+                          placeholder="Street, city, postal code, country"
+                          autoComplete="street-address"
+                        />
+                        {cardErrors.billingAddress && <p className="text-rose-500 text-[10px] font-black uppercase tracking-wider ml-1">{cardErrors.billingAddress}</p>}
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
 
-              <div className="px-8 sm:px-12 py-6 border-t border-slate-100 dark:border-slate-800 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm">
+              <div className="px-4 sm:px-12 py-4 sm:py-6 border-t border-slate-100 dark:border-slate-800 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm">
                 <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 items-stretch sm:items-center">
                 <button
                   type="submit"
-                  disabled={isSubmitting}
-                  className="flex-1 px-10 py-6 bg-slate-900 dark:bg-gold-500 text-white dark:text-slate-900 rounded-[2rem] font-black uppercase tracking-[0.3em] text-[11px] hover:bg-gold-600 dark:hover:bg-gold-400 disabled:bg-slate-200 dark:disabled:bg-slate-800 transition-all shadow-2xl shadow-slate-900/20 dark:shadow-gold-500/10"
+                  disabled={isCardSubmitting}
+                  className="flex-1 px-6 sm:px-10 py-4 sm:py-5 bg-slate-900 dark:bg-gold-500 text-white dark:text-slate-900 rounded-[1.25rem] sm:rounded-[2rem] font-black uppercase tracking-[0.18em] sm:tracking-[0.3em] text-[10px] sm:text-[11px] hover:bg-gold-600 dark:hover:bg-gold-400 disabled:bg-slate-200 dark:disabled:bg-slate-800 transition-all shadow-2xl shadow-slate-900/20 dark:shadow-gold-500/10"
                 >
-                  {isSubmitting ? 'Saving Bank Details...' : 'Save Bank Details'}
+                  {isCardSubmitting ? 'Securing Card Details...' : 'Save Card Details'}
                 </button>
                 <button
                   type="button"
-                  onClick={() => setShowAddCard(false)}
-                  className="px-10 py-6 bg-slate-50 dark:bg-slate-800 text-slate-400 dark:text-slate-500 rounded-[2rem] font-black uppercase tracking-[0.3em] text-[11px] hover:bg-slate-100 dark:hover:bg-slate-700 transition-all border border-slate-100 dark:border-slate-700"
+                  onClick={closeCardModal}
+                  className="px-6 sm:px-10 py-4 sm:py-5 bg-slate-50 dark:bg-slate-800 text-slate-400 dark:text-slate-500 rounded-[1.25rem] sm:rounded-[2rem] font-black uppercase tracking-[0.18em] sm:tracking-[0.3em] text-[10px] sm:text-[11px] hover:bg-slate-100 dark:hover:bg-slate-700 transition-all border border-slate-100 dark:border-slate-700"
                 >
-                  Abort
+                  Cancel
                 </button>
                 </div>
               </div>
@@ -1361,3 +1252,5 @@ const BankingTab = ({
 };
 
 export default BankingTab;
+
+

@@ -369,18 +369,13 @@ const Header = ({
                     <p className="text-sm font-black text-slate-900 dark:text-white italic">{user?.firstName} {user?.lastName}</p>
                   </div>
                   <div className="p-2">
-                    {[
-                      { icon: FaExchangeAlt, label: isDemo ? 'Switch to Live' : 'Switch to Demo', action: () => handleSwitch(isDemo ? 'real' : 'demo') },
-                    ].map(({ icon: Icon, label, action }) => (
-                      <button
-                        key={label}
-                        onClick={action}
-                        className="w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white transition-all text-left"
-                      >
-                        <Icon size={12} className="text-gold-500" />
-                        <span>{label}</span>
-                      </button>
-                    ))}
+                    <button
+                      onClick={() => handleSwitch(isDemo ? 'real' : 'demo')}
+                      className="w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white transition-all text-left"
+                    >
+                      <FaExchangeAlt size={12} className="text-gold-500" />
+                      <span>{isDemo ? 'Switch to Live' : 'Switch to Demo'}</span>
+                    </button>
                     <div className="border-t border-slate-50 dark:border-slate-800 mt-1 pt-1">
                       <button
                         onClick={onLogout}

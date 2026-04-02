@@ -2,6 +2,47 @@
 import React, { useState } from 'react';
 import { FaBolt, FaChartLine, FaShieldAlt } from 'react-icons/fa';
 
+const SideButton = ({ side, targetSide, label, onClick }) => (
+  <button
+    type="button"
+    onClick={onClick}
+    className={`flex-1 py-5 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] transition-all duration-300 ${
+      side === targetSide
+        ? targetSide === 'buy'
+          ? 'bg-emerald-500 text-white shadow-2xl shadow-emerald-500/30 -translate-y-1'
+          : 'bg-rose-500 text-white shadow-2xl shadow-rose-500/30 -translate-y-1'
+        : 'bg-slate-50 dark:bg-slate-800 text-slate-400 dark:text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-600 dark:hover:text-slate-300'
+    }`}
+  >
+    {label}
+  </button>
+);
+
+const InputField = ({ label, value, onChange, placeholder, type = 'text', inputMode = 'decimal', min, step, error }) => (
+  <div className="group">
+    {label && <label className="block text-[9px] uppercase font-black text-slate-400 dark:text-slate-500 mb-2 ml-2 tracking-[0.2em] transition-colors">{label}</label>}
+    <div className="relative">
+      <input
+        type={type}
+        inputMode={inputMode}
+        min={min}
+        step={step}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        aria-invalid={Boolean(error)}
+        className={`w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 border rounded-2xl text-slate-900 dark:text-white text-xs font-black italic focus:outline-none focus:ring-4 focus:bg-white dark:focus:bg-slate-800 transition-all placeholder-slate-300 dark:placeholder-slate-600 shadow-inner ${
+          error
+            ? 'border-rose-400 dark:border-rose-500 focus:ring-rose-500/10'
+            : 'border-slate-100 dark:border-slate-700 focus:ring-slate-900/5 dark:focus:ring-gold-500/10 focus:border-slate-300 dark:focus:border-gold-500/30'
+        }`}
+      />
+      <div className="absolute right-6 top-1/2 -translate-y-1/2 text-[9px] font-black text-slate-300 dark:text-slate-600 uppercase tracking-widest transition-colors">USD</div>
+    </div>
+    {error && <p className="mt-2 ml-2 text-[10px] font-bold text-rose-500">{error}</p>}
+  </div>
+);
+
 const OrderForm = ({ onSubmit, symbol = 'BTCUSD', compact = false }) => {
   const [orderType, setOrderType] = useState('market');
   const [side, setSide] = useState('buy');
@@ -9,14 +50,38 @@ const OrderForm = ({ onSubmit, symbol = 'BTCUSD', compact = false }) => {
   const [price, setPrice] = useState('');
   const [stopPrice, setStopPrice] = useState('');
   const [leverage, setLeverage] = useState(1);
+  const [amountError, setAmountError] = useState('');
+
+  const sanitizeCurrencyInput = (value) => value.replace(/[^\d.]/g, '').replace(/(\..*)\./g, '$1');
+
+  const handleAmountChange = (value) => {
+    const sanitizedValue = sanitizeCurrencyInput(value);
+    setAmount(sanitizedValue);
+
+    if (!sanitizedValue) {
+      setAmountError('');
+      return;
+    }
+
+    const parsedAmount = Number(sanitizedValue);
+    setAmountError(Number.isFinite(parsedAmount) && parsedAmount > 0 ? '' : 'Enter a valid amount greater than 0.');
+  };
 
   const handleSubmit = (e) => {
     e.preventDefault();
+
+    const parsedAmount = Number(amount);
+    if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) {
+      setAmountError('Enter a valid amount greater than 0.');
+      return;
+    }
+
+    setAmountError('');
     onSubmit({
       symbol,
       type: orderType,
       side,
-      amount: parseFloat(amount),
+      amount: parsedAmount,
       price: orderType !== 'market' ? parseFloat(price) : undefined,
       stopPrice: orderType === 'stop' ? parseFloat(stopPrice) : undefined,
       leverage
@@ -24,38 +89,6 @@ const OrderForm = ({ onSubmit, symbol = 'BTCUSD', compact = false }) => {
   };
 
   const quickAmounts = [100, 500, 1000, 5000];
-
-  const SideButton = ({ targetSide, label }) => (
-    <button
-      type="button"
-      onClick={() => setSide(targetSide)}
-      className={`flex-1 py-5 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] transition-all duration-300 ${
-        side === targetSide
-          ? targetSide === 'buy' 
-            ? 'bg-emerald-500 text-white shadow-2xl shadow-emerald-500/30 -translate-y-1' 
-            : 'bg-rose-500 text-white shadow-2xl shadow-rose-500/30 -translate-y-1'
-          : 'bg-slate-50 dark:bg-slate-800 text-slate-400 dark:text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-600 dark:hover:text-slate-300'
-      }`}
-    >
-      {label}
-    </button>
-  );
-
-  const InputField = ({ label, value, onChange, placeholder, type = "number" }) => (
-    <div className="group">
-      {label && <label className="block text-[9px] uppercase font-black text-slate-400 dark:text-slate-500 mb-2 ml-2 tracking-[0.2em] transition-colors">{label}</label>}
-      <div className="relative">
-        <input
-          type={type}
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder={placeholder}
-          className="w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl text-slate-900 dark:text-white text-xs font-black italic focus:outline-none focus:ring-4 focus:ring-slate-900/5 dark:focus:ring-gold-500/10 focus:bg-white dark:focus:bg-slate-800 focus:border-slate-300 dark:focus:border-gold-500/30 transition-all placeholder-slate-300 dark:placeholder-slate-600 shadow-inner"
-        />
-        <div className="absolute right-6 top-1/2 -translate-y-1/2 text-[9px] font-black text-slate-300 dark:text-slate-600 uppercase tracking-widest transition-colors">USD</div>
-      </div>
-    </div>
-  );
 
   return (
     <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 p-8 shadow-2xl shadow-slate-200/50 dark:shadow-black/20 relative overflow-hidden transition-colors">
@@ -92,16 +125,19 @@ const OrderForm = ({ onSubmit, symbol = 'BTCUSD', compact = false }) => {
 
           {/* Buy/Sell Toggle */}
           <div className="flex gap-4">
-            <SideButton targetSide="buy" label="BUY" />
-            <SideButton targetSide="sell" label="SELL" />
+            <SideButton side={side} targetSide="buy" label="BUY" onClick={() => setSide('buy')} />
+            <SideButton side={side} targetSide="sell" label="SELL" onClick={() => setSide('sell')} />
           </div>
 
           {/* Amount Input */}
           <InputField
             label="Investment Amount"
             value={amount}
-            onChange={setAmount}
+            onChange={handleAmountChange}
             placeholder="0.00"
+            min="0"
+            step="0.01"
+            error={amountError}
           />
 
           {/* Quick Amount Buttons */}
@@ -110,7 +146,7 @@ const OrderForm = ({ onSubmit, symbol = 'BTCUSD', compact = false }) => {
               <button
                 key={qty}
                 type="button"
-                onClick={() => setAmount(qty)}
+                onClick={() => handleAmountChange(String(qty))}
                 className="py-3 bg-white dark:bg-slate-900 text-slate-400 dark:text-slate-500 rounded-xl text-[9px] font-black border border-slate-100 dark:border-slate-800 hover:border-slate-900 dark:hover:border-gold-500 hover:text-slate-900 dark:hover:text-white uppercase transition-all shadow-sm transition-colors"
               >
                 ${qty}

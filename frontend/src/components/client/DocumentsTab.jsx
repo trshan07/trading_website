@@ -18,8 +18,6 @@ const DocumentsTab = ({ documents, onUpload }) => {
   }, []);
 
   const isMobile = windowWidth < 640;
-  const isTablet = windowWidth >= 640 && windowWidth < 1024;
-
   // Filter documents
   const filteredDocuments = documents.filter(doc => {
     const matchesCategory = selectedCategory === 'all' || doc.category === selectedCategory;
