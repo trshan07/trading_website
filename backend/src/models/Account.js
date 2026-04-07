@@ -9,7 +9,8 @@ class Account {
             VALUES ($1, $2, $3, $4, $5, $6)
             RETURNING *
         `;
-        const values = [userId, accountNumber, accountType, 0, 'USD', 'active'];
+        const balance = accountType === 'demo' ? 1000 : 0;
+        const values = [userId, accountNumber, accountType, balance, 'USD', 'active'];
         const { rows } = await db.query(query, values);
         return rows[0];
     }

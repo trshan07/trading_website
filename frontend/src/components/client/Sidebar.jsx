@@ -22,6 +22,10 @@ const Sidebar = ({ activeTab, onTabChange, onLogout, user, portfolio, showBalanc
     if (activeMetric === 'balance')  return showBalance ? `$${(portfolio?.totalBalance ?? 0).toLocaleString()}` : '••••••';
     if (activeMetric === 'equity')   return showBalance ? `$${(portfolio?.equity ?? 0).toLocaleString()}` : '••••••';
     if (activeMetric === 'margin')   return showBalance ? `$${(portfolio?.availableBalance ?? 0).toLocaleString()}` : '••••••';
+    if (activeMetric === 'pnl') {
+      const pnl = portfolio?.dailyPnL ?? 0;
+      return showBalance ? `${pnl >= 0 ? '+' : ''}$${Math.abs(pnl).toLocaleString()}` : '••••••';
+    }
   };
 
   const metricSub = () => {
@@ -39,6 +43,11 @@ const Sidebar = ({ activeTab, onTabChange, onLogout, user, portfolio, showBalanc
       label: 'Used Margin',
       value: showBalance ? `$${(portfolio?.margin ?? 0).toLocaleString()}` : '••••',
       color: 'text-slate-300',
+    };
+    if (activeMetric === 'pnl') return {
+      label: 'Positions Count',
+      value: `${portfolio?.positionsCount ?? 0} Active`,
+      color: 'text-gold-400',
     };
   };
 
@@ -73,6 +82,7 @@ const Sidebar = ({ activeTab, onTabChange, onLogout, user, portfolio, showBalanc
               { id: 'balance', label: 'Balance' },
               { id: 'equity',  label: 'Equity' },
               { id: 'margin',  label: 'Margin' },
+              { id: 'pnl',     label: 'P&L' },
             ].map(tab => (
               <button
                 key={tab.id}
@@ -91,9 +101,15 @@ const Sidebar = ({ activeTab, onTabChange, onLogout, user, portfolio, showBalanc
           {/* Metric Value */}
           <div className="relative z-10">
             <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-0.5">
-              {activeMetric === 'balance' ? 'Total Balance' : activeMetric === 'equity' ? 'Total Equity' : 'Free Margin'}
+              {activeMetric === 'balance' ? 'Total Balance' : 
+               activeMetric === 'equity' ? 'Total Equity' : 
+               activeMetric === 'margin' ? 'Free Margin' : 'Float Profit/Loss'}
             </p>
-            <h3 className="text-2xl font-black text-white italic tracking-tight leading-none mb-3">
+            <h3 className={`text-2xl font-black italic tracking-tight leading-none mb-3 ${
+              activeMetric === 'pnl' 
+                ? (portfolio?.dailyPnL ?? 0) >= 0 ? 'text-emerald-400' : 'text-rose-400'
+                : 'text-white'
+            }`}>
               {metricValue()}
             </h3>
 

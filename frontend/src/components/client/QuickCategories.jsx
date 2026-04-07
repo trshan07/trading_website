@@ -7,15 +7,15 @@ const QuickCategories = ({ onSelectCategory }) => {
       <div className="flex space-x-3 overflow-x-auto pb-4 scrollbar-hide items-center">
         <span className="text-xs text-slate-400 font-bold uppercase tracking-widest mr-2 whitespace-nowrap"><FaSearch className="inline -mt-0.5 mr-1"/> Explore Markets:</span>
         {[
-          { id: 'stocks', label: 'Stocks', icon: '📈' },
-          { id: 'funds', label: 'Funds', icon: '🏦' },
-          { id: 'futures', label: 'Futures', icon: '🔮' },
+          { id: 'watchlist', label: 'Watchlist', icon: '⭐' },
+          { id: 'popular', label: 'Popular', icon: '🔥' },
           { id: 'forex', label: 'Forex', icon: '💱' },
+          { id: 'commodities', label: 'Commodities', icon: '🛢️' },
           { id: 'crypto', label: 'Crypto', icon: '₿' },
-          { id: 'indices', label: 'Indices', icon: '📊' },
-          { id: 'bonds', label: 'Bonds', icon: '📜' },
-          { id: 'economy', label: 'Economy', icon: '🌍' },
-          { id: 'options', label: 'Options', icon: '🎯' }
+          { id: 'shares', label: 'Shares', icon: '📈' },
+          { id: 'indices-cash-1', label: 'Indices Cash 1', icon: '📊' },
+          { id: 'future-rolling-cfds', label: 'Future Rolling CFDs', icon: '📜' },
+          { id: 'brazilian-index', label: 'Brazilian Index', icon: '🇧🇷' }
         ].map(cat => (
           <button
             key={cat.id}

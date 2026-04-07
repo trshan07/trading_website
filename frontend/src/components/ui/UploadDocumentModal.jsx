@@ -22,7 +22,7 @@ const UploadDocumentModal = ({ show, onClose, onUpload }) => {
     onClose();
   };
 
-  const categories = ['Identity Proof', 'Address Proof', 'Income Proof', 'Bank Statement', 'Tax Document'];
+  const categories = ['Identity Proof', 'Address Proof', 'Income Proof', 'Bank Statement'];
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
@@ -48,6 +48,16 @@ const UploadDocumentModal = ({ show, onClose, onUpload }) => {
                   <option key={cat} value={cat}>{cat}</option>
                 ))}
               </select>
+            </div>
+            
+            {/* Requirement Hint */}
+            <div className="px-6 py-3 bg-gold-500/5 border border-gold-500/10 rounded-xl">
+               <p className="text-[9px] font-black text-gold-500 uppercase tracking-widest leading-relaxed">
+                 {category === 'Identity Proof' && "Acceptable: National ID Card (NIC) or Passport"}
+                 {category === 'Address Proof' && "Acceptable: Bank Statement / Utility Bill / Driving License (Both Sides)"}
+                 {category === 'Income Proof' && "Acceptable: Salary Slip or Employment Letter"}
+                 {category === 'Bank Statement' && "Acceptable: Official Bank Statement (Last 3 Months)"}
+               </p>
             </div>
           </div>
 

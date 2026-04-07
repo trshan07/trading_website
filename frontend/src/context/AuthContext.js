@@ -101,13 +101,19 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
-    const switchAccountType = (newType) => {
+    const switchAccountType = async (newType) => {
         localStorage.setItem('trading_mode', newType);
         setSelectedAccountType(newType);
+        
+        // Update user state before reload for instant UI feedback
         setUser(prev => prev ? ({
             ...prev,
             selectedAccountType: newType
         }) : null);
+        
+        // Trigger a fresh profile fetch to synchronize with the backend balances
+        await loadUser();
+        
         toast.success(`Switched to ${newType.toUpperCase()} mode.`);
     };
 

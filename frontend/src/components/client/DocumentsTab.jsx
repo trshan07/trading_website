@@ -40,7 +40,7 @@ const DocumentsTab = ({ documents, onUpload }) => {
     }
   };
 
-  const categories = ['all', 'Identity Proof', 'Address Proof', 'Income Proof', 'Bank Statement', 'Tax Document'];
+  const categories = ['all', 'Identity Proof', 'Address Proof', 'Income Proof', 'Bank Statement'];
 
   return (
     <div className="space-y-8">
@@ -203,9 +203,9 @@ const DocumentsTab = ({ documents, onUpload }) => {
         </h4>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10 relative">
           {[
-            { id: 1, text: "Accepted Assets: PDF, JPG, PNG (Max 10MB Load)" },
-            { id: 2, text: "High Integrity: Documents must be legible" },
-            { id: 3, text: "Process Time: 24-48 Business Hours" },
+            { id: 1, text: "Identity Data: Mandatory NIC or Passport Submission" },
+            { id: 2, text: "Residence Data: Bank Statement, DL (Front/Back), or Utilities" },
+            { id: 3, text: "Verification Window: 24-48 Business Hours" },
             { id: 4, text: "End-to-End Military Grade Encryption" }
           ].map(guide => (
             <div key={guide.id} className="flex flex-col space-y-4 group">

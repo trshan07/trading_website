@@ -142,14 +142,26 @@ const DashboardPage = () => {
 
   useEffect(() => {
     if (user && activeAccount) {
+      // Calculate total unrealized P&L from active positions
+      const totalUnrealizedPnL = positions?.reduce((sum, pos) => sum + (parseFloat(pos.pnl) || 0), 0) || 0;
+      const totalMargin = positions?.reduce((sum, pos) => sum + (parseFloat(pos.margin) || 0), 0) || 0;
+      
+      const balance = parseFloat(activeAccount.balance) || 0;
+      const equity = balance + totalUnrealizedPnL;
+      const marginLevel = totalMargin > 0 ? (equity / totalMargin) * 100 : 0;
+
       setPortfolio(prev => ({
         ...prev,
-        totalBalance: activeAccount.balance || 0,
-        availableBalance: activeAccount.balance || 0,
-        equity: activeAccount.balance || 0,
+        totalBalance: balance,
+        availableBalance: balance - totalMargin, // Available to withdraw/trade
+        equity: equity,
+        margin: totalMargin,
+        marginLevel: marginLevel,
+        dailyPnL: totalUnrealizedPnL,
+        positionsCount: positions?.length || 0
       }));
     }
-  }, [user]);
+  }, [user, activeAccount, positions]);
 
   const handleLogout = () => {
     logout();
@@ -238,7 +250,7 @@ const DashboardPage = () => {
                   </div>
                   <div className="text-center md:text-left">
                     <p className="text-[10px] font-black text-amber-500 uppercase tracking-widest leading-none mb-1">Simulated Practice Mode Active</p>
-                    <p className="text-sm font-medium text-slate-400">You are currently operating with simulated funds ($50,000.00 Grant). Real profits/losses are not applicable.</p>
+                    <p className="text-sm font-medium text-slate-400">You are currently operating with simulated funds ($1,000.00 Grant). Real profits/losses are not applicable.</p>
                   </div>
                 </div>
                 <button 

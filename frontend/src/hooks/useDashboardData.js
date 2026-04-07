@@ -34,7 +34,7 @@ export const useDashboardData = (accountType = 'demo') => {
   }, [user, accountId, accountType]);
 
   const [bankAccounts, setBankAccounts] = useState(isDemo ? [
-    { id: 1, bankName: 'Simulated Bank', accountNumber: '****1234', accountName: 'Demo User', isVerified: true, isDefault: true, balance: 50000.00 }
+    { id: 1, bankName: 'Simulated Bank', accountNumber: '****1234', accountName: 'Demo User', isVerified: true, isDefault: true, balance: 1000.00 }
   ] : [
     { id: 1, bankName: 'Chase Bank', accountNumber: '****1234', accountName: 'Real User', isVerified: true, isDefault: true, balance: 0.00 }
   ]);
@@ -44,7 +44,7 @@ export const useDashboardData = (accountType = 'demo') => {
   ]);
 
   const [transactions, setTransactions] = useState(isDemo ? [
-    { id: 1, type: 'Demo Grant', amount: 50000, method: 'System Generation', status: 'Completed', date: new Date().toLocaleDateString(), reference: 'DEMO-INIT' }
+    { id: 1, type: 'Demo Grant', amount: 1000, method: 'System Generation', status: 'Completed', date: new Date().toLocaleDateString(), reference: 'DEMO-INIT' }
   ] : []);
 
   const [documents, setDocuments] = useState([
@@ -114,8 +114,8 @@ export const useDashboardData = (accountType = 'demo') => {
 
 
   const portfolioHistory = [
-    { date: '2024-03-01', value: 50200 },
-    { date: '2024-03-07', value: 53450 }
+    { date: '2024-03-01', value: 1020 },
+    { date: '2024-03-07', value: 1345 }
   ];
 
   const [notifications, setNotifications] = useState([

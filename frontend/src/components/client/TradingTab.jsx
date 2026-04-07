@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import TradingViewWidget from '../trading/TradingViewWidget';
 import OrderBook from '../trading/OrderBook';
-import OrderForm from '../trading/OrderForm';
+import OrderPanel from '../trading/OrderPanel';
 import PositionsTable from '../trading/PositionsTable';
 import OpenOrders from '../trading/OpenOrders';
 import { useTheme } from '../../context/ThemeContext';
@@ -11,6 +11,7 @@ import { FaChartLine } from 'react-icons/fa';
 const TradingTab = ({ 
   positions = [],
   orders = [],
+  marketData = {},
   onPlaceOrder = () => {},
   onClosePosition = () => {},
   onCancelOrder = () => {}
@@ -78,12 +79,13 @@ const TradingTab = ({
           </div>
         </div>
 
-        {/* Right Column: Execution Panel */}
+        {/* Right Column: Order Execution Panel */}
         <div className="col-span-1 lg:col-span-4 xl:col-span-3 h-full">
-          <div className="lg:sticky lg:top-28 space-y-6">
-            <OrderForm 
+          <div className="lg:sticky lg:top-28">
+            <OrderPanel 
               onSubmit={onPlaceOrder} 
               symbol="BTCUSD"
+              marketData={marketData}
             />
           </div>
         </div>
