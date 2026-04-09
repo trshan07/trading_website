@@ -43,6 +43,7 @@ const DashboardPage = () => {
   const [loading, setLoading] = useState(true);
   const [activeMainTab, setActiveMainTab] = useState('trading');
   const [marketSymbol, setMarketSymbol] = useState('BTCUSDT');
+  const [marketCategory, setMarketCategory] = useState('All');
 
   useEffect(() => {
     const tabMatch = pathname.match(/\/dashboard\/([a-z-]+)/);
@@ -66,25 +67,61 @@ const DashboardPage = () => {
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1200);
+  const [favorites, setFavorites] = useState(['BTCUSDT', 'ETHUSDT', 'AAPL']);
+
+  const handleToggleFavorite = (symbol) => {
+    setFavorites(prev => 
+      prev.includes(symbol) ? prev.filter(s => s !== symbol) : [...prev, symbol]
+    );
+  };
 
   const handleCategorySelect = (categoryId) => {
-    if (categoryId === 'markets') {
-      setActiveMainTab('markets');
-      return;
-    }
+    // 1. Map categoryId to Chart Symbol
     const symbolsMap = {
+      watchlist: favorites[0] || 'BTCUSDT',
+      popular: 'EURUSD',
+      forex: 'EURUSD',
+      commodities: 'XAUUSD',
+      crypto: 'BTCUSDT',
+      shares: 'AAPL',
+      'indices-cash-1': 'SPX',
+      'future-rolling-cfds': 'ES1!',
+      'brazilian-index': 'IBOV',
       stocks: 'AAPL',
       funds: 'SPY',
       futures: 'ES1!',
-      forex: 'EURUSD',
-      crypto: 'BTCUSDT',
       indices: 'SPX',
       bonds: 'US10Y',
       economy: 'DXY',
       options: 'VIX'
     };
-    setMarketSymbol(symbolsMap[categoryId] || 'BTCUSDT');
-    setActiveMainTab('markets');
+
+    // 2. Map categoryId to MarketsTab Filter Category
+    const categoryNameMap = {
+      watchlist: 'Watchlist',
+      popular: 'Popular',
+      forex: 'Forex',
+      commodities: 'Commodities',
+      crypto: 'Crypto',
+      shares: 'Stocks', 
+      'indices-cash-1': 'Indices',
+      'future-rolling-cfds': 'Futures',
+      'brazilian-index': 'Brazilian Index',
+      stocks: 'Stocks',
+      funds: 'Funds',
+      futures: 'Futures',
+      indices: 'Indices',
+      bonds: 'Bonds',
+      economy: 'Economy',
+      options: 'Options'
+    };
+
+    const targetSymbol = symbolsMap[categoryId] || 'BTCUSDT';
+    const targetCategory = categoryNameMap[categoryId] || 'All';
+
+    setMarketSymbol(targetSymbol);
+    setMarketCategory(targetCategory);
+    navigate(`/dashboard/markets`);
   };
 
   // Fetch all mock state from custom hook
@@ -202,7 +239,7 @@ const DashboardPage = () => {
       <Sidebar
         activeTab={activeMainTab}
         onTabChange={(tab) => {
-          setActiveMainTab(tab);
+          navigate(`/dashboard/${tab}`);
           setShowMobileMenu(false);
         }}
         user={user}
@@ -262,15 +299,6 @@ const DashboardPage = () => {
               </div>
             )}
 
-            <WelcomeHeader
-              user={user}
-              portfolio={portfolio}
-              onDeposit={() => setActiveMainTab('banking')}
-              onTrade={() => setActiveMainTab('trading')}
-            />
-
-            <QuickCategories onSelectCategory={handleCategorySelect} />
-
             {/* Content Logic */}
             <div className="transition-all duration-300">
               {activeMainTab === 'trading' && (
@@ -285,6 +313,10 @@ const DashboardPage = () => {
                   onPlaceOrder={handlePlaceOrder}
                   onClosePosition={handleClosePosition}
                   onCancelOrder={handleCancelOrder}
+                  activeSymbol={marketSymbol}
+                  onSymbolChange={(sym) => setMarketSymbol(sym)}
+                  favorites={favorites}
+                  onToggleFavorite={handleToggleFavorite}
                 />
               )}
 
@@ -320,6 +352,9 @@ const DashboardPage = () => {
                 <MarketsTab
                   symbol={marketSymbol}
                   onSymbolChange={(sym) => setMarketSymbol(sym)}
+                  initialCategory={marketCategory}
+                  favorites={favorites}
+                  onToggleFavorite={handleToggleFavorite}
                 />
               )}
 
@@ -346,7 +381,10 @@ const DashboardPage = () => {
             show={showMobileMenu}
             onClose={() => setShowMobileMenu(false)}
             activeMainTab={activeMainTab}
-            setActiveMainTab={setActiveMainTab}
+            setActiveMainTab={(tab) => {
+              navigate(`/dashboard/${tab}`);
+              setShowMobileMenu(false);
+            }}
             user={user}
             portfolio={portfolio}
             showBalance={showBalance}

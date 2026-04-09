@@ -3,11 +3,12 @@ import React, { useState } from 'react';
 import { 
   FaChartLine, FaGlobe, FaChartPie, FaUniversity, 
   FaFileAlt, FaCog, FaSignOutAlt,
-  FaArrowUp, FaArrowDown
+  FaArrowUp, FaArrowDown, FaChevronLeft, FaChevronRight
 } from 'react-icons/fa';
 
 const Sidebar = ({ activeTab, onTabChange, onLogout, user, portfolio, showBalance }) => {
   const [activeMetric, setActiveMetric] = useState('equity');
+  const [isCollapsed, setIsCollapsed] = useState(true);
 
   const menuItems = [
     { id: 'trading',   label: 'Trading',   icon: FaChartLine },
@@ -54,25 +55,36 @@ const Sidebar = ({ activeTab, onTabChange, onLogout, user, portfolio, showBalanc
   const sub = metricSub();
 
   return (
-    <aside className="w-72 bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl border-r border-slate-200 dark:border-slate-800 hidden lg:flex flex-col h-screen sticky top-0 overflow-hidden transition-colors duration-300">
+    <aside className={`${isCollapsed ? 'w-20 lg:w-[4.5rem]' : 'w-72'} bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl border-r border-slate-200 dark:border-slate-800 hidden lg:flex flex-col h-screen sticky top-0 transition-all duration-300 z-50`}>
 
-      {/* Logo */}
-      <div className="px-6 pt-5 pb-4 shrink-0">
-        <div className="flex items-center space-x-3 group cursor-pointer">
-          <div className="w-11 h-11 bg-slate-900 dark:bg-gold-500 rounded-2xl flex items-center justify-center shadow-xl group-hover:bg-gold-500 dark:group-hover:bg-gold-400 transition-all duration-500 group-hover:rotate-[15deg]">
+      {/* Header & Logo */}
+      <div className={`pt-5 pb-4 shrink-0 flex items-center justify-between ${isCollapsed ? 'px-3 flex-col space-y-4' : 'px-6'}`}>
+        <div className="flex items-center space-x-3 group cursor-pointer transition-all">
+          <div className="flex-shrink-0 w-11 h-11 bg-slate-900 dark:bg-gold-500 rounded-2xl flex items-center justify-center shadow-xl group-hover:bg-gold-500 dark:group-hover:bg-gold-400 transition-all duration-500 group-hover:rotate-[15deg]">
             <FaChartLine className="text-white dark:text-slate-900 text-lg group-hover:text-gold-500 dark:group-hover:text-slate-900 transition-colors" />
           </div>
-          <div>
-            <h1 className="text-xl font-black text-slate-900 dark:text-white tracking-tighter uppercase italic leading-none">
-              Rizal<span className="text-gold-500">.</span>
-            </h1>
-            <p className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 mt-0.5">Terminal Prime</p>
-          </div>
+          {!isCollapsed && (
+            <div className="overflow-hidden transition-all duration-300">
+              <h1 className="text-xl font-black text-slate-900 dark:text-white tracking-tighter uppercase italic leading-none whitespace-nowrap">
+                Rizal<span className="text-gold-500">.</span>
+              </h1>
+              <p className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 mt-0.5 whitespace-nowrap">Terminal Prime</p>
+            </div>
+          )}
         </div>
+        
+        {/* Toggle Button */}
+        <button 
+          onClick={() => setIsCollapsed(!isCollapsed)}
+          className={`p-2 rounded-xl text-slate-400 hover:text-gold-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors ${isCollapsed ? '' : '-mr-2'}`}
+          title={isCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
+        >
+          {isCollapsed ? <FaChevronRight size={12} /> : <FaChevronLeft size={12} />}
+        </button>
       </div>
 
-      {/* Account Snapshot Card */}
-      <div className="px-4 pb-4 shrink-0">
+      {/* Account Snapshot Card (Hidden when collapsed) */}
+      <div className={`px-4 pb-4 shrink-0 transition-all duration-300 ${isCollapsed ? 'opacity-0 h-0 overflow-hidden m-0 p-0' : 'opacity-100'}`}>
         <div className="bg-slate-900 dark:bg-slate-800 rounded-[1.75rem] p-4 shadow-xl shadow-slate-900/30 dark:shadow-black/20 overflow-hidden relative border border-white/5">
           <div className="absolute top-0 right-0 w-24 h-24 bg-gold-400/10 rounded-full -translate-y-12 translate-x-12 blur-2xl pointer-events-none" />
 
@@ -100,12 +112,12 @@ const Sidebar = ({ activeTab, onTabChange, onLogout, user, portfolio, showBalanc
 
           {/* Metric Value */}
           <div className="relative z-10">
-            <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-0.5">
+            <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-0.5 whitespace-nowrap">
               {activeMetric === 'balance' ? 'Total Balance' : 
                activeMetric === 'equity' ? 'Total Equity' : 
                activeMetric === 'margin' ? 'Free Margin' : 'Float Profit/Loss'}
             </p>
-            <h3 className={`text-2xl font-black italic tracking-tight leading-none mb-3 ${
+            <h3 className={`text-2xl font-black italic tracking-tight leading-none mb-3 whitespace-nowrap ${
               activeMetric === 'pnl' 
                 ? (portfolio?.dailyPnL ?? 0) >= 0 ? 'text-emerald-400' : 'text-rose-400'
                 : 'text-white'
@@ -113,7 +125,7 @@ const Sidebar = ({ activeTab, onTabChange, onLogout, user, portfolio, showBalanc
               {metricValue()}
             </h3>
 
-            <div className="pt-3 border-t border-white/10 flex justify-between items-center">
+            <div className="pt-3 border-t border-white/10 flex justify-between items-center whitespace-nowrap">
               <div>
                 <p className="text-[8px] font-black uppercase text-slate-500 tracking-wider">{sub?.label}</p>
                 <p className={`text-xs font-bold mt-0.5 ${sub?.color}`}>{sub?.value}</p>
@@ -128,31 +140,36 @@ const Sidebar = ({ activeTab, onTabChange, onLogout, user, portfolio, showBalanc
         </div>
       </div>
 
-      {/* Main Navigation — flex-1 fills remaining space, items never overflow */}
-      <nav className="flex-1 px-4 space-y-0.5 min-h-0">
+      {/* Main Navigation */}
+      <nav className={`flex-1 space-y-0.5 min-h-0 ${isCollapsed ? 'px-2' : 'px-4'}`}>
         {menuItems.map((item) => {
           const isActive = activeTab === item.id;
           return (
             <button
               key={item.id}
               onClick={() => onTabChange(item.id)}
-              className={`w-full group px-4 py-3.5 rounded-[1.25rem] flex items-center transition-all duration-300 relative ${
+              title={isCollapsed ? item.label : undefined}
+              className={`w-full group py-3.5 flex items-center transition-all duration-300 relative ${isCollapsed ? 'justify-center rounded-2xl' : 'px-4 rounded-[1.25rem]'} ${
                 isActive
                   ? 'bg-slate-900 dark:bg-gold-500 text-white dark:text-slate-900 shadow-xl shadow-slate-900/10 dark:shadow-gold-500/10'
-                  : 'text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white dark:hover:bg-slate-800'
+                  : 'text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800'
               }`}
             >
-              <div className={`p-2 rounded-xl border transition-all duration-300 mr-3 ${
+              <div className={`p-2 rounded-xl border transition-all duration-300 flex-shrink-0 ${isCollapsed ? '' : 'mr-3'} ${
                 isActive
                   ? 'bg-gold-500 dark:bg-slate-900 border-gold-400 dark:border-slate-800'
                   : 'bg-white dark:bg-slate-800 border-slate-100 dark:border-slate-700 group-hover:border-slate-300 dark:group-hover:border-slate-600'
               }`}>
-                <item.icon size={11} className={isActive ? 'text-white dark:text-gold-500' : 'text-slate-300 dark:text-slate-500 group-hover:text-slate-900 dark:group-hover:text-white'} />
+                <item.icon size={12} className={isActive ? 'text-white dark:text-gold-500' : 'text-slate-400 dark:text-slate-500 group-hover:text-slate-900 dark:group-hover:text-white'} />
               </div>
-              <span className={`text-xs font-black uppercase tracking-widest ${isActive ? 'text-white dark:text-slate-900' : 'text-slate-400 group-hover:text-slate-900 dark:group-hover:text-white'}`}>
-                {item.label}
-              </span>
-              {isActive && (
+              
+              {!isCollapsed && (
+                <span className={`text-[11px] font-black uppercase tracking-widest whitespace-nowrap overflow-hidden transition-all duration-300 ${isActive ? 'text-white dark:text-slate-900' : 'text-slate-400 group-hover:text-slate-900 dark:group-hover:text-white'}`}>
+                  {item.label}
+                </span>
+              )}
+
+              {isActive && !isCollapsed && (
                 <div className="absolute right-5 w-1.5 h-1.5 bg-gold-400 dark:bg-slate-900 rounded-full shadow-[0_0_10px_#D4AF37] dark:shadow-none" />
               )}
             </button>
@@ -161,20 +178,23 @@ const Sidebar = ({ activeTab, onTabChange, onLogout, user, portfolio, showBalanc
       </nav>
 
       {/* Footer / User Profile */}
-      <div className="px-4 py-4 shrink-0">
-        <div className="bg-slate-50 dark:bg-slate-800/50 rounded-3xl p-3 border border-slate-100 dark:border-slate-700 flex items-center justify-between group cursor-pointer hover:bg-slate-100/50 dark:hover:bg-slate-700 transition-all">
-          <div className="flex items-center space-x-3">
-            <div className="w-9 h-9 bg-slate-900 dark:bg-gold-500 rounded-xl flex items-center justify-center text-gold-500 dark:text-slate-900 font-black italic shadow-lg group-hover:scale-110 transition-transform text-sm">
-              {user?.firstName?.charAt(0)}
+      <div className={`py-4 shrink-0 transition-all duration-300 ${isCollapsed ? 'px-2' : 'px-4'}`}>
+        <div className={`bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-700 flex items-center group cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 transition-all ${isCollapsed ? 'flex-col p-2 space-y-3' : 'justify-between p-3'}`}>
+          <div className={`flex items-center ${isCollapsed ? 'justify-center' : 'space-x-3 w-full'}`}>
+            <div className="flex-shrink-0 w-9 h-9 bg-slate-900 dark:bg-gold-500 rounded-xl flex items-center justify-center text-gold-500 dark:text-slate-900 font-black italic shadow-lg group-hover:scale-110 transition-transform text-sm">
+              {user?.firstName?.charAt(0) || 'U'}
             </div>
-            <div>
-              <p className="text-xs font-black text-slate-900 dark:text-white tracking-tight uppercase leading-none">{user?.firstName} {user?.lastName}</p>
-              <p className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mt-0.5">{user?.selectedAccountType} account</p>
-            </div>
+            {!isCollapsed && (
+              <div className="overflow-hidden">
+                <p className="text-[11px] font-black text-slate-900 dark:text-white tracking-tight uppercase leading-none whitespace-nowrap">{user?.firstName} {user?.lastName}</p>
+                <p className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mt-0.5 whitespace-nowrap">{user?.selectedAccountType} account</p>
+              </div>
+            )}
           </div>
           <button
             onClick={onLogout}
-            className="p-2 text-slate-300 dark:text-slate-600 hover:text-rose-500 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded-xl transition-all"
+            title="Sign Out"
+            className={`p-2 text-slate-300 dark:text-slate-600 hover:text-rose-500 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded-xl transition-all ${isCollapsed ? 'w-full flex justify-center' : ''}`}
           >
             <FaSignOutAlt size={13} />
           </button>

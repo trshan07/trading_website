@@ -144,8 +144,9 @@ const Header = ({
   };
 
   return (
-    <header className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 sticky top-0 z-40 px-4 sm:px-6 lg:px-10 h-20 flex items-center transition-colors duration-300">
-      <div className="flex-1 flex justify-between items-center">
+    <header className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 sticky top-0 z-40 px-4 sm:px-6 lg:px-10 flex flex-col transition-colors duration-300">
+      {/* Primary Header Row */}
+      <div className="h-20 flex items-center justify-between">
         {/* Left Section - Quick Search & Mobile Menu */}
         <div className="flex items-center space-x-6">
           <button
@@ -240,20 +241,9 @@ const Header = ({
           </div>
         </div>
 
-        {/* Right Section - Balance, Quick Trade, & Profile */}
+        {/* Right Section - Profile and Actions */}
         <div className="flex items-center space-x-4 sm:space-x-8">
-          {/* Balance Widget */}
-          <div className="hidden sm:flex flex-col items-end border-r border-slate-200 dark:border-slate-800 pr-8 mr-2 last:border-0 last:pr-0 last:mr-0">
-            <span className="text-[10px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-widest mb-1.5 flex items-center">
-              Global Balance <FaEye className="ml-2 cursor-pointer hover:text-gold-500 transition-colors" onClick={onToggleBalance} />
-            </span>
-            <p className="text-xl font-black text-slate-900 dark:text-white italic tracking-tighter">
-              {showBalance ? `$${(portfolio?.totalBalance ?? 0).toLocaleString()}` : '••••••••'}
-            </p>
-          </div>
-
           <div className="flex items-center space-x-3">
-            {/* Theme Toggle */}
             <ThemeToggle />
 
             <button
@@ -303,21 +293,12 @@ const Header = ({
                   ) : (
                     <div className="max-h-80 overflow-y-auto custom-scrollbar">
                       {notifications.map((notification) => {
-                        const toneClass = notification.type === 'success'
-                          ? 'bg-emerald-500'
-                          : notification.type === 'warning'
-                            ? 'bg-amber-500'
-                            : notification.type === 'error'
-                              ? 'bg-rose-500'
-                              : 'bg-blue-500';
-
+                        const toneClass = notification.type === 'success' ? 'bg-emerald-500' : notification.type === 'warning' ? 'bg-amber-500' : notification.type === 'error' ? 'bg-rose-500' : 'bg-blue-500';
                         return (
                           <button
                             key={notification.id}
                             onClick={() => handleNotificationClick(notification)}
-                            className={`w-full px-4 py-3 text-left border-b border-slate-50 dark:border-slate-800 last:border-0 transition-all hover:bg-slate-50 dark:hover:bg-slate-800 ${
-                              notification.read ? 'opacity-70' : ''
-                            }`}
+                            className={`w-full px-4 py-3 text-left border-b border-slate-50 dark:border-slate-800 last:border-0 transition-all hover:bg-slate-50 dark:hover:bg-slate-800 ${notification.read ? 'opacity-70' : ''}`}
                           >
                             <div className="flex items-start gap-3">
                               <span className={`mt-1.5 w-2.5 h-2.5 rounded-full shrink-0 ${toneClass}`} />
@@ -390,6 +371,33 @@ const Header = ({
               )}
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* High-Density Account Summary Bar (Trade.com Style) */}
+      <div className="h-12 border-t border-slate-100 dark:border-slate-800/50 flex items-center overflow-x-auto scrollbar-hide">
+        <div className="flex items-center space-x-8 px-4">
+          {[
+            { label: 'Balance', value: portfolio?.totalBalance, highlight: false },
+            { label: 'Equity', value: portfolio?.equity, highlight: true },
+            { label: 'Used Margin', value: portfolio?.margin, highlight: false },
+            { label: 'Free Margin', value: portfolio?.availableBalance, highlight: false },
+            { label: 'Margin Level', value: `${(portfolio?.marginLevel || 0).toFixed(2)}%`, highlight: (portfolio?.marginLevel || 0) < 100, isPercent: true }
+          ].map((item, idx) => (
+            <div key={idx} className="flex items-center space-x-3 whitespace-nowrap">
+              <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-600">
+                {item.label}:
+              </span>
+              <span className={`text-[11px] font-black tabular-nums italic ${
+                item.highlight 
+                  ? (typeof item.value === 'string' && item.value.includes('%') && parseFloat(item.value) < 100 ? 'text-rose-500 animate-pulse' : 'text-gold-500') 
+                  : 'text-slate-900 dark:text-white'
+              }`}>
+                {showBalance ? (item.isPercent ? item.value : `$${(item.value || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`) : '••••'}
+              </span>
+              {idx < 4 && <div className="h-3 w-[1px] bg-slate-100 dark:bg-slate-800 ml-4" />}
+            </div>
+          ))}
         </div>
       </div>
     </header>

@@ -43,7 +43,7 @@ const OrderPanel = ({ onSubmit, symbol = 'BTCUSD', marketData = {}, onClose }) =
   };
 
   return (
-    <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[2rem] shadow-2xl overflow-hidden flex flex-col h-full transition-colors duration-300">
+    <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[2rem] shadow-2xl overflow-hidden flex flex-col transition-colors duration-300">
       {/* Header */}
       <div className="p-5 border-b border-slate-50 dark:border-slate-800 flex justify-between items-center bg-slate-50/30 dark:bg-slate-800/30">
         <div className="flex items-center space-x-2">
@@ -59,7 +59,7 @@ const OrderPanel = ({ onSubmit, symbol = 'BTCUSD', marketData = {}, onClose }) =
         )}
       </div>
 
-      <div className="p-6 space-y-6 flex-1 overflow-y-auto custom-scrollbar">
+      <div className="p-6 space-y-6">
         {/* Order Type Tabs */}
         <div className="flex p-1 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-700/50">
           {['market', 'pending'].map((type) => (
@@ -160,68 +160,70 @@ const OrderPanel = ({ onSubmit, symbol = 'BTCUSD', marketData = {}, onClose }) =
           </div>
         </div>
 
-        {/* Leverage Retained Section */}
-        <div className="pt-2">
-          <div className="flex justify-between items-center mb-4">
-             <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">Leverage Factor</label>
-             <span className="text-[10px] font-black text-slate-900 dark:text-white bg-gold-500 px-3 py-1 rounded-lg italic shadow-lg shadow-gold-500/10">x{leverage}</span>
-          </div>
-          <input
-            type="range"
-            min="1"
-            max="100"
-            value={leverage}
-            onChange={(e) => setLeverage(parseInt(e.target.value))}
-            className="w-full h-1 bg-slate-100 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer accent-gold-500"
-          />
-          <div className="flex justify-between mt-3 px-1 text-[8px] font-black text-slate-600 dark:text-slate-700 uppercase tracking-widest">
-            <span>Conservative</span>
-            <span>Aggressive</span>
-          </div>
-        </div>
+        <div className="space-y-4 animate-in slide-in-from-top-2 duration-300">
+            {/* Leverage Retained Section */}
+            <div>
+              <div className="flex justify-between items-center mb-4">
+                <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">Leverage Factor</label>
+                <span className="text-[10px] font-black text-slate-900 dark:text-white bg-gold-500 px-3 py-1 rounded-lg italic shadow-lg shadow-gold-500/10">x{leverage}</span>
+              </div>
+              <input
+                type="range"
+                min="1"
+                max="100"
+                value={leverage}
+                onChange={(e) => setLeverage(parseInt(e.target.value))}
+                className="w-full h-1 bg-slate-100 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer accent-gold-500"
+              />
+              <div className="flex justify-between mt-3 px-1 text-[8px] font-black text-slate-600 dark:text-slate-700 uppercase tracking-widest">
+                <span>Conservative</span>
+                <span>Aggressive</span>
+              </div>
+            </div>
 
-        {/* Dynamic Risk Controls */}
-        <div className="space-y-4 pt-2">
-           <div className="flex flex-col space-y-3">
-             <div className="flex items-center justify-between group cursor-pointer" onClick={() => setTakeProfit(!takeProfit)}>
-               <div className="flex items-center space-x-3">
-                  <div className={`w-4 h-4 rounded-md border flex items-center justify-center transition-all ${takeProfit ? 'bg-emerald-500 border-emerald-400 text-white' : 'border-slate-700'}`}>
-                    {takeProfit && <FaCheck size={7} />}
+            {/* Dynamic Risk Controls */}
+            <div className="space-y-4 pt-2">
+              <div className="flex flex-col space-y-3">
+                <div className="flex items-center justify-between group cursor-pointer" onClick={() => setTakeProfit(!takeProfit)}>
+                  <div className="flex items-center space-x-3">
+                      <div className={`w-4 h-4 rounded-md border flex items-center justify-center transition-all ${takeProfit ? 'bg-emerald-500 border-emerald-400 text-white' : 'border-slate-700'}`}>
+                        {takeProfit && <FaCheck size={7} />}
+                      </div>
+                      <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 group-hover:text-slate-300 transition-colors">Take Profit</span>
                   </div>
-                  <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 group-hover:text-slate-300 transition-colors">Take Profit</span>
-               </div>
-             </div>
-             {takeProfit && (
-               <input 
-                 type="text" 
-                 placeholder="Target Price..."
-                 value={tpValue}
-                 onChange={(e) => setTpValue(e.target.value)}
-                 className="w-full px-5 py-3.5 bg-slate-900/50 border border-emerald-500/30 rounded-xl text-xs font-black italic text-emerald-400 placeholder-emerald-900/30 focus:outline-none"
-               />
-             )}
-           </div>
+                </div>
+                {takeProfit && (
+                  <input 
+                    type="text" 
+                    placeholder="Target Price..."
+                    value={tpValue}
+                    onChange={(e) => setTpValue(e.target.value)}
+                    className="w-full px-5 py-3.5 bg-slate-900/50 border border-emerald-500/30 rounded-xl text-xs font-black italic text-emerald-400 placeholder-emerald-900/30 focus:outline-none"
+                  />
+                )}
+              </div>
 
-           <div className="flex flex-col space-y-3">
-             <div className="flex items-center justify-between group cursor-pointer" onClick={() => setStopLoss(!stopLoss)}>
-               <div className="flex items-center space-x-3">
-                  <div className={`w-4 h-4 rounded-md border flex items-center justify-center transition-all ${stopLoss ? 'bg-rose-500 border-rose-400 text-white' : 'border-slate-700'}`}>
-                    {stopLoss && <FaCheck size={7} />}
+              <div className="flex flex-col space-y-3">
+                <div className="flex items-center justify-between group cursor-pointer" onClick={() => setStopLoss(!stopLoss)}>
+                  <div className="flex items-center space-x-3">
+                      <div className={`w-4 h-4 rounded-md border flex items-center justify-center transition-all ${stopLoss ? 'bg-rose-500 border-rose-400 text-white' : 'border-slate-700'}`}>
+                        {stopLoss && <FaCheck size={7} />}
+                      </div>
+                      <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 group-hover:text-slate-300 transition-colors">Stop Loss</span>
                   </div>
-                  <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 group-hover:text-slate-300 transition-colors">Stop Loss</span>
-               </div>
-             </div>
-             {stopLoss && (
-               <input 
-                 type="text" 
-                 placeholder="Stop Price..."
-                 value={slValue}
-                 onChange={(e) => setSlValue(e.target.value)}
-                 className="w-full px-5 py-3.5 bg-slate-900/50 border border-rose-500/30 rounded-xl text-xs font-black italic text-rose-400 placeholder-rose-900/30 focus:outline-none"
-               />
-             )}
-           </div>
-        </div>
+                </div>
+                {stopLoss && (
+                  <input 
+                    type="text" 
+                    placeholder="Stop Price..."
+                    value={slValue}
+                    onChange={(e) => setSlValue(e.target.value)}
+                    className="w-full px-5 py-3.5 bg-slate-900/50 border border-rose-500/30 rounded-xl text-xs font-black italic text-rose-400 placeholder-rose-900/30 focus:outline-none"
+                  />
+                )}
+              </div>
+            </div>
+          </div>
 
         {/* Order Summary Summary */}
         <div className="bg-slate-950/50 border border-slate-800 rounded-2xl p-5 space-y-3 shadow-inner">
