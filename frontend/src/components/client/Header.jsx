@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { FaEye, FaBolt, FaBell, FaBars, FaChevronDown, FaExchangeAlt, FaTimes } from 'react-icons/fa';
+import { FaEye, FaBolt, FaBell, FaBars, FaChevronDown, FaExchangeAlt, FaTimes, FaFileAlt } from 'react-icons/fa';
 import { HiMagnifyingGlass } from 'react-icons/hi2';
 import ThemeToggle from '../ui/ThemeToggle';
 

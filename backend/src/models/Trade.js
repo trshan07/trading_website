@@ -18,7 +18,7 @@ class Trade {
         const query = `
             SELECT * FROM trades 
             WHERE user_id = $1 AND account_id = $2 AND status = 'open'
-            ORDER BY created_at DESC
+            ORDER BY id DESC
         `;
         const { rows } = await db.query(query, [userId, accountId]);
         return rows;

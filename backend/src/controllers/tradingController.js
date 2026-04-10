@@ -69,10 +69,22 @@ const tradingController = {
 
     // Get open positions
     getOpenPositions: async (req, res) => {
-        const { accountId } = req.query;
+        const rawAccountId = req.query.accountId;
+        const accountId = parseInt(rawAccountId, 10);
         const userId = req.user.id;
 
+        if (!Number.isInteger(accountId) || accountId <= 0) {
+            return res.status(400).json({ success: false, message: 'Invalid accountId' });
+        }
+
         try {
+            const accounts = await Account.findByUserId(userId);
+            const account = accounts.find(a => a.id === accountId);
+
+            if (!account) {
+                return res.status(404).json({ success: false, message: 'Trading account not found or access denied' });
+            }
+
             const positions = await Trade.findActiveByUserId(userId, accountId);
             res.json({
                 success: true,
