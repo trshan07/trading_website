@@ -1,4 +1,6 @@
-import { useState, useEffect, useRef } from "react";
+import { useContext, useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
+import { AuthContext } from "../../context/AuthContext";
 
 // ─── re-export everything from part 1 inline (merged single file) ──────────
 // ═══════════════════════════════════════════════════════════════════════════
@@ -85,6 +87,7 @@ const fmt = (n) => new Intl.NumberFormat("en-US", { style: "currency", currency:
 const fmtNum = (n) => new Intl.NumberFormat("en-US").format(n ?? 0);
 const timeAgo = (d) => { if (!d) return "—"; const s = (Date.now() - new Date(d)) / 1000; if (s < 60) return `${~~s}s ago`; if (s < 3600) return `${~~(s / 60)}m ago`; if (s < 86400) return `${~~(s / 3600)}h ago`; return `${~~(s / 86400)}d ago`; };
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" }) : "—";
+const fmtDateTime = (d) => d ? new Date(d).toLocaleString("en-US", { year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }) : "—";
 
 // ═══════════════════════════════════════════════════════════════════════════
 // BASE COMPONENTS
@@ -245,6 +248,8 @@ function Card({ children, title, subtitle, extra, noPad, style: s = {} }) {
 // MAIN APP
 // ═══════════════════════════════════════════════════════════════════════════
 export default function AdminCRM() {
+  const navigate = useNavigate();
+  const auth = useContext(AuthContext);
   const [page, setPage] = useState("dashboard");
   const [users, setUsers] = useState(MOCK_USERS);
   const [funding, setFunding] = useState(MOCK_FUNDING);
@@ -258,6 +263,20 @@ export default function AdminCRM() {
     const id = ++toastId.current;
     setToasts(p => [...p, { id, title, msg, type }]);
     setTimeout(() => setToasts(p => p.filter(t => t.id !== id)), 4000);
+  };
+
+  const handleAdminLogout = () => {
+    try {
+      if (typeof auth?.logout === "function") {
+        auth.logout();
+      } else {
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+        localStorage.removeItem("trading_mode");
+      }
+    } finally {
+      navigate("/login");
+    }
   };
 
   const stats = {
@@ -377,6 +396,7 @@ export default function AdminCRM() {
                 <div style={{ width: "7px", height: "7px", borderRadius: "50%", background: C.green, animation: "pulse 2s infinite" }} />
                 <span className="mono" style={{ fontSize: "11px", color: C.green }}>LIVE</span>
               </div>
+              <Btn variant="secondary" size="sm" onClick={handleAdminLogout}>Logout</Btn>
             </div>
           </header>
           <style>{`.mobile-menu-btn{display:none!important;} @media(max-width:768px){.mobile-menu-btn{display:flex!important;}}`}</style>
@@ -495,6 +515,33 @@ function DashboardPage({ stats, users, funding, trades, setPage }) {
           </div>
         </Card>
       </div>
+
+      <div style={{ marginTop: "16px" }}>
+        <Card title="Open Trades Snapshot" subtitle="Live positions by instrument" extra={<Btn size="sm" variant="ghost" onClick={() => setPage("trades")}>Open Trades</Btn>}>
+          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+            {trades.filter(t => t.status === "open").map(t => (
+              <div key={t.id} style={{ display: "grid", gridTemplateColumns: "minmax(0,1.2fr) minmax(0,1fr) auto auto", gap: "10px", alignItems: "center", padding: "10px 12px", background: C.bg, borderRadius: "8px", border: `1px solid ${C.border}` }}>
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontSize: "12px", fontWeight: 700, color: C.gold }} className="mono">{t.symbol}</div>
+                  <div style={{ fontSize: "10px", color: C.textMuted, marginTop: "2px" }}>{t.userName}</div>
+                </div>
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontSize: "10px", color: C.textDim, textTransform: "uppercase", letterSpacing: "0.08em" }}>Opened</div>
+                  <div className="mono" style={{ fontSize: "11px", color: C.textMuted, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{fmtDateTime(t.opened)}</div>
+                </div>
+                <div style={{ textAlign: "right" }}>
+                  <div style={{ fontSize: "10px", color: C.textDim, textTransform: "uppercase", letterSpacing: "0.08em" }}>Volume</div>
+                  <div className="mono" style={{ fontSize: "12px", color: C.text, fontWeight: 600 }}>{t.lots} lots</div>
+                </div>
+                <div style={{ textAlign: "right" }}>
+                  <StatusBadge status={t.type} />
+                </div>
+              </div>
+            ))}
+            {trades.filter(t => t.status === "open").length === 0 && <div style={{ padding: "24px", textAlign: "center", color: C.textDim, fontSize: "13px" }}>No open trades</div>}
+          </div>
+        </Card>
+      </div>
     </div>
   );
 }
@@ -509,6 +556,8 @@ function UsersPage({ users, setUsers, toast }) {
   const [modal, setModal] = useState(null);
   const [form, setForm] = useState({});
   const [confirm, setConfirm] = useState(null);
+  const [resetModal, setResetModal] = useState(null);
+  const [resetForm, setResetForm] = useState({ password: "", confirmPassword: "" });
 
   const filtered = users.filter(u => {
     const s = search.toLowerCase();
@@ -534,6 +583,32 @@ function UsersPage({ users, setUsers, toast }) {
 
   const deleteUser = (u) => setConfirm({ msg: `Permanently delete ${u.name}? This cannot be undone.`, onConfirm: () => { setUsers(p => p.filter(x => x.id !== u.id)); setConfirm(null); toast("User Deleted", u.name, "error"); } });
   const toggleStatus = (u) => { setUsers(p => p.map(x => x.id === u.id ? { ...x, status: x.status === "active" ? "suspended" : "active" } : x)); toast("Status Updated", u.name); };
+  const openResetPassword = (u) => {
+    setResetModal(u);
+    setResetForm({ password: "", confirmPassword: "" });
+  };
+
+  const submitResetPassword = () => {
+    const nextPassword = resetForm.password?.trim() || "";
+    if (nextPassword.length < 8) {
+      return toast("Validation Error", "Password must be at least 8 characters", "error");
+    }
+    if (nextPassword !== resetForm.confirmPassword) {
+      return toast("Validation Error", "Passwords do not match", "error");
+    }
+
+    setUsers(p => p.map(u => (u.id === resetModal.id
+      ? {
+          ...u,
+          passwordResetAt: new Date().toISOString(),
+          forcePasswordChange: true,
+        }
+      : u)));
+
+    toast("Password Reset", `${resetModal.name} must set a new password on next login`);
+    setResetModal(null);
+    setResetForm({ password: "", confirmPassword: "" });
+  };
 
   return (
     <div>
@@ -592,6 +667,7 @@ function UsersPage({ users, setUsers, toast }) {
                     <div style={{ display: "flex", gap: "4px", flexWrap: "wrap" }}>
                       <Btn size="sm" variant="outline" onClick={() => openView(u)}>View</Btn>
                       <Btn size="sm" variant="ghost" onClick={() => openEdit(u)}>Edit</Btn>
+                      <Btn size="sm" variant="secondary" onClick={() => openResetPassword(u)}>Reset PW</Btn>
                       <Btn size="sm" danger onClick={() => toggleStatus(u)}>{u.status === "active" ? "Suspend" : "Activate"}</Btn>
                       <Btn size="sm" danger onClick={() => deleteUser(u)}>Del</Btn>
                     </div>
@@ -652,6 +728,30 @@ function UsersPage({ users, setUsers, toast }) {
             ))}
           </div>
         )}
+      </Modal>
+
+      <Modal open={!!resetModal} onClose={() => setResetModal(null)} title={`Reset Password — ${resetModal?.name || ""}`} subtitle={resetModal?.email || ""} width="460px">
+        <div style={{ marginBottom: "14px", fontSize: "12px", color: C.textMuted, lineHeight: 1.6 }}>
+          Set a temporary password for this user. They will be asked to change it at the next sign-in.
+        </div>
+        <Input
+          label="New Temporary Password"
+          type="password"
+          value={resetForm.password}
+          onChange={e => setResetForm(p => ({ ...p, password: e.target.value }))}
+          placeholder="Minimum 8 characters"
+        />
+        <Input
+          label="Confirm Password"
+          type="password"
+          value={resetForm.confirmPassword}
+          onChange={e => setResetForm(p => ({ ...p, confirmPassword: e.target.value }))}
+          placeholder="Re-enter password"
+        />
+        <div style={{ display: "flex", gap: "8px", justifyContent: "flex-end", marginTop: "8px" }}>
+          <Btn variant="secondary" onClick={() => setResetModal(null)}>Cancel</Btn>
+          <Btn onClick={submitResetPassword}>Confirm Reset</Btn>
+        </div>
       </Modal>
 
       <ConfirmBox confirm={confirm} setConfirm={setConfirm} />
