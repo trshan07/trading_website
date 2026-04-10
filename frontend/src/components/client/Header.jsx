@@ -53,6 +53,7 @@ const Header = ({
   isDemo = false,
   onSwitchAccount = () => {},
   onSelectSymbol = () => {},
+  onShowStatement = () => {},
 }) => {
   const [showDropdown, setShowDropdown] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
@@ -151,13 +152,13 @@ const Header = ({
         <div className="flex items-center space-x-6">
           <button
             onClick={onMenuClick}
-            className="lg:hidden p-3 bg-slate-900 dark:bg-gold-500 text-white dark:text-slate-900 rounded-2xl shadow-xl hover:bg-slate-800 transition-all"
+            className="lg:hidden p-3 bg-slate-900 dark:bg-gold-500 text-white dark:text-slate-900 rounded-2xl shadow-xl hover:bg-slate-800 transition-all active:scale-95"
           >
             <FaBars size={18} />
           </button>
 
           {/* Global Search */}
-          <div className="hidden md:flex items-center relative group w-full max-w-[18rem] lg:max-w-none" ref={searchRef}>
+          <div className="hidden sm:flex items-center relative group w-full" ref={searchRef}>
             <HiMagnifyingGlass
               className="absolute left-4 text-slate-400 group-focus-within:text-gold-500 transition-colors z-10"
               size={18}
@@ -359,6 +360,13 @@ const Header = ({
                     </button>
                     <div className="border-t border-slate-50 dark:border-slate-800 mt-1 pt-1">
                       <button
+                        onClick={() => { onShowStatement(); setShowDropdown(false); }}
+                        className="w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white transition-all text-left"
+                      >
+                        <FaFileAlt size={12} className="text-gold-500" />
+                        <span>Account Statement</span>
+                      </button>
+                      <button
                         onClick={onLogout}
                         className="w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10 transition-all text-left"
                       >
@@ -375,14 +383,17 @@ const Header = ({
       </div>
 
       {/* High-Density Account Summary Bar (Trade.com Style) */}
-      <div className="h-12 border-t border-slate-100 dark:border-slate-800/50 flex items-center overflow-x-auto scrollbar-hide">
-        <div className="flex items-center space-x-8 px-4">
+      <div className="h-12 border-t border-slate-100 dark:border-slate-800/50 flex items-center relative group">
+        <div className="flex-1 overflow-x-auto scrollbar-hide">
+          <div className="flex items-center space-x-6 sm:space-x-8 px-4 h-full">
           {[
             { label: 'Balance', value: portfolio?.totalBalance, highlight: false },
             { label: 'Equity', value: portfolio?.equity, highlight: true },
             { label: 'Used Margin', value: portfolio?.margin, highlight: false },
-            { label: 'Free Margin', value: portfolio?.availableBalance, highlight: false },
-            { label: 'Margin Level', value: `${(portfolio?.marginLevel || 0).toFixed(2)}%`, highlight: (portfolio?.marginLevel || 0) < 100, isPercent: true }
+            { label: 'Free Margin', value: portfolio?.freeMargin, highlight: false },
+            { label: 'Margin Level', value: `${(portfolio?.marginLevel || 0).toFixed(2)}%`, highlight: (portfolio?.marginLevel || 0) < 100 && (portfolio?.marginLevel || 0) > 0, isPercent: true },
+            { label: 'Credit', value: portfolio?.credit || 0, highlight: false },
+            { label: 'Leverage', value: `1:${portfolio?.leverage || 100}`, highlight: false, isPercent: true }
           ].map((item, idx) => (
             <div key={idx} className="flex items-center space-x-3 whitespace-nowrap">
               <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-600">
@@ -390,15 +401,18 @@ const Header = ({
               </span>
               <span className={`text-[11px] font-black tabular-nums italic ${
                 item.highlight 
-                  ? (typeof item.value === 'string' && item.value.includes('%') && parseFloat(item.value) < 100 ? 'text-rose-500 animate-pulse' : 'text-gold-500') 
+                  ? (item.label === 'Margin Level' && (portfolio?.marginLevel || 0) < 100 ? 'text-rose-500 animate-pulse' : 'text-gold-500') 
                   : 'text-slate-900 dark:text-white'
               }`}>
                 {showBalance ? (item.isPercent ? item.value : `$${(item.value || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`) : '••••'}
               </span>
-              {idx < 4 && <div className="h-3 w-[1px] bg-slate-100 dark:bg-slate-800 ml-4" />}
+              {idx < 6 && <div className="h-3 w-[1px] bg-slate-100 dark:bg-slate-800 ml-4" />}
             </div>
           ))}
         </div>
+      </div>
+        {/* Mobile Scroll Indicator Mask */}
+        <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-white dark:from-slate-900 to-transparent pointer-events-none sm:hidden"></div>
       </div>
     </header>
   );

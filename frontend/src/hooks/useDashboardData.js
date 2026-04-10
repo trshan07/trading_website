@@ -2,6 +2,7 @@ import { useState, useEffect, useContext } from 'react';
 import tradingService from '../services/tradingService';
 import { AuthContext } from '../context/AuthContext';
 import { toast } from 'react-hot-toast';
+import { MARKET_INSTRUMENTS } from '../constants/marketData';
 
 export const useDashboardData = (accountType = 'demo') => {
   const { user, refreshUser } = useContext(AuthContext);
@@ -43,74 +44,88 @@ export const useDashboardData = (accountType = 'demo') => {
     { id: 1, cardType: 'Visa Pro', last4: '4242', expiryDate: '05/26', cardholderName: 'User Name', isVerified: true, isDefault: true }
   ]);
 
-  const [transactions, setTransactions] = useState(isDemo ? [
+  const [transactions, setTransactions] = useState([
+    { id: 'TX1001', date: '2024-03-10 14:30', type: 'Trade', symbol: 'BTCUSDT', amount: 500.00, status: 'Settled', reference: 'ORDER-99281', method: 'Market' },
+    { id: 'TX1002', date: '2024-03-09 09:15', type: 'Deposit', amount: 1000.00, status: 'Completed', reference: 'DEP-11203', method: 'Visa ****4242' },
+    { id: 'TX1003', date: '2024-03-08 18:45', type: 'Trade', symbol: 'EURUSD', amount: 150.00, status: 'Settled', reference: 'ORDER-99105', method: 'Market' },
+    { id: 'TX1004', date: '2024-03-05 11:20', type: 'Transfer', amount: 200.00, status: 'Completed', reference: 'TRF-55821', method: 'Wallet to Account' },
     { id: 1, type: 'Demo Grant', amount: 1000, method: 'System Generation', status: 'Completed', date: new Date().toLocaleDateString(), reference: 'DEMO-INIT' }
-  ] : []);
+  ]);
 
   const [documents, setDocuments] = useState([
     { id: 1, name: 'Passport.pdf', uploadDate: '2024-03-01', category: 'Identity Proof', status: 'Verified' },
     { id: 2, name: 'Bank_Statement.pdf', uploadDate: '2024-03-01', category: 'Address Proof', status: 'Verified' }
   ]);
 
-  const [marketData, setMarketData] = useState({
-    'BTCUSD': { price: 43250, change: 2.5, volume: 1520000000 },
-    'ETHUSD': { price: 2820, change: 1.8, volume: 850000000 },
-    'EURUSD': { price: 1.0875, change: 0.23, volume: 1200000000 }
+  const [marketData, setMarketData] = useState(() => {
+    const initial = {};
+    MARKET_INSTRUMENTS.forEach(inst => {
+      initial[inst.symbol] = { 
+        price: inst.price, 
+        change: inst.change, 
+        volume: inst.volume,
+        lastDir: 'none'
+      };
+    });
+    return initial;
   });
 
   const [positions, setPositions] = useState([]);
   const [orders, setOrders] = useState([]);
+  const [priceAlerts, setPriceAlerts] = useState([
+    { id: 1, symbol: 'BTCUSDT', price: 45000, condition: 'above', status: 'active', createdAt: new Date().toISOString() },
+    { id: 2, symbol: 'EURUSD', price: 1.0800, condition: 'below', status: 'active', createdAt: new Date().toISOString() }
+  ]);
+
   // Fetch Positions from Backend
-  const fetchPositions = async () => {
-    if (!accountId) return;
-    try {
-      const response = await tradingService.getOpenPositions(accountId);
-      if (response.success) {
-        // Map backend fields to frontend expected fields
-        const mappedPositions = response.data.map(pos => {
-            const currentPrice = marketData[pos.symbol]?.price || parseFloat(pos.entry_price);
-            const amount = parseFloat(pos.amount);
-            const entryPrice = parseFloat(pos.entry_price);
-            const side = pos.side.toUpperCase();
-            
-            const pnl = side === 'BUY' 
-              ? (currentPrice - entryPrice) * amount
-              : (entryPrice - currentPrice) * amount;
-
-            return {
-              id: pos.id,
-              symbol: pos.symbol,
-              type: side === 'BUY' ? 'BUY' : 'SELL',
-              quantity: amount,
-              entryPrice: entryPrice,
-              currentPrice: currentPrice,
-              pnl: pnl,
-              pnlPercent: (pnl / (amount * entryPrice)) * 100,
-              margin: (amount * entryPrice) / 10,
-              createdAt: pos.created_at,
-              chartMarker: {
-                time: pos.created_at ? Math.floor(new Date(pos.created_at).getTime() / 1000) : Math.floor(Date.now() / 1000),
-                position: side === 'BUY' ? 'belowBar' : 'aboveBar',
-                color: side === 'BUY' ? '#10b981' : '#f43f5e',
-                shape: side === 'BUY' ? 'arrowUp' : 'arrowDown',
-                text: `${side} @ ${entryPrice}`,
-                size: 2
-              }
-            };
-        });
-        setPositions(mappedPositions);
-      }
-    } catch (error) {
-      console.error('Failed to fetch positions:', error);
-    }
-  };
-
   useEffect(() => {
+    const fetchPositions = async () => {
+      if (!accountId) return;
+      try {
+        const response = await tradingService.getOpenPositions(accountId);
+        if (response.success) {
+          const mappedPositions = response.data.map(pos => {
+              const currentPrice = marketData[pos.symbol]?.price || parseFloat(pos.entry_price);
+              const amount = parseFloat(pos.amount);
+              const entryPrice = parseFloat(pos.entry_price);
+              const side = pos.side.toUpperCase();
+              
+              const pnl = side === 'BUY' 
+                ? (currentPrice - entryPrice) * amount
+                : (entryPrice - currentPrice) * amount;
+  
+              return {
+                id: pos.id,
+                symbol: pos.symbol,
+                type: side === 'BUY' ? 'BUY' : 'SELL',
+                quantity: amount,
+                entryPrice: entryPrice,
+                currentPrice: currentPrice,
+                pnl: pnl,
+                pnlPercent: (pnl / (amount * entryPrice)) * 100,
+                margin: (amount * entryPrice) / 10,
+                createdAt: pos.created_at,
+                chartMarker: {
+                  time: pos.created_at ? Math.floor(new Date(pos.created_at).getTime() / 1000) : Math.floor(Date.now() / 1000),
+                  position: side === 'BUY' ? 'belowBar' : 'aboveBar',
+                  color: side === 'BUY' ? '#10b981' : '#f43f5e',
+                  shape: side === 'BUY' ? 'arrowUp' : 'arrowDown',
+                  text: `${side} @ ${entryPrice}`,
+                  size: 2
+                }
+              };
+          });
+          setPositions(mappedPositions);
+        }
+      } catch (error) {
+        console.error('Failed to fetch positions:', error);
+      }
+    };
+
     fetchPositions();
-    // Background polling for positions
     const pollInterval = setInterval(fetchPositions, 10000);
     return () => clearInterval(pollInterval);
-  }, [accountId, accountType, marketData]);
+  }, [accountId, accountType]); // Remove marketData dependency to stop high-frequency loops
 
 
   const portfolioHistory = [
@@ -142,12 +157,21 @@ export const useDashboardData = (accountType = 'demo') => {
       setMarketData(prev => {
         const newData = { ...prev };
         Object.keys(newData).forEach(key => {
-          newData[key].price *= (1 + (Math.random() - 0.5) * 0.001);
-          newData[key].change += (Math.random() - 0.5) * 0.1;
+          const oldPrice = newData[key].price;
+          // Subtly move prices by 0.05% max per tick
+          const movement = 1 + (Math.random() - 0.5) * 0.0006;
+          const newPrice = oldPrice * movement;
+          
+          newData[key] = {
+            ...newData[key],
+            price: newPrice,
+            lastDir: newPrice > oldPrice ? 'up' : newPrice < oldPrice ? 'down' : 'none',
+            change: newData[key].change + (Math.random() - 0.5) * 0.02
+          };
         });
         return newData;
       });
-    }, 5000);
+    }, 1500); // Higher frequency like professional terminals
     return () => clearInterval(interval);
   }, []);
 
@@ -286,6 +310,13 @@ export const useDashboardData = (accountType = 'demo') => {
   
   const handleCancelOrder = (id) => setOrders(o => o.filter(ord => ord.id !== id));
 
+  const handleCreateAlert = (alert) => {
+    setPriceAlerts(prev => [{ id: Date.now(), ...alert, status: 'active', createdAt: new Date().toISOString() }, ...prev]);
+    addNotification(`Price alert set for ${alert.symbol} at ${alert.price}`, 'info');
+  };
+
+  const handleDeleteAlert = (id) => setPriceAlerts(prev => prev.filter(a => a.id !== id));
+
   const handleMarkNotificationRead = (id) => {
     setNotifications(prev => prev.map((notification) => (
       notification.id === id ? { ...notification, read: true } : notification
@@ -306,6 +337,7 @@ export const useDashboardData = (accountType = 'demo') => {
     marketData,
     portfolioHistory,
     notifications,
+    priceAlerts,
     handleMarkNotificationRead,
     handleMarkAllNotificationsRead,
     handleAddBankAccount,
@@ -320,6 +352,8 @@ export const useDashboardData = (accountType = 'demo') => {
     handlePlaceOrder,
     handleUploadDocument,
     handleClosePosition,
-    handleCancelOrder
+    handleCancelOrder,
+    handleCreateAlert,
+    handleDeleteAlert
   };
 };

@@ -6,7 +6,7 @@ import {
   FaArrowUp, FaArrowDown, FaChevronLeft, FaChevronRight
 } from 'react-icons/fa';
 
-const Sidebar = ({ activeTab, onTabChange, onLogout, user, portfolio, showBalance }) => {
+const Sidebar = ({ activeTab, onTabChange, onLogout, user, portfolio, showBalance, onShowStatement = () => {} }) => {
   const [activeMetric, setActiveMetric] = useState('equity');
   const [isCollapsed, setIsCollapsed] = useState(true);
 
@@ -22,7 +22,7 @@ const Sidebar = ({ activeTab, onTabChange, onLogout, user, portfolio, showBalanc
   const metricValue = () => {
     if (activeMetric === 'balance')  return showBalance ? `$${(portfolio?.totalBalance ?? 0).toLocaleString()}` : '••••••';
     if (activeMetric === 'equity')   return showBalance ? `$${(portfolio?.equity ?? 0).toLocaleString()}` : '••••••';
-    if (activeMetric === 'margin')   return showBalance ? `$${(portfolio?.availableBalance ?? 0).toLocaleString()}` : '••••••';
+    if (activeMetric === 'margin')   return showBalance ? `$${(portfolio?.freeMargin ?? 0).toLocaleString()}` : '••••••';
     if (activeMetric === 'pnl') {
       const pnl = portfolio?.dailyPnL ?? 0;
       return showBalance ? `${pnl >= 0 ? '+' : ''}$${Math.abs(pnl).toLocaleString()}` : '••••••';
@@ -58,7 +58,7 @@ const Sidebar = ({ activeTab, onTabChange, onLogout, user, portfolio, showBalanc
     <aside className={`${isCollapsed ? 'w-20 lg:w-[4.5rem]' : 'w-72'} bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl border-r border-slate-200 dark:border-slate-800 hidden lg:flex flex-col h-screen sticky top-0 transition-all duration-300 z-50`}>
 
       {/* Header & Logo */}
-      <div className={`pt-5 pb-4 shrink-0 flex items-center justify-between ${isCollapsed ? 'px-3 flex-col space-y-4' : 'px-6'}`}>
+      <div className={`pt-5 pb-4 shrink-0 flex items-center justify-between transition-all ${isCollapsed ? 'px-3 flex-col space-y-4' : 'px-6'}`}>
         <div className="flex items-center space-x-3 group cursor-pointer transition-all">
           <div className="flex-shrink-0 w-11 h-11 bg-slate-900 dark:bg-gold-500 rounded-2xl flex items-center justify-center shadow-xl group-hover:bg-gold-500 dark:group-hover:bg-gold-400 transition-all duration-500 group-hover:rotate-[15deg]">
             <FaChartLine className="text-white dark:text-slate-900 text-lg group-hover:text-gold-500 dark:group-hover:text-slate-900 transition-colors" />
@@ -141,7 +141,7 @@ const Sidebar = ({ activeTab, onTabChange, onLogout, user, portfolio, showBalanc
       </div>
 
       {/* Main Navigation */}
-      <nav className={`flex-1 space-y-0.5 min-h-0 ${isCollapsed ? 'px-2' : 'px-4'}`}>
+      <nav className={`flex-1 space-y-0.5 min-h-0 overflow-y-auto custom-scrollbar ${isCollapsed ? 'px-2' : 'px-4'}`}>
         {menuItems.map((item) => {
           const isActive = activeTab === item.id;
           return (
@@ -175,6 +175,24 @@ const Sidebar = ({ activeTab, onTabChange, onLogout, user, portfolio, showBalanc
             </button>
           );
         })}
+
+        {/* Reports / Statement (New) */}
+        <div className={`pt-4 mt-4 border-t border-slate-100 dark:border-slate-800 ${isCollapsed ? 'px-0' : ''}`}>
+          <button
+            onClick={onShowStatement}
+            title={isCollapsed ? "Account Statement" : undefined}
+            className={`w-full group py-3.5 flex items-center transition-all duration-300 relative ${isCollapsed ? 'justify-center rounded-2xl' : 'px-4 rounded-[1.25rem]'} text-slate-400 hover:text-gold-500 hover:bg-gold-50/50 dark:hover:bg-gold-500/10`}
+          >
+            <div className={`p-2 rounded-xl border transition-all duration-300 flex-shrink-0 ${isCollapsed ? '' : 'mr-3'} bg-white dark:bg-slate-800 border-slate-100 dark:border-slate-700 group-hover:border-gold-300`}>
+              <FaFileAlt size={12} className="text-slate-400 group-hover:text-gold-500" />
+            </div>
+            {!isCollapsed && (
+              <span className="text-[11px] font-black uppercase tracking-widest whitespace-nowrap overflow-hidden transition-all duration-300 group-hover:text-gold-500">
+                Statement
+              </span>
+            )}
+          </button>
+        </div>
       </nav>
 
       {/* Footer / User Profile */}

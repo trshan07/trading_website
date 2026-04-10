@@ -3,7 +3,8 @@ import { FaExpand, FaCompress } from 'react-icons/fa';
 
 const TradingViewWidget = ({ 
   symbol = 'BTCUSDT', 
-  theme = 'dark'
+  theme = 'dark',
+  activeIntent = null
 }) => {
   const containerRef = useRef(null);
   const widgetRef = useRef(null);
@@ -125,6 +126,31 @@ const TradingViewWidget = ({
           ref={containerRef} 
           className="absolute inset-0 w-full h-full"
         />
+
+        {/* Execution Mode Overlay (trade.com style) */}
+        {activeIntent && (
+          <div className="absolute top-8 right-8 z-10 pointer-events-none animate-in fade-in zoom-in duration-300">
+            <div className={`flex items-center space-x-3 px-6 py-3 rounded-2xl border backdrop-blur-md shadow-2xl ${
+              activeIntent.side === 'buy' 
+                ? 'bg-emerald-500/10 border-emerald-500/30' 
+                : 'bg-rose-500/10 border-rose-500/30'
+            }`}>
+              <div className={`w-2 h-2 rounded-full animate-ping ${
+                activeIntent.side === 'buy' ? 'bg-emerald-500' : 'bg-rose-500'
+              }`} />
+              <div className="flex flex-col">
+                <span className={`text-[10px] font-black uppercase tracking-[0.2em] ${
+                  activeIntent.side === 'buy' ? 'text-emerald-500' : 'text-rose-500'
+                }`}>
+                  New {activeIntent.side} Order
+                </span>
+                <span className="text-[8px] font-bold text-slate-500 uppercase tracking-widest mt-0.5">
+                  {activeIntent.type === 'market' ? 'Market Execution' : `Pending @ ${activeIntent.price || '...'}`}
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
       
       {/* Footer Info */}

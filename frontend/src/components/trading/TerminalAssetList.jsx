@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { FaSearch, FaStar, FaRegStar, FaChevronDown, FaTimes } from 'react-icons/fa';
 import { MARKET_INSTRUMENTS, CATEGORIES } from '../../constants/marketData';
 
-const TerminalAssetList = ({ activeSymbol, onSelectSymbol, favorites = [], onToggleFavorite, onClose }) => {
+const TerminalAssetList = ({ activeSymbol, onSelectSymbol, favorites = [], onToggleFavorite, onClose, marketData = {} }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [primaryCategory, setPrimaryCategory] = useState('All');
   const [secondaryFilter, setSecondaryFilter] = useState('All');
@@ -69,7 +69,7 @@ const TerminalAssetList = ({ activeSymbol, onSelectSymbol, favorites = [], onTog
             placeholder="Search..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-8 pr-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-md text-[11px] font-medium placeholder-slate-400 dark:text-white focus:outline-none focus:border-gold-500 transition-colors"
+            className="w-full pl-8 pr-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-md text-[11px] font-medium placeholder-slate-400 text-slate-900 dark:text-white focus:outline-none focus:border-gold-500 transition-colors"
           />
         </div>
         
@@ -101,12 +101,12 @@ const TerminalAssetList = ({ activeSymbol, onSelectSymbol, favorites = [], onTog
       </div>
 
       {/* List Header */}
-      <div className="grid grid-cols-[2fr_1.5fr_1.5fr_1.5fr_1.5fr_auto] gap-2 px-4 py-2 border-b border-slate-100 dark:border-slate-800 text-[8px] font-bold text-slate-400 uppercase tracking-widest bg-white dark:bg-slate-900">
+      <div className="grid grid-cols-[2fr_1fr_1fr_auto] md:grid-cols-[2fr_1.5fr_1.5fr_1.5fr_1.5fr_auto] gap-2 px-3 md:px-4 py-2 border-b border-slate-100 dark:border-slate-800 text-[8px] font-bold text-slate-400 uppercase tracking-widest bg-white dark:bg-slate-900 transition-all">
         <div>Instrument</div>
         <div className="text-center">Sell</div>
         <div className="text-center">Buy</div>
-        <div className="text-right">Change</div>
-        <div className="text-center">24HTrend</div>
+        <div className="hidden md:block text-right">Change</div>
+        <div className="hidden md:block text-center">24HTrend</div>
         <div className="w-4"></div>
       </div>
 
@@ -126,7 +126,7 @@ const TerminalAssetList = ({ activeSymbol, onSelectSymbol, favorites = [], onTog
             <div
               key={inst.symbol}
               onClick={() => onSelectSymbol(inst.symbol)}
-              className={`group grid grid-cols-[2fr_1.5fr_1.5fr_1.5fr_1.5fr_auto] gap-2 px-4 py-3 items-center cursor-pointer border-b border-slate-50 dark:border-slate-800/50 transition-colors ${
+              className={`group grid grid-cols-[2fr_1fr_1fr_auto] md:grid-cols-[2fr_1.5fr_1.5fr_1.5fr_1.5fr_auto] gap-2 px-3 md:px-4 py-3 items-center cursor-pointer border-b border-slate-50 dark:border-slate-800/50 transition-all ${
                 isActive ? 'bg-slate-50 dark:bg-slate-800/50 relative' : 'hover:bg-slate-50/50 dark:hover:bg-slate-800/30'
               }`}
             >
@@ -140,41 +140,60 @@ const TerminalAssetList = ({ activeSymbol, onSelectSymbol, favorites = [], onTog
                 {isActive && <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse flex-shrink-0"></span>}
               </div>
 
-              {/* Sell Column (Solid Red) */}
-              <button 
-                onClick={(e) => e.stopPropagation()}
-                className="bg-rose-500 hover:bg-rose-600 text-white py-1.5 px-0.5 rounded-[4px] text-center text-[9px] font-black tabular-nums transition-colors"
-               >
-                {sellPrice}
-              </button>
+              {/* Price Calculation (Live) */}
+              {(() => {
+                const liveData = marketData[inst.symbol] || {};
+                const currentPrice = liveData.price || inst.price;
+                const currentChange = liveData.change !== undefined ? liveData.change : inst.change;
+                const lastDir = liveData.lastDir || 'none';
+                
+                const spread = currentPrice * 0.0005; 
+                const sellPrice = (currentPrice - spread).toFixed(currentPrice > 100 ? 2 : 4);
+                const buyPrice = (currentPrice + spread).toFixed(currentPrice > 100 ? 2 : 4);
+                
+                const flashClass = lastDir === 'up' ? 'flash-up' : lastDir === 'down' ? 'flash-down' : '';
+                const isPriceUp = currentChange >= 0;
 
-              {/* Buy Column (Solid Green) */}
-              <button 
-                onClick={(e) => e.stopPropagation()}
-                className="bg-emerald-500 hover:bg-emerald-600 text-white py-1.5 px-0.5 rounded-[4px] text-center text-[9px] font-black tabular-nums transition-colors"
-               >
-                {buyPrice}
-              </button>
+                return (
+                  <>
+                    {/* Sell Column (Solid Red with Flash) */}
+                    <button 
+                      onClick={(e) => e.stopPropagation()}
+                      className={`bg-rose-500 hover:bg-rose-600 text-white py-1.5 px-0.5 rounded-[4px] text-center text-[9px] font-black tabular-nums transition-colors ${flashClass}`}
+                    >
+                      {sellPrice}
+                    </button>
 
-              {/* Change Column */}
-              <div className={`text-right text-[10px] font-bold tabular-nums ${isUp ? 'text-emerald-500' : 'text-rose-500'}`}>
-                {isUp ? '+' : ''}{inst.change.toFixed(2)}%
-              </div>
+                    {/* Buy Column (Solid Green with Flash) */}
+                    <button 
+                      onClick={(e) => e.stopPropagation()}
+                      className={`bg-emerald-500 hover:bg-emerald-600 text-white py-1.5 px-0.5 rounded-[4px] text-center text-[9px] font-black tabular-nums transition-colors ${flashClass}`}
+                    >
+                      {buyPrice}
+                    </button>
 
-              {/* 24HTrend Sparkline */}
-              <div className="flex justify-center items-center h-4">
-                <svg viewBox="0 0 40 12" className={`w-10 h-3 ${isUp ? 'stroke-emerald-500' : 'stroke-rose-500'}`} fill="none" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                  {isUp 
-                    ? <path d="M0 10 L10 8 L15 12 L25 4 L30 6 L40 0" /> 
-                    : <path d="M0 2 L10 4 L15 0 L25 8 L30 6 L40 12" />
-                  }
-                </svg>
-              </div>
+                    {/* Change Column */}
+                    <div className={`hidden md:block text-right text-[10px] font-black tabular-nums ${isPriceUp ? 'text-emerald-500' : 'text-rose-500'} ${lastDir === 'up' ? 'text-flash-up' : lastDir === 'down' ? 'text-flash-down' : ''}`}>
+                      {isPriceUp ? '+' : ''}{currentChange.toFixed(2)}%
+                    </div>
+
+                    {/* 24HTrend Sparkline */}
+                    <div className="hidden md:flex justify-center items-center h-4">
+                      <svg viewBox="0 0 40 12" className={`w-10 h-3 ${isPriceUp ? 'stroke-emerald-600 dark:stroke-emerald-500' : 'stroke-rose-600 dark:stroke-rose-500'}`} fill="none" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        {isPriceUp 
+                          ? <path d="M0 10 L10 8 L15 12 L25 4 L30 6 L40 0" /> 
+                          : <path d="M0 2 L10 4 L15 0 L25 8 L30 6 L40 12" />
+                        }
+                      </svg>
+                    </div>
+                  </>
+                );
+              })()}
 
               {/* Star Column */}
               <button
                 onClick={(e) => { e.stopPropagation(); onToggleFavorite(inst.symbol); }}
-                className={`flex-shrink-0 transition-colors ${isFav ? 'text-gold-500' : 'text-slate-300 dark:text-slate-600 hover:text-gold-400'}`}
+                className={`hidden md:block transition-colors ${isFav ? 'text-gold-500' : 'text-slate-300 dark:text-slate-600 hover:text-gold-400'}`}
               >
                 {isFav ? <FaStar size={11} /> : <FaRegStar size={11} />}
               </button>

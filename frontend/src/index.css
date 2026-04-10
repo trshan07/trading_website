@@ -616,3 +616,34 @@
   -ms-overflow-style: none;  /* IE and Edge */
   scrollbar-width: none;  /* Firefox */
 }
+
+/* Price Flash Animations */
+@keyframes flash-green-bg {
+  0% { background-color: rgba(16, 185, 129, 0.8); }
+  50% { background-color: rgba(16, 185, 129, 0.4); }
+  100% { } /* Allow returning to base background */
+}
+
+@keyframes flash-red-bg {
+  0% { background-color: rgba(244, 63, 94, 0.8); }
+  50% { background-color: rgba(244, 63, 94, 0.4); }
+  100% { } /* Allow returning to base background */
+}
+
+.flash-up {
+  animation: flash-green-bg 1s ease-out forwards;
+}
+
+.flash-down {
+  animation: flash-red-bg 1s ease-out forwards;
+}
+
+.text-flash-up {
+  color: #10b981 !important;
+  transition: color 0.3s ease;
+}
+
+.text-flash-down {
+  color: #f43f5e !important;
+  transition: color 0.3s ease;
+}

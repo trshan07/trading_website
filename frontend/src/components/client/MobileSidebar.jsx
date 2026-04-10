@@ -13,7 +13,8 @@ const MobileSidebar = ({
   portfolio, 
   showBalance, 
   onLogout,
-  onSwitchAccount = () => {}
+  onSwitchAccount = () => {},
+  onShowStatement = () => {}
 }) => {
   if (!show) return null;
 
@@ -112,6 +113,17 @@ const MobileSidebar = ({
                 <span className="text-[11px] font-black uppercase tracking-widest">{item.label}</span>
               </button>
             ))}
+          </div>
+          <div className="px-3 pt-4 mt-2 border-t border-slate-100 dark:border-slate-800">
+            <button
+              onClick={() => { onShowStatement(); onClose(); }}
+              className="w-full px-5 py-3.5 rounded-xl flex items-center space-x-3 text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white transition-all"
+            >
+              <div className="p-1.5 rounded-lg border border-transparent text-slate-400 bg-transparent">
+                 <FaFileAlt size={14} />
+              </div>
+              <span className="text-[11px] font-black uppercase tracking-widest">Account Statement</span>
+            </button>
           </div>
         </div>
         

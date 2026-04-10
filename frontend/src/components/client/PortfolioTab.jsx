@@ -10,8 +10,8 @@ const PortfolioTab = ({ portfolio = {}, positions = [] }) => {
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700 transition-colors">
       {/* Equity Perspective Header */}
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        <div className="lg:col-span-2 bg-slate-900 dark:bg-slate-800 rounded-[2.5rem] p-10 border border-slate-800 dark:border-slate-700 shadow-2xl shadow-slate-900/40 dark:shadow-black/40 relative overflow-hidden group transition-colors duration-300">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+        <div className="md:col-span-2 bg-slate-900 dark:bg-slate-800 rounded-[2.5rem] p-6 sm:p-10 border border-slate-800 dark:border-slate-700 shadow-2xl shadow-slate-900/40 dark:shadow-black/40 relative overflow-hidden group transition-colors duration-300">
           <div className="absolute top-0 right-0 w-64 h-64 bg-gold-400/5 blur-[100px] rounded-full translate-x-32 -translate-y-32"></div>
           <div className="relative z-10">
             <div className="flex justify-between items-start mb-10">
@@ -43,7 +43,7 @@ const PortfolioTab = ({ portfolio = {}, positions = [] }) => {
           </div>
         </div>
 
-        <div className="bg-white dark:bg-slate-900 p-10 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-xl shadow-slate-200/50 dark:shadow-black/20 flex flex-col justify-between transition-colors duration-300">
+        <div className="bg-white dark:bg-slate-900 p-6 sm:p-10 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-xl shadow-slate-200/50 dark:shadow-black/20 flex flex-col justify-between transition-colors duration-300">
             <div>
                <FaCube className="text-gold-500 mb-6 text-2xl" />
                <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1.5">Asset Diversity</p>
@@ -56,7 +56,7 @@ const PortfolioTab = ({ portfolio = {}, positions = [] }) => {
             </div>
         </div>
 
-        <div className="bg-white dark:bg-slate-900 p-10 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-xl shadow-slate-200/50 dark:shadow-black/20 flex flex-col justify-between transition-colors duration-300">
+        <div className="bg-white dark:bg-slate-900 p-6 sm:p-10 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-xl shadow-slate-200/50 dark:shadow-black/20 flex flex-col justify-between transition-colors duration-300">
             <div>
                <FaHistory className="text-slate-900 dark:text-gold-500 mb-6 text-2xl transition-colors" />
                <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1.5">Journal Activity</p>
@@ -69,9 +69,9 @@ const PortfolioTab = ({ portfolio = {}, positions = [] }) => {
       {/* Portfolio Charts & Ledger */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         {/* Market Sync Chart (Requested) */}
-        <div className="lg:col-span-8 space-y-8">
+        <div className="lg:col-span-8 space-y-6 md:space-y-8 text-left">
            <div className="bg-white dark:bg-slate-900 rounded-[3rem] border border-slate-100 dark:border-slate-800 overflow-hidden shadow-2xl shadow-slate-200/50 dark:shadow-black/20 group transition-colors duration-300">
-              <div className="p-8 border-b border-slate-50 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-slate-800/50 transition-colors">
+              <div className="p-6 md:p-8 border-b border-slate-50 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-slate-800/50 transition-colors">
                  <div className="flex items-center space-x-3">
                     <FaChartPie className="text-gold-500" />
                     <h3 className="text-xs font-black uppercase text-slate-900 dark:text-white tracking-[0.2em] italic transition-colors">Portfolio Market Sync</h3>
@@ -87,8 +87,8 @@ const PortfolioTab = ({ portfolio = {}, positions = [] }) => {
            </div>
            
            {/* Recent Position Snapshot */}
-           <div className="bg-white dark:bg-slate-900 rounded-[3rem] border border-slate-100 dark:border-slate-800 p-10 shadow-xl shadow-slate-200/50 dark:shadow-black/20 transition-colors duration-300">
-              <h4 className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-[0.3em] mb-10 italic transition-colors">Core Holdings Hub</h4>
+           <div className="bg-white dark:bg-slate-900 rounded-[3rem] border border-slate-100 dark:border-slate-800 p-6 sm:p-10 shadow-xl shadow-slate-200/50 dark:shadow-black/20 transition-colors duration-300">
+              <h4 className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-[0.3em] mb-8 sm:mb-10 italic transition-colors">Core Holdings Hub</h4>
               <div className="space-y-4">
                  {positions.slice(0, 3).map((pos, idx) => (
                     <div key={idx} className="flex flex-col sm:flex-row items-center justify-between p-6 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 rounded-[2rem] gap-6 group hover:bg-white dark:hover:bg-slate-800 hover:shadow-2xl hover:shadow-slate-200/50 dark:hover:shadow-black/20 transition-all duration-300 transform hover:-translate-y-1">
@@ -126,9 +126,9 @@ const PortfolioTab = ({ portfolio = {}, positions = [] }) => {
         </div>
 
         {/* Portfolio Integrity Sidebar */}
-        <div className="lg:col-span-4 space-y-8">
-           <div className="bg-slate-900 dark:bg-slate-800 rounded-[2.5rem] p-10 border border-slate-800 dark:border-slate-700 shadow-2xl shadow-slate-900/40 dark:shadow-black/40 relative overflow-hidden group transition-colors duration-300">
-              <h4 className="text-[10px] font-black text-gold-500 uppercase tracking-[0.4em] mb-10 italic">Integrity Nodes</h4>
+        <div className="lg:col-span-4 space-y-6 md:space-y-8">
+           <div className="bg-slate-900 dark:bg-slate-800 rounded-[2.5rem] p-6 sm:p-10 border border-slate-800 dark:border-slate-700 shadow-2xl shadow-slate-900/40 dark:shadow-black/40 relative overflow-hidden group transition-colors duration-300 text-left">
+              <h4 className="text-[10px] font-black text-gold-500 uppercase tracking-[0.4em] mb-8 sm:mb-10 italic">Integrity Nodes</h4>
               <div className="space-y-8">
                  {[
                     { id: 1, label: 'Vault Verification', status: 'Secured', color: 'text-emerald-400' },
@@ -151,8 +151,8 @@ const PortfolioTab = ({ portfolio = {}, positions = [] }) => {
               </div>
            </div>
            
-           <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 p-10 shadow-xl shadow-slate-200/50 dark:shadow-black/20 transition-colors duration-300">
-              <h4 className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-[0.3em] mb-8 italic transition-colors">Journal Stream</h4>
+           <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 p-6 sm:p-10 shadow-xl shadow-slate-200/50 dark:shadow-black/20 transition-colors duration-300 text-left">
+              <h4 className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-[0.3em] mb-6 sm:mb-8 italic transition-colors">Journal Stream</h4>
               <div className="space-y-6">
                  {[
                     { label: 'Manual Order Initiate', time: '12m ago', type: 'EXECUTION' },

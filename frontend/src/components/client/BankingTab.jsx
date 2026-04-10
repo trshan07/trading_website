@@ -536,29 +536,29 @@ const BankingTab = ({
         {/* Left Column - Wallet Info */}
         <div className="col-span-1 space-y-6">
           {/* Wallet Balance Card */}
-          <div className="bg-slate-900 dark:bg-slate-800 rounded-[2.5rem] p-8 shadow-2xl shadow-slate-900/30 dark:shadow-black/40 relative overflow-hidden border border-slate-800 dark:border-slate-700 transition-colors duration-300">
+          <div className="bg-slate-900 dark:bg-slate-800 rounded-[2.5rem] p-6 sm:p-8 shadow-2xl shadow-slate-900/30 dark:shadow-black/40 relative overflow-hidden border border-slate-800 dark:border-slate-700 transition-colors duration-300">
             <div className="absolute top-0 right-0 w-48 h-48 bg-gold-500/5 blur-[80px] rounded-full -translate-y-24 translate-x-24"></div>
-            <h3 className="text-xs font-black text-gold-500 uppercase tracking-[0.3em] mb-8 flex items-center italic">
+            <h3 className="text-[10px] font-black text-gold-500 uppercase tracking-[0.3em] mb-6 sm:mb-8 flex items-center italic">
               <FaWallet className="mr-3 text-lg" />
               Global Liquidity
             </h3>
             <div className="space-y-6 relative">
               <div>
                 <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">Total Net Worth</p>
-                <p className="text-4xl font-black text-white italic tracking-tighter">
+                <p className="text-3xl sm:text-4xl font-black text-white italic tracking-tighter">
                   ${walletData.mainWallet?.toLocaleString() || '0'}
                 </p>
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="bg-slate-800/50 dark:bg-slate-900/40 rounded-2xl p-5 border border-slate-700/50 dark:border-slate-800/50 backdrop-blur-xl">
+              <div className="grid grid-cols-1 xs:grid-cols-2 gap-4">
+                <div className="bg-slate-800/50 dark:bg-slate-900/40 rounded-2xl p-4 sm:p-5 border border-slate-700/50 dark:border-slate-800/50 backdrop-blur-xl">
                   <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest mb-1">Trading</p>
-                  <p className="text-lg font-black text-gold-500 italic">
+                  <p className="text-base sm:text-lg font-black text-gold-500 italic">
                     ${walletData.tradingWallet?.toLocaleString() || '0'}
                   </p>
                 </div>
-                <div className="bg-slate-800/50 dark:bg-slate-900/40 rounded-2xl p-5 border border-slate-700/50 dark:border-slate-800/50 backdrop-blur-xl">
+                <div className="bg-slate-800/50 dark:bg-slate-900/40 rounded-2xl p-4 sm:p-5 border border-slate-700/50 dark:border-slate-800/50 backdrop-blur-xl">
                   <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest mb-1">Incentives</p>
-                  <p className="text-lg font-black text-emerald-500 italic">
+                  <p className="text-base sm:text-lg font-black text-emerald-500 italic">
                     ${walletData.bonusWallet?.toLocaleString() || '0'}
                   </p>
                 </div>
@@ -577,8 +577,8 @@ const BankingTab = ({
           </div>
           
           {/* Quick Actions */}
-          <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 p-8 shadow-2xl shadow-slate-200/50 dark:shadow-black/20 transition-colors">
-            <h3 className="text-[10px] font-black text-gold-500 uppercase tracking-[0.3em] mb-8 italic">Rapid Protocols</h3>
+          <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 p-6 sm:p-8 shadow-2xl shadow-slate-200/50 dark:shadow-black/20 transition-colors">
+            <h3 className="text-[10px] font-black text-gold-500 uppercase tracking-[0.3em] mb-6 sm:mb-8 italic">Rapid Protocols</h3>
             <div className="space-y-3">
               {[
                 { label: 'Internal Transfer', icon: FaExchangeAlt, action: openTransferFlow },
@@ -606,10 +606,10 @@ const BankingTab = ({
         <div className="lg:col-span-2 space-y-8">
           {activeBankingTab === 'overview' && (
             <>
-              <div className="bg-slate-900 rounded-[2.5rem] p-10 border border-slate-800 shadow-2xl relative overflow-hidden">
+              <div className="bg-slate-900 rounded-[2.5rem] p-6 sm:p-10 border border-slate-800 shadow-2xl relative overflow-hidden">
                 <div className="absolute top-0 right-0 w-64 h-64 bg-gold-500/5 blur-[80px] rounded-full translate-x-32 -translate-y-32"></div>
-                <h3 className="text-[10px] font-black text-gold-500 uppercase tracking-[0.3em] mb-10 relative italic">Capital Metrics</h3>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-8 relative">
+                <h3 className="text-[10px] font-black text-gold-500 uppercase tracking-[0.3em] mb-8 sm:mb-10 relative italic">Capital Metrics</h3>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-6 sm:gap-8 relative">
                   {[
                     { label: 'Total Equity', value: `$${walletData.totalBalance?.toLocaleString() || '0'}`, color: 'text-white' },
                     { label: 'Monthly Flow', value: '+$5,250', color: 'text-emerald-400' },
@@ -617,8 +617,8 @@ const BankingTab = ({
                     { label: 'Pending Sync', value: transactions.filter(t => t.status === 'Pending').length, color: 'text-amber-400' }
                   ].map((stat, idx) => (
                     <div key={idx} className="group">
-                      <p className={`text-3xl font-black ${stat.color} italic tracking-tighter mb-2 group-hover:scale-110 transition-transform origin-left`}>{stat.value}</p>
-                      <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest">{stat.label}</p>
+                      <p className={`text-2xl sm:text-3xl font-black ${stat.color} italic tracking-tighter mb-2 group-hover:scale-110 transition-transform origin-left`}>{stat.value}</p>
+                      <p className="text-[8px] sm:text-[9px] font-black text-slate-500 uppercase tracking-widest">{stat.label}</p>
                     </div>
                   ))}
                 </div>

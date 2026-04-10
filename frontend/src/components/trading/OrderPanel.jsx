@@ -1,8 +1,8 @@
 // frontend/src/components/trading/OrderPanel.jsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { FaPlus, FaMinus, FaChevronDown, FaCheck, FaTimes } from 'react-icons/fa';
 
-const OrderPanel = ({ onSubmit, symbol = 'BTCUSD', marketData = {}, onClose }) => {
+const OrderPanel = ({ onSubmit, symbol = 'BTCUSD', marketData = {}, onClose, onIntentChange = () => {} }) => {
   const [orderType, setOrderType] = useState('market'); // market or pending
   const [amount, setAmount] = useState(1);
   const [leverage, setLeverage] = useState(1);
@@ -12,11 +12,44 @@ const OrderPanel = ({ onSubmit, symbol = 'BTCUSD', marketData = {}, onClose }) =
   const [slValue, setSlValue] = useState('');
   const [pendingPrice, setPendingPrice] = useState('');
   const [selectedSide, setSelectedSide] = useState('buy'); // 'buy' or 'sell'
+  
+  const prevIntentRef = useRef({});
+  
+  // Sync intent with parent for chart labels
+  useEffect(() => {
+    const currentIntent = { 
+      side: selectedSide, 
+      type: orderType,
+      price: orderType === 'pending' ? pendingPrice : null 
+    };
+    
+    // Only update parent if actual values changed to prevent re-render loops
+    if (
+      prevIntentRef.current.side !== currentIntent.side ||
+      prevIntentRef.current.type !== currentIntent.type ||
+      prevIntentRef.current.price !== currentIntent.price
+    ) {
+      onIntentChange(currentIntent);
+      prevIntentRef.current = currentIntent;
+    }
+  }, [selectedSide, orderType, pendingPrice, onIntentChange]);
 
   // Get current prices from marketData
-  const currentPrice = marketData[symbol]?.price || 0;
-  const bidPrice = (currentPrice * 0.999).toFixed(2); // Simulated bid/ask spread
-  const askPrice = (currentPrice * 1.001).toFixed(2);
+  const liveInfo = marketData[symbol] || {};
+  const currentPrice = liveInfo.price || 0;
+  const lastDir = liveInfo.lastDir || 'none';
+  const flashClass = lastDir === 'up' ? 'flash-up' : lastDir === 'down' ? 'flash-down' : '';
+  
+  const bidPrice = (currentPrice * 0.999); // Simulated bid/ask spread
+  const askPrice = (currentPrice * 1.001);
+
+  const getPipDistance = (target) => {
+    if (!target || !currentPrice) return null;
+    const diff = Math.abs(parseFloat(target) - currentPrice);
+    const isForex = symbol.includes('USD') && !symbol.includes('USDT');
+    const pipScale = isForex ? 0.0001 : 1;
+    return (diff / pipScale).toFixed(1);
+  };
 
   const handleAmountChange = (val) => {
     const num = parseFloat(val);
@@ -88,7 +121,7 @@ const OrderPanel = ({ onSubmit, symbol = 'BTCUSD', marketData = {}, onClose }) =
             }`}
           >
             <span className="text-[9px] font-black uppercase tracking-widest mb-1 opacity-80">Sell</span>
-            <span className={`text-sm font-black italic ${selectedSide === 'sell' ? 'text-white' : 'text-rose-500'}`}>{bidPrice}</span>
+            <span className={`text-sm font-black italic rounded px-1 transition-all ${selectedSide === 'sell' ? 'text-white' : 'text-rose-500'} ${flashClass}`}>{bidPrice.toFixed(symbol.includes('USD') && !symbol.includes('USDT') ? 4 : 2)}</span>
           </button>
           
           <button 
@@ -100,7 +133,7 @@ const OrderPanel = ({ onSubmit, symbol = 'BTCUSD', marketData = {}, onClose }) =
             }`}
           >
             <span className="text-[9px] font-black uppercase tracking-widest mb-1 opacity-80">Buy</span>
-            <span className={`text-sm font-black italic ${selectedSide === 'buy' ? 'text-white' : 'text-emerald-500'}`}>{askPrice}</span>
+            <span className={`text-sm font-black italic rounded px-1 transition-all ${selectedSide === 'buy' ? 'text-white' : 'text-emerald-500'} ${flashClass}`}>{askPrice.toFixed(symbol.includes('USD') && !symbol.includes('USDT') ? 4 : 2)}</span>
           </button>
         </div>
 
@@ -113,7 +146,7 @@ const OrderPanel = ({ onSubmit, symbol = 'BTCUSD', marketData = {}, onClose }) =
                value={pendingPrice}
                onChange={(e) => setPendingPrice(e.target.value)}
                placeholder="Enter entry price..."
-               className="w-full px-5 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl text-xs font-black italic text-white placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-gold-500/30"
+               className="w-full px-5 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl text-xs font-black italic text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-gold-500/30"
              />
            </div>
         )}
@@ -193,13 +226,20 @@ const OrderPanel = ({ onSubmit, symbol = 'BTCUSD', marketData = {}, onClose }) =
                   </div>
                 </div>
                 {takeProfit && (
-                  <input 
-                    type="text" 
-                    placeholder="Target Price..."
-                    value={tpValue}
-                    onChange={(e) => setTpValue(e.target.value)}
-                    className="w-full px-5 py-3.5 bg-slate-900/50 border border-emerald-500/30 rounded-xl text-xs font-black italic text-emerald-400 placeholder-emerald-900/30 focus:outline-none"
-                  />
+                  <div className="relative">
+                    <input 
+                      type="text" 
+                      placeholder="Target Price..."
+                      value={tpValue}
+                      onChange={(e) => setTpValue(e.target.value)}
+                      className="w-full px-5 py-3.5 bg-slate-50 dark:bg-slate-900/50 border border-emerald-500/30 rounded-xl text-xs font-black italic text-emerald-600 dark:text-emerald-400 placeholder-emerald-900/30 dark:placeholder-emerald-500/20 focus:outline-none"
+                    />
+                    {tpValue && (
+                       <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[8px] font-black uppercase text-emerald-500/60 tracking-widest">
+                         {getPipDistance(tpValue)} Pips
+                       </span>
+                    )}
+                  </div>
                 )}
               </div>
 
@@ -213,26 +253,33 @@ const OrderPanel = ({ onSubmit, symbol = 'BTCUSD', marketData = {}, onClose }) =
                   </div>
                 </div>
                 {stopLoss && (
-                  <input 
-                    type="text" 
-                    placeholder="Stop Price..."
-                    value={slValue}
-                    onChange={(e) => setSlValue(e.target.value)}
-                    className="w-full px-5 py-3.5 bg-slate-900/50 border border-rose-500/30 rounded-xl text-xs font-black italic text-rose-400 placeholder-rose-900/30 focus:outline-none"
-                  />
+                   <div className="relative">
+                    <input 
+                      type="text" 
+                      placeholder="Stop Price..."
+                      value={slValue}
+                      onChange={(e) => setSlValue(e.target.value)}
+                      className="w-full px-5 py-3.5 bg-slate-50 dark:bg-slate-900/50 border border-rose-500/30 rounded-xl text-xs font-black italic text-rose-600 dark:text-rose-400 placeholder-rose-900/30 dark:placeholder-rose-500/20 focus:outline-none"
+                    />
+                    {slValue && (
+                       <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[8px] font-black uppercase text-rose-500/60 tracking-widest">
+                         {getPipDistance(slValue)} Pips
+                       </span>
+                    )}
+                  </div>
                 )}
               </div>
             </div>
           </div>
 
         {/* Order Summary Summary */}
-        <div className="bg-slate-950/50 border border-slate-800 rounded-2xl p-5 space-y-3 shadow-inner">
+        <div className="bg-slate-50 dark:bg-slate-950/50 border border-slate-100 dark:border-slate-800 rounded-2xl p-5 space-y-3 shadow-inner">
            <div className="flex justify-between items-center text-[9px] uppercase font-black">
-              <span className="text-slate-500 tracking-widest">Total Value</span>
-              <span className="text-white italic">${(amount * leverage).toLocaleString()}</span>
+              <span className="text-slate-400 dark:text-slate-500 tracking-widest">Total Value</span>
+              <span className="text-slate-900 dark:text-white italic">${(amount * leverage).toLocaleString()}</span>
            </div>
            <div className="flex justify-between items-center text-[9px] uppercase font-black">
-              <span className="text-slate-500 tracking-widest">Required Margin</span>
+              <span className="text-slate-400 dark:text-slate-500 tracking-widest">Required Margin</span>
               <span className="text-gold-500 italic">${amount.toLocaleString()}</span>
            </div>
         </div>

@@ -1,7 +1,9 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect, useContext, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 
-// Import Custom Hooks
+import AccountStatementModal from '../../components/ui/AccountStatementModal';
+
+import { AuthContext } from '../../context/AuthContext';
 import { useDashboardData } from '../../hooks/useDashboardData';
 
 // Import Dashboard Components
@@ -15,7 +17,6 @@ import MarketsTab from '../../components/client/MarketsTab';
 import PortfolioTab from '../../components/client/PortfolioTab';
 import PriceTicker from '../../components/trading/PriceTicker';
 import WelcomeHeader from '../../components/ui/WelcomeHeader';
-import { AuthContext } from '../../context/AuthContext';
 
 // Import newly added components
 import QuickTradeModal from '../../components/trading/QuickTradeModal';
@@ -46,10 +47,18 @@ const DashboardPage = () => {
   const [marketCategory, setMarketCategory] = useState('All');
 
   useEffect(() => {
-    const tabMatch = pathname.match(/\/dashboard\/([a-z-]+)/);
-    if (tabMatch && tabMatch[1]) {
-      const tab = tabMatch[1];
-      // Map some URL paths to tab IDs if they differ
+    // Robust tab matching
+    const parts = pathname.split('/').filter(Boolean);
+    const dashboardIndex = parts.indexOf('dashboard');
+    
+    if (dashboardIndex !== -1) {
+      const tab = parts[dashboardIndex + 1];
+      
+      if (!tab) {
+        setActiveMainTab('trading');
+        return;
+      }
+
       const tabMap = {
         'funding': 'banking',
         'deposit': 'banking',
@@ -58,6 +67,7 @@ const DashboardPage = () => {
         'profile': 'settings',
         'statements': 'documents'
       };
+      
       setActiveMainTab(tabMap[tab] || tab);
     }
   }, [pathname]);
@@ -65,6 +75,7 @@ const DashboardPage = () => {
   const [showOrderForm, setShowOrderForm] = useState(false);
   const [showTransferModal, setShowTransferModal] = useState(false);
   const [showUploadModal, setShowUploadModal] = useState(false);
+  const [showStatementModal, setShowStatementModal] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1200);
   const [favorites, setFavorites] = useState(['BTCUSDT', 'ETHUSDT', 'AAPL']);
@@ -135,6 +146,7 @@ const DashboardPage = () => {
     marketData,
     portfolioHistory,
     notifications,
+    priceAlerts,
     handleMarkNotificationRead,
     handleMarkAllNotificationsRead,
     handleAddBankAccount,
@@ -149,7 +161,9 @@ const DashboardPage = () => {
     handlePlaceOrder,
     handleUploadDocument,
     handleClosePosition,
-    handleCancelOrder
+    handleCancelOrder,
+    handleCreateAlert,
+    handleDeleteAlert
   } = useDashboardData(selectedAccountType);
 
   const isDemo = selectedAccountType === 'demo';
@@ -177,28 +191,45 @@ const DashboardPage = () => {
     positionsCount: 0
   });
 
-  useEffect(() => {
-    if (user && activeAccount) {
-      // Calculate total unrealized P&L from active positions
-      const totalUnrealizedPnL = positions?.reduce((sum, pos) => sum + (parseFloat(pos.pnl) || 0), 0) || 0;
-      const totalMargin = positions?.reduce((sum, pos) => sum + (parseFloat(pos.margin) || 0), 0) || 0;
+  // Live Portfolio Calculation (Real-time P&L)
+  const livePortfolio = useMemo(() => {
+    if (!user || !activeAccount) return portfolio;
+    
+    let totalUnrealizedPnL = 0;
+    let totalMargin = 0;
+    
+    positions.forEach(pos => {
+      const livePrice = marketData[pos.symbol]?.price || pos.currentPrice || pos.entryPrice;
+      const amount = pos.quantity;
+      const entryPrice = pos.entryPrice;
+      const side = pos.type; // BUY or SELL
       
-      const balance = parseFloat(activeAccount.balance) || 0;
-      const equity = balance + totalUnrealizedPnL;
-      const marginLevel = totalMargin > 0 ? (equity / totalMargin) * 100 : 0;
-
-      setPortfolio(prev => ({
-        ...prev,
-        totalBalance: balance,
-        availableBalance: balance - totalMargin, // Available to withdraw/trade
-        equity: equity,
-        margin: totalMargin,
-        marginLevel: marginLevel,
-        dailyPnL: totalUnrealizedPnL,
-        positionsCount: positions?.length || 0
-      }));
-    }
-  }, [user, activeAccount, positions]);
+      const pnl = side === 'BUY' 
+        ? (livePrice - entryPrice) * amount
+        : (entryPrice - livePrice) * amount;
+      
+      totalUnrealizedPnL += pnl;
+      totalMargin += pos.margin;
+    });
+    
+    const balance = parseFloat(activeAccount.balance) || 0;
+    const equity = balance + totalUnrealizedPnL;
+    const marginLevel = totalMargin > 0 ? (equity / totalMargin) * 100 : 0;
+    
+    return {
+      ...portfolio,
+      totalBalance: balance,
+      availableBalance: balance - totalMargin,
+      freeMargin: equity - totalMargin,
+      equity: equity,
+      margin: totalMargin,
+      marginLevel: marginLevel,
+      dailyPnL: totalUnrealizedPnL,
+      positionsCount: positions.length,
+      credit: parseFloat(activeAccount.credit) || 0,
+      leverage: activeAccount.leverage || 100
+    };
+  }, [user, activeAccount, positions, marketData, portfolio]);
 
   const handleLogout = () => {
     logout();
@@ -243,15 +274,16 @@ const DashboardPage = () => {
           setShowMobileMenu(false);
         }}
         user={user}
-        portfolio={portfolio}
+        portfolio={livePortfolio}
         showBalance={showBalance}
         onLogout={handleLogout}
+        onShowStatement={() => setShowStatementModal(true)}
       />
 
       {/* Content Wrapper */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         <Header
-          portfolio={portfolio}
+          portfolio={livePortfolio}
           showBalance={showBalance}
           onToggleBalance={() => setShowBalance(!showBalance)}
           onQuickTrade={() => setShowOrderForm(true)}
@@ -268,31 +300,32 @@ const DashboardPage = () => {
             setMarketSymbol(symbol);
             setActiveMainTab('markets');
           }}
+          onShowStatement={() => setShowStatementModal(true)}
         />
 
         {/* Fixed Price Ticker */}
         <PriceTicker data={marketData} />
 
         {/* Scrollable Region */}
-        <div className="flex-1 overflow-y-auto relative custom-scrollbar">
-          <main className="px-4 md:px-10 py-10 max-w-[1600px] mx-auto w-full">
+        <div className="flex-1 overflow-y-auto relative custom-scrollbar bg-[var(--bg-primary)]">
+          <main className="px-3 sm:px-6 md:px-10 py-6 md:py-10 max-w-[1600px] mx-auto w-full">
             {/* Demo Mode Banner */}
             {isDemo && (
-              <div className="mb-8 p-4 bg-amber-500/10 border border-amber-500/20 rounded-[2rem] flex flex-col md:flex-row items-center justify-between gap-4 transition-all hover:bg-amber-500/20">
+              <div className="mb-6 sm:mb-8 p-4 sm:p-6 bg-amber-500/10 border border-amber-500/20 rounded-[2rem] flex flex-col md:flex-row items-center justify-between gap-6 transition-all hover:bg-amber-500/20">
                 <div className="flex items-center space-x-4">
-                  <div className="p-3 bg-amber-500 text-slate-900 rounded-2xl animate-pulse shadow-lg shadow-amber-500/20">
+                  <div className="p-3 bg-amber-500 text-slate-900 rounded-2xl animate-pulse shadow-lg shadow-amber-500/20 flex-shrink-0">
                     <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                   </div>
-                  <div className="text-center md:text-left">
-                    <p className="text-[10px] font-black text-amber-500 uppercase tracking-widest leading-none mb-1">Simulated Practice Mode Active</p>
-                    <p className="text-sm font-medium text-slate-400">You are currently operating with simulated funds ($1,000.00 Grant). Real profits/losses are not applicable.</p>
+                  <div>
+                    <p className="text-[10px] font-black text-amber-500 uppercase tracking-widest leading-none mb-1.5">Simulated Practice Mode Active</p>
+                    <p className="text-[11px] sm:text-sm font-medium text-slate-400 leading-relaxed">You are currently operating with simulated funds ($1,000.00 Grant). Real profits/losses are not applicable.</p>
                   </div>
                 </div>
                 <button 
                   onClick={() => setActiveMainTab('settings')} 
-                  className="px-6 py-3 bg-white dark:bg-slate-800 text-slate-900 dark:text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-transform border border-slate-100 dark:border-slate-700 shadow-xl"
+                  className="w-full md:w-auto px-8 py-4 bg-white dark:bg-slate-800 text-slate-900 dark:text-white rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] hover:scale-105 transition-transform border border-slate-100 dark:border-slate-700 shadow-xl"
                 >
                   Apply for Real Account
                 </button>
@@ -303,7 +336,7 @@ const DashboardPage = () => {
             <div className="transition-all duration-300">
               {activeMainTab === 'trading' && (
                 <TradingTab
-                  portfolio={portfolio}
+                  portfolio={livePortfolio}
                   showBalance={showBalance}
                   onToggleBalance={() => setShowBalance(!showBalance)}
                   positions={positions}
@@ -313,10 +346,13 @@ const DashboardPage = () => {
                   onPlaceOrder={handlePlaceOrder}
                   onClosePosition={handleClosePosition}
                   onCancelOrder={handleCancelOrder}
-                  activeSymbol={marketSymbol}
                   onSymbolChange={(sym) => setMarketSymbol(sym)}
                   favorites={favorites}
                   onToggleFavorite={handleToggleFavorite}
+                  priceAlerts={priceAlerts}
+                  onCreateAlert={handleCreateAlert}
+                  onDeleteAlert={handleDeleteAlert}
+                  transactions={transactions}
                 />
               )}
 
@@ -360,7 +396,7 @@ const DashboardPage = () => {
 
               {activeMainTab === 'portfolio' && (
                 <PortfolioTab
-                  portfolio={portfolio}
+                  portfolio={livePortfolio}
                   portfolioHistory={portfolioHistory}
                   positions={positions}
                 />
@@ -386,10 +422,11 @@ const DashboardPage = () => {
               setShowMobileMenu(false);
             }}
             user={user}
-            portfolio={portfolio}
+            portfolio={livePortfolio}
             showBalance={showBalance}
             onLogout={handleLogout}
             onSwitchAccount={switchAccountType}
+            onShowStatement={() => setShowStatementModal(true)}
           />
 
           {/* Functional Modals */}
@@ -415,6 +452,10 @@ const DashboardPage = () => {
         ::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
         ::-webkit-scrollbar-thumb:hover { background: #cbd5e1; }
       `}</style>
+      <AccountStatementModal 
+        show={showStatementModal} 
+        onClose={() => setShowStatementModal(false)} 
+      />
     </div>
   );
 };
