@@ -236,7 +236,7 @@
 .animate-ticker {
   display: flex;
   width: max-content;
-  animation: tickerScroll 20s linear infinite;
+  animation: tickerScroll 60s linear infinite;
 }
 
 .animate-ticker:hover {
