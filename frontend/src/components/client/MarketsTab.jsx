@@ -145,7 +145,7 @@ const MarketsTab = ({ symbol, onSymbolChange, initialCategory = 'All', favorites
       <div className="flex-1 flex flex-col lg:flex-row overflow-x-hidden overflow-y-auto lg:overflow-hidden gap-6">
 
         {/* Left Sidebar: Asset List */}
-        <div className="block w-full lg:w-72 xl:w-80 flex-shrink-0 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[2rem] shadow-2xl overflow-hidden transition-all duration-300 relative z-10">
+        <div className="block w-full lg:w-72 xl:w-80 flex-shrink-0 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-3xl md:rounded-[2rem] shadow-2xl overflow-hidden transition-all duration-300 relative z-10 mx-auto lg:mx-0 max-w-full">
           <TerminalAssetList 
             activeSymbol={activeSymbol}
             onSelectSymbol={handleSelectSymbol}

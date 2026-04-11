@@ -69,21 +69,21 @@ const TerminalAssetList = ({ activeSymbol, onSelectSymbol, favorites = [], onTog
             placeholder="Search..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-8 pr-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-md text-[11px] font-medium placeholder-slate-400 text-slate-900 dark:text-white focus:outline-none focus:border-gold-500 transition-colors"
+            className="w-full pl-8 pr-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-md text-[11px] md:text-[11px] font-medium placeholder-slate-400 text-slate-900 dark:text-white focus:outline-none focus:border-gold-500 transition-colors"
           />
         </div>
         
-        <div className="space-y-2">
+        <div className="grid grid-cols-2 gap-2">
           {/* Primary Dropdown */}
           <div className="relative">
             <select
               value={primaryCategory}
               onChange={(e) => setPrimaryCategory(e.target.value)}
-              className="w-full appearance-none bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-[11px] font-bold px-3 py-2 rounded-md focus:outline-none focus:border-gold-500 transition-colors"
+              className="w-full appearance-none bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-[10px] md:text-[11px] font-bold px-2 md:px-3 py-2 rounded-md focus:outline-none focus:border-gold-500 transition-colors"
             >
-              {primaryOptions.map(opt => <option key={opt} value={opt}>{opt === 'All' ? 'All Asset Classes' : opt}</option>)}
+              {primaryOptions.map(opt => <option key={opt} value={opt}>{opt === 'All' ? 'Classes' : opt}</option>)}
             </select>
-            <FaChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={10} />
+            <FaChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={8} />
           </div>
 
           {/* Secondary Dropdown */}
@@ -91,23 +91,23 @@ const TerminalAssetList = ({ activeSymbol, onSelectSymbol, favorites = [], onTog
             <select
               value={secondaryFilter}
               onChange={(e) => setSecondaryFilter(e.target.value)}
-              className="w-full appearance-none bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-[11px] font-bold px-3 py-2 rounded-md focus:outline-none focus:border-gold-500 transition-colors"
+              className="w-full appearance-none bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-[10px] md:text-[11px] font-bold px-2 md:px-3 py-2 rounded-md focus:outline-none focus:border-gold-500 transition-colors"
             >
-              {secondaryOptions.map(opt => <option key={opt} value={opt}>{opt === 'All' ? 'All Views' : opt}</option>)}
+              {secondaryOptions.map(opt => <option key={opt} value={opt}>{opt === 'All' ? 'Views' : opt}</option>)}
             </select>
-            <FaChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={10} />
+            <FaChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={8} />
           </div>
         </div>
       </div>
 
       {/* List Header */}
-      <div className="grid grid-cols-[2fr_1fr_1fr_auto] md:grid-cols-[2fr_1.5fr_1.5fr_1.5fr_1.5fr_auto] gap-2 px-3 md:px-4 py-2 border-b border-slate-100 dark:border-slate-800 text-[8px] font-bold text-slate-400 uppercase tracking-widest bg-white dark:bg-slate-900 transition-all">
+      <div className="grid grid-cols-[1.5fr_1fr_1fr_0.2fr] md:grid-cols-[2fr_1.5fr_1.5fr_1.5fr_1.5fr_auto] gap-2 px-3 md:px-4 py-2 border-b border-slate-100 dark:border-slate-800 text-[7px] md:text-[8px] font-bold text-slate-400 uppercase tracking-widest bg-white dark:bg-slate-900 transition-all">
         <div>Instrument</div>
         <div className="text-center">Sell</div>
         <div className="text-center">Buy</div>
         <div className="hidden md:block text-right">Change</div>
         <div className="hidden md:block text-center">24HTrend</div>
-        <div className="w-4"></div>
+        <div className="w-1 md:w-4"></div>
       </div>
 
       {/* Asset List */}
@@ -126,15 +126,15 @@ const TerminalAssetList = ({ activeSymbol, onSelectSymbol, favorites = [], onTog
             <div
               key={inst.symbol}
               onClick={() => onSelectSymbol(inst.symbol)}
-              className={`group grid grid-cols-[2fr_1fr_1fr_auto] md:grid-cols-[2fr_1.5fr_1.5fr_1.5fr_1.5fr_auto] gap-2 px-3 md:px-4 py-3 items-center cursor-pointer border-b border-slate-50 dark:border-slate-800/50 transition-all ${
+              className={`group grid grid-cols-[1.5fr_1fr_1fr_0.2fr] md:grid-cols-[2fr_1.5fr_1.5fr_1.5fr_1.5fr_auto] gap-2 px-3 md:px-4 py-3 items-center cursor-pointer border-b border-slate-50 dark:border-slate-800/50 transition-all ${
                 isActive ? 'bg-slate-50 dark:bg-slate-800/50 relative' : 'hover:bg-slate-50/50 dark:hover:bg-slate-800/30'
               }`}
             >
               {isActive && <div className="absolute left-0 top-0 bottom-0 w-1 bg-gold-500"></div>}
               
               {/* Instrument Column */}
-              <div className="flex items-center space-x-2 min-w-0">
-                <span className="text-[10px] font-bold text-slate-900 dark:text-white truncate uppercase">
+              <div className="flex items-center space-x-1 md:space-x-2 min-w-0">
+                <span className="text-[11px] md:text-[10px] font-bold text-slate-900 dark:text-white truncate uppercase">
                   {inst.symbol.replace('USDT', '')}
                 </span>
                 {isActive && <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse flex-shrink-0"></span>}
@@ -159,7 +159,7 @@ const TerminalAssetList = ({ activeSymbol, onSelectSymbol, favorites = [], onTog
                     {/* Sell Column (Solid Red with Flash) */}
                     <button 
                       onClick={(e) => e.stopPropagation()}
-                      className={`bg-rose-500 hover:bg-rose-600 text-white py-1.5 px-0.5 rounded-[4px] text-center text-[9px] font-black tabular-nums transition-colors ${flashClass}`}
+                      className={`bg-rose-500 hover:bg-rose-600 text-white py-2 md:py-1.5 px-0.5 md:px-1 rounded-[4px] text-center text-[10px] md:text-[9px] font-black tabular-nums transition-colors shadow-sm ${flashClass}`}
                     >
                       {sellPrice}
                     </button>
@@ -167,7 +167,7 @@ const TerminalAssetList = ({ activeSymbol, onSelectSymbol, favorites = [], onTog
                     {/* Buy Column (Solid Green with Flash) */}
                     <button 
                       onClick={(e) => e.stopPropagation()}
-                      className={`bg-emerald-500 hover:bg-emerald-600 text-white py-1.5 px-0.5 rounded-[4px] text-center text-[9px] font-black tabular-nums transition-colors ${flashClass}`}
+                      className={`bg-emerald-500 hover:bg-emerald-600 text-white py-2 md:py-1.5 px-0.5 md:px-1 rounded-[4px] text-center text-[10px] md:text-[9px] font-black tabular-nums transition-colors shadow-sm ${flashClass}`}
                     >
                       {buyPrice}
                     </button>

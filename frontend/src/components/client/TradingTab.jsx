@@ -62,7 +62,7 @@ const TradingTab = ({
         {/* Column 1: Asset List (Left) */}
         <div className={`
           ${activeMobileView === 'markets' ? 'block' : 'hidden'} 
-          lg:block lg:w-72 xl:w-80 flex-shrink-0 border-b lg:border-b-0 lg:border-r border-slate-100 dark:border-slate-800 transition-all duration-300
+          lg:block lg:w-72 xl:w-80 flex-shrink-0 w-full border-b lg:border-b-0 lg:border-r border-slate-100 dark:border-slate-800 transition-all duration-300 overflow-hidden
         `}>
           <TerminalAssetList 
             activeSymbol={activeSymbol}
