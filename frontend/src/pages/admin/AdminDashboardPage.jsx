@@ -96,7 +96,8 @@ const toNum = (v) => {
 
 const generateAccountId = (kind, userId) => {
   const base = String(userId ?? Date.now()).replace(/\D/g, "") || String(Date.now());
-  return `${kind === "demo" ? "DM" : "RL"}-${base}`;
+  const fiveDigits = base.slice(-5).padStart(5, "0");
+  return `${kind === "demo" ? "DM" : "RL"}-${fiveDigits}`;
 };
 
 const normalizeUserAccounts = (user) => {
@@ -1668,15 +1669,6 @@ function SettingsPage({ toast }) {
   const set = (k, v) => setSettings(p => ({ ...p, [k]: v }));
   const toggle = (k) => setSettings(p => ({ ...p, [k]: !p[k] }));
 
-  const Toggle = ({ label, desc, k, danger }) => (
-    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 0", borderBottom: `1px solid ${C.border}` }}>
-      <div><div style={{ fontSize: "13px", color: C.text, fontWeight: 500 }}>{label}</div>{desc && <div style={{ fontSize: "11px", color: C.textMuted, marginTop: "2px" }}>{desc}</div>}</div>
-      <div onClick={() => toggle(k)} style={{ width: "42px", height: "23px", borderRadius: "12px", background: settings[k] ? (danger ? C.red : C.gold) : C.border, cursor: "pointer", position: "relative", transition: "background 0.2s", flexShrink: 0 }}>
-        <div style={{ position: "absolute", top: "3px", left: settings[k] ? "22px" : "3px", width: "17px", height: "17px", borderRadius: "50%", background: settings[k] ? "#060B11" : C.textDim, transition: "left 0.2s" }} />
-      </div>
-    </div>
-  );
-
   const TABS = [["platform", "Platform"], ["trading", "Trading"], ["security", "Security"], ["notifications", "Notifications"]];
 
   return (
@@ -1705,10 +1697,10 @@ function SettingsPage({ toast }) {
               <Btn onClick={() => toast("Settings Saved", "Platform settings updated")} fullWidth>Save Settings</Btn>
             </Card>
             <Card title="Platform Controls">
-              <Toggle label="Maintenance Mode" desc="Redirect all users to maintenance page" k="maintenanceMode" danger />
-              <Toggle label="Trading Enabled" desc="Allow users to open and close trades" k="tradingEnabled" />
-              <Toggle label="Deposits Enabled" desc="Accept new deposit requests" k="depositsEnabled" />
-              <Toggle label="Withdrawals Enabled" desc="Process withdrawal requests" k="withdrawalsEnabled" />
+              <SettingsToggle label="Maintenance Mode" desc="Redirect all users to maintenance page" danger active={settings.maintenanceMode} onToggle={() => toggle("maintenanceMode")} />
+              <SettingsToggle label="Trading Enabled" desc="Allow users to open and close trades" active={settings.tradingEnabled} onToggle={() => toggle("tradingEnabled")} />
+              <SettingsToggle label="Deposits Enabled" desc="Accept new deposit requests" active={settings.depositsEnabled} onToggle={() => toggle("depositsEnabled")} />
+              <SettingsToggle label="Withdrawals Enabled" desc="Process withdrawal requests" active={settings.withdrawalsEnabled} onToggle={() => toggle("withdrawalsEnabled")} />
             </Card>
           </>
         )}
@@ -1722,7 +1714,7 @@ function SettingsPage({ toast }) {
             </Card>
             <Card title="Trading Rules">
               {[["Auto KYC Verification", "Automatically approve matching KYC", "autoKyc"], ["Trading Enabled", "Allow live trading", "tradingEnabled"]].map(([l, d, k]) => (
-                <Toggle key={k} label={l} desc={d} k={k} />
+                <SettingsToggle key={k} label={l} desc={d} active={settings[k]} onToggle={() => toggle(k)} />
               ))}
             </Card>
           </>
@@ -1730,7 +1722,7 @@ function SettingsPage({ toast }) {
         {tab === "security" && (
           <>
             <Card title="Security Settings">
-              <Toggle label="2FA Required" desc="Force 2-factor auth for all admins" k="twoFaRequired" />
+              <SettingsToggle label="2FA Required" desc="Force 2-factor auth for all admins" active={settings.twoFaRequired} onToggle={() => toggle("twoFaRequired")} />
               <div style={{ marginTop: "16px" }}>
                 <Input label="Session Timeout (minutes)" value="30" onChange={() => {}} />
                 <Input label="Max Login Attempts" value="5" onChange={() => {}} />
@@ -1752,8 +1744,8 @@ function SettingsPage({ toast }) {
         {tab === "notifications" && (
           <>
             <Card title="Notification Channels">
-              <Toggle label="Email Notifications" desc="Send alerts via email" k="emailNotifications" />
-              <Toggle label="SMS Alerts" desc="Send critical alerts via SMS" k="smsAlerts" />
+              <SettingsToggle label="Email Notifications" desc="Send alerts via email" active={settings.emailNotifications} onToggle={() => toggle("emailNotifications")} />
+              <SettingsToggle label="SMS Alerts" desc="Send critical alerts via SMS" active={settings.smsAlerts} onToggle={() => toggle("smsAlerts")} />
             </Card>
             <Card title="Alert Triggers">
               <div style={{ fontSize: "12px", color: C.textMuted, marginBottom: "12px" }}>Configure which events trigger admin alerts</div>
@@ -1789,5 +1781,19 @@ function ConfirmBox({ confirm, setConfirm }) {
         </>
       )}
     </Modal>
+  );
+}
+
+function SettingsToggle({ label, desc, danger, active, onToggle }) {
+  return (
+    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 0", borderBottom: `1px solid ${C.border}` }}>
+      <div>
+        <div style={{ fontSize: "13px", color: C.text, fontWeight: 500 }}>{label}</div>
+        {desc && <div style={{ fontSize: "11px", color: C.textMuted, marginTop: "2px" }}>{desc}</div>}
+      </div>
+      <div onClick={onToggle} style={{ width: "42px", height: "23px", borderRadius: "12px", background: active ? (danger ? C.red : C.gold) : C.border, cursor: "pointer", position: "relative", transition: "background 0.2s", flexShrink: 0 }}>
+        <div style={{ position: "absolute", top: "3px", left: active ? "22px" : "3px", width: "17px", height: "17px", borderRadius: "50%", background: active ? "#060B11" : C.textDim, transition: "left 0.2s" }} />
+      </div>
+    </div>
   );
 }
