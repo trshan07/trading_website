@@ -89,6 +89,28 @@ const timeAgo = (d) => { if (!d) return "—"; const s = (Date.now() - new Date(
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" }) : "—";
 const fmtDateTime = (d) => d ? new Date(d).toLocaleString("en-US", { year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }) : "—";
 
+const toNum = (v) => {
+  const n = Number(v);
+  return Number.isFinite(n) ? n : 0;
+};
+
+const normalizeUserAccounts = (user) => {
+  const realBalance = user?.realBalance != null ? toNum(user.realBalance) : toNum(user?.balance);
+  const demoBalance = user?.demoBalance != null ? toNum(user.demoBalance) : 0;
+  const realCredit = user?.realCredit != null ? toNum(user.realCredit) : toNum(user?.credit);
+  const demoCredit = user?.demoCredit != null ? toNum(user.demoCredit) : 0;
+
+  return {
+    ...user,
+    realBalance,
+    demoBalance,
+    realCredit,
+    demoCredit,
+    balance: realBalance + demoBalance,
+    credit: realCredit + demoCredit,
+  };
+};
+
 // ═══════════════════════════════════════════════════════════════════════════
 // BASE COMPONENTS
 // ═══════════════════════════════════════════════════════════════════════════
@@ -251,7 +273,7 @@ export default function AdminCRM() {
   const navigate = useNavigate();
   const auth = useContext(AuthContext);
   const [page, setPage] = useState("dashboard");
-  const [users, setUsers] = useState(MOCK_USERS);
+  const [users, setUsers] = useState(() => MOCK_USERS.map(normalizeUserAccounts));
   const [funding, setFunding] = useState(MOCK_FUNDING);
   const [trades] = useState(MOCK_TRADES);
   const [toasts, setToasts] = useState([]);
@@ -407,7 +429,7 @@ export default function AdminCRM() {
             {page === "users" && <UsersPage users={users} setUsers={setUsers} toast={toast} />}
             {page === "kyc" && <KYCPage users={users} setUsers={setUsers} toast={toast} />}
             {page === "credits" && <CreditsPage users={users} setUsers={setUsers} toast={toast} />}
-            {page === "funding" && <FundingPage funding={funding} setFunding={setFunding} users={users} toast={toast} />}
+            {page === "funding" && <FundingPage funding={funding} setFunding={setFunding} users={users} setUsers={setUsers} toast={toast} />}
             {page === "trades" && <TradesPage trades={trades} />}
             {page === "reports" && <ReportsPage users={users} trades={trades} funding={funding} />}
             {page === "settings" && <SettingsPage toast={toast} />}
@@ -566,16 +588,29 @@ function UsersPage({ users, setUsers, toast }) {
   });
 
   const openEdit = (u) => { setForm({ ...u }); setModal("edit"); };
-  const openAdd = () => { setForm({ name: "", email: "", phone: "", country: "", accountType: "Basic", status: "pending", kyc: "pending", balance: 0, credit: 0, leverage: 50, notes: "" }); setModal("add"); };
+  const openAdd = () => { setForm({ name: "", email: "", phone: "", country: "", accountType: "Basic", status: "pending", kyc: "pending", balance: 0, credit: 0, realBalance: 0, demoBalance: 0, realCredit: 0, demoCredit: 0, leverage: 50, notes: "" }); setModal("add"); };
   const openView = (u) => { setForm({ ...u }); setModal("view"); };
 
   const saveUser = () => {
     if (!form.name || !form.email) return toast("Validation Error", "Name and email required", "error");
     if (modal === "add") {
-      setUsers(p => [...p, { ...form, id: Date.now(), equity: parseFloat(form.balance) || 0, totalTrades: 0, profit: 0, joined: new Date().toISOString().split("T")[0], kycDocs: [], creditHistory: [] }]);
+      setUsers(p => [...p, normalizeUserAccounts({
+        ...form,
+        id: Date.now(),
+        realBalance: parseFloat(form.balance) || 0,
+        demoBalance: 0,
+        realCredit: parseFloat(form.credit) || 0,
+        demoCredit: 0,
+        equity: parseFloat(form.balance) || 0,
+        totalTrades: 0,
+        profit: 0,
+        joined: new Date().toISOString().split("T")[0],
+        kycDocs: [],
+        creditHistory: [],
+      })]);
       toast("User Created", form.name);
     } else {
-      setUsers(p => p.map(u => u.id === form.id ? { ...u, ...form } : u));
+      setUsers(p => p.map(u => (u.id === form.id ? normalizeUserAccounts({ ...u, ...form }) : u)));
       toast("User Updated", form.name);
     }
     setModal(null);
@@ -994,28 +1029,39 @@ function KYCPage({ users, setUsers, toast }) {
 function CreditsPage({ users, setUsers, toast }) {
   const [search, setSearch] = useState("");
   const [modal, setModal] = useState(null);
-  const [form, setForm] = useState({ amount: "", type: "credit", note: "", expiry: "" });
+  const [form, setForm] = useState({ amount: "", type: "credit", target: "real", note: "", expiry: "" });
   const [errors, setErrors] = useState({});
 
   const filtered = users.filter(u => u.name.toLowerCase().includes(search.toLowerCase()) || u.email.toLowerCase().includes(search.toLowerCase()));
 
-  const openCredit = (u) => { setModal(u); setForm({ amount: "", type: "credit", note: "", expiry: "" }); setErrors({}); };
+  const openCredit = (u) => { setModal(u); setForm({ amount: "", type: "credit", target: "real", note: "", expiry: "" }); setErrors({}); };
 
   const applyCredit = () => {
     const errs = {};
     if (!form.amount || isNaN(form.amount) || parseFloat(form.amount) <= 0) errs.amount = "Enter a valid amount";
     if (!form.note.trim()) errs.note = "Reason is required";
+    if (!form.target) errs.target = "Select target account";
     if (Object.keys(errs).length) return setErrors(errs);
 
     const amt = parseFloat(form.amount);
+    const accountTarget = form.target === "demo" ? "demo" : "real";
+    const creditKey = accountTarget === "demo" ? "demoCredit" : "realCredit";
+    const balanceKey = accountTarget === "demo" ? "demoBalance" : "realBalance";
+
+    const selectedUser = users.find(u => u.id === modal.id);
+    const availableCredit = toNum(selectedUser?.[creditKey]);
+    if (form.type === "debit" && amt > availableCredit) {
+      return setErrors({ ...errs, amount: `Amount exceeds ${accountTarget} credit (${fmt(availableCredit)})` });
+    }
+
     setUsers(p => p.map(u => {
       if (u.id !== modal.id) return u;
-      const newCredit = form.type === "credit" ? u.credit + amt : Math.max(0, u.credit - amt);
-      const newBalance = form.type === "credit" ? u.balance + amt : Math.max(0, u.balance - amt);
-      const newEntry = { id: Date.now(), amount: amt, type: form.type, note: form.note, date: new Date().toISOString() };
-      return { ...u, credit: newCredit, balance: newBalance, creditHistory: [newEntry, ...u.creditHistory] };
+      const nextAccountCredit = form.type === "credit" ? toNum(u[creditKey]) + amt : Math.max(0, toNum(u[creditKey]) - amt);
+      const nextAccountBalance = form.type === "credit" ? toNum(u[balanceKey]) + amt : Math.max(0, toNum(u[balanceKey]) - amt);
+      const newEntry = { id: Date.now(), amount: amt, type: form.type, account: accountTarget, note: form.note, date: new Date().toISOString() };
+      return normalizeUserAccounts({ ...u, [creditKey]: nextAccountCredit, [balanceKey]: nextAccountBalance, creditHistory: [newEntry, ...u.creditHistory] });
     }));
-    toast(form.type === "credit" ? "Credit Applied" : "Debit Applied", `${form.type === "credit" ? "+" : "-"}${fmt(amt)} for ${modal.name}`);
+    toast(form.type === "credit" ? "Credit Applied" : "Debit Applied", `${form.type === "credit" ? "+" : "-"}${fmt(amt)} to ${accountTarget} account for ${modal.name}`);
     setModal(null);
   };
 
@@ -1071,6 +1117,7 @@ function CreditsPage({ users, setUsers, toast }) {
                       <span className="mono" style={{ fontSize: "14px", fontWeight: 600, color: u.credit > 0 ? C.gold : C.textDim }}>{fmt(u.credit)}</span>
                       {u.credit > 0 && <div style={{ width: "6px", height: "6px", borderRadius: "50%", background: C.gold }} />}
                     </div>
+                    <div className="mono" style={{ fontSize: "10px", color: C.textDim, marginTop: "3px" }}>R {fmt(u.realCredit)} · D {fmt(u.demoCredit)}</div>
                   </td>
                   <td style={{ padding: "12px 14px" }}><span className="mono" style={{ fontSize: "12px", color: C.textMuted }}>{u.creditHistory.length}</span></td>
                   <td style={{ padding: "12px 14px" }}><span className="mono" style={{ fontSize: "11px", color: C.textMuted }}>{u.creditHistory.length ? fmtDate(u.creditHistory[0].date) : "None"}</span></td>
@@ -1090,9 +1137,16 @@ function CreditsPage({ users, setUsers, toast }) {
       <Modal open={!!modal} onClose={() => setModal(null)} title={`Manage Credits — ${modal?.name}`} subtitle={`Current credit: ${fmt(modal?.credit || 0)}`} width="500px">
         {modal && (
           <>
+            {(() => {
+              const targetLabel = form.target === "demo" ? "Demo" : "Real";
+              const targetCredit = form.target === "demo" ? toNum(modal.demoCredit) : toNum(modal.realCredit);
+              const targetBalance = form.target === "demo" ? toNum(modal.demoBalance) : toNum(modal.realBalance);
+
+              return (
+                <>
             {/* Current Balance Display */}
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "10px", marginBottom: "20px" }}>
-              {[["Balance", fmt(modal.balance), C.text], ["Credit", fmt(modal.credit), C.gold], ["Equity", fmt(modal.equity), modal.equity >= modal.balance ? C.green : C.red]].map(([l, v, c]) => (
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", marginBottom: "20px" }}>
+              {[["Real Balance", fmt(modal.realBalance), C.text], ["Demo Balance", fmt(modal.demoBalance), C.blue], ["Real Credit", fmt(modal.realCredit), C.gold], ["Demo Credit", fmt(modal.demoCredit), C.purple]].map(([l, v, c]) => (
                 <div key={l} style={{ background: C.bg, borderRadius: "8px", padding: "12px", textAlign: "center" }}>
                   <div style={{ fontSize: "10px", color: C.textMuted, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "4px" }}>{l}</div>
                   <div className="mono" style={{ fontSize: "16px", color: c, fontWeight: 600 }}>{v}</div>
@@ -1111,8 +1165,15 @@ function CreditsPage({ users, setUsers, toast }) {
               ))}
             </div>
 
+            <Sel
+              label="Target Account"
+              value={form.target}
+              onChange={e => setForm(p => ({ ...p, target: e.target.value }))}
+              options={[{ value: "real", label: "Real Account" }, { value: "demo", label: "Demo Account" }]}
+            />
+
             <Input label="Amount (USD)" type="number" value={form.amount} onChange={e => setForm(p => ({ ...p, amount: e.target.value }))} placeholder="0.00" error={errors.amount}
-              hint={form.amount && !errors.amount ? `New credit: ${fmt((modal.credit || 0) + (form.type === "credit" ? 1 : -1) * parseFloat(form.amount || 0))}` : ""} />
+              hint={form.amount && !errors.amount ? `New ${targetLabel.toLowerCase()} credit: ${fmt(targetCredit + (form.type === "credit" ? 1 : -1) * parseFloat(form.amount || 0))}` : ""} />
             <Input label="Reason / Note" value={form.note} onChange={e => setForm(p => ({ ...p, note: e.target.value }))} placeholder="e.g. Welcome bonus, Promotional credit" error={errors.note} />
             <Input label="Expiry Date (optional)" type="date" value={form.expiry} onChange={e => setForm(p => ({ ...p, expiry: e.target.value }))} />
 
@@ -1121,7 +1182,7 @@ function CreditsPage({ users, setUsers, toast }) {
               <div style={{ padding: "12px 14px", background: form.type === "credit" ? C.greenDim : C.redDim, borderRadius: "8px", marginBottom: "16px", border: `1px solid ${form.type === "credit" ? `${C.green}30` : `${C.red}30`}` }}>
                 <div style={{ fontSize: "11px", color: C.textMuted, marginBottom: "4px" }}>Preview</div>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <span style={{ fontSize: "12px", color: C.textMuted }}>New Balance → <span className="mono" style={{ color: C.text }}>{fmt((modal.balance || 0) + (form.type === "credit" ? 1 : -1) * parseFloat(form.amount || 0))}</span></span>
+                  <span style={{ fontSize: "12px", color: C.textMuted }}>{targetLabel} Balance → <span className="mono" style={{ color: C.text }}>{fmt(targetBalance + (form.type === "credit" ? 1 : -1) * parseFloat(form.amount || 0))}</span></span>
                   <span className="mono" style={{ fontSize: "18px", fontWeight: 700, color: form.type === "credit" ? C.green : C.red }}>{form.type === "credit" ? "+" : "-"}{fmt(parseFloat(form.amount || 0))}</span>
                 </div>
               </div>
@@ -1141,7 +1202,7 @@ function CreditsPage({ users, setUsers, toast }) {
                     <div key={h.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 10px", background: C.bg, borderRadius: "6px" }}>
                       <div>
                         <div style={{ fontSize: "12px", color: C.text }}>{h.note}</div>
-                        <div style={{ fontSize: "10px", color: C.textMuted }}>{fmtDate(h.date)}</div>
+                        <div style={{ fontSize: "10px", color: C.textMuted }}>{fmtDate(h.date)}{h.account ? ` · ${h.account.toUpperCase()}` : ""}</div>
                       </div>
                       <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
                         <StatusBadge status={h.type} />
@@ -1152,6 +1213,9 @@ function CreditsPage({ users, setUsers, toast }) {
                 </div>
               </div>
             )}
+                </>
+              );
+            })()}
           </>
         )}
       </Modal>
@@ -1162,19 +1226,45 @@ function CreditsPage({ users, setUsers, toast }) {
 // ═══════════════════════════════════════════════════════════════════════════
 // FUNDING PAGE
 // ═══════════════════════════════════════════════════════════════════════════
-function FundingPage({ funding, setFunding, users, toast }) {
+function FundingPage({ funding, setFunding, users, setUsers, toast }) {
   const [filter, setFilter] = useState("all");
   const [typeFilter, setTypeFilter] = useState("all");
   const [modal, setModal] = useState(null);
   const [note, setNote] = useState("");
+  const [targetAccount, setTargetAccount] = useState("real");
 
   const filtered = funding.filter(f => (filter === "all" || f.status === filter) && (typeFilter === "all" || f.type === typeFilter));
 
   const handleAction = (id, action) => {
-    setFunding(p => p.map(f => f.id === id ? { ...f, status: action, note } : f));
-    if (action === "approved") toast("Request Approved", `${fmt(funding.find(f => f.id === id)?.amount || 0)} processed`);
+    const request = funding.find(f => f.id === id);
+    if (!request) return;
+
+    const balanceKey = targetAccount === "demo" ? "demoBalance" : "realBalance";
+    const selectedUser = users.find(u => u.id === request.userId);
+    const availableBalance = toNum(selectedUser?.[balanceKey]);
+
+    if (action === "approved") {
+      if (!selectedUser) {
+        return toast("Approval Failed", "User account not found", "error");
+      }
+
+      if (request.type === "withdrawal" && request.amount > availableBalance) {
+        return toast("Approval Failed", `Insufficient ${targetAccount} balance. Available ${fmt(availableBalance)}`, "error");
+      }
+
+      setUsers(p => p.map(u => {
+        if (u.id !== request.userId) return u;
+        const balanceChange = request.type === "deposit" ? request.amount : -request.amount;
+        return normalizeUserAccounts({ ...u, [balanceKey]: Math.max(0, toNum(u[balanceKey]) + balanceChange) });
+      }));
+    }
+
+    const finalNote = [note.trim(), action === "approved" ? `Processed to ${targetAccount} account` : ""].filter(Boolean).join(" · ");
+    setFunding(p => p.map(f => f.id === id ? { ...f, status: action, note: finalNote, processedAccount: action === "approved" ? targetAccount : f.processedAccount } : f));
+    if (action === "approved") toast("Request Approved", `${fmt(request.amount || 0)} processed to ${targetAccount} account`);
     else toast("Request Rejected", note || "No reason given", "error");
     setModal(null); setNote("");
+    setTargetAccount("real");
   };
 
   const totals = { pendingAmt: funding.filter(f => f.status === "pending").reduce((s, f) => s + f.amount, 0), approvedAmt: funding.filter(f => f.status === "approved").reduce((s, f) => s + f.amount, 0) };
@@ -1244,8 +1334,8 @@ function FundingPage({ funding, setFunding, users, toast }) {
                   <td style={{ padding: "12px 14px" }}><StatusBadge status={f.status} /></td>
                   <td style={{ padding: "12px 14px" }}><span className="mono" style={{ fontSize: "10px", color: C.textMuted }}>{timeAgo(f.created)}</span></td>
                   <td style={{ padding: "12px 14px" }}>
-                    {f.status === "pending" ? <Btn size="sm" variant="ghost" onClick={() => { setModal(f); setNote(""); }}>Review ▸</Btn>
-                      : <span style={{ fontSize: "11px", color: C.textDim, fontStyle: "italic" }}>{f.note || "—"}</span>}
+                    {f.status === "pending" ? <Btn size="sm" variant="ghost" onClick={() => { setModal(f); setNote(""); setTargetAccount(f.processedAccount || "real"); }}>Review ▸</Btn>
+                      : <span style={{ fontSize: "11px", color: C.textDim, fontStyle: "italic" }}>{f.note || (f.processedAccount ? `Processed to ${f.processedAccount}` : "—")}</span>}
                   </td>
                 </tr>
               ))}
@@ -1258,6 +1348,13 @@ function FundingPage({ funding, setFunding, users, toast }) {
       <Modal open={!!modal} onClose={() => setModal(null)} title="Review Funding Request" subtitle={modal ? `${modal.userName} · ${fmt(modal.amount)}` : ""} width="520px">
         {modal && (
           <>
+            {(() => {
+              const selectedUser = users.find(u => u.id === modal.userId);
+              const currentBalance = toNum(selectedUser?.[targetAccount === "demo" ? "demoBalance" : "realBalance"]);
+              const projectedBalance = modal.type === "deposit" ? currentBalance + modal.amount : currentBalance - modal.amount;
+
+              return (
+                <>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", marginBottom: "20px" }}>
               {[["User", modal.userName], ["Amount", fmt(modal.amount)], ["Method", modal.method], ["Reference", modal.bankRef || "—"], ["Type", modal.type.charAt(0).toUpperCase() + modal.type.slice(1)], ["Submitted", timeAgo(modal.created)]].map(([l, v]) => (
                 <div key={l} style={{ background: C.bg, borderRadius: "8px", padding: "12px 14px" }}>
@@ -1273,12 +1370,30 @@ function FundingPage({ funding, setFunding, users, toast }) {
                 <span style={{ marginLeft: "auto", fontSize: "11px", color: C.textMuted, textDecoration: "underline" }}>Preview</span>
               </div>
             )}
+            <Sel
+              label="Target Account"
+              value={targetAccount}
+              onChange={e => setTargetAccount(e.target.value)}
+              options={[{ value: "real", label: "Real Account" }, { value: "demo", label: "Demo Account" }]}
+            />
+            {selectedUser && (
+              <div style={{ padding: "12px 14px", background: C.bg, borderRadius: "8px", marginBottom: "16px", border: `1px solid ${projectedBalance < 0 ? `${C.red}30` : C.border}` }}>
+                <div style={{ fontSize: "11px", color: C.textMuted, marginBottom: "4px" }}>{targetAccount === "demo" ? "Demo" : "Real"} Account Preview</div>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
+                  <span className="mono" style={{ fontSize: "12px", color: C.textMuted }}>Current: {fmt(currentBalance)}</span>
+                  <span className="mono" style={{ fontSize: "12px", color: projectedBalance < 0 ? C.red : C.text }}>After approval: {fmt(projectedBalance)}</span>
+                </div>
+              </div>
+            )}
             <Input label="Admin Note (reason / reference)" value={note} onChange={e => setNote(e.target.value)} placeholder="Optional note for records..." />
             <div style={{ display: "flex", gap: "8px", justifyContent: "flex-end" }}>
               <Btn variant="secondary" onClick={() => setModal(null)}>Cancel</Btn>
               <Btn danger onClick={() => handleAction(modal.id, "rejected")}>✕ Reject</Btn>
               <Btn onClick={() => handleAction(modal.id, "approved")}>✓ Approve</Btn>
             </div>
+                </>
+              );
+            })()}
           </>
         )}
       </Modal>
