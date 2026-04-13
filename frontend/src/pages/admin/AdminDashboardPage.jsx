@@ -94,11 +94,18 @@ const toNum = (v) => {
   return Number.isFinite(n) ? n : 0;
 };
 
+const generateAccountId = (kind, userId) => {
+  const base = String(userId ?? Date.now()).replace(/\D/g, "") || String(Date.now());
+  return `${kind === "demo" ? "DM" : "RL"}-${base}`;
+};
+
 const normalizeUserAccounts = (user) => {
   const realBalance = user?.realBalance != null ? toNum(user.realBalance) : toNum(user?.balance);
   const demoBalance = user?.demoBalance != null ? toNum(user.demoBalance) : 0;
   const realCredit = user?.realCredit != null ? toNum(user.realCredit) : toNum(user?.credit);
   const demoCredit = user?.demoCredit != null ? toNum(user.demoCredit) : 0;
+  const realAccountId = user?.realAccountId || generateAccountId("real", user?.id);
+  const demoAccountId = user?.demoAccountId || generateAccountId("demo", user?.id);
 
   return {
     ...user,
@@ -106,6 +113,8 @@ const normalizeUserAccounts = (user) => {
     demoBalance,
     realCredit,
     demoCredit,
+    realAccountId,
+    demoAccountId,
     balance: realBalance + demoBalance,
     credit: realCredit + demoCredit,
   };
@@ -691,7 +700,12 @@ function UsersPage({ users, setUsers, toast }) {
                       <div><div style={{ fontSize: "12px", fontWeight: 600, color: C.text }}>{u.name}</div><div style={{ fontSize: "11px", color: C.textMuted }}>{u.email}</div></div>
                     </div>
                   </td>
-                  <td style={{ padding: "11px 14px", fontSize: "11px", color: C.textMuted }}>{u.accountType}<br /><span style={{ fontSize: "10px" }}>1:{u.leverage}</span></td>
+                  <td style={{ padding: "11px 14px", fontSize: "11px", color: C.textMuted }}>
+                    {u.accountType}<br />
+                    <span style={{ fontSize: "10px" }}>1:{u.leverage}</span><br />
+                    <span className="mono" style={{ fontSize: "9px", color: C.blue }}>R: {u.realAccountId}</span><br />
+                    <span className="mono" style={{ fontSize: "9px", color: C.purple }}>D: {u.demoAccountId}</span>
+                  </td>
                   <td style={{ padding: "11px 14px" }}><div className="mono" style={{ fontSize: "12px", color: C.text }}>{fmt(u.balance)}</div><div className="mono" style={{ fontSize: "10px", color: u.equity >= u.balance ? C.green : C.red }}>EQ: {fmt(u.equity)}</div></td>
                   <td style={{ padding: "11px 14px" }}><div className="mono" style={{ fontSize: "12px", color: u.credit > 0 ? C.gold : C.textDim }}>{fmt(u.credit)}</div></td>
                   <td style={{ padding: "11px 14px" }}><div className="mono" style={{ fontSize: "12px", color: C.textMuted }}>{u.totalTrades}</div></td>
@@ -751,6 +765,16 @@ function UsersPage({ users, setUsers, toast }) {
           <div style={{ flex: 1, background: C.bg, borderRadius: "8px", padding: "12px 14px" }}><div style={{ fontSize: "10px", color: C.textMuted, textTransform: "uppercase", marginBottom: "4px" }}>Status</div><StatusBadge status={form.status} /></div>
           <div style={{ flex: 1, background: C.bg, borderRadius: "8px", padding: "12px 14px" }}><div style={{ fontSize: "10px", color: C.textMuted, textTransform: "uppercase", marginBottom: "4px" }}>KYC</div><StatusBadge status={form.kyc} /></div>
           <div style={{ flex: 1, background: C.bg, borderRadius: "8px", padding: "12px 14px" }}><div style={{ fontSize: "10px", color: C.textMuted, textTransform: "uppercase", marginBottom: "4px" }}>Joined</div><span style={{ fontSize: "12px", color: C.text }}>{fmtDate(form.joined)}</span></div>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px", marginBottom: "16px" }}>
+          <div style={{ background: C.bg, borderRadius: "8px", padding: "12px 14px" }}>
+            <div style={{ fontSize: "10px", color: C.textMuted, textTransform: "uppercase", marginBottom: "4px" }}>Real Account ID</div>
+            <span className="mono" style={{ fontSize: "12px", color: C.blue }}>{form.realAccountId}</span>
+          </div>
+          <div style={{ background: C.bg, borderRadius: "8px", padding: "12px 14px" }}>
+            <div style={{ fontSize: "10px", color: C.textMuted, textTransform: "uppercase", marginBottom: "4px" }}>Demo Account ID</div>
+            <span className="mono" style={{ fontSize: "12px", color: C.purple }}>{form.demoAccountId}</span>
+          </div>
         </div>
         {form.notes && <div style={{ background: C.bg, borderRadius: "8px", padding: "12px 14px", marginBottom: "16px" }}><div style={{ fontSize: "10px", color: C.textMuted, textTransform: "uppercase", marginBottom: "4px" }}>Admin Notes</div><div style={{ fontSize: "12px", color: C.textMuted }}>{form.notes}</div></div>}
         {form.creditHistory?.length > 0 && (
