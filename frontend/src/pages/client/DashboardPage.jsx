@@ -346,6 +346,7 @@ const DashboardPage = () => {
                   onPlaceOrder={handlePlaceOrder}
                   onClosePosition={handleClosePosition}
                   onCancelOrder={handleCancelOrder}
+                  activeSymbol={marketSymbol}
                   onSymbolChange={(sym) => setMarketSymbol(sym)}
                   favorites={favorites}
                   onToggleFavorite={handleToggleFavorite}

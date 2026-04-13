@@ -1,5 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import TradingViewWidget from '../trading/TradingViewWidget';
+import RealTimeChart from '../trading/RealTimeChart';
 import OrderPanel from '../trading/OrderPanel';
 import PositionsTable from '../trading/PositionsTable';
 import OpenOrders from '../trading/OpenOrders';
@@ -29,6 +30,7 @@ const TradingTab = ({
   const [showSidebar, setShowSidebar] = useState(true);
   const [activeMobileView, setActiveMobileView] = useState('chart'); // 'markets', 'chart', 'trade'
   const [activeOrderIntent, setActiveOrderIntent] = useState({ side: 'buy', type: 'market' });
+  const [chartMode, setChartMode] = useState('advanced'); // 'advanced' | 'execution'
   const { theme } = useTheme();
 
   return (
@@ -59,10 +61,11 @@ const TradingTab = ({
       {/* Top Section: Three-column Terminal */}
       <div className="flex-1 flex flex-col lg:flex-row overflow-x-hidden overflow-y-auto lg:overflow-hidden relative">
         
-        {/* Column 1: Asset List (Left) */}
+        {/* Column 1: Asset List (Left) — controlled by showSidebar on desktop */}
         <div className={`
           ${activeMobileView === 'markets' ? 'block' : 'hidden'} 
-          lg:block lg:w-72 xl:w-80 flex-shrink-0 w-full border-b lg:border-b-0 lg:border-r border-slate-100 dark:border-slate-800 transition-all duration-300 overflow-hidden
+          lg:flex-shrink-0 w-full border-b lg:border-b-0 lg:border-r border-slate-100 dark:border-slate-800 transition-all duration-300 overflow-hidden
+          ${showSidebar ? 'lg:block lg:w-72 xl:w-80' : 'lg:hidden'}
         `}>
           <TerminalAssetList 
             activeSymbol={activeSymbol}
@@ -72,7 +75,7 @@ const TradingTab = ({
             }}
             favorites={favorites}
             onToggleFavorite={onToggleFavorite}
-            onClose={showSidebar ? () => setShowSidebar(false) : null}
+            onClose={() => setShowSidebar(false)}
             marketData={marketData}
           />
         </div>
@@ -95,12 +98,57 @@ const TradingTab = ({
               </button>
             </div>
           )}
-          <div className="flex-1 relative group">
-            <TradingViewWidget 
-              symbol={activeSymbol} 
-              theme={theme} 
-              activeIntent={activeOrderIntent}
-            />
+          <div className="flex-1 relative group flex flex-col">
+            {/* Chart Mode Toggle */}
+            <div className={`flex items-center justify-end gap-2 px-3 py-1.5 border-b flex-shrink-0 ${
+              theme === 'dark' ? 'bg-slate-900 border-slate-800' : 'bg-slate-50 border-slate-200'
+            }`}>
+              <span className={`text-[8px] font-black uppercase tracking-widest ${
+                theme === 'dark' ? 'text-slate-500' : 'text-slate-400'
+              }`}>Chart Mode:</span>
+              <button
+                onClick={() => setChartMode('advanced')}
+                className={`px-3 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest transition-all ${
+                  chartMode === 'advanced'
+                    ? 'bg-gold-500 text-slate-900 shadow-md'
+                    : theme === 'dark' ? 'bg-slate-800 text-slate-400 hover:text-white' : 'bg-slate-200 text-slate-500 hover:text-slate-900'
+                }`}
+              >
+                ⚡ Advanced
+              </button>
+              <button
+                onClick={() => setChartMode('execution')}
+                className={`px-3 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest transition-all ${
+                  chartMode === 'execution'
+                    ? 'bg-emerald-500 text-white shadow-md'
+                    : theme === 'dark' ? 'bg-slate-800 text-slate-400 hover:text-white' : 'bg-slate-200 text-slate-500 hover:text-slate-900'
+                }`}
+              >
+                🎯 Execution {positions.filter(p => p?.symbol?.replace(/[^A-Z]/g,'') === activeSymbol.replace(/[^A-Z]/g,'')).length > 0 && (
+                  <span className="ml-1 bg-white text-emerald-600 text-[7px] px-1 rounded-full font-black">
+                    {positions.filter(p => p?.symbol?.replace(/[^A-Z]/g,'') === activeSymbol.replace(/[^A-Z]/g,'')).length}
+                  </span>
+                )}
+              </button>
+            </div>
+
+            {/* Chart: Advanced (TradingView) */}
+            <div className={`flex-1 ${chartMode === 'advanced' ? 'block' : 'hidden'}`}>
+              <TradingViewWidget
+                symbol={activeSymbol}
+                theme={theme}
+                activeIntent={activeOrderIntent}
+              />
+            </div>
+
+            {/* Chart: Execution (RealTimeChart with position markers) */}
+            <div className={`flex-1 ${chartMode === 'execution' ? 'block' : 'hidden'}`}>
+              <RealTimeChart
+                symbol={activeSymbol}
+                theme={theme}
+                positions={positions}
+              />
+            </div>
           </div>
         </div>
 

@@ -5,13 +5,13 @@ const Account = require('../models/Account');
 const tradingController = {
     // Execute a market order
     executeTrade: async (req, res) => {
-        const { accountId, symbol, side, amount, entryPrice, type = 'market' } = req.body;
+        const { accountId, symbol, side, amount, entryPrice, type = 'market', leverage = 1 } = req.body;
         const userId = req.user.id;
 
-        console.log(`[Trading] Executing trade for user ${userId} on account ${accountId}: ${side} ${amount} units of ${symbol} at ${entryPrice || 'market'}`);
+        console.log(`[Trading] Executing trade for user ${userId} on account ${accountId}: ${side} $${amount} USD of ${symbol} at ${entryPrice || 'market'}`);
 
         try {
-            // 1. Verify account belongs to user and check balance
+            // Verify account belongs to user
             const accounts = await Account.findByUserId(userId);
             const account = accounts.find(a => a.id === parseInt(accountId));
 
@@ -20,36 +20,37 @@ const tradingController = {
                 return res.status(404).json({ success: false, message: 'Trading account not found or access denied' });
             }
 
-            // Calculation: The 'amount' from frontend is currently the USD investment.
-            // We need to ensure we calculate the cost correctly.
-            // If the frontend sends 'amount' as quantity, we multiply by price.
-            // If the frontend sends 'amount' as USD total, we use it directly.
-            const totalCost = parseFloat(amount) * parseFloat(entryPrice || 1);
+            // amount = USD investment from frontend
+            const usdAmount = parseFloat(amount);
+            const price = parseFloat(entryPrice) || 43000;
+            const lev = parseFloat(leverage) || 1;
 
-            console.log(`[Trading] Account balance: ${account.balance}, Total trade cost: ${totalCost}`);
+            // Required margin = usdAmount / leverage
+            const requiredMargin = usdAmount / lev;
+            // Unit quantity for this trade
+            const quantity = usdAmount / price;
 
-            // In demo mode, we just check if they have enough balance. 
-            // In real mode, we might do stricter margin checks.
-            if (parseFloat(account.balance) < totalCost && side === 'buy') {
-                const msg = `Insufficient funds: Required $${totalCost.toFixed(2)}, Available $${parseFloat(account.balance).toFixed(2)}`;
+            console.log(`[Trading] Balance: $${account.balance}, Required margin: $${requiredMargin.toFixed(2)}, Quantity: ${quantity}`);
+
+            if (parseFloat(account.balance) < requiredMargin && side === 'buy') {
+                const msg = `Insufficient margin: Required $${requiredMargin.toFixed(2)}, Available $${parseFloat(account.balance).toFixed(2)}`;
                 console.warn(`[Trading] ${msg}`);
                 return res.status(400).json({ success: false, message: msg });
             }
 
-            // 2. Create the trade
+            // Create the trade record using unit quantity
             const trade = await Trade.create({
                 userId,
                 accountId,
                 symbol,
                 side,
                 type,
-                amount,
-                entryPrice: entryPrice || 0
+                amount: quantity,       // stored as asset units (e.g. 0.002 BTC)
+                entryPrice: price
             });
 
-
-            // 3. Update account balance (Deduct the cost)
-            const newBalance = parseFloat(account.balance) - totalCost;
+            // Deduct required margin from balance
+            const newBalance = parseFloat(account.balance) - requiredMargin;
             await Account.updateBalance(accountId, newBalance);
 
             res.status(201).json({

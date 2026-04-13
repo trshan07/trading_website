@@ -1,8 +1,9 @@
-import { useState, useEffect, useContext } from 'react';
+import { useState, useEffect, useContext, useCallback } from 'react';
 import tradingService from '../services/tradingService';
 import { AuthContext } from '../context/AuthContext';
 import { toast } from 'react-hot-toast';
 import { MARKET_INSTRUMENTS } from '../constants/marketData';
+import websocketService from '../services/websocketService';
 
 export const useDashboardData = (accountType = 'demo') => {
   const { user, refreshUser } = useContext(AuthContext);
@@ -27,7 +28,6 @@ export const useDashboardData = (accountType = 'demo') => {
   // Debug log for troubleshooting (internal only)
   useEffect(() => {
     if (user) {
-        console.log(`[useDashboardData] Initializing for ${accountType}. Accounts:`, user.accounts?.length || 0);
         if (!accountId) {
             console.warn(`[useDashboardData] No account match found for type: ${accountType}. Available:`, user.accounts?.map(a => a.account_type || a.type));
         }
@@ -78,54 +78,48 @@ export const useDashboardData = (accountType = 'demo') => {
   ]);
 
   // Fetch Positions from Backend
-  useEffect(() => {
-    const fetchPositions = async () => {
-      if (!accountId) return;
-      try {
-        const response = await tradingService.getOpenPositions(accountId);
-        if (response.success) {
-          const mappedPositions = response.data.map(pos => {
-              const currentPrice = marketData[pos.symbol]?.price || parseFloat(pos.entry_price);
-              const amount = parseFloat(pos.amount);
-              const entryPrice = parseFloat(pos.entry_price);
-              const side = pos.side.toUpperCase();
-              
-              const pnl = side === 'BUY' 
-                ? (currentPrice - entryPrice) * amount
-                : (entryPrice - currentPrice) * amount;
-  
-              return {
-                id: pos.id,
-                symbol: pos.symbol,
-                type: side === 'BUY' ? 'BUY' : 'SELL',
-                quantity: amount,
-                entryPrice: entryPrice,
-                currentPrice: currentPrice,
-                pnl: pnl,
-                pnlPercent: (pnl / (amount * entryPrice)) * 100,
-                margin: (amount * entryPrice) / 10,
-                createdAt: pos.created_at,
-                chartMarker: {
-                  time: pos.created_at ? Math.floor(new Date(pos.created_at).getTime() / 1000) : Math.floor(Date.now() / 1000),
-                  position: side === 'BUY' ? 'belowBar' : 'aboveBar',
-                  color: side === 'BUY' ? '#10b981' : '#f43f5e',
-                  shape: side === 'BUY' ? 'arrowUp' : 'arrowDown',
-                  text: `${side} @ ${entryPrice}`,
-                  size: 2
-                }
-              };
-          });
-          setPositions(mappedPositions);
-        }
-      } catch (error) {
-        console.error('Failed to fetch positions:', error);
-      }
-    };
+  const fetchPositions = useCallback(async () => {
+    if (!accountId) return;
+    try {
+      const response = await tradingService.getOpenPositions(accountId);
+      if (response.success) {
+        const mappedPositions = response.data.map(pos => {
+            const currentPrice = marketData[pos.symbol]?.price || parseFloat(pos.entry_price);
+            const amount = parseFloat(pos.amount);
+            const entryPrice = parseFloat(pos.entry_price);
+            const side = pos.side.toUpperCase();
+            
+            const pnl = side === 'BUY' 
+              ? (currentPrice - entryPrice) * amount
+              : (entryPrice - currentPrice) * amount;
 
+            return {
+              id: pos.id,
+              symbol: pos.symbol,
+              type: side === 'BUY' ? 'BUY' : 'SELL',
+              side: side.toLowerCase(),
+              quantity: amount,
+              entryPrice: entryPrice,
+              currentPrice: currentPrice,
+              pnl: pnl,
+              pnlPercent: (pnl / (amount * entryPrice)) * 100,
+              margin: (amount * entryPrice) / 10,
+              createdAt: pos.created_at,
+              entryTime: pos.created_at,
+            };
+        });
+        setPositions(mappedPositions);
+      }
+    } catch (error) {
+      console.error('Failed to fetch positions:', error);
+    }
+  }, [accountId, accountType]);
+
+  useEffect(() => {
     fetchPositions();
     const pollInterval = setInterval(fetchPositions, 10000);
     return () => clearInterval(pollInterval);
-  }, [accountId, accountType]); // Remove marketData dependency to stop high-frequency loops
+  }, [fetchPositions]);
 
 
   const portfolioHistory = [
@@ -151,28 +145,63 @@ export const useDashboardData = (accountType = 'demo') => {
     ]);
   };
 
-  // Real-time market data simulation
+  // Real-time market data integration
   useEffect(() => {
-    const interval = setInterval(() => {
+    const handleLiveData = (liveTickers) => {
       setMarketData(prev => {
         const newData = { ...prev };
-        Object.keys(newData).forEach(key => {
-          const oldPrice = newData[key].price;
-          // Subtly move prices by 0.05% max per tick
-          const movement = 1 + (Math.random() - 0.5) * 0.0006;
-          const newPrice = oldPrice * movement;
-          
-          newData[key] = {
-            ...newData[key],
-            price: newPrice,
-            lastDir: newPrice > oldPrice ? 'up' : newPrice < oldPrice ? 'down' : 'none',
-            change: newData[key].change + (Math.random() - 0.5) * 0.02
-          };
+        let updated = false;
+
+        Object.keys(liveTickers).forEach(symbol => {
+          if (newData[symbol]) {
+            const oldPrice = newData[symbol].price;
+            const newPrice = liveTickers[symbol].price;
+            if (oldPrice !== newPrice) {
+              newData[symbol] = {
+                ...newData[symbol],
+                price: newPrice,
+                lastDir: newPrice > oldPrice ? 'up' : newPrice < oldPrice ? 'down' : 'none',
+              };
+              updated = true;
+            }
+          }
         });
-        return newData;
+
+        // Mix in mock data for non-crypto assets like Stocks/Forex to maintain MVP activity
+        Object.keys(newData).forEach(key => {
+          if (!liveTickers[key]) {
+            // Simulated subtle movement for non-Binance assets
+            if (Math.random() > 0.7) { 
+               const oldPrice = newData[key].price;
+               const movement = 1 + (Math.random() - 0.5) * 0.0006;
+               const newPrice = oldPrice * movement;
+               
+               newData[key] = {
+                 ...newData[key],
+                 price: newPrice,
+                 lastDir: newPrice > oldPrice ? 'up' : newPrice < oldPrice ? 'down' : 'none',
+                 change: newData[key].change + (Math.random() - 0.5) * 0.02
+               };
+               updated = true;
+            }
+          }
+        });
+
+        return updated ? newData : prev;
       });
-    }, 1500); // Higher frequency like professional terminals
-    return () => clearInterval(interval);
+    };
+
+    const unsubscribe = websocketService.subscribe(handleLiveData);
+    
+    // Fallback simulation timer for non-live assets, ticking every 1.5s
+    const mockInterval = setInterval(() => {
+        handleLiveData({}); // Trigger the mock generation logic for non-live assets
+    }, 1500);
+
+    return () => {
+      unsubscribe();
+      clearInterval(mockInterval);
+    };
   }, []);
 
   // Handlers for state modification
@@ -247,14 +276,13 @@ export const useDashboardData = (accountType = 'demo') => {
             return false;
         }
 
-        const entryPrice = order.price || marketData[order.symbol || 'BTCUSD']?.price || 43000;
-        const quantity = usdInvestment / entryPrice;
-
+        const entryPrice = order.price || marketData[order.symbol]?.price || 43000;
+        // Send the USD investment amount directly. Backend calculates quantity = amount / entryPrice.
         const response = await tradingService.executeTrade({
             accountId,
-            symbol: order.symbol || 'BTCUSD',
+            symbol: order.symbol || 'BTCUSDT',
             side: order.side.toLowerCase(),
-            amount: quantity, // Send the unit quantity (e.g. 0.002 BTC)
+            amount: usdInvestment, // USD investment value
             entryPrice: entryPrice,
             type: order.type.toLowerCase()
         });

@@ -1,8 +1,8 @@
-// frontend/src/components/trading/OrderPanel.jsx
 import React, { useState, useEffect, useRef } from 'react';
 import { FaPlus, FaMinus, FaChevronDown, FaCheck, FaTimes } from 'react-icons/fa';
+import { calculateSpreads } from '../../utils/spreadCalculator';
 
-const OrderPanel = ({ onSubmit, symbol = 'BTCUSD', marketData = {}, onClose, onIntentChange = () => {} }) => {
+const OrderPanel = ({ onSubmit, symbol = 'BTCUSD', marketData = {}, onClose, onIntentChange = () => {}, maxLeverage = 400 }) => {
   const [orderType, setOrderType] = useState('market'); // market or pending
   const [amount, setAmount] = useState(1);
   const [leverage, setLeverage] = useState(1);
@@ -40,8 +40,7 @@ const OrderPanel = ({ onSubmit, symbol = 'BTCUSD', marketData = {}, onClose, onI
   const lastDir = liveInfo.lastDir || 'none';
   const flashClass = lastDir === 'up' ? 'flash-up' : lastDir === 'down' ? 'flash-down' : '';
   
-  const bidPrice = (currentPrice * 0.999); // Simulated bid/ask spread
-  const askPrice = (currentPrice * 1.001);
+  const { bidPrice, askPrice, spreadAmt } = calculateSpreads(symbol, currentPrice);
 
   const getPipDistance = (target) => {
     if (!target || !currentPrice) return null;
@@ -121,7 +120,7 @@ const OrderPanel = ({ onSubmit, symbol = 'BTCUSD', marketData = {}, onClose, onI
             }`}
           >
             <span className="text-[9px] font-black uppercase tracking-widest mb-1 opacity-80">Sell</span>
-            <span className={`text-sm font-black italic rounded px-1 transition-all ${selectedSide === 'sell' ? 'text-white' : 'text-rose-500'} ${flashClass}`}>{bidPrice.toFixed(symbol.includes('USD') && !symbol.includes('USDT') ? 4 : 2)}</span>
+            <span className={`text-sm font-black italic rounded px-1 transition-all ${selectedSide === 'sell' ? 'text-white' : 'text-rose-500'} ${flashClass}`}>{bidPrice}</span>
           </button>
           
           <button 
@@ -133,8 +132,15 @@ const OrderPanel = ({ onSubmit, symbol = 'BTCUSD', marketData = {}, onClose, onI
             }`}
           >
             <span className="text-[9px] font-black uppercase tracking-widest mb-1 opacity-80">Buy</span>
-            <span className={`text-sm font-black italic rounded px-1 transition-all ${selectedSide === 'buy' ? 'text-white' : 'text-emerald-500'} ${flashClass}`}>{askPrice.toFixed(symbol.includes('USD') && !symbol.includes('USDT') ? 4 : 2)}</span>
+            <span className={`text-sm font-black italic rounded px-1 transition-all ${selectedSide === 'buy' ? 'text-white' : 'text-emerald-500'} ${flashClass}`}>{askPrice}</span>
           </button>
+        </div>
+
+        {/* Spread Indicator */}
+        <div className="flex justify-center -mt-2 mb-2">
+          <span className="bg-slate-100 dark:bg-slate-800 px-3 py-1 rounded-full text-[8px] font-black uppercase text-slate-500 tracking-widest border border-slate-200 dark:border-slate-700">
+            Spread: <span className="text-gold-500 tabular-nums">{spreadAmt > 0.01 ? spreadAmt.toFixed(2) : spreadAmt.toFixed(4)}</span>
+          </span>
         </div>
 
         {/* Pending Price Input */}
@@ -198,12 +204,15 @@ const OrderPanel = ({ onSubmit, symbol = 'BTCUSD', marketData = {}, onClose, onI
             <div>
               <div className="flex justify-between items-center mb-4">
                 <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">Leverage Factor</label>
-                <span className="text-[10px] font-black text-slate-900 dark:text-white bg-gold-500 px-3 py-1 rounded-lg italic shadow-lg shadow-gold-500/10">x{leverage}</span>
+                <div className="flex items-center space-x-2">
+                  <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest">Max 1:{maxLeverage}</span>
+                  <span className="text-[10px] font-black text-slate-900 dark:text-white bg-gold-500 px-3 py-1 rounded-lg italic shadow-lg shadow-gold-500/10">1:{leverage}</span>
+                </div>
               </div>
               <input
                 type="range"
                 min="1"
-                max="100"
+                max={maxLeverage}
                 value={leverage}
                 onChange={(e) => setLeverage(parseInt(e.target.value))}
                 className="w-full h-1 bg-slate-100 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer accent-gold-500"
@@ -272,17 +281,17 @@ const OrderPanel = ({ onSubmit, symbol = 'BTCUSD', marketData = {}, onClose, onI
             </div>
           </div>
 
-        {/* Order Summary Summary */}
-        <div className="bg-slate-50 dark:bg-slate-950/50 border border-slate-100 dark:border-slate-800 rounded-2xl p-5 space-y-3 shadow-inner">
-           <div className="flex justify-between items-center text-[9px] uppercase font-black">
-              <span className="text-slate-400 dark:text-slate-500 tracking-widest">Total Value</span>
-              <span className="text-slate-900 dark:text-white italic">${(amount * leverage).toLocaleString()}</span>
-           </div>
-           <div className="flex justify-between items-center text-[9px] uppercase font-black">
-              <span className="text-slate-400 dark:text-slate-500 tracking-widest">Required Margin</span>
-              <span className="text-gold-500 italic">${amount.toLocaleString()}</span>
-           </div>
-        </div>
+         {/* Order Summary */}
+         <div className="bg-slate-50 dark:bg-slate-950/50 border border-slate-100 dark:border-slate-800 rounded-2xl p-5 space-y-3 shadow-inner">
+            <div className="flex justify-between items-center text-[9px] uppercase font-black">
+               <span className="text-slate-400 dark:text-slate-500 tracking-widest">Total Position Value</span>
+               <span className="text-slate-900 dark:text-white italic">${(amount * currentPrice).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+            </div>
+            <div className="flex justify-between items-center text-[9px] uppercase font-black">
+               <span className="text-slate-400 dark:text-slate-500 tracking-widest">Required Margin</span>
+               <span className="text-gold-500 italic">${((amount * currentPrice) / leverage).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+            </div>
+         </div>
       </div>
 
       {/* Primary Action */}

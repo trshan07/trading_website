@@ -1,7 +1,8 @@
 // frontend/src/components/trading/TerminalAssetList.jsx
 import React, { useState } from 'react';
 import { FaSearch, FaStar, FaRegStar, FaChevronDown, FaTimes } from 'react-icons/fa';
-import { MARKET_INSTRUMENTS, CATEGORIES } from '../../constants/marketData';
+import { MARKET_INSTRUMENTS, CATEGORIES, CATEGORY_COLORS } from '../../constants/marketData';
+import { calculateSpreads } from '../../utils/spreadCalculator';
 
 const TerminalAssetList = ({ activeSymbol, onSelectSymbol, favorites = [], onToggleFavorite, onClose, marketData = {} }) => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -120,17 +121,17 @@ const TerminalAssetList = ({ activeSymbol, onSelectSymbol, favorites = [], onTog
           // Generate mock bid/ask based on the single price for demo purposes
           const spread = inst.price * 0.0005; 
           const sellPrice = (inst.price - spread).toFixed(inst.price > 100 ? 2 : 4);
-          const buyPrice = (inst.price + spread).toFixed(inst.price > 100 ? 2 : 4);
 
           return (
             <div
               key={inst.symbol}
               onClick={() => onSelectSymbol(inst.symbol)}
-              className={`group grid grid-cols-[1.5fr_1fr_1fr_0.2fr] md:grid-cols-[2fr_1.5fr_1.5fr_1.5fr_1.5fr_auto] gap-2 px-3 md:px-4 py-3 items-center cursor-pointer border-b border-slate-50 dark:border-slate-800/50 transition-all ${
-                isActive ? 'bg-slate-50 dark:bg-slate-800/50 relative' : 'hover:bg-slate-50/50 dark:hover:bg-slate-800/30'
+              className={`grid grid-cols-[1.5fr_1fr_1fr_0.2fr] md:grid-cols-[2fr_1.5fr_1.5fr_1.5fr_1.5fr_auto] gap-2 items-center px-3 md:px-4 py-2.5 md:py-2 cursor-pointer border-b border-slate-50 dark:border-slate-800/70 transition-all duration-150 ${
+                isActive
+                  ? 'bg-gold-50 dark:bg-gold-500/5 border-l-2 border-l-gold-500'
+                  : 'bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800/50'
               }`}
             >
-              {isActive && <div className="absolute left-0 top-0 bottom-0 w-1 bg-gold-500"></div>}
               
               {/* Instrument Column */}
               <div className="flex items-center space-x-1 md:space-x-2 min-w-0">
@@ -147,9 +148,8 @@ const TerminalAssetList = ({ activeSymbol, onSelectSymbol, favorites = [], onTog
                 const currentChange = liveData.change !== undefined ? liveData.change : inst.change;
                 const lastDir = liveData.lastDir || 'none';
                 
-                const spread = currentPrice * 0.0005; 
-                const sellPrice = (currentPrice - spread).toFixed(currentPrice > 100 ? 2 : 4);
-                const buyPrice = (currentPrice + spread).toFixed(currentPrice > 100 ? 2 : 4);
+                const { bidPrice: sellPrice, askPrice: buyPrice, spreadAmt } = calculateSpreads(inst.symbol, currentPrice);
+                const spreadDisplay = spreadAmt < 0.01 ? spreadAmt.toFixed(4) : spreadAmt.toFixed(2);
                 
                 const flashClass = lastDir === 'up' ? 'flash-up' : lastDir === 'down' ? 'flash-down' : '';
                 const isPriceUp = currentChange >= 0;

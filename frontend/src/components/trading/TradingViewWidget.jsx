@@ -4,7 +4,8 @@ import { FaExpand, FaCompress } from 'react-icons/fa';
 const TradingViewWidget = ({ 
   symbol = 'BTCUSDT', 
   theme = 'dark',
-  activeIntent = null
+  activeIntent = null,
+  positions = []
 }) => {
   const containerRef = useRef(null);
   const widgetRef = useRef(null);
@@ -127,7 +128,52 @@ const TradingViewWidget = ({
           className="absolute inset-0 w-full h-full"
         />
 
-        {/* Execution Mode Overlay (trade.com style) */}
+        {/* Trade Execution Markers Overlay */}
+        {positions && positions.length > 0 && (() => {
+          const symbolPositions = positions.filter(p => 
+            p?.symbol && p.symbol.replace(/[^A-Z0-9]/g, '') === symbol.replace(/[^A-Z0-9]/g, '')
+          );
+          if (symbolPositions.length === 0) return null;
+          return (
+            <div className="absolute left-0 top-0 bottom-0 z-10 pointer-events-none flex flex-col justify-center pl-2 space-y-1.5">
+              {symbolPositions.map((pos, idx) => {
+                const isBuy = (pos.side || pos.type || '').toUpperCase() === 'BUY';
+                return (
+                  <div
+                    key={pos.id || idx}
+                    className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border backdrop-blur-sm shadow-lg ${
+                      isBuy
+                        ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-400'
+                        : 'bg-rose-500/20 border-rose-500/50 text-rose-400'
+                    }`}
+                  >
+                    {/* Direction arrow */}
+                    <span className={`text-[14px] font-black leading-none ${isBuy ? 'text-emerald-400' : 'text-rose-400'}`}>
+                      {isBuy ? '▲' : '▼'}
+                    </span>
+                    <div className="flex flex-col">
+                      <span className={`text-[8px] font-black uppercase tracking-widest ${
+                        isBuy ? 'text-emerald-400' : 'text-rose-400'
+                      }`}>
+                        {isBuy ? 'BUY' : 'SELL'}
+                      </span>
+                      <span className="text-[9px] font-black text-white tabular-nums">
+                        @ ${Number(pos.entryPrice || pos.entry_price || 0).toLocaleString()}
+                      </span>
+                      {pos.quantity && (
+                        <span className="text-[7px] text-slate-400 font-bold">
+                          {pos.quantity} units
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          );
+        })()}
+
+        {/* Execution Mode Overlay - pending order intent */}
         {activeIntent && (
           <div className="absolute top-8 right-8 z-10 pointer-events-none animate-in fade-in zoom-in duration-300">
             <div className={`flex items-center space-x-3 px-6 py-3 rounded-2xl border backdrop-blur-md shadow-2xl ${

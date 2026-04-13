@@ -1,4 +1,3 @@
-// frontend/src/components/trading/OrderForm.jsx
 import React, { useState } from 'react';
 import { FaBolt, FaChartLine, FaShieldAlt } from 'react-icons/fa';
 
@@ -6,13 +5,12 @@ const SideButton = ({ side, targetSide, label, onClick }) => (
   <button
     type="button"
     onClick={onClick}
-    className={`flex-1 py-5 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] transition-all duration-300 ${
-      side === targetSide
+    className={`flex-1 py-5 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] transition-all duration-300 ${side === targetSide
         ? targetSide === 'buy'
           ? 'bg-emerald-500 text-white shadow-2xl shadow-emerald-500/30 -translate-y-1'
           : 'bg-rose-500 text-white shadow-2xl shadow-rose-500/30 -translate-y-1'
         : 'bg-slate-50 dark:bg-slate-800 text-slate-400 dark:text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-600 dark:hover:text-slate-300'
-    }`}
+      }`}
   >
     {label}
   </button>
@@ -31,11 +29,10 @@ const InputField = ({ label, value, onChange, placeholder, type = 'text', inputM
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
         aria-invalid={Boolean(error)}
-        className={`w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 border rounded-2xl text-slate-900 dark:text-white text-xs font-black italic focus:outline-none focus:ring-4 focus:bg-white dark:focus:bg-slate-800 transition-all placeholder-slate-300 dark:placeholder-slate-600 shadow-inner ${
-          error
+        className={`w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 border rounded-2xl text-slate-900 dark:text-white text-xs font-black italic focus:outline-none focus:ring-4 focus:bg-white dark:focus:bg-slate-800 transition-all placeholder-slate-300 dark:placeholder-slate-600 shadow-inner ${error
             ? 'border-rose-400 dark:border-rose-500 focus:ring-rose-500/10'
             : 'border-slate-100 dark:border-slate-700 focus:ring-slate-900/5 dark:focus:ring-gold-500/10 focus:border-slate-300 dark:focus:border-gold-500/30'
-        }`}
+          }`}
       />
       <div className="absolute right-6 top-1/2 -translate-y-1/2 text-[9px] font-black text-slate-300 dark:text-slate-600 uppercase tracking-widest transition-colors">USD</div>
     </div>
@@ -94,16 +91,16 @@ const OrderForm = ({ onSubmit, symbol = 'BTCUSD', compact = false }) => {
     <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 p-8 shadow-2xl shadow-slate-200/50 dark:shadow-black/20 relative overflow-hidden transition-colors">
       {/* Decorative Accents */}
       <div className={`absolute top-0 right-0 w-32 h-32 blur-3xl opacity-10 rounded-full transition-colors ${side === 'buy' ? 'bg-emerald-500' : 'bg-rose-500'}`}></div>
-      
+
       <div className="relative">
         <div className="flex justify-between items-center mb-10 border-b border-slate-50 dark:border-slate-800/50 pb-6 transition-colors">
           <div className="flex items-center space-x-3">
-              <FaBolt className="text-gold-500" />
-              <h3 className="text-xs font-black uppercase text-slate-900 dark:text-white tracking-[0.2em] italic transition-colors">Instant Terminal</h3>
+            <FaBolt className="text-gold-500" />
+            <h3 className="text-xs font-black uppercase text-slate-900 dark:text-white tracking-[0.2em] italic transition-colors">Instant Terminal</h3>
           </div>
           <FaShieldAlt className="text-slate-200 dark:text-slate-700 transition-colors" />
         </div>
-        
+
         <form onSubmit={handleSubmit} className="space-y-8">
           {/* Order Type Selection */}
           <div className="flex bg-slate-50 dark:bg-slate-800/50 rounded-2xl p-1.5 border border-slate-100/50 dark:border-slate-700/50 shadow-inner transition-colors">
@@ -112,11 +109,10 @@ const OrderForm = ({ onSubmit, symbol = 'BTCUSD', compact = false }) => {
                 key={type}
                 type="button"
                 onClick={() => setOrderType(type)}
-                className={`flex-1 py-3 text-[9px] font-black rounded-xl uppercase tracking-widest transition-all duration-300 ${
-                  orderType === type
+                className={`flex-1 py-3 text-[9px] font-black rounded-xl uppercase tracking-widest transition-all duration-300 ${orderType === type
                     ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xl shadow-slate-200/50 dark:shadow-black/20 border border-slate-100 dark:border-slate-700'
                     : 'text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300'
-                }`}
+                  }`}
               >
                 {type}
               </button>
@@ -205,11 +201,10 @@ const OrderForm = ({ onSubmit, symbol = 'BTCUSD', compact = false }) => {
           {/* Submit Button */}
           <button
             type="submit"
-            className={`w-full min-h-[72px] px-6 py-5 rounded-[1.5rem] font-black uppercase tracking-[0.18em] sm:tracking-[0.24em] text-[10px] sm:text-[11px] text-white transition-all duration-500 transform active:scale-[0.95] group relative overflow-hidden ${
-              side === 'buy'
+            className={`w-full min-h-[72px] px-6 py-5 rounded-[1.5rem] font-black uppercase tracking-[0.18em] sm:tracking-[0.24em] text-[10px] sm:text-[11px] text-white transition-all duration-500 transform active:scale-[0.95] group relative overflow-hidden ${side === 'buy'
                 ? 'bg-emerald-600 hover:bg-emerald-500 shadow-2xl shadow-emerald-600/40'
                 : 'bg-rose-600 hover:bg-rose-500 shadow-2xl shadow-rose-600/40'
-            }`}
+              }`}
           >
             <span className="relative z-10 flex items-center justify-center gap-3 text-center leading-tight">
               <span className="block">
