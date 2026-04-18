@@ -1,5 +1,9 @@
 import { useState, useEffect, useContext, useCallback } from 'react';
 import tradingService from '../services/tradingService';
+import fundingService from '../services/fundingService';
+import kycService from '../services/kycService';
+import userService from '../services/userService';
+import infraService from '../services/infraService';
 import { AuthContext } from '../context/AuthContext';
 import { toast } from 'react-hot-toast';
 import { MARKET_INSTRUMENTS } from '../constants/marketData';
@@ -11,73 +15,145 @@ export const useDashboardData = (accountType = 'demo') => {
 
   // Find the active account ID based on the type
   const activeAccount = user?.accounts?.find(acc => {
-      // Backend uses 'demo' and 'live' or 'real'
       const type = (acc.account_type || acc.type || '').toLowerCase();
       const targetType = (accountType || 'demo').toLowerCase();
-      
-      // Handle Aliases: 'real' matches 'live', and vice versa
       if (targetType === 'real' || targetType === 'live') {
           return type === 'real' || type === 'live';
       }
-      
       return type === targetType;
-  }) || user?.accounts?.[0]; // Fallback to first account if type mismatch
+  }) || user?.accounts?.[0];
 
   const accountId = activeAccount?.id;
   
-  // Debug log for troubleshooting (internal only)
-  useEffect(() => {
-    if (user) {
-        if (!accountId) {
-            console.warn(`[useDashboardData] No account match found for type: ${accountType}. Available:`, user.accounts?.map(a => a.account_type || a.type));
-        }
-    }
-  }, [user, accountId, accountType]);
-
-  const [bankAccounts, setBankAccounts] = useState(isDemo ? [
-    { id: 1, bankName: 'Simulated Bank', accountNumber: '****1234', accountName: 'Demo User', isVerified: true, isDefault: true, balance: 1000.00 }
-  ] : [
-    { id: 1, bankName: 'Chase Bank', accountNumber: '****1234', accountName: 'Real User', isVerified: true, isDefault: true, balance: 0.00 }
-  ]);
-
-  const [creditCards, setCreditCards] = useState([
-    { id: 1, cardType: 'Visa Pro', last4: '4242', expiryDate: '05/26', cardholderName: 'User Name', isVerified: true, isDefault: true }
-  ]);
-
-  const [transactions, setTransactions] = useState([
-    { id: 'TX1001', date: '2024-03-10 14:30', type: 'Trade', symbol: 'BTCUSDT', amount: 500.00, status: 'Settled', reference: 'ORDER-99281', method: 'Market' },
-    { id: 'TX1002', date: '2024-03-09 09:15', type: 'Deposit', amount: 1000.00, status: 'Completed', reference: 'DEP-11203', method: 'Visa ****4242' },
-    { id: 'TX1003', date: '2024-03-08 18:45', type: 'Trade', symbol: 'EURUSD', amount: 150.00, status: 'Settled', reference: 'ORDER-99105', method: 'Market' },
-    { id: 'TX1004', date: '2024-03-05 11:20', type: 'Transfer', amount: 200.00, status: 'Completed', reference: 'TRF-55821', method: 'Wallet to Account' },
-    { id: 1, type: 'Demo Grant', amount: 1000, method: 'System Generation', status: 'Completed', date: new Date().toLocaleDateString(), reference: 'DEMO-INIT' }
-  ]);
-
-  const [documents, setDocuments] = useState([
-    { id: 1, name: 'Passport.pdf', uploadDate: '2024-03-01', category: 'Identity Proof', status: 'Verified' },
-    { id: 2, name: 'Bank_Statement.pdf', uploadDate: '2024-03-01', category: 'Address Proof', status: 'Verified' }
-  ]);
-
-  const [marketData, setMarketData] = useState(() => {
-    const initial = {};
-    MARKET_INSTRUMENTS.forEach(inst => {
-      initial[inst.symbol] = { 
-        price: inst.price, 
-        change: inst.change, 
-        volume: inst.volume,
-        lastDir: 'none'
-      };
-    });
-    return initial;
-  });
-
+  // States - Initialized empty to wait for API data
+  const [bankAccounts, setBankAccounts] = useState([]);
+  const [creditCards, setCreditCards] = useState([]);
+  const [transactions, setTransactions] = useState([]);
+  const [documents, setDocuments] = useState([]);
   const [positions, setPositions] = useState([]);
   const [orders, setOrders] = useState([]);
-  const [priceAlerts, setPriceAlerts] = useState([
-    { id: 1, symbol: 'BTCUSDT', price: 45000, condition: 'above', status: 'active', createdAt: new Date().toISOString() },
-    { id: 2, symbol: 'EURUSD', price: 1.0800, condition: 'below', status: 'active', createdAt: new Date().toISOString() }
+  const [priceAlerts, setPriceAlerts] = useState([]);
+  const [settings, setSettings] = useState({});
+  const [notifications, setNotifications] = useState([]);
+  const [activityLogs, setActivityLogs] = useState([]);
+  const [favorites, setFavorites] = useState([]);
+  const [instruments, setInstruments] = useState([]);
+  const [categories, setCategories] = useState([]);
+  
+  const [portfolioHistory, setPortfolioHistory] = useState([
+    { date: '2024-03-01', balance: 0 },
+    { date: '2024-03-05', balance: 250 },
+    { date: '2024-03-10', balance: 180 },
+    { date: '2024-03-15', balance: 450 },
+    { date: '2024-03-20', balance: 390 },
+    { date: '2024-03-25', balance: 850 },
+    { date: '2024-03-30', balance: 1000 }
   ]);
+  
+  const [marketData, setMarketData] = useState({});
 
-  // Fetch Positions from Backend
+  // --- Fetch Methods ---
+
+  const fetchBanking = useCallback(async () => {
+    try {
+      const [banksRes, cardsRes] = await Promise.all([
+        fundingService.getBankAccounts(),
+        fundingService.getCreditCards()
+      ]);
+      if (banksRes.success) setBankAccounts(banksRes.data);
+      if (cardsRes.success) setCreditCards(cardsRes.data);
+    } catch (error) {
+      console.error('Banking Fetch Failed:', error);
+    }
+  }, []);
+
+  const fetchTransactions = useCallback(async () => {
+    try {
+      const res = await fundingService.getTransactions();
+      if (res.success) setTransactions(res.data);
+    } catch (error) {
+      console.error('Transaction Fetch Failed:', error);
+    }
+  }, []);
+
+  const fetchInstruments = useCallback(async () => {
+    try {
+      const [instRes, catRes] = await Promise.all([
+        infraService.getInstruments(),
+        infraService.getCategories()
+      ]);
+      
+      if (instRes.success) setInstruments(instRes.data);
+      if (catRes.success) {
+        setCategories(catRes.data);
+      }
+    } catch (error) {
+      console.error('Fetch Instruments Error:', error);
+    }
+  }, []);
+
+  const fetchDocuments = useCallback(async () => {
+    try {
+      const res = await kycService.getDocuments();
+      if (res.success) setDocuments(res.data);
+    } catch (error) {
+      console.error('KYC Fetch Failed:', error);
+    }
+  }, []);
+
+  const fetchAlerts = useCallback(async () => {
+    try {
+      const res = await tradingService.getAlerts();
+      if (res.success) setPriceAlerts(res.data);
+    } catch (error) {
+      console.error('Alerts Fetch Failed:', error);
+    }
+  }, []);
+
+  const fetchSettings = useCallback(async () => {
+    try {
+      const res = await userService.getSettings();
+      if (res.success) setSettings(res.data);
+    } catch (error) {
+      console.error('Settings Fetch Failed:', error);
+    }
+  }, []);
+
+  const fetchInfrastructure = useCallback(async () => {
+    try {
+      const [instRes, notifRes, logRes, favRes] = await Promise.all([
+        infraService.getInstruments(),
+        infraService.getNotifications(),
+        infraService.getActivityLogs(),
+        infraService.getFavorites()
+      ]);
+
+      if (instRes.success) {
+        setInstruments(instRes.data);
+        // Initialize market data from fetched instruments if not already populated
+        setMarketData(prev => {
+          const newData = { ...prev };
+          instRes.data.forEach(inst => {
+            if (!newData[inst.symbol]) {
+              newData[inst.symbol] = {
+                price: inst.price,
+                change: inst.change,
+                volume: inst.volume,
+                lastDir: 'none'
+              };
+            }
+          });
+          return newData;
+        });
+      }
+      if (notifRes.success) setNotifications(notifRes.data);
+      if (logRes.success) setActivityLogs(logRes.data);
+      if (favRes.success) setFavorites(favRes.data);
+    } catch (error) {
+      console.error('Infrastructure Fetch Failed:', error);
+    }
+  }, []);
+
   const fetchPositions = useCallback(async () => {
     if (!accountId) return;
     try {
@@ -85,27 +161,29 @@ export const useDashboardData = (accountType = 'demo') => {
       if (response.success) {
         const mappedPositions = response.data.map(pos => {
             const currentPrice = marketData[pos.symbol]?.price || parseFloat(pos.entry_price);
-            const amount = parseFloat(pos.amount);
+            const qty = parseFloat(pos.quantity);
             const entryPrice = parseFloat(pos.entry_price);
             const side = pos.side.toUpperCase();
             
             const pnl = side === 'BUY' 
-              ? (currentPrice - entryPrice) * amount
-              : (entryPrice - currentPrice) * amount;
+              ? (currentPrice - entryPrice) * qty
+              : (entryPrice - currentPrice) * qty;
 
             return {
               id: pos.id,
               symbol: pos.symbol,
-              type: side === 'BUY' ? 'BUY' : 'SELL',
+              type: side,
               side: side.toLowerCase(),
-              quantity: amount,
+              quantity: qty,
               entryPrice: entryPrice,
               currentPrice: currentPrice,
               pnl: pnl,
-              pnlPercent: (pnl / (amount * entryPrice)) * 100,
-              margin: (amount * entryPrice) / 10,
+              pnlPercent: (pnl / (qty * entryPrice)) * 100,
+              margin: parseFloat(pos.margin),
               createdAt: pos.created_at,
               entryTime: pos.created_at,
+              swap: parseFloat(pos.swap) || 0,
+              commission: parseFloat(pos.commission) || 0,
             };
         });
         setPositions(mappedPositions);
@@ -113,7 +191,19 @@ export const useDashboardData = (accountType = 'demo') => {
     } catch (error) {
       console.error('Failed to fetch positions:', error);
     }
-  }, [accountId, accountType]);
+  }, [accountId, marketData]);
+
+  // --- Initial Data loading Lifecycle ---
+  useEffect(() => {
+    if (user) {
+      fetchBanking();
+      fetchTransactions();
+      fetchDocuments();
+      fetchAlerts();
+      fetchSettings();
+      fetchInfrastructure();
+    }
+  }, [user, fetchBanking, fetchTransactions, fetchDocuments, fetchAlerts, fetchSettings, fetchInfrastructure]);
 
   useEffect(() => {
     fetchPositions();
@@ -121,31 +211,284 @@ export const useDashboardData = (accountType = 'demo') => {
     return () => clearInterval(pollInterval);
   }, [fetchPositions]);
 
+  // --- Handlers (Sync with Backend) ---
 
-  const portfolioHistory = [
-    { date: '2024-03-01', value: 1020 },
-    { date: '2024-03-07', value: 1345 }
-  ];
-
-  const [notifications, setNotifications] = useState([
-    { id: 1, message: 'BTC/USD reached resistance level', type: 'info', read: false },
-    { id: 3, message: 'Deposit confirmed: $5,000', type: 'success', read: true }
-  ]);
-
-  const addNotification = (message, type = 'info') => {
-    setNotifications(prev => [
-      {
-        id: Date.now(),
-        message,
-        type,
-        read: false,
-        createdAt: new Date().toISOString()
-      },
-      ...prev
-    ]);
+  const handleAddBankAccount = async (account) => {
+    try {
+      const res = await fundingService.addBankAccount(account);
+      if (res.success) {
+        setBankAccounts(prev => [...prev, res.data]);
+        toast.success("Bank account added");
+      }
+    } catch (error) {
+      toast.error("Failed to add bank account");
+    }
   };
 
-  // Real-time market data integration
+  const handleDeleteBankAccount = async (id) => {
+    try {
+      const res = await fundingService.deleteBankAccount(id);
+      if (res.success) {
+        setBankAccounts(prev => prev.filter(acc => acc.id !== id));
+        toast.success("Bank account removed");
+      }
+    } catch (error) {
+      toast.error("Failed to delete bank account");
+    }
+  };
+
+  const handleSetDefaultBankAccount = async (id) => {
+    try {
+      const res = await fundingService.setDefaultBankAccount(id);
+      if (res.success) {
+        fetchBanking(); // Refetch to sync defaults
+        toast.success("Default bank account updated");
+      }
+    } catch (error) {
+      toast.error("Failed to update default bank account");
+    }
+  };
+
+  const handleAddCreditCard = async (card) => {
+    try {
+      const res = await fundingService.addCreditCard(card);
+      if (res.success) {
+        setCreditCards(prev => [...prev, res.data]);
+        toast.success("Card added");
+      }
+    } catch (error) {
+      toast.error("Failed to add card");
+    }
+  };
+
+  const handleDeleteCreditCard = async (id) => {
+    try {
+      const res = await fundingService.deleteCreditCard(id);
+      if (res.success) {
+        setCreditCards(prev => prev.filter(card => card.id !== id));
+        toast.success("Card removed");
+      }
+    } catch (error) {
+      toast.error("Failed to delete card");
+    }
+  };
+
+  const handleSetDefaultCreditCard = async (id) => {
+    try {
+      const res = await fundingService.setDefaultCreditCard(id);
+      if (res.success) {
+        fetchBanking();
+        toast.success("Default card updated");
+      }
+    } catch (error) {
+      toast.error("Failed to update default card");
+    }
+  };
+
+  const handleDeposit = async (amount, method, reference) => {
+    try {
+      const res = await fundingService.deposit({
+        amount: parseFloat(amount),
+        method,
+        accountId,
+        reference
+      });
+      if (res.success) {
+        setTransactions(prev => [res.data, ...prev]);
+        toast.success("Deposit request submitted");
+        refreshUser();
+      }
+    } catch (error) {
+      toast.error("Deposit submission failed");
+    }
+  };
+
+  const handleWithdraw = async (amount, method) => {
+    try {
+      const res = await fundingService.withdraw({
+        amount: parseFloat(amount),
+        method,
+        accountId
+      });
+      if (res.success) {
+        setTransactions(prev => [res.data, ...prev]);
+        toast.success("Withdrawal request submitted");
+        refreshUser();
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Withdrawal failed");
+    }
+  };
+
+  const handleTransfer = async (amount, fromAccountId, toAccountId) => {
+    try {
+      const res = await fundingService.transfer({
+        amount: parseFloat(amount),
+        fromAccountId,
+        toAccountId
+      });
+      if (res.success) {
+        fetchTransactions();
+        toast.success("Transfer completed");
+        refreshUser();
+      }
+    } catch (error) {
+      toast.error("Transfer failed");
+    }
+  };
+
+  const handlePlaceOrder = async (order) => {
+    if (!accountId) {
+        toast.error("No active account found");
+        return false;
+    }
+
+    try {
+        const usdInvestment = parseFloat(order.amount);
+        const entryPrice = order.price || marketData[order.symbol]?.price || 43000;
+        
+        const response = await tradingService.executeTrade({
+            accountId,
+            symbol: order.symbol || 'BTCUSDT',
+            side: order.side.toLowerCase(),
+            amount: usdInvestment,
+            entryPrice: entryPrice,
+            type: order.type.toLowerCase()
+        });
+
+        if (response.success) {
+            await fetchPositions();
+            toast.success(`${order.side} Order Executed!`);
+            refreshUser();
+            return true;
+        }
+    } catch (error) {
+        toast.error(error.response?.data?.message || "Order Failed");
+        return false;
+    }
+  };
+
+  const handleCancelOrder = async (id) => {
+    try {
+      setOrders(prev => prev.filter(o => o.id !== id));
+      toast.success("Order Cancelled");
+      return true;
+    } catch (error) {
+      toast.error("Failed to cancel order");
+      return false;
+    }
+  };
+
+  const handleClosePosition = async (id) => {
+      const position = positions.find(p => p.id === id);
+      if (!position) return false;
+
+      const exitPrice = marketData[position.symbol]?.price || position.currentPrice;
+
+      try {
+          const response = await tradingService.closePosition(id, exitPrice);
+          if (response.success) {
+              await fetchPositions();
+              fetchTransactions();
+              toast.success("Position Closed Successfully");
+              refreshUser();
+              return true;
+          }
+      } catch (error) {
+          toast.error("Failed to close position");
+          return false;
+      }
+  };
+
+  const handleUploadDocument = async (doc) => {
+    try {
+      const res = await kycService.uploadDocument(doc);
+      if (res.success) {
+        setDocuments(prev => [res.data, ...prev]);
+        toast.success("Document uploaded");
+      }
+    } catch (error) {
+      toast.error("Failed to upload document");
+    }
+  };
+
+  const handleCreateAlert = async (alert) => {
+    try {
+      const res = await tradingService.createAlert(alert);
+      if (res.success) {
+        setPriceAlerts(prev => [res.data, ...prev]);
+        toast.success("Price alert set");
+      }
+    } catch (error) {
+      toast.error("Failed to create alert");
+    }
+  };
+
+  const handleDeleteAlert = async (id) => {
+    try {
+      const res = await tradingService.deleteAlert(id);
+      if (res.success) {
+        setPriceAlerts(prev => prev.filter(a => a.id !== id));
+        toast.success("Alert deleted");
+      }
+    } catch (error) {
+      toast.error("Failed to delete alert");
+    }
+  };
+
+  const handleUpdateSettings = async (newSettings) => {
+    try {
+      const res = await userService.updateSettings(newSettings);
+      if (res.success) {
+        setSettings(res.data);
+        toast.success("Global preferences saved");
+      }
+    } catch (error) {
+      toast.error("Failed to save settings");
+    }
+  };
+
+  const handleMarkNotificationRead = async (id) => {
+    try {
+      const res = await infraService.markNotificationRead(id);
+      if (res.success) {
+        setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true, read: true } : n));
+      }
+    } catch (error) {
+      console.error('Failed to mark notification as read');
+    }
+  };
+
+  const handleMarkAllNotificationsRead = async () => {
+    try {
+      const res = await infraService.markAllNotificationsRead();
+      if (res.success) {
+        setNotifications(prev => prev.map(n => ({ ...n, is_read: true, read: true })));
+        toast.success("Notifications cleared");
+      }
+    } catch (error) {
+      toast.error("Failed to clear notifications");
+    }
+  };
+
+  const handleToggleFavorite = async (symbol) => {
+    try {
+      const res = await infraService.toggleFavorite(symbol);
+      if (res.success) {
+        if (res.action === 'added') {
+          setFavorites(prev => [...prev, symbol]);
+          toast.success(`Positioned ${symbol} in Watchlist`);
+        } else {
+          setFavorites(prev => prev.filter(s => s !== symbol));
+          toast.success(`Removed ${symbol} from Watchlist`);
+        }
+      }
+    } catch (error) {
+      toast.error("Failed to update watchlist");
+    }
+  };
+
+  // --- WebSocket Price Integration (Kept as is for UX) ---
   useEffect(() => {
     const handleLiveData = (liveTickers) => {
       setMarketData(prev => {
@@ -167,20 +510,17 @@ export const useDashboardData = (accountType = 'demo') => {
           }
         });
 
-        // Mix in mock data for non-crypto assets like Stocks/Forex to maintain MVP activity
+        // Simulate subtle movement for non-live assets
         Object.keys(newData).forEach(key => {
           if (!liveTickers[key]) {
-            // Simulated subtle movement for non-Binance assets
-            if (Math.random() > 0.7) { 
+            if (Math.random() > 0.8) { 
                const oldPrice = newData[key].price;
                const movement = 1 + (Math.random() - 0.5) * 0.0006;
                const newPrice = oldPrice * movement;
-               
                newData[key] = {
                  ...newData[key],
                  price: newPrice,
                  lastDir: newPrice > oldPrice ? 'up' : newPrice < oldPrice ? 'down' : 'none',
-                 change: newData[key].change + (Math.random() - 0.5) * 0.02
                };
                updated = true;
             }
@@ -192,168 +532,13 @@ export const useDashboardData = (accountType = 'demo') => {
     };
 
     const unsubscribe = websocketService.subscribe(handleLiveData);
-    
-    // Fallback simulation timer for non-live assets, ticking every 1.5s
-    const mockInterval = setInterval(() => {
-        handleLiveData({}); // Trigger the mock generation logic for non-live assets
-    }, 1500);
+    const mockInterval = setInterval(() => handleLiveData({}), 1500);
 
     return () => {
       unsubscribe();
       clearInterval(mockInterval);
     };
   }, []);
-
-  // Handlers for state modification
-  const handleAddBankAccount = (account) => setBankAccounts(prev => [...prev, account]);
-  const handleDeleteBankAccount = (id) => setBankAccounts(prev => prev.filter(acc => acc.id !== id));
-  const handleSetDefaultBankAccount = (id) => setBankAccounts(prev => prev.map(acc => ({
-    ...acc,
-    isDefault: acc.id === id
-  })));
-
-  const handleAddCreditCard = (card) => setCreditCards(prev => [...prev, card]);
-  const handleDeleteCreditCard = (id) => setCreditCards(prev => prev.filter(card => card.id !== id));
-  const handleSetDefaultCreditCard = (id) => setCreditCards(prev => prev.map(card => ({
-    ...card,
-    isDefault: card.id === id
-  })));
-
-  const handleDeposit = (amount, method) => {
-    const newTx = {
-      id: Date.now(),
-      type: 'Deposit',
-      amount: parseFloat(amount),
-      method,
-      status: 'Completed',
-      date: new Date().toLocaleString(),
-      reference: `DEP-${Math.random().toString(36).substring(7).toUpperCase()}`
-    };
-    setTransactions(prev => [newTx, ...prev]);
-    addNotification(`Deposit initiated via ${method}: $${parseFloat(amount).toLocaleString()}`, 'success');
-    // Note: Balance update logic would typically happen in a real backend, 
-    // but here we'll let DashboardPage handle it via walletData if needed.
-  };
-
-  const handleWithdraw = (amount, method) => {
-    const newTx = {
-      id: Date.now(),
-      type: 'Withdrawal',
-      amount: parseFloat(amount),
-      method,
-      status: 'Pending',
-      date: new Date().toLocaleString(),
-      reference: `WDR-${Math.random().toString(36).substring(7).toUpperCase()}`
-    };
-    setTransactions(prev => [newTx, ...prev]);
-    addNotification(`Withdrawal requested via ${method}: $${parseFloat(amount).toLocaleString()}`, 'warning');
-  };
-
-  const handleTransfer = (amount, from, to) => {
-    const newTx = {
-      id: Date.now(),
-      type: 'Transfer',
-      amount: parseFloat(amount),
-      method: `${from} → ${to}`,
-      status: 'Completed',
-      date: new Date().toLocaleString(),
-      reference: `TRF-${Math.random().toString(36).substring(7).toUpperCase()}`
-    };
-    setTransactions(prev => [newTx, ...prev]);
-    addNotification(`Internal transfer completed: $${parseFloat(amount).toLocaleString()}`, 'info');
-  };
-
-  const handlePlaceOrder = async (order) => {
-    if (!accountId) {
-        toast.error("No active account found for this operation.");
-        return;
-    }
-
-    try {
-        const usdInvestment = parseFloat(order.amount);
-        if (isNaN(usdInvestment) || usdInvestment <= 0) {
-            toast.error("Please enter a valid investment amount.");
-            return false;
-        }
-
-        const entryPrice = order.price || marketData[order.symbol]?.price || 43000;
-        // Send the USD investment amount directly. Backend calculates quantity = amount / entryPrice.
-        const response = await tradingService.executeTrade({
-            accountId,
-            symbol: order.symbol || 'BTCUSDT',
-            side: order.side.toLowerCase(),
-            amount: usdInvestment, // USD investment value
-            entryPrice: entryPrice,
-            type: order.type.toLowerCase()
-        });
-
-
-        if (response.success) {
-            // Instead of manually adding raw data, refresh from server to get correct mapping
-            await fetchPositions();
-            toast.success(`${order.side} Order Executed!`);
-            addNotification(`${order.side} ${order.symbol || 'BTCUSD'} order executed successfully`, 'success');
-            // Refresh user data to update balances
-            refreshUser();
-            return true;
-        }
-    } catch (error) {
-        toast.error(error.response?.data?.message || "Order Execution Failed");
-        return false;
-    }
-  };
-
-  const handleUploadDocument = (doc) => {
-    const newDoc = {
-      id: Date.now(),
-      uploadDate: new Date().toISOString().split('T')[0],
-      status: 'Pending',
-      ...doc
-    };
-    setDocuments(prev => [newDoc, ...prev]);
-    addNotification(`${doc.name || 'Document'} uploaded for review`, 'info');
-  };
-
-  const handleClosePosition = async (id) => {
-      const position = positions.find(p => p.id === id);
-      if (!position) return false;
-
-      const exitPrice = marketData[position.symbol]?.price || position.currentPrice;
-
-      try {
-          const response = await tradingService.closePosition(id, exitPrice);
-          if (response.success) {
-              await fetchPositions();
-              toast.success("Position Closed Successfully");
-              addNotification(`Position ${position.symbol} closed successfully`, 'success');
-              // Refresh user data to update balances
-              refreshUser();
-              return true;
-          }
-      } catch (error) {
-          toast.error("Failed to close position");
-          return false;
-      }
-  };
-  
-  const handleCancelOrder = (id) => setOrders(o => o.filter(ord => ord.id !== id));
-
-  const handleCreateAlert = (alert) => {
-    setPriceAlerts(prev => [{ id: Date.now(), ...alert, status: 'active', createdAt: new Date().toISOString() }, ...prev]);
-    addNotification(`Price alert set for ${alert.symbol} at ${alert.price}`, 'info');
-  };
-
-  const handleDeleteAlert = (id) => setPriceAlerts(prev => prev.filter(a => a.id !== id));
-
-  const handleMarkNotificationRead = (id) => {
-    setNotifications(prev => prev.map((notification) => (
-      notification.id === id ? { ...notification, read: true } : notification
-    )));
-  };
-
-  const handleMarkAllNotificationsRead = () => {
-    setNotifications(prev => prev.map((notification) => ({ ...notification, read: true })));
-  };
 
   return {
     bankAccounts,
@@ -363,11 +548,9 @@ export const useDashboardData = (accountType = 'demo') => {
     positions,
     orders,
     marketData,
-    portfolioHistory,
     notifications,
     priceAlerts,
-    handleMarkNotificationRead,
-    handleMarkAllNotificationsRead,
+    settings,
     handleAddBankAccount,
     handleDeleteBankAccount,
     handleSetDefaultBankAccount,
@@ -378,10 +561,20 @@ export const useDashboardData = (accountType = 'demo') => {
     handleWithdraw,
     handleTransfer,
     handlePlaceOrder,
+    handleCancelOrder,
     handleUploadDocument,
     handleClosePosition,
-    handleCancelOrder,
     handleCreateAlert,
-    handleDeleteAlert
+    handleDeleteAlert,
+    handleUpdateSettings,
+    handleMarkNotificationRead,
+    handleMarkAllNotificationsRead,
+    handleToggleFavorite,
+    favorites,
+    activityLogs,
+    instruments,
+    categories,
+    portfolioHistory,
+    unreadNotifications: notifications.filter(n => !n.is_read).length
   };
 };

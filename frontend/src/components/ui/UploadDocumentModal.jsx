@@ -11,12 +11,12 @@ const UploadDocumentModal = ({ show, onClose, onUpload }) => {
     e.preventDefault();
     if (!file) return;
     
-    onUpload({
-      name: file.name,
-      category,
-      type: file.type.split('/')[1].toUpperCase(),
-      size: (file.size / 1024 / 1024).toFixed(2) + ' MB'
-    });
+    const formData = new FormData();
+    formData.append('document', file);
+    formData.append('category', category);
+    formData.append('name', file.name);
+
+    onUpload(formData);
     
     setFile(null);
     onClose();

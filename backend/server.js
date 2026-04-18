@@ -16,10 +16,14 @@ const server = createServer(app);
 require('./src/config/database');
 
 // Import routes
-const authRoutes = require('./src/routes/authRoutes');
-const adminRoutes = require('./src/routes/adminRoutes');
-const tradingRoutes = require('./src/routes/tradingRoutes');
-const userRoutes = require('./src/routes/userRoutes');
+const authRoutes = require('./src/client/routes/authRoutes');
+const adminRoutes = require('./src/admin/routes/adminRoutes');
+const tradingRoutes = require('./src/client/routes/tradingRoutes');
+const userRoutes = require('./src/client/routes/userRoutes');
+const fundingRoutes = require('./src/client/routes/fundingRoutes');
+const kycRoutes = require('./src/client/routes/kycRoutes');
+const infrastructureRoutes = require('./src/client/routes/infrastructureRoutes');
+const publicRoutes = require('./src/public/routes/publicRoutes');
 const { protect, admin } = require('./src/middleware/authMiddleware');
 
 // Basic middleware
@@ -78,6 +82,13 @@ app.get('/api', (req, res) => {
                 forgotPassword: 'POST /api/auth/forgot-password',
                 resetPassword: 'POST /api/auth/reset-password'
             },
+            public: {
+                markets: 'GET /api/public/markets',
+                categories: 'GET /api/public/markets/:category',
+                contact: 'POST /api/public/contact',
+                promotions: 'GET /api/public/promotions',
+                accountTypes: 'GET /api/public/account-types'
+            },
             admin: {
                 users: 'GET /api/admin/users',
                 user: 'GET /api/admin/users/:id',
@@ -98,6 +109,9 @@ app.get('/api', (req, res) => {
 // Auth routes
 app.use('/api/auth', authRoutes);
 
+// Public routes
+app.use('/api/public', publicRoutes);
+
 // Admin routes
 app.use('/api/admin', adminRoutes);
 
@@ -106,6 +120,15 @@ app.use('/api/trading', tradingRoutes);
 
 // User routes
 app.use('/api/users', userRoutes);
+
+// Funding routes
+app.use('/api/funding', fundingRoutes);
+
+// KYC routes
+app.use('/api/kyc', kycRoutes);
+
+// Infrastructure routes (Assets, Notifications, Logs, Favorites)
+app.use('/api/infra', infrastructureRoutes);
 
 // Admin dashboard route
 app.get('/api/admin/dashboard', protect, admin, (req, res) => {

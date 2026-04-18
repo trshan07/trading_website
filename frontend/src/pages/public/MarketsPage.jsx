@@ -2,34 +2,20 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Container from '../../components/layout/Container';
 import SectionTitle from '../../components/ui/SectionTitle';
-import Card from '../../components/ui/Card';
 import Navbar from '../../components/layout/Navbar';
 import Footer from '../../components/layout/Footer';
+import MarketQuotesWidget from '../../components/trading/MarketQuotesWidget';
 
 const MarketsPage = () => {
+    const categories = ['Forex', 'Commodities', 'Indices', 'Shares', 'Crypto'];
     const [activeTab, setActiveTab] = useState('Forex');
 
-    const marketData = {
-        Forex: {
-            description: 'Trade major, minor and exotic currency pairs with tight spreads and high leverage.',
-            instruments: ['EUR/USD', 'GBP/USD', 'USD/JPY', 'AUD/USD', 'USD/CAD', 'EUR/GBP', 'NZD/USD'],
-        },
-        Commodities: {
-            description: 'Speculate on the price movements of gold, silver, oil, and natural gas.',
-            instruments: ['Gold (XAU/USD)', 'Silver (XAG/USD)', 'WTI Oil', 'Brent Oil', 'Natural Gas'],
-        },
-        Indices: {
-            description: 'Access the world\'s leading indices and trade the performance of global economies.',
-            instruments: ['S&P 500', 'Nasdaq 100', 'Dow Jones 30', 'DAX 40', 'FTSE 100', 'Nikkei 225'],
-        },
-        Shares: {
-            description: 'Invest in global blue-chip companies across US, UK, EU and Asian markets.',
-            instruments: ['Apple', 'Microsoft', 'Tesla', 'Amazon', 'Google', 'Nvidia', 'Meta'],
-        },
-        Crypto: {
-            description: 'Trade the most popular cryptocurrencies 24/7 with secure and fast execution.',
-            instruments: ['Bitcoin (BTC)', 'Ethereum (ETH)', 'Solana (SOL)', 'Cardano (ADA)', 'Ripple (XRP)'],
-        },
+    const descriptions = {
+        Forex: 'Trade major, minor and exotic currency pairs with tight spreads and high leverage.',
+        Commodities: 'Speculate on the price movements of gold, silver, oil, and natural gas.',
+        Indices: 'Access the world\'s leading indices and trade the performance of global economies.',
+        Shares: 'Invest in global blue-chip companies across US, UK, EU and Asian markets.',
+        Crypto: 'Trade the most popular cryptocurrencies 24/7 with secure and fast execution.',
     };
 
     return (
@@ -43,7 +29,7 @@ const MarketsPage = () => {
                     />
 
                     <div className="flex flex-wrap justify-center gap-3 md:gap-4 mb-10 md:mb-16">
-                        {Object.keys(marketData).map((tab) => (
+                        {categories.map((tab) => (
                             <button
                                 key={tab}
                                 onClick={() => setActiveTab(tab)}
@@ -64,31 +50,15 @@ const MarketsPage = () => {
                             animate={{ opacity: 1, scale: 1 }}
                             exit={{ opacity: 0, scale: 1.02 }}
                             transition={{ duration: 0.4 }}
-                            className="grid grid-cols-1 lg:grid-cols-3 gap-12"
+                            className="text-center max-w-4xl mx-auto"
                         >
-                            <div className="lg:col-span-1">
-                                <div className="lg:sticky lg:top-32 text-center lg:text-left mb-8 lg:mb-0">
-                                    <h3 className="text-3xl md:text-4xl font-display font-bold mb-4 md:mb-6 gradient-text">{activeTab}</h3>
-                                    <p className="text-white/60 text-base md:text-lg leading-relaxed mb-6 md:mb-8 max-w-md mx-auto lg:mx-0">
-                                        {marketData[activeTab].description}
-                                    </p>
-                                </div>
-                            </div>
-
-                            <div className="lg:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-6">
-                                {marketData[activeTab].instruments.map((symbol) => (
-                                    <Card key={symbol} className="hover:border-gold/30 group">
-                                        <div className="flex justify-between items-center">
-                                            <div>
-                                                <div className="text-white/40 text-[10px] uppercase tracking-widest mb-1">Instrument</div>
-                                                <div className="text-xl font-bold font-display group-hover:text-gold transition-colors">{symbol}</div>
-                                            </div>
-                                            <div className="text-right">
-                                                <div className="text-green-400 font-bold">Live</div>
-                                            </div>
-                                        </div>
-                                    </Card>
-                                ))}
+                            <h3 className="text-3xl md:text-4xl font-display font-bold mb-4 md:mb-6 gradient-text">{activeTab}</h3>
+                            <p className="text-white/60 text-base md:text-lg leading-relaxed mb-6 md:mb-8 max-w-2xl mx-auto">
+                                {descriptions[activeTab]}
+                            </p>
+                            
+                            <div className="border border-white/10 rounded-[2rem] bg-navy-light/40 backdrop-blur-sm overflow-hidden min-h-[500px]">
+                                <MarketQuotesWidget category={activeTab} height="500" />
                             </div>
                         </motion.div>
                     </AnimatePresence>

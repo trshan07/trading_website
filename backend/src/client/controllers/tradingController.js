@@ -1,0 +1,184 @@
+// backend/src/controllers/tradingController.js
+const Order = require('../../models/Order');
+const Position = require('../../models/Position');
+const PriceAlert = require('../../models/PriceAlert');
+const Account = require('../../models/Account');
+const Transaction = require('../../models/Transaction');
+const { createNotification } = require('./notificationController');
+const { createActivityLog } = require('./activityController');
+
+const executeTrade = async (req, res) => {
+    const { accountId, symbol, side, amount, entryPrice, type = 'market', leverage = 100 } = req.body;
+    const userId = req.user.id;
+
+    try {
+        const accounts = await Account.findByUserId(userId);
+        const account = accounts.find(a => a.id == accountId);
+
+        if (!account) {
+            return res.status(404).json({ success: false, message: 'Account not found' });
+        }
+
+        const usdAmount = parseFloat(amount);
+        const price = parseFloat(entryPrice);
+        const lev = parseFloat(leverage) || 100;
+        const requiredMargin = usdAmount / (lev / 100); // Simple margin calc for now
+        const quantity = usdAmount / price;
+
+        if (parseFloat(account.balance) < requiredMargin && side === 'buy') {
+            return res.status(400).json({ success: false, message: 'Insufficient balance for margin' });
+        }
+
+        // 1. Create Order (executed)
+        const order = await Order.create(userId, {
+            accountId,
+            symbol,
+            side,
+            type,
+            amount: usdAmount,
+            quantity,
+            entryPrice: price,
+            status: 'executed'
+        });
+
+        // 2. Create Position
+        const position = await Position.create(userId, {
+            accountId,
+            symbol,
+            side,
+            amount: usdAmount,
+            quantity,
+            entryPrice: price,
+            margin: requiredMargin
+        });
+
+        // 3. Deduct Margin from Account
+        await Account.updateBalance(accountId, parseFloat(account.balance) - requiredMargin);
+
+        // 4. Record Transaction
+        await Transaction.create(userId, {
+            account_id: accountId,
+            type: 'Trade',
+            amount: -requiredMargin,
+            balance_before: parseFloat(account.balance),
+            balance_after: parseFloat(account.balance) - requiredMargin,
+            reference_id: order.id,
+            description: `Margin for ${side.toUpperCase()} ${symbol}`
+        });
+
+        // 5. Dynamic Infrastructure Updates
+        await createActivityLog(userId, 'EXECUTION', `Opened ${side.toUpperCase()} ${symbol} Position`);
+        await createNotification(userId, 'success', `Order Executed: ${side.toUpperCase()} ${symbol} at ${price}`);
+
+        res.status(201).json({
+            success: true,
+            message: 'Order executed and position opened',
+            data: { order, position }
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ success: false, message: 'Execution failed', error: error.message });
+    }
+};
+
+const getOpenPositions = async (req, res) => {
+    try {
+        const { accountId } = req.query;
+        const positions = await Position.findByAccountId(accountId, 'open');
+        res.json({ success: true, data: positions });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Failed to fetch positions' });
+    }
+};
+
+const closePosition = async (req, res) => {
+    try {
+        const { positionId } = req.params;
+        const { exitPrice } = req.body;
+        const userId = req.user.id;
+
+        const position = await Position.findById(positionId);
+        if (!position || position.user_id !== userId || position.status !== 'open') {
+            return res.status(404).json({ success: false, message: 'Open position not found' });
+        }
+
+        const exitPriceNum = parseFloat(exitPrice);
+        const amount = parseFloat(position.amount); // total trade size in USD
+        const qty = parseFloat(position.quantity);
+        const entryPrice = parseFloat(position.entry_price);
+        
+        let pnl = 0;
+        if (position.side === 'buy') {
+            pnl = (exitPriceNum - entryPrice) * qty;
+        } else {
+            pnl = (entryPrice - exitPriceNum) * qty;
+        }
+
+        // 1. Close position in DB
+        const closedPosition = await Position.close(positionId, exitPriceNum, pnl);
+
+        // 2. Return margin + PNL to account balance
+        const accountId = position.account_id;
+        const currentAccount = (await Account.findByUserId(userId)).find(a => a.id == accountId);
+        const newBalance = parseFloat(currentAccount.balance) + parseFloat(position.margin) + pnl;
+        await Account.updateBalance(accountId, newBalance);
+
+        // 3. Record Transaction
+        await Transaction.create(userId, {
+            account_id: accountId,
+            type: 'Trade',
+            amount: parseFloat(position.margin) + pnl,
+            balance_before: parseFloat(currentAccount.balance),
+            balance_after: newBalance,
+            reference_id: positionId,
+            description: `Closed ${position.symbol} | P&L: ${pnl.toFixed(2)}`
+        });
+
+        // 4. Dynamic Infrastructure Updates
+        await createActivityLog(userId, 'EXECUTION', `Closed ${position.symbol} Position | P&L: ${pnl.toFixed(2)}`);
+        await createNotification(userId, pnl >= 0 ? 'success' : 'info', `Position Closed: ${position.symbol} | P&L: $${pnl.toFixed(2)}`);
+
+        res.json({ success: true, data: closedPosition, pnl });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ success: false, message: 'Failed to close position' });
+    }
+};
+
+// --- Alert Methods ---
+
+const getAlerts = async (req, res) => {
+    try {
+        const alerts = await PriceAlert.findByUserId(req.user.id);
+        res.json({ success: true, data: alerts });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Failed to fetch alerts' });
+    }
+};
+
+const createAlert = async (req, res) => {
+    try {
+        const alert = await PriceAlert.create(req.user.id, req.body);
+        res.status(201).json({ success: true, data: alert });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Failed to create alert' });
+    }
+};
+
+const deleteAlert = async (req, res) => {
+    try {
+        await PriceAlert.delete(req.params.id, req.user.id);
+        res.json({ success: true, message: 'Alert deleted' });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Failed to delete alert' });
+    }
+};
+
+module.exports = {
+    executeTrade,
+    getOpenPositions,
+    closePosition,
+    getAlerts,
+    createAlert,
+    deleteAlert
+};

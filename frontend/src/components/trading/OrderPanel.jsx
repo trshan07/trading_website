@@ -111,28 +111,30 @@ const OrderPanel = ({ onSubmit, symbol = 'BTCUSD', marketData = {}, onClose, onI
 
         {/* Buy/Sell Execution Section */}
         <div className="grid grid-cols-2 gap-3">
+          {/* SELL — always red */}
           <button 
             onClick={() => setSelectedSide('sell')}
             className={`flex flex-col items-center p-4 rounded-2xl border transition-all ${
               selectedSide === 'sell' 
-                ? 'bg-rose-500 border-rose-400 text-white shadow-xl shadow-rose-500/20 translate-y-[-2px]' 
-                : 'bg-slate-50 dark:bg-slate-800/50 border-slate-100 dark:border-slate-700 text-slate-400'
-            }`}
+                ? 'bg-rose-500 border-rose-400 shadow-xl shadow-rose-500/30 scale-[1.03]' 
+                : 'bg-rose-500/70 border-rose-600/50 opacity-75 hover:opacity-90 hover:scale-[1.02]'
+            } text-white`}
           >
             <span className="text-[9px] font-black uppercase tracking-widest mb-1 opacity-80">Sell</span>
-            <span className={`text-sm font-black italic rounded px-1 transition-all ${selectedSide === 'sell' ? 'text-white' : 'text-rose-500'} ${flashClass}`}>{bidPrice}</span>
+            <span className={`text-sm font-black italic rounded px-1 transition-all text-white ${flashClass}`}>{bidPrice}</span>
           </button>
           
+          {/* BUY — always green */}
           <button 
             onClick={() => setSelectedSide('buy')}
             className={`flex flex-col items-center p-4 rounded-2xl border transition-all ${
               selectedSide === 'buy' 
-                ? 'bg-emerald-500 border-emerald-400 text-white shadow-xl shadow-emerald-500/20 translate-y-[-2px]' 
-                : 'bg-slate-50 dark:bg-slate-800/50 border-slate-100 dark:border-slate-700 text-slate-400'
-            }`}
+                ? 'bg-emerald-500 border-emerald-400 shadow-xl shadow-emerald-500/30 scale-[1.03]' 
+                : 'bg-emerald-500/70 border-emerald-600/50 opacity-75 hover:opacity-90 hover:scale-[1.02]'
+            } text-white`}
           >
             <span className="text-[9px] font-black uppercase tracking-widest mb-1 opacity-80">Buy</span>
-            <span className={`text-sm font-black italic rounded px-1 transition-all ${selectedSide === 'buy' ? 'text-white' : 'text-emerald-500'} ${flashClass}`}>{askPrice}</span>
+            <span className={`text-sm font-black italic rounded px-1 transition-all text-white ${flashClass}`}>{askPrice}</span>
           </button>
         </div>
 

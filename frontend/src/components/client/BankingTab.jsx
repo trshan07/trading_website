@@ -239,10 +239,12 @@ const BankingTab = ({
 
     setIsCardSubmitting(true);
     try {
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      setShowSuccessMessage('Card details captured. Process tokenization via Stripe before charging.');
-      setTimeout(() => setShowSuccessMessage(''), 3500);
-      closeCardModal();
+      const result = await onAddCreditCard(cardForm);
+      if (result !== false) {
+        setShowSuccessMessage('Card details captured successfully.');
+        setTimeout(() => setShowSuccessMessage(''), 3500);
+        closeCardModal();
+      }
     } catch {
       setShowErrorMessage('Unable to capture card details. Please try again.');
       setTimeout(() => setShowErrorMessage(''), 3000);
@@ -289,38 +291,13 @@ const BankingTab = ({
     }
 
     setIsSubmitting(true);
-    
     try {
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      const newAccount = {
-        id: Date.now().toString(),
-        bankName: bankForm.bankName,
-        branchName: bankForm.branchName,
-        branchCode: bankForm.branchCode,
-        country: bankForm.country,
-        accountName: bankForm.accountHolderName,
-        accountHolderName: bankForm.accountHolderName,
-        accountNumber: bankForm.accountNumber,
-        maskedAccountNumber: maskAccountNumber(bankForm.accountNumber),
-        accountType: bankForm.accountType,
-        currency: bankForm.currency,
-        swiftCode: bankForm.swiftCode.toUpperCase(),
-        iban: bankForm.iban,
-        beneficiaryName: bankForm.beneficiaryName,
-        relationship: bankForm.relationship,
-        proofOfBankAccountName: bankForm.proofOfBankAccountName,
-        isVerified: false,
-        isDefault: bankForm.isDefault || bankAccounts.length === 0
-      };
-      
-      if (onAddBankAccount) {
-        onAddBankAccount(newAccount);
+      const result = await onAddBankAccount(bankForm);
+      if (result !== false) {
+        setShowSuccessMessage('Bank account linking request submitted successfully!');
+        setTimeout(() => setShowSuccessMessage(''), 3000);
+        closeBankAccountModal();
       }
-      
-      setShowSuccessMessage('Bank account linking request submitted successfully!');
-      setTimeout(() => setShowSuccessMessage(''), 3000);
-      closeBankAccountModal();
     } catch {
       setShowErrorMessage('Failed to add bank account. Please try again.');
       setTimeout(() => setShowErrorMessage(''), 3000);

@@ -78,13 +78,6 @@ const DashboardPage = () => {
   const [showStatementModal, setShowStatementModal] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1200);
-  const [favorites, setFavorites] = useState(['BTCUSDT', 'ETHUSDT', 'AAPL']);
-
-  const handleToggleFavorite = (symbol) => {
-    setFavorites(prev => 
-      prev.includes(symbol) ? prev.filter(s => s !== symbol) : [...prev, symbol]
-    );
-  };
 
   const handleCategorySelect = (categoryId) => {
     // 1. Map categoryId to Chart Symbol
@@ -144,17 +137,14 @@ const DashboardPage = () => {
     positions,
     orders,
     marketData,
-    portfolioHistory,
     notifications,
     priceAlerts,
-    handleMarkNotificationRead,
-    handleMarkAllNotificationsRead,
+    settings,
     handleAddBankAccount,
     handleDeleteBankAccount,
     handleSetDefaultBankAccount,
     handleAddCreditCard,
     handleDeleteCreditCard,
-    handleSetDefaultCreditCard,
     handleDeposit,
     handleWithdraw,
     handleTransfer,
@@ -163,7 +153,18 @@ const DashboardPage = () => {
     handleClosePosition,
     handleCancelOrder,
     handleCreateAlert,
-    handleDeleteAlert
+    handleDeleteAlert,
+    handleUpdateSettings,
+    handleMarkNotificationRead,
+    handleMarkAllNotificationsRead,
+    handleToggleFavorite,
+    handleSetDefaultCreditCard,
+    favorites,
+    activityLogs,
+    instruments,
+    categories,
+    portfolioHistory,
+    unreadNotifications: hookUnreadCount
   } = useDashboardData(selectedAccountType);
 
   const isDemo = selectedAccountType === 'demo';
@@ -254,8 +255,6 @@ const DashboardPage = () => {
     setShowOrderForm(false);
   };
 
-  const unreadNotifications = notifications.filter(n => !n.read).length;
-
   if (loading || authLoading) {
     return (
       <div className="min-h-screen bg-white dark:bg-slate-900 flex items-center justify-center transition-colors duration-300">
@@ -287,8 +286,9 @@ const DashboardPage = () => {
           showBalance={showBalance}
           onToggleBalance={() => setShowBalance(!showBalance)}
           onQuickTrade={() => setShowOrderForm(true)}
-          unreadNotifications={unreadNotifications}
+          unreadNotifications={hookUnreadCount}
           notifications={notifications}
+          instruments={instruments}
           onMarkNotificationRead={handleMarkNotificationRead}
           onMarkAllNotificationsRead={handleMarkAllNotificationsRead}
           user={user}
@@ -350,10 +350,10 @@ const DashboardPage = () => {
                   onSymbolChange={(sym) => setMarketSymbol(sym)}
                   favorites={favorites}
                   onToggleFavorite={handleToggleFavorite}
-                  priceAlerts={priceAlerts}
-                  onCreateAlert={handleCreateAlert}
                   onDeleteAlert={handleDeleteAlert}
                   transactions={transactions}
+                  instruments={instruments}
+                  categories={categories}
                 />
               )}
 
@@ -392,6 +392,8 @@ const DashboardPage = () => {
                   initialCategory={marketCategory}
                   favorites={favorites}
                   onToggleFavorite={handleToggleFavorite}
+                  instruments={instruments}
+                  categories={categories}
                 />
               )}
 
@@ -400,6 +402,7 @@ const DashboardPage = () => {
                   portfolio={livePortfolio}
                   portfolioHistory={portfolioHistory}
                   positions={positions}
+                  activityLogs={activityLogs}
                 />
               )}
 

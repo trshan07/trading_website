@@ -3,40 +3,8 @@ import { FaEye, FaBolt, FaBell, FaBars, FaChevronDown, FaExchangeAlt, FaTimes, F
 import { HiMagnifyingGlass } from 'react-icons/hi2';
 import ThemeToggle from '../ui/ThemeToggle';
 
-// All searchable instruments for the global header search
-const ALL_INSTRUMENTS = [
-  { symbol: 'BTCUSDT', name: 'Bitcoin', category: 'Crypto', price: 43250 },
-  { symbol: 'ETHUSDT', name: 'Ethereum', category: 'Crypto', price: 2820 },
-  { symbol: 'BNBUSDT', name: 'Binance Coin', category: 'Crypto', price: 380 },
-  { symbol: 'SOLUSDT', name: 'Solana', category: 'Crypto', price: 105 },
-  { symbol: 'ADAUSDT', name: 'Cardano', category: 'Crypto', price: 0.58 },
-  { symbol: 'EURUSD', name: 'Euro / US Dollar', category: 'Forex', price: 1.0875 },
-  { symbol: 'GBPUSD', name: 'British Pound', category: 'Forex', price: 1.265 },
-  { symbol: 'USDJPY', name: 'Japanese Yen', category: 'Forex', price: 148.5 },
-  { symbol: 'AAPL', name: 'Apple Inc.', category: 'Stocks', price: 185.2 },
-  { symbol: 'MSFT', name: 'Microsoft', category: 'Stocks', price: 410.5 },
-  { symbol: 'TSLA', name: 'Tesla', category: 'Stocks', price: 195.3 },
-  { symbol: 'GOOGL', name: 'Alphabet Inc.', category: 'Stocks', price: 141.8 },
-  { symbol: 'SPX', name: 'S&P 500', category: 'Indices', price: 4850 },
-  { symbol: 'NDX', name: 'Nasdaq 100', category: 'Indices', price: 16800 },
-  { symbol: 'DJI', name: 'Dow Jones', category: 'Indices', price: 38500 },
-  { symbol: 'SPY', name: 'SPDR S&P 500 ETF', category: 'Funds', price: 484.5 },
-  { symbol: 'QQQ', name: 'Invesco QQQ', category: 'Funds', price: 412.3 },
-  { symbol: 'US10Y', name: 'US 10-Yr Treasury', category: 'Bonds', price: 4.15 },
-  { symbol: 'VIX', name: 'Volatility Index', category: 'Options', price: 13.5 },
-  { symbol: 'DXY', name: 'US Dollar Index', category: 'Economy', price: 104.2 },
-];
-
-const CATEGORY_COLORS = {
-  Crypto: 'text-amber-500 bg-amber-50 dark:bg-amber-500/10',
-  Forex: 'text-blue-500 bg-blue-50 dark:bg-blue-500/10',
-  Stocks: 'text-emerald-500 bg-emerald-50 dark:bg-emerald-500/10',
-  Indices: 'text-purple-500 bg-purple-50 dark:bg-purple-500/10',
-  Funds: 'text-indigo-500 bg-indigo-50 dark:bg-indigo-500/10',
-  Bonds: 'text-slate-500 bg-slate-50 dark:bg-slate-800',
-  Options: 'text-rose-500 bg-rose-50 dark:bg-rose-500/10',
-  Economy: 'text-gold-500 bg-gold-50 dark:bg-gold-500/10',
-};
+// Infrastructure color mappings are now handled by the backend per instrumentcategory.
+// This allows the admin to change branding without a frontend redeploy.
 
 const Header = ({ 
   portfolio = {}, 
@@ -54,6 +22,7 @@ const Header = ({
   onSwitchAccount = () => {},
   onSelectSymbol = () => {},
   onShowStatement = () => {},
+  instruments = [],
 }) => {
   const [showDropdown, setShowDropdown] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
@@ -67,12 +36,12 @@ const Header = ({
 
   // Filter instruments based on query
   const searchResults = searchQuery.trim().length > 0
-    ? ALL_INSTRUMENTS.filter(inst =>
+    ? instruments.filter(inst =>
         inst.symbol.toLowerCase().includes(searchQuery.toLowerCase()) ||
         inst.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         inst.category.toLowerCase().includes(searchQuery.toLowerCase())
       ).slice(0, 8)
-    : ALL_INSTRUMENTS.slice(0, 6); // show top 6 as suggestions when focused with no query
+    : instruments.slice(0, 6); // show top 6 as suggestions when focused with no query
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -206,7 +175,6 @@ const Header = ({
                 ) : (
                   <div className="py-2 max-h-72 overflow-y-auto custom-scrollbar">
                     {searchResults.map((inst) => {
-                      const colorClass = CATEGORY_COLORS[inst.category] || 'text-slate-500 bg-slate-50';
                       return (
                         <button
                           key={inst.symbol}
@@ -214,7 +182,7 @@ const Header = ({
                           className="w-full flex items-center justify-between px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all group/item"
                         >
                           <div className="flex items-center space-x-3">
-                            <span className={`text-[8px] font-black px-2 py-0.5 rounded-lg uppercase tracking-widest ${colorClass}`}>
+                            <span className={`text-[8px] font-black px-2 py-0.5 rounded-lg uppercase tracking-widest ${inst.colors?.text || 'text-slate-500'} ${inst.colors?.bg || 'bg-slate-50'}`}>
                               {inst.category}
                             </span>
                             <div className="text-left">

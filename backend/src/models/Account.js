@@ -5,12 +5,13 @@ class Account {
     static async create(userId, accountType) {
         const accountNumber = this.generateAccountNumber();
         const query = `
-            INSERT INTO accounts (user_id, account_number, account_type, balance, currency, status)
-            VALUES ($1, $2, $3, $4, $5, $6)
+            INSERT INTO accounts (user_id, account_number, account_type, balance, credit, currency, status, leverage)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
             RETURNING *
         `;
         const balance = accountType === 'demo' ? 1000 : 0;
-        const values = [userId, accountNumber, accountType, balance, 'USD', 'active'];
+        const leverage = 50; // Default leverage
+        const values = [userId, accountNumber, accountType, balance, 0, 'USD', 'active', leverage];
         const { rows } = await db.query(query, values);
         return rows[0];
     }
@@ -42,6 +43,12 @@ class Account {
         return results;
     }
 
+    static async findById(id) {
+        const query = 'SELECT * FROM accounts WHERE id = $1';
+        const { rows } = await db.query(query, [id]);
+        return rows[0];
+    }
+
     static async findByAccountNumber(accountNumber) {
         const query = 'SELECT * FROM accounts WHERE account_number = $1';
         const { rows } = await db.query(query, [accountNumber]);
@@ -56,6 +63,28 @@ class Account {
             RETURNING *
         `;
         const { rows } = await db.query(query, [newBalance, accountId]);
+        return rows[0];
+    }
+
+    static async updateCredit(accountId, newCredit) {
+        const query = `
+            UPDATE accounts 
+            SET credit = $1, updated_at = CURRENT_TIMESTAMP
+            WHERE id = $2 
+            RETURNING *
+        `;
+        const { rows } = await db.query(query, [newCredit, accountId]);
+        return rows[0];
+    }
+
+    static async updateLeverage(accountId, leverage) {
+        const query = `
+            UPDATE accounts 
+            SET leverage = $1, updated_at = CURRENT_TIMESTAMP
+            WHERE id = $2 
+            RETURNING *
+        `;
+        const { rows } = await db.query(query, [leverage, accountId]);
         return rows[0];
     }
 

@@ -1,2 +1,0 @@
-// fundingController.js
-

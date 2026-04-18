@@ -4,11 +4,14 @@ import { Card, Table, Button, Space, Modal, Form, Input, Select, Switch, message
 import { PlusOutlined, EditOutlined, DeleteOutlined, EyeOutlined, SearchOutlined, ExportOutlined, DollarOutlined, StopOutlined, CheckCircleOutlined, UserAddOutlined, TeamOutlined, WalletOutlined } from '@ant-design/icons';
 import axios from 'axios';
 import moment from 'moment';
+import { useAuth } from '../../context/AuthContext';
+import { adminService } from '../../services/adminService';
 
 const { Option } = Select;
 const { TextArea } = Input;
 
 const UsersPage = () => {
+  const { isSuperAdmin } = useAuth();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
@@ -72,17 +75,19 @@ const UsersPage = () => {
 
   const handleCreateUser = async (values) => {
     try {
-      const token = localStorage.getItem('token');
-      await axios.post('/api/admin/users', values, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      message.success('User created successfully');
+      if (values.role === 'admin' || values.role === 'super_admin') {
+        await adminService.createAdmin(values);
+      } else {
+        await adminService.createUser(values);
+      }
+      message.success(`${values.role.charAt(0).toUpperCase() + values.role.slice(1)} created successfully`);
       setModalVisible(false);
       form.resetFields();
       fetchUsers();
       fetchStats();
     } catch (error) {
-      message.error('Failed to create user');
+      console.error('Create error:', error);
+      message.error(error.response?.data?.message || 'Failed to create user');
     }
   };
 
@@ -168,8 +173,8 @@ const UsersPage = () => {
       dataIndex: 'role',
       key: 'role',
       render: (role) => (
-        <Tag color={role === 'admin' ? '#FFD700' : '#1890ff'}>
-          {role?.toUpperCase()}
+        <Tag color={role === 'super_admin' ? '#722ed1' : role === 'admin' ? '#FFD700' : '#1890ff'}>
+          {role?.toUpperCase().replace('_', ' ')}
         </Tag>
       ),
     },
@@ -393,6 +398,7 @@ const UsersPage = () => {
             <Select size="large">
               <Option value="user">User</Option>
               <Option value="admin">Admin</Option>
+              {isSuperAdmin && <Option value="super_admin">Super Admin</Option>}
             </Select>
           </Form.Item>
           

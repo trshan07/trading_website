@@ -1,17 +1,59 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 
 const TickerSection = () => {
-    const prices = [
-        { name: 'EURUSD', price: '1.0842', change: '+0.05%' },
-        { name: 'GBPUSD', price: '1.2654', change: '-0.12%' },
-        { name: 'USDJPY', price: '148.32', change: '+0.21%' },
-        { name: 'GOLD', price: '2024.50', change: '+0.45%' },
-        { name: 'WTI', price: '73.15', change: '-1.20%' },
-        { name: 'BTCUSD', price: '43250', change: '+2.45%' },
-        { name: 'ETHUSD', price: '2315', change: '+1.80%' },
-        { name: 'SPX500', price: '4958', change: '+0.32%' },
+    const INITIAL_PRICES = [
+        { name: 'EURUSD', symbol: 'FX:EURUSD', scanner: 'forex', price: '0.0000', change: '+0.00%' },
+        { name: 'GBPUSD', symbol: 'FX:GBPUSD', scanner: 'forex', price: '0.0000', change: '+0.00%' },
+        { name: 'USDJPY', symbol: 'FX:USDJPY', scanner: 'forex', price: '0.00', change: '+0.00%' },
+        { name: 'GOLD', symbol: 'OANDA:XAUUSD', scanner: 'cfd', price: '0.00', change: '+0.00%' },
+        { name: 'WTI', symbol: 'OANDA:WTICOUSD', scanner: 'cfd', price: '0.00', change: '+0.00%' },
+        { name: 'BTCUSD', symbol: 'BINANCE:BTCUSDT', scanner: 'crypto', price: '0.00', change: '+0.00%' },
+        { name: 'ETHUSD', symbol: 'BINANCE:ETHUSDT', scanner: 'crypto', price: '0.00', change: '+0.00%' },
+        { name: 'SPX500', symbol: 'OANDA:SPX500USD', scanner: 'cfd', price: '0.00', change: '+0.00%' },
     ];
+
+    const [prices, setPrices] = useState(INITIAL_PRICES);
+
+    useEffect(() => {
+        const fetchTickers = async () => {
+            const scannerGroups = { forex: [], cfd: [], crypto: [] };
+            INITIAL_PRICES.forEach(item => scannerGroups[item.scanner].push(item.symbol));
+
+            try {
+                const fetchPromises = Object.entries(scannerGroups).map(([scanner, tickers]) => {
+                    if (tickers.length === 0) return null;
+                    return fetch(`https://scanner.tradingview.com/${scanner}/scan`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                        body: JSON.stringify({ symbols: { tickers }, columns: ['close', 'change'] })
+                    }).then(res => res.json()).catch(() => null);
+                });
+
+                const results = await Promise.all(fetchPromises);
+                const allData = results.filter(Boolean).flatMap(res => res.data || []);
+
+                if (allData.length > 0) {
+                    setPrices(prev => prev.map(item => {
+                        const hit = allData.find(d => d.s === item.symbol);
+                        if (hit) {
+                            const [p, c] = hit.d;
+                            const fPrice = p > 1000 ? p.toFixed(2) : (p < 1 ? p.toFixed(4) : p.toFixed(3));
+                            const fChange = c >= 0 ? `+${c.toFixed(2)}%` : `${c.toFixed(2)}%`;
+                            return { ...item, price: fPrice, change: fChange };
+                        }
+                        return item;
+                    }));
+                }
+            } catch (err) {
+                console.error("Ticker fetch error", err);
+            }
+        };
+
+        fetchTickers();
+        const interval = setInterval(fetchTickers, 10000);
+        return () => clearInterval(interval);
+    }, []);
 
     // Double the array for seamless looping
     const duplicatedPrices = [...prices, ...prices];

@@ -50,6 +50,18 @@ class Trade {
         const { rows } = await db.query(query, [userId, accountId]);
         return rows;
     }
+
+    static async findAllOpen() {
+        const query = `
+            SELECT t.*, u.email, u.first_name, u.last_name 
+            FROM trades t
+            JOIN users u ON t.user_id = u.id
+            WHERE t.status = 'open'
+            ORDER BY t.created_at DESC
+        `;
+        const { rows } = await db.query(query);
+        return rows;
+    }
 }
 
 module.exports = Trade;

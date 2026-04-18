@@ -1,5 +1,6 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
+const Admin = require('../models/Admin');
 
 const protect = async (req, res, next) => {
     let token;
@@ -12,8 +13,14 @@ const protect = async (req, res, next) => {
             // Verify token
             const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-            // Get user from the token but exclude password
-            req.user = await User.findById(decoded.id);
+            // Get user from the token based on the encoded role to avoid ID collisions
+            let user;
+            if (decoded.role === 'admin' || decoded.role === 'super_admin') {
+                user = await Admin.findById(decoded.id);
+            } else {
+                user = await User.findById(decoded.id);
+            }
+            req.user = user;
 
             next();
         } catch (error) {
@@ -28,11 +35,19 @@ const protect = async (req, res, next) => {
 };
 
 const admin = (req, res, next) => {
-    if (req.user && req.user.role === 'admin') {
+    if (req.user && (req.user.role === 'admin' || req.user.role === 'super_admin')) {
         next();
     } else {
         res.status(403).json({ message: 'Not authorized as an admin' });
     }
 };
 
-module.exports = { protect, admin };
+const superAdmin = (req, res, next) => {
+    if (req.user && req.user.role === 'super_admin') {
+        next();
+    } else {
+        res.status(403).json({ message: 'Not authorized as a super admin' });
+    }
+};
+
+module.exports = { protect, admin, superAdmin };

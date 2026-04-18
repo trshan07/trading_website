@@ -49,7 +49,7 @@ const handleSubmit = async (e) => {
       toast.success(`Welcome back, ${userData.firstName || 'User'}! [${accountType.toUpperCase()} MODE]`);
       
       // Redirect based on role
-      if (userData.role === 'admin') {
+      if (userData.role === 'admin' || userData.role === 'super_admin') {
         navigate('/admin');
       } else {
         navigate('/dashboard');

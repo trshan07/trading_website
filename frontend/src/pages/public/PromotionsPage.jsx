@@ -1,40 +1,47 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { HiOutlineBadgeCheck, HiOutlineUserGroup, HiOutlineTrendingUp, HiChevronRight } from 'react-icons/hi';
+import { HiChevronRight, HiOutlineBadgeCheck } from 'react-icons/hi';
+import { FaAward, FaBitcoin, FaGem } from 'react-icons/fa';
 import Navbar from '../../components/layout/Navbar';
 import Footer from '../../components/layout/Footer';
 import Container from '../../components/layout/Container';
 import Button from '../../components/ui/Button';
 import promoBg from '../../assets/images/promotions-bg.png';
+import publicService from '../../services/publicService';
+
+const iconMap = {
+    FaAward: FaAward,
+    FaBitcoin: FaBitcoin,
+    FaGem: FaGem
+};
 
 const PromotionsPage = () => {
-    const mainOffers = [
-        {
-            title: 'Welcome Deposit Bonus',
-            subtitle: 'First Step Advantage',
-            description: 'Kickstart your journey. Receive a 50% Credit Bonus on your first deposit to increase your trading equity.',
-            icon: HiOutlineBadgeCheck,
-            terms: '*T&Cs apply. Maximum credit limits apply.',
-            tag: 'New Accounts'
-        },
-        {
-            title: 'Refer-a-Friend Program',
-            subtitle: 'Network Growth',
-            description: 'Trading is better with a crew. Refer a fellow trader and both of you will receive a $50 cash bonus once they meet the minimum volume requirements.',
-            icon: HiOutlineUserGroup,
-            terms: '*Available per qualified referral.',
-            tag: 'Social'
-        },
-        {
-            title: 'Loyalty Rebate Program',
-            subtitle: 'Volume Rewards',
-            description: 'Get paid for every lot you trade. Our "Cashback" program rewards high-volume traders with monthly rebates directly into their trading accounts.',
-            icon: HiOutlineTrendingUp,
-            terms: '*Monthly rebates based on lot volume.',
-            tag: 'Active Traders'
-        }
-    ];
+    const [promotions, setPromotions] = React.useState([]);
+    const [isLoading, setIsLoading] = React.useState(true);
+
+    React.useEffect(() => {
+        const fetchPromotions = async () => {
+            setIsLoading(true);
+            try {
+                const response = await publicService.getPromotions();
+                if (response.success) {
+                    setPromotions(response.data);
+                }
+            } catch (error) {
+                console.error('Failed to sync promotion protocols:', error);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+        fetchPromotions();
+    }, []);
+
+    if (isLoading) return (
+        <div className="min-h-screen bg-[#000F29] flex items-center justify-center">
+            <div className="w-12 h-12 border-4 border-gold border-t-transparent rounded-full animate-spin" />
+        </div>
+    );
 
     return (
         <main className="bg-[#000F29] min-h-screen text-white font-sans selection:bg-gold/30 relative overflow-hidden">
@@ -77,7 +84,7 @@ const PromotionsPage = () => {
             <section className="py-24 relative z-10">
                 <Container>
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                        {mainOffers.map((offer, index) => (
+                        {promotions.map((promo, index) => (
                             <motion.div
                                 key={index}
                                 initial={{ opacity: 0, y: 30 }}
@@ -87,19 +94,19 @@ const PromotionsPage = () => {
                                 className="group relative flex flex-col p-10 rounded-[2.5rem] glass-card border-white/5 hover:border-gold/30 transition-all duration-500 hover:shadow-gold-glow-sm"
                             >
                                 <div className="absolute top-8 right-8 text-white/[0.03] group-hover:text-gold/10 transition-colors">
-                                    <offer.icon className="w-24 h-24" />
+                                    {iconMap[promo.icon] ? React.createElement(iconMap[promo.icon], { className: "w-24 h-24" }) : <FaAward className="w-24 h-24" />}
                                 </div>
 
                                 <div className="mb-8">
                                     <span className="text-gold text-[10px] uppercase font-bold tracking-widest border border-gold/20 px-3 py-1 rounded-full bg-gold/5">
-                                        {offer.tag}
+                                        {promo.tag}
                                     </span>
                                 </div>
 
-                                <h3 className="text-white/30 text-xs font-bold tracking-[0.2em] uppercase mb-2">{offer.subtitle}</h3>
-                                <h2 className="text-3xl font-display font-bold mb-6 group-hover:text-gold transition-colors">{offer.title}</h2>
+                                <h3 className="text-white/30 text-xs font-bold tracking-[0.2em] uppercase mb-2">{promo.subtitle}</h3>
+                                <h2 className="text-3xl font-display font-bold mb-6 group-hover:text-gold transition-colors">{promo.title}</h2>
                                 <p className="text-white/50 text-base leading-relaxed mb-10 flex-grow pt-4 border-t border-white/5">
-                                    {offer.description}
+                                    {promo.description}
                                 </p>
 
                                 <div className="pt-8 mb-2">
@@ -109,7 +116,7 @@ const PromotionsPage = () => {
                                             <HiChevronRight className="w-4 h-4 group-hover/btn:translate-x-1 transition-transform" />
                                         </Button>
                                     </Link>
-                                    <p className="text-[10px] text-white/20 mt-4 text-center italic">{offer.terms}</p>
+                                    <p className="text-[10px] text-white/20 mt-4 text-center italic">*T&Cs apply. Subject to protocol approval.</p>
                                 </div>
                             </motion.div>
                         ))}

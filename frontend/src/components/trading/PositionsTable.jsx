@@ -47,8 +47,15 @@ const PositionsTable = ({ positions = [], onClose, compact = false }) => {
                   </div>
                 ))}
               </div>
-              <div className="flex justify-between items-center mb-4 px-2">
-                 <div className="text-[9px] uppercase font-black text-slate-400">Swap/Comm: <span className="text-rose-500">-$0.00</span></div>
+              <div className="flex flex-col space-y-2 mb-4 px-2">
+                <div className="flex justify-between items-center text-[9px] uppercase font-black text-slate-400">
+                  <span>Swap:</span>
+                  <span className="text-slate-900 dark:text-white">${(position.swap || 0).toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between items-center text-[9px] uppercase font-black text-slate-400">
+                  <span>Commission:</span>
+                  <span className="text-rose-500">${(position.commission || 0).toFixed(2)}</span>
+                </div>
               </div>
               <button
                 onClick={() => onClose(position.id)}
@@ -68,14 +75,15 @@ const PositionsTable = ({ positions = [], onClose, compact = false }) => {
     <div className="w-full">
       {/* Column headers */}
       <div className="grid items-center text-[9px] uppercase font-black text-slate-400 dark:text-slate-500 tracking-[0.2em] px-6 pb-4 border-b border-slate-100 dark:border-slate-800 mb-2"
-        style={{ gridTemplateColumns: '2fr 1fr 1.2fr 1.4fr 1.4fr 1.2fr 1.2fr 1.2fr 1.2fr' }}
+        style={{ gridTemplateColumns: '2.5fr 1fr 1fr 1.2fr 1.2fr 1fr 1fr 1.2fr 1.2fr 1.2fr' }}
       >
         <span>Instrument</span>
         <span>Direction</span>
         <span className="text-right">Size</span>
         <span className="text-right">Avg. Entry</span>
         <span className="text-right">Market Price</span>
-        <span className="text-right">Swap/Comm</span>
+        <span className="text-right">Swap</span>
+        <span className="text-right">Comm</span>
         <span className="text-right">P&amp;L</span>
         <span className="text-right">Return</span>
         <span className="text-right">Action</span>
@@ -98,7 +106,7 @@ const PositionsTable = ({ positions = [], onClose, compact = false }) => {
                   ? 'bg-white dark:bg-slate-800 border-gold-500/20 dark:border-gold-500/20 shadow-xl shadow-slate-200/50 dark:shadow-black/30 -translate-y-0.5'
                   : 'bg-slate-50/50 dark:bg-slate-800/20 border-transparent'
               }`}
-              style={{ gridTemplateColumns: '2fr 1fr 1.2fr 1.4fr 1.4fr 1.2fr 1.2fr 1.2fr 1.2fr' }}
+              style={{ gridTemplateColumns: '2.5fr 1fr 1fr 1.2fr 1.2fr 1fr 1fr 1.2fr 1.2fr 1.2fr' }}
             >
               {/* Side accent bar */}
               <div className={`absolute left-0 top-3 bottom-3 w-1 rounded-full transition-all duration-300 ${
@@ -156,10 +164,16 @@ const PositionsTable = ({ positions = [], onClose, compact = false }) => {
                 </div>
               </div>
 
-              {/* Swap/Comm */}
+              {/* Swap */}
               <div className="text-right">
-                <p className="text-sm font-bold text-slate-600 dark:text-slate-300 tabular-nums">-$0.00</p>
-                <p className="text-[8px] text-slate-400 dark:text-slate-600 font-bold tracking-widest uppercase">fees</p>
+                <p className="text-sm font-bold text-slate-600 dark:text-slate-300 tabular-nums">${(position.swap || 0).toFixed(2)}</p>
+                <p className="text-[8px] text-slate-400 dark:text-slate-600 font-bold tracking-widest uppercase">swap</p>
+              </div>
+
+              {/* Commission */}
+              <div className="text-right">
+                <p className="text-sm font-bold text-slate-600 dark:text-slate-300 tabular-nums">${(position.commission || 0).toFixed(2)}</p>
+                <p className="text-[8px] text-slate-400 dark:text-slate-600 font-bold tracking-widest uppercase">comm</p>
               </div>
 
               {/* P&L */}

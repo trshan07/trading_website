@@ -24,7 +24,9 @@ const TradingTab = ({
   priceAlerts = [],
   onCreateAlert = () => {},
   onDeleteAlert = () => {},
-  transactions = []
+  transactions = [],
+  instruments = [],
+  categories = []
 }) => {
   const [activeSubTab, setActiveSubTab] = useState('positions');
   const [showSidebar, setShowSidebar] = useState(true);
@@ -77,6 +79,8 @@ const TradingTab = ({
             onToggleFavorite={onToggleFavorite}
             onClose={() => setShowSidebar(false)}
             marketData={marketData}
+            instruments={instruments}
+            categories={categories}
           />
         </div>
 
@@ -147,6 +151,7 @@ const TradingTab = ({
                 symbol={activeSymbol}
                 theme={theme}
                 positions={positions}
+                initialPrice={instruments.find(i => i.symbol === activeSymbol)?.price || 100}
               />
             </div>
           </div>

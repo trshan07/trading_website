@@ -14,31 +14,7 @@ const LightweightChart = ({
   useEffect(() => {
     if (!chartContainerRef.current) return;
 
-    // Generate sample data based on symbol
-    const generateData = () => {
-      const data = [];
-      const now = new Date();
-      const basePrice = getBasePrice(symbol);
-      
-      for (let i = 100; i >= 0; i--) {
-        const time = new Date(now);
-        time.setDate(time.getDate() - i);
-        
-        // Create realistic price movements
-        const change = (Math.random() - 0.5) * 0.02;
-        const price = basePrice * (1 + change + (Math.sin(i / 10) * 0.01));
-        
-        data.push({
-          time: time.toISOString().split('T')[0],
-          value: price,
-          open: price * (1 - Math.random() * 0.01),
-          high: price * (1 + Math.random() * 0.02),
-          low: price * (1 - Math.random() * 0.02),
-          close: price * (1 + (Math.random() - 0.5) * 0.01),
-        });
-      }
-      return data;
-    };
+    let active = true;
 
     // Helper function to get base price based on symbol
     const getBasePrice = (sym) => {
@@ -54,53 +30,70 @@ const LightweightChart = ({
       return 100;
     };
 
-    // Clear any existing chart
+    // Generate sample data based on symbol
+    const generateData = () => {
+      const data = [];
+      const now = new Date();
+      const basePrice = getBasePrice(symbol);
+      
+      for (let i = 100; i >= 0; i--) {
+        const time = new Date(now);
+        time.setDate(time.getDate() - i);
+        const change = (Math.random() - 0.5) * 0.02;
+        const price = basePrice * (1 + change + (Math.sin(i / 10) * 0.01));
+        data.push({
+          time: time.toISOString().split('T')[0],
+          value: price,
+          open: price * (1 - Math.random() * 0.01),
+          high: price * (1 + Math.random() * 0.02),
+          low: price * (1 - Math.random() * 0.02),
+          close: price * (1 + (Math.random() - 0.5) * 0.01),
+        });
+      }
+      return data;
+    };
+
+    // Dispose old chart if exists
     if (chartRef.current) {
-      chartRef.current.remove();
+        try { chartRef.current.remove(); } catch (e) {}
+        chartRef.current = null;
     }
+    seriesRef.current = null;
+
+    const isDark = theme === 'dark';
 
     // Chart configuration
     const chartOptions = {
       layout: {
-        background: { color: theme === 'dark' ? '#0a0f1c' : '#ffffff' },
-        textColor: theme === 'dark' ? '#ffd700' : '#1e293b',
+        background: { color: isDark ? '#0a0f1c' : '#ffffff' },
+        textColor: isDark ? '#ffd700' : '#1e293b',
       },
       grid: {
-        vertLines: { color: theme === 'dark' ? '#1e293b' : '#e2e8f0' },
-        horzLines: { color: theme === 'dark' ? '#1e293b' : '#e2e8f0' },
+        vertLines: { color: isDark ? '#1e293b' : '#e2e8f0' },
+        horzLines: { color: isDark ? '#1e293b' : '#e2e8f0' },
       },
-      width: chartContainerRef.current.clientWidth,
-      height: chartContainerRef.current.clientHeight,
+      width: chartContainerRef.current.clientWidth || 0,
+      height: chartContainerRef.current.clientHeight || 0,
       crosshair: {
         mode: 1,
-        vertLine: {
-          width: 1,
-          color: '#ffd700',
-          style: 3,
-        },
-        horzLine: {
-          width: 1,
-          color: '#ffd700',
-          style: 3,
-        },
+        vertLine: { width: 1, color: '#ffd700', style: 3 },
+        horzLine: { width: 1, color: '#ffd700', style: 3 },
       },
       rightPriceScale: {
-        borderColor: theme === 'dark' ? '#ffd700' : '#94a3b8',
-        textColor: theme === 'dark' ? '#ffd700' : '#1e293b',
+        borderColor: isDark ? '#ffd700' : '#94a3b8',
+        textColor: isDark ? '#ffd700' : '#1e293b',
       },
       timeScale: {
-        borderColor: theme === 'dark' ? '#ffd700' : '#94a3b8',
+        borderColor: isDark ? '#ffd700' : '#94a3b8',
         timeVisible: true,
         secondsVisible: false,
       },
     };
 
     try {
-      // Create chart
       const chart = createChart(chartContainerRef.current, chartOptions);
       chartRef.current = chart;
 
-      // Add candlestick series - Note: method name is addCandlestickSeries (not addCandlestickSeries)
       const candlestickSeries = chart.addCandlestickSeries({
         upColor: '#26a69a',
         downColor: '#ef5350',
@@ -110,10 +103,9 @@ const LightweightChart = ({
         borderUpColor: '#26a69a',
         borderDownColor: '#ef5350',
       });
+      seriesRef.current = candlestickSeries;
 
       const data = generateData();
-      
-      // Format data for candlestick
       const candlestickData = data.map(d => ({
         time: d.time,
         open: d.open,
@@ -121,21 +113,13 @@ const LightweightChart = ({
         low: d.low,
         close: d.close,
       }));
-
       candlestickSeries.setData(candlestickData);
-      seriesRef.current = candlestickSeries;
 
-      // Add volume series
       const volumeSeries = chart.addHistogramSeries({
         color: '#ffd700',
-        priceFormat: {
-          type: 'volume',
-        },
+        priceFormat: { type: 'volume' },
         priceScaleId: '',
-        scaleMargins: {
-          top: 0.8,
-          bottom: 0,
-        },
+        scaleMargins: { top: 0.8, bottom: 0 },
       });
 
       const volumeData = data.map((d, index) => ({
@@ -145,61 +129,40 @@ const LightweightChart = ({
       }));
       volumeSeries.setData(volumeData);
 
-      // Fit content
       chart.timeScale().fitContent();
 
     } catch (error) {
       console.error('Error creating chart:', error);
     }
 
-    // Handle resize
-    const handleResize = () => {
-      if (chartContainerRef.current && chartRef.current) {
-        chartRef.current.applyOptions({
-          width: chartContainerRef.current.clientWidth,
-        });
-        chartRef.current.timeScale().fitContent();
-      }
-    };
+    // Handle resize with ResizeObserver for better accuracy and lifecycle sync
+    const resizeObserver = new ResizeObserver((entries) => {
+        if (!active || !chartRef.current || !entries.length) return;
+        const { width, height } = entries[0].contentRect;
+        if (width === 0 || height === 0) return;
+        try {
+            chartRef.current.applyOptions({ width, height });
+            chartRef.current.timeScale().fitContent();
+        } catch (e) {}
+    });
 
-    window.addEventListener('resize', handleResize);
+    resizeObserver.observe(chartContainerRef.current);
 
-    // Cleanup
     return () => {
-      window.removeEventListener('resize', handleResize);
-      if (chartRef.current) {
-        chartRef.current.remove();
+      active = false;
+      resizeObserver.disconnect();
+      
+      const currentChart = chartRef.current;
+      seriesRef.current = null;
+      chartRef.current = null;
+      
+      if (currentChart) {
+        try {
+          currentChart.remove();
+        } catch (e) {}
       }
     };
-  }, [symbol]); // Only re-run if symbol changes
-
-  // Dynamic Theme/Options Update
-  useEffect(() => {
-    if (chartRef.current) {
-        const isDark = theme === 'dark';
-        chartRef.current.applyOptions({
-            layout: {
-                background: { color: isDark ? '#0f172a' : '#ffffff' },
-                textColor: isDark ? '#ffd700' : '#1e293b',
-            },
-            grid: {
-                vertLines: { color: isDark ? '#1e293b' : '#f1f5f9' },
-                horzLines: { color: isDark ? '#1e293b' : '#f1f5f9' },
-            },
-            crosshair: {
-                vertLine: { labelBackgroundColor: isDark ? '#1e293b' : '#f1f5f9' },
-                horzLine: { labelBackgroundColor: isDark ? '#1e293b' : '#f1f5f9' },
-            },
-            rightPriceScale: {
-                borderColor: isDark ? '#ffd70033' : '#94a3b8',
-                textColor: isDark ? '#ffd700' : '#1e293b',
-            },
-            timeScale: {
-                borderColor: isDark ? '#ffd70033' : '#94a3b8',
-            },
-        });
-    }
-  }, [theme]);
+  }, [symbol, theme, height, width]);
 
   return (
     <div 

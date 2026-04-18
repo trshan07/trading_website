@@ -4,7 +4,7 @@ import { HiOutlineLightningBolt, HiOutlineShieldCheck, HiOutlineUserGroup, HiOut
 import Container from '../../components/layout/Container';
 import Navbar from '../../components/layout/Navbar';
 import Footer from '../../components/layout/Footer';
-import aboutBg from '../../assets/images/about.jpeg';
+import aboutBg from '../../assets/images/rizals_about_bg.png';
 
 const AboutPage = () => {
     const fadeInUp = {
@@ -17,13 +17,12 @@ const AboutPage = () => {
             <Navbar />
 
             {/* Premium Background Elements */}
-            <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
-                <img 
+            <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">                <img 
                     src={aboutBg} 
                     alt="Background" 
-                    className="absolute inset-0 w-full h-full object-cover opacity-20"
+                    className="absolute inset-0 w-full h-full object-cover opacity-70"
                 />
-                <div className="absolute inset-0 bg-gradient-to-b from-[#000F29]/90 via-[#000F29]/70 to-[#000F29]/95" />
+                <div className="absolute inset-0 bg-gradient-to-b from-[#000F29]/70 via-[#000F29]/40 to-[#000F29] opacity-90" />
                 <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-gold/5 blur-[120px] rounded-full -translate-y-1/2 translate-x-1/4 animate-pulse" />
                 <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-blue-900/10 blur-[100px] rounded-full translate-y-1/4 -translate-x-1/4" />
                 <div className="absolute inset-0 bg-grid-slim opacity-[0.03]" />
@@ -107,11 +106,16 @@ const AboutPage = () => {
                             viewport={{ once: true }}
                             className="relative"
                         >
-                            <div className="aspect-square rounded-[3rem] bg-gradient-to-br from-gold/10 to-blue-500/5 border border-white/5 flex items-center justify-center overflow-hidden group">
-                                <div className="absolute inset-0 bg-navy-dark opacity-40 group-hover:opacity-20 transition-opacity duration-1000" />
-                                <div className="relative z-10 text-center p-12">
-                                    <span className="text-8xl font-display font-bold opacity-5 italic select-none block mb-4">RIZALS</span>
-                                    <p className="text-xs uppercase tracking-[0.5em] text-gold font-bold">Institutional DNA</p>
+                            <div className="aspect-square rounded-[3rem] border border-white/10 flex items-center justify-center overflow-hidden group relative shadow-2xl">
+                                {/* Base Image */}
+                                <img src={aboutBg} alt="About Rizals" className="absolute inset-0 w-full h-full object-cover opacity-90 group-hover:scale-105 transition-transform duration-1000" />
+                                
+                                {/* Gradual dark gradient from bottom for text readability */}
+                                <div className="absolute inset-0 bg-gradient-to-t from-[#000F29] via-[#000F29]/30 to-transparent opacity-80" />
+                                
+                                <div className="relative z-10 text-center p-12 mt-auto pb-16">
+                                    <span className="text-6xl sm:text-7xl lg:text-8xl font-display font-bold text-white/20 italic select-none block mb-4">RIZALS</span>
+                                    <p className="text-xs uppercase tracking-[0.5em] text-gold font-bold bg-navy/50 px-4 py-2 rounded-full inline-block backdrop-blur-md">Institutional DNA</p>
                                 </div>
 
                                 {/* Floating Stat Card */}

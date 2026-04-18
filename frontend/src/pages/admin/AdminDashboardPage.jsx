@@ -1,68 +1,8 @@
 import { useContext, useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../../context/AuthContext";
-
+import { adminService } from "../../services/adminService";
 // ─── re-export everything from part 1 inline (merged single file) ──────────
-// ═══════════════════════════════════════════════════════════════════════════
-// MOCK DATA
-// ═══════════════════════════════════════════════════════════════════════════
-const MOCK_USERS = [
-  { id: 1, name: "James Whitfield", email: "james@example.com", phone: "+1-555-0101", balance: 125000, equity: 131200, credit: 5000, totalTrades: 142, profit: 6200, status: "active", kyc: "verified", kycSubmitted: "2024-01-10", kycReviewedAt: "2024-01-12", joined: "2024-01-12", country: "US", accountType: "Premium", leverage: 100, avatar: "JW",
-    kycDocs: [
-      { id: 1, type: "passport", label: "Passport / ID", file: "passport_james.jpg", status: "verified", uploadedAt: "2024-01-10", rejectReason: null },
-      { id: 2, type: "utility", label: "Proof of Address", file: "utility_james.pdf", status: "verified", uploadedAt: "2024-01-10", rejectReason: null },
-      { id: 3, type: "selfie", label: "Selfie with ID", file: "selfie_james.jpg", status: "verified", uploadedAt: "2024-01-10", rejectReason: null },
-    ], creditHistory: [{ id: 1, amount: 5000, type: "credit", note: "Welcome bonus", date: "2024-01-15" }], notes: "VIP client. Referred by broker." },
-  { id: 2, name: "Priya Nair", email: "priya@example.com", phone: "+44-555-0202", balance: 58700, equity: 61400, credit: 0, totalTrades: 87, profit: 2700, status: "active", kyc: "verified", kycSubmitted: "2024-02-05", kycReviewedAt: "2024-02-08", joined: "2024-02-08", country: "UK", accountType: "Standard", leverage: 50,
-    kycDocs: [
-      { id: 4, type: "passport", label: "Passport / ID", file: "passport_priya.jpg", status: "verified", uploadedAt: "2024-02-05", rejectReason: null },
-      { id: 5, type: "utility", label: "Proof of Address", file: "utility_priya.pdf", status: "verified", uploadedAt: "2024-02-05", rejectReason: null },
-      { id: 6, type: "selfie", label: "Selfie with ID", file: "selfie_priya.jpg", status: "verified", uploadedAt: "2024-02-05", rejectReason: null },
-    ], creditHistory: [], notes: "" },
-  { id: 3, name: "Carlos Mendez", email: "carlos@example.com", phone: "+34-555-0303", balance: 9200, equity: 8800, credit: 200, totalTrades: 23, profit: -400, status: "pending", kyc: "pending", kycSubmitted: "2024-03-13", kycReviewedAt: null, joined: "2024-03-15", country: "ES", accountType: "Basic", leverage: 30,
-    kycDocs: [
-      { id: 7, type: "passport", label: "Passport / ID", file: "passport_carlos.jpg", status: "pending", uploadedAt: "2024-03-13", rejectReason: null },
-      { id: 8, type: "utility", label: "Proof of Address", file: "utility_carlos.pdf", status: "pending", uploadedAt: "2024-03-13", rejectReason: null },
-      { id: 9, type: "selfie", label: "Selfie with ID", file: null, status: "missing", uploadedAt: null, rejectReason: null },
-    ], creditHistory: [{ id: 2, amount: 200, type: "credit", note: "Demo credit", date: "2024-03-16" }], notes: "Missing selfie doc." },
-  { id: 4, name: "Mei Lin", email: "mei@example.com", phone: "+86-555-0404", balance: 247000, equity: 259000, credit: 10000, totalTrades: 310, profit: 12000, status: "active", kyc: "verified", kycSubmitted: "2023-11-20", kycReviewedAt: "2023-11-22", joined: "2023-11-22", country: "CN", accountType: "VIP", leverage: 200,
-    kycDocs: [
-      { id: 10, type: "passport", label: "Passport / ID", file: "passport_mei.jpg", status: "verified", uploadedAt: "2023-11-20", rejectReason: null },
-      { id: 11, type: "utility", label: "Proof of Address", file: "utility_mei.pdf", status: "verified", uploadedAt: "2023-11-20", rejectReason: null },
-      { id: 12, type: "selfie", label: "Selfie with ID", file: "selfie_mei.jpg", status: "verified", uploadedAt: "2023-11-20", rejectReason: null },
-    ], creditHistory: [{ id: 3, amount: 10000, type: "credit", note: "VIP loyalty bonus", date: "2024-02-01" }], notes: "Top VIP. Priority handling." },
-  { id: 5, name: "Ahmed Khalil", email: "ahmed@example.com", phone: "+20-555-0505", balance: 3100, equity: 2900, credit: 0, totalTrades: 11, profit: -200, status: "suspended", kyc: "rejected", kycSubmitted: "2024-03-30", kycReviewedAt: "2024-04-01", joined: "2024-04-01", country: "EG", accountType: "Basic", leverage: 10,
-    kycDocs: [
-      { id: 13, type: "passport", label: "Passport / ID", file: "passport_ahmed.jpg", status: "rejected", uploadedAt: "2024-03-30", rejectReason: "Document expired" },
-      { id: 14, type: "utility", label: "Proof of Address", file: "utility_ahmed.pdf", status: "rejected", uploadedAt: "2024-03-30", rejectReason: "Address does not match" },
-      { id: 15, type: "selfie", label: "Selfie with ID", file: "selfie_ahmed.jpg", status: "rejected", uploadedAt: "2024-03-30", rejectReason: "Face not clearly visible" },
-    ], creditHistory: [], notes: "Suspended - requires re-KYC." },
-  { id: 6, name: "Sofia Bianchi", email: "sofia@example.com", phone: "+39-555-0606", balance: 72400, equity: 78000, credit: 1500, totalTrades: 95, profit: 5600, status: "active", kyc: "under_review", kycSubmitted: "2024-04-05", kycReviewedAt: null, joined: "2024-01-30", country: "IT", accountType: "Standard", leverage: 50,
-    kycDocs: [
-      { id: 16, type: "passport", label: "Passport / ID", file: "passport_sofia.jpg", status: "verified", uploadedAt: "2024-04-05", rejectReason: null },
-      { id: 17, type: "utility", label: "Proof of Address", file: "utility_sofia.pdf", status: "under_review", uploadedAt: "2024-04-05", rejectReason: null },
-      { id: 18, type: "selfie", label: "Selfie with ID", file: "selfie_sofia.jpg", status: "under_review", uploadedAt: "2024-04-05", rejectReason: null },
-    ], creditHistory: [{ id: 4, amount: 1500, type: "credit", note: "Referral bonus", date: "2024-02-15" }], notes: "Re-submitted after address change." },
-];
-
-const MOCK_FUNDING = [
-  { id: 1, userId: 1, userName: "James Whitfield", type: "deposit", amount: 10000, method: "Bank Transfer", status: "pending", proof: "receipt_001.pdf", created: "2024-04-06T14:23:00", note: "", bankRef: "TXN-2024-001" },
-  { id: 2, userId: 2, userName: "Priya Nair", type: "withdrawal", amount: 5000, method: "Wire Transfer", status: "pending", proof: null, created: "2024-04-06T11:10:00", note: "", bankRef: "" },
-  { id: 3, userId: 4, userName: "Mei Lin", type: "deposit", amount: 25000, method: "Crypto USDT", status: "approved", proof: "txhash_mei.pdf", created: "2024-04-05T09:00:00", note: "Verified on-chain", bankRef: "0xabc123" },
-  { id: 4, userId: 3, userName: "Carlos Mendez", type: "withdrawal", amount: 1500, method: "Bank Transfer", status: "rejected", proof: null, created: "2024-04-04T16:45:00", note: "KYC not completed", bankRef: "" },
-  { id: 5, userId: 6, userName: "Sofia Bianchi", type: "deposit", amount: 8000, method: "Credit Card", status: "approved", proof: "cc_receipt.pdf", created: "2024-04-03T12:20:00", note: "", bankRef: "CC-88821" },
-  { id: 6, userId: 1, userName: "James Whitfield", type: "withdrawal", amount: 3000, method: "Bank Transfer", status: "pending", proof: null, created: "2024-04-07T08:00:00", note: "", bankRef: "" },
-];
-
-const MOCK_TRADES = [
-  { id: 1, userId: 1, userName: "James Whitfield", symbol: "BTC/USD", type: "buy", lots: 0.5, openPrice: 67450, closePrice: 68900, profit: 725, status: "closed", opened: "2024-04-05T08:00:00", closed: "2024-04-06T14:00:00", swap: -12 },
-  { id: 2, userId: 2, userName: "Priya Nair", symbol: "EUR/USD", type: "sell", lots: 2.0, openPrice: 1.0845, closePrice: null, profit: -120, status: "open", opened: "2024-04-06T10:30:00", closed: null, swap: -4 },
-  { id: 3, userId: 4, userName: "Mei Lin", symbol: "GOLD", type: "buy", lots: 5.0, openPrice: 2310, closePrice: 2345, profit: 1750, status: "closed", opened: "2024-04-04T07:00:00", closed: "2024-04-05T16:00:00", swap: -30 },
-  { id: 4, userId: 6, userName: "Sofia Bianchi", symbol: "ETH/USD", type: "buy", lots: 1.0, openPrice: 3180, closePrice: null, profit: 240, status: "open", opened: "2024-04-06T12:00:00", closed: null, swap: -8 },
-  { id: 5, userId: 1, userName: "James Whitfield", symbol: "USD/JPY", type: "sell", lots: 3.0, openPrice: 151.24, closePrice: 150.80, profit: 880, status: "closed", opened: "2024-04-03T06:00:00", closed: "2024-04-04T18:00:00", swap: -22 },
-  { id: 6, userId: 4, userName: "Mei Lin", symbol: "SPX500", type: "buy", lots: 2.0, openPrice: 5210, closePrice: null, profit: 640, status: "open", opened: "2024-04-07T09:00:00", closed: null, swap: -15 },
-];
-
 const VOL_DATA = [{ m: "Oct", v: 980000 }, { m: "Nov", v: 1250000 }, { m: "Dec", v: 1580000 }, { m: "Jan", v: 1320000 }, { m: "Feb", v: 1690000 }, { m: "Mar", v: 2100000 }, { m: "Apr", v: 1840000 }];
 const UG_DATA = [{ m: "Oct", u: 98 }, { m: "Nov", u: 124 }, { m: "Dec", u: 159 }, { m: "Jan", u: 201 }, { m: "Feb", u: 245 }, { m: "Mar", u: 289 }, { m: "Apr", u: 321 }];
 
@@ -108,8 +48,19 @@ const normalizeUserAccounts = (user) => {
   const realAccountId = user?.realAccountId || generateAccountId("real", user?.id);
   const demoAccountId = user?.demoAccountId || generateAccountId("demo", user?.id);
 
+  const name = user?.name || ((user?.firstName || "") + " " + (user?.lastName || "")).trim() || "Unknown User";
+
   return {
     ...user,
+    name,
+    email: user?.email || "",
+    country: user?.country || "",
+    status: user?.is_active === false ? "suspended" : (user?.status || "active"),
+    kyc: user?.kyc || "pending",
+    kycDocs: user?.kycDocs || [],
+    creditHistory: user?.creditHistory || [],
+    totalTrades: user?.totalTrades || 0,
+    joinDate: user?.created_at || user?.joined || "",
     realBalance,
     demoBalance,
     realCredit,
@@ -283,13 +234,45 @@ export default function AdminCRM() {
   const navigate = useNavigate();
   const auth = useContext(AuthContext);
   const [page, setPage] = useState("dashboard");
-  const [users, setUsers] = useState(() => MOCK_USERS.map(normalizeUserAccounts));
-  const [funding, setFunding] = useState(MOCK_FUNDING);
-  const [trades] = useState(MOCK_TRADES);
+  const [users, setUsers] = useState([]);
+  const [funding, setFunding] = useState([]);
+  const [trades, setTrades] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [toasts, setToasts] = useState([]);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const toastId = useRef(0);
+
+  const [stats, setStats] = useState({
+    totalUsers: 0, activeUsers: 0, pendingKyc: 0, 
+    totalBalance: 0, totalCredit: 0, pendingFunding: 0, 
+    totalTrades: 0, openTrades: 0, totalVolume: 1840000
+  });
+
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        setLoading(true);
+        const [statsRes, usersRes, fundingRes] = await Promise.all([
+          adminService.getDashboardStats().catch(() => ({ data: { data: {} } })),
+          adminService.getUsers().catch(() => ({ data: { data: [] } })),
+          adminService.getFundingRequests().catch(() => ({ data: { data: [] } }))
+        ]);
+        
+        if (statsRes.data?.success) {
+            const s = statsRes.data.data;
+            setStats(prev => ({...prev, ...s}));
+        }
+        if (usersRes.data?.success) setUsers(usersRes.data.data.map(normalizeUserAccounts));
+        if (fundingRes.data?.success) setFunding(fundingRes.data.data);
+      } catch (err) {
+        console.error("Failed to load dashboard data", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchDashboardData();
+  }, []);
 
   const toast = (title, msg = "", type = "success") => {
     const id = ++toastId.current;
@@ -311,19 +294,10 @@ export default function AdminCRM() {
     }
   };
 
-  const stats = {
-    totalUsers: users.length, activeUsers: users.filter(u => u.status === "active").length,
-    pendingKyc: users.filter(u => ["pending", "under_review"].includes(u.kyc)).length,
-    totalBalance: users.reduce((s, u) => s + u.balance, 0),
-    totalCredit: users.reduce((s, u) => s + (u.credit || 0), 0),
-    pendingFunding: funding.filter(f => f.status === "pending").length,
-    totalTrades: trades.length, openTrades: trades.filter(t => t.status === "open").length,
-    totalVolume: 1840000,
-  };
-
   const NAV = [
     { id: "dashboard", icon: "⬡", label: "Overview" },
-    { id: "users", icon: "◈", label: "Users" },
+    { id: "users", icon: "◈", label: "Clients" },
+    { id: "admins", icon: "🛡", label: "Administrators" },
     { id: "kyc", icon: "⊕", label: "KYC", badge: stats.pendingKyc },
     { id: "credits", icon: "◎", label: "Credits" },
     { id: "funding", icon: "⊞", label: "Funding", badge: stats.pendingFunding },
@@ -437,6 +411,7 @@ export default function AdminCRM() {
           <main style={{ flex: 1, overflow: "auto", padding: "20px" }} className="page-anim">
             {page === "dashboard" && <DashboardPage stats={stats} users={users} funding={funding} trades={trades} setPage={setPage} />}
             {page === "users" && <UsersPage users={users} setUsers={setUsers} toast={toast} />}
+            {page === "admins" && <AdminsPage users={users} setUsers={setUsers} toast={toast} />}
             {page === "kyc" && <KYCPage users={users} setUsers={setUsers} toast={toast} />}
             {page === "credits" && <CreditsPage users={users} setUsers={setUsers} toast={toast} />}
             {page === "funding" && <FundingPage funding={funding} setFunding={setFunding} users={users} setUsers={setUsers} toast={toast} />}
@@ -532,7 +507,7 @@ function DashboardPage({ stats, users, funding, trades, setPage }) {
         <Card title="KYC Alerts" subtitle="Recent submissions" extra={<Btn size="sm" variant="ghost" onClick={() => setPage("kyc")}>Review All</Btn>}>
           <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
             {users.filter(u => ["pending", "under_review"].includes(u.kyc)).map(u => (
-              <div key={u.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 12px", background: C.bg, borderRadius: "8px", border: `1px solid ${C.border}` }}>
+              <div key={`${u.role}-${u.id}`} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 12px", background: C.bg, borderRadius: "8px", border: `1px solid ${C.border}` }}>
                 <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
                   <UserAvatar name={u.name} size={30} />
                   <div>
@@ -592,6 +567,7 @@ function UsersPage({ users, setUsers, toast }) {
   const [resetForm, setResetForm] = useState({ password: "", confirmPassword: "" });
 
   const filtered = users.filter(u => {
+    if (u.role !== 'client') return false;
     const s = search.toLowerCase();
     const match = u.name.toLowerCase().includes(s) || u.email.toLowerCase().includes(s) || u.country?.toLowerCase().includes(s);
     return match && (statusFilter === "all" || u.status === statusFilter) && (kycFilter === "all" || u.kyc === kycFilter);
@@ -601,33 +577,53 @@ function UsersPage({ users, setUsers, toast }) {
   const openAdd = () => { setForm({ name: "", email: "", phone: "", country: "", accountType: "Basic", status: "pending", kyc: "pending", balance: 0, credit: 0, realBalance: 0, demoBalance: 0, realCredit: 0, demoCredit: 0, leverage: 50, notes: "" }); setModal("add"); };
   const openView = (u) => { setForm({ ...u }); setModal("view"); };
 
-  const saveUser = () => {
+  const saveUser = async () => {
     if (!form.name || !form.email) return toast("Validation Error", "Name and email required", "error");
     if (modal === "add") {
-      setUsers(p => [...p, normalizeUserAccounts({
-        ...form,
-        id: Date.now(),
-        realBalance: parseFloat(form.balance) || 0,
-        demoBalance: 0,
-        realCredit: parseFloat(form.credit) || 0,
-        demoCredit: 0,
-        equity: parseFloat(form.balance) || 0,
-        totalTrades: 0,
-        profit: 0,
-        joined: new Date().toISOString().split("T")[0],
-        kycDocs: [],
-        creditHistory: [],
-      })]);
-      toast("User Created", form.name);
-    } else {
-      setUsers(p => p.map(u => (u.id === form.id ? normalizeUserAccounts({ ...u, ...form }) : u)));
-      toast("User Updated", form.name);
+      toast("Not Supported", "Please create new users via the public registration page", "error");
+      setModal(null);
+      return;
+    }
+    
+    try {
+        const [firstName, ...lastNameParts] = form.name.split(" ");
+        const lastName = lastNameParts.join(" ");
+        const payload = {
+            firstName: firstName || form.firstName,
+            lastName: lastName || form.lastName,
+            country: form.country,
+            phone: form.phone,
+            is_active: form.status === "active"
+        };
+        const res = await adminService.updateUser(form.id, payload);
+        if (res.data?.success) {
+            setUsers(p => p.map(u => (u.id === form.id ? normalizeUserAccounts({ ...u, ...form }) : u)));
+            toast("User Updated", form.email);
+        } else {
+            toast("Update Failed", res.data?.message || "Unknown error", "error");
+        }
+    } catch(err) {
+        toast("Server Error", "Could not update user", "error");
     }
     setModal(null);
   };
 
-  const deleteUser = (u) => setConfirm({ msg: `Permanently delete ${u.name}? This cannot be undone.`, onConfirm: () => { setUsers(p => p.filter(x => x.id !== u.id)); setConfirm(null); toast("User Deleted", u.name, "error"); } });
-  const toggleStatus = (u) => { setUsers(p => p.map(x => x.id === u.id ? { ...x, status: x.status === "active" ? "suspended" : "active" } : x)); toast("Status Updated", u.name); };
+  const deleteUser = (u) => setConfirm({ msg: `Permanently delete ${u.name}? This cannot be undone.`, onConfirm: async () => {
+    try {
+        await adminService.deleteUser(u.id);
+        setUsers(p => p.filter(x => x.id !== u.id)); toast("User Deleted", u.name, "error");
+    } catch(err) { toast("Error", "Deletion failed", "error"); }
+    setConfirm(null); 
+  } });
+  
+  const toggleStatus = async (u) => {
+    try {
+        const isActive = u.status === "active";
+        await adminService.updateUser(u.id, { is_active: !isActive });
+        setUsers(p => p.map(x => x.id === u.id ? { ...x, status: isActive ? "suspended" : "active" } : x)); 
+        toast("Status Updated", u.name);
+    } catch(err) { toast("Error", "Could not update status", "error"); }
+  };
   const openResetPassword = (u) => {
     setResetModal(u);
     setResetForm({ password: "", confirmPassword: "" });
@@ -658,8 +654,8 @@ function UsersPage({ users, setUsers, toast }) {
   return (
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px", flexWrap: "wrap", gap: "12px" }}>
-        <div><h2 className="syne" style={{ fontSize: "18px", fontWeight: 700, color: C.text }}>User Management</h2><p style={{ fontSize: "12px", color: C.textMuted, marginTop: "2px" }}>{filtered.length} of {users.length} users</p></div>
-        <Btn onClick={openAdd} icon="＋">Add User</Btn>
+        <div><h2 className="syne" style={{ fontSize: "18px", fontWeight: 700, color: C.text }}>Client Management</h2><p style={{ fontSize: "12px", color: C.textMuted, marginTop: "2px" }}>{filtered.length} active clients</p></div>
+        <Btn onClick={openAdd} icon="＋">Add Client</Btn>
       </div>
 
       {/* Filters */}
@@ -692,7 +688,7 @@ function UsersPage({ users, setUsers, toast }) {
             <tbody>
               {filtered.length === 0 && <tr><td colSpan={9} style={{ padding: "48px", textAlign: "center", color: C.textDim, fontSize: "13px" }}>No users found</td></tr>}
               {filtered.map(u => (
-                <tr key={u.id} style={{ borderBottom: `1px solid ${C.border}`, transition: "background 0.1s" }}
+                <tr key={`${u.role}-${u.id}`} style={{ borderBottom: `1px solid ${C.border}`, transition: "background 0.1s" }}
                   onMouseEnter={e => e.currentTarget.style.background = C.bgHover}
                   onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
                   <td style={{ padding: "11px 14px" }}>
@@ -857,28 +853,37 @@ function KYCPage({ users, setUsers, toast }) {
     toast("Document Rejected", rejectReason, "error");
   };
 
-  const approveAllKyc = (userId) => {
-    setUsers(p => p.map(u => {
-      if (u.id !== userId) return u;
-      return { ...u, kyc: "verified", kycReviewedAt: new Date().toISOString(), kycDocs: u.kycDocs.map(d => d.status !== "missing" ? { ...d, status: "verified" } : d) };
-    }));
+  const approveAllKyc = async (userId) => {
+    try {
+        await adminService.processKYC(userId, "approved");
+        setUsers(p => p.map(u => {
+          if (u.id !== userId) return u;
+          return { ...u, kyc: "verified", kycReviewedAt: new Date().toISOString(), kycDocs: u.kycDocs?.map(d => d.status !== "missing" ? { ...d, status: "verified" } : d) || [] };
+        }));
+        toast("KYC Approved", "User fully verified ✓");
+    } catch(err) { toast("Error", "Could not process KYC", "error"); }
     setModal(false);
-    toast("KYC Approved", "User fully verified ✓");
   };
 
-  const rejectAllKyc = (userId) => {
-    setUsers(p => p.map(u => {
-      if (u.id !== userId) return u;
-      return { ...u, kyc: "rejected", kycReviewedAt: new Date().toISOString() };
-    }));
+  const rejectAllKyc = async (userId) => {
+    try {
+        await adminService.processKYC(userId, "rejected", "Rejected by admin");
+        setUsers(p => p.map(u => {
+          if (u.id !== userId) return u;
+          return { ...u, kyc: "rejected", kycReviewedAt: new Date().toISOString() };
+        }));
+        toast("KYC Rejected", "User notified", "error");
+    } catch(err) { toast("Error", "Could not process KYC", "error"); }
     setModal(false);
-    toast("KYC Rejected", "User notified", "error");
   };
 
-  const requestResubmission = (userId) => {
-    setUsers(p => p.map(u => u.id !== userId ? u : { ...u, kyc: "pending", kycReviewedAt: null }));
+  const requestResubmission = async (userId) => {
+    try {
+        await adminService.processKYC(userId, "pending", "Resubmission requested");
+        setUsers(p => p.map(u => u.id !== userId ? u : { ...u, kyc: "pending", kycReviewedAt: null }));
+        toast("Resubmission Requested", "User will be notified");
+    } catch(err) { toast("Error", "Could not process KYC", "error"); }
     setModal(false);
-    toast("Resubmission Requested", "User will be notified");
   };
 
   const kycCounts = { all: users.length, pending: users.filter(u => u.kyc === "pending").length, under_review: users.filter(u => u.kyc === "under_review").length, verified: users.filter(u => u.kyc === "verified").length, rejected: users.filter(u => u.kyc === "rejected").length };
@@ -922,7 +927,7 @@ function KYCPage({ users, setUsers, toast }) {
             <tbody>
               {filtered.length === 0 && <tr><td colSpan={6} style={{ padding: "48px", textAlign: "center", color: C.textDim, fontSize: "13px" }}>No users match this filter</td></tr>}
               {filtered.map(u => (
-                <tr key={u.id} style={{ borderBottom: `1px solid ${C.border}` }}
+                <tr key={`${u.role}-${u.id}`} style={{ borderBottom: `1px solid ${C.border}` }}
                   onMouseEnter={e => e.currentTarget.style.background = C.bgHover}
                   onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
                   <td style={{ padding: "12px 14px" }}>
@@ -1126,7 +1131,7 @@ function CreditsPage({ users, setUsers, toast }) {
             </thead>
             <tbody>
               {filtered.map(u => (
-                <tr key={u.id} style={{ borderBottom: `1px solid ${C.border}` }}
+                <tr key={`${u.role}-${u.id}`} style={{ borderBottom: `1px solid ${C.border}` }}
                   onMouseEnter={e => e.currentTarget.style.background = C.bgHover}
                   onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
                   <td style={{ padding: "12px 14px" }}>
@@ -1260,34 +1265,35 @@ function FundingPage({ funding, setFunding, users, setUsers, toast }) {
 
   const filtered = funding.filter(f => (filter === "all" || f.status === filter) && (typeFilter === "all" || f.type === typeFilter));
 
-  const handleAction = (id, action) => {
+  const handleAction = async (id, action) => {
     const request = funding.find(f => f.id === id);
     if (!request) return;
 
-    const balanceKey = targetAccount === "demo" ? "demoBalance" : "realBalance";
-    const selectedUser = users.find(u => u.id === request.userId);
-    const availableBalance = toNum(selectedUser?.[balanceKey]);
-
-    if (action === "approved") {
-      if (!selectedUser) {
-        return toast("Approval Failed", "User account not found", "error");
-      }
-
-      if (request.type === "withdrawal" && request.amount > availableBalance) {
-        return toast("Approval Failed", `Insufficient ${targetAccount} balance. Available ${fmt(availableBalance)}`, "error");
-      }
-
-      setUsers(p => p.map(u => {
-        if (u.id !== request.userId) return u;
-        const balanceChange = request.type === "deposit" ? request.amount : -request.amount;
-        return normalizeUserAccounts({ ...u, [balanceKey]: Math.max(0, toNum(u[balanceKey]) + balanceChange) });
-      }));
+    if (action === "rejected" && !note.trim()) {
+      return toast("Validation Error", "Please provide a reason for rejection", "error");
     }
 
-    const finalNote = [note.trim(), action === "approved" ? `Processed to ${targetAccount} account` : ""].filter(Boolean).join(" · ");
-    setFunding(p => p.map(f => f.id === id ? { ...f, status: action, note: finalNote, processedAccount: action === "approved" ? targetAccount : f.processedAccount } : f));
-    if (action === "approved") toast("Request Approved", `${fmt(request.amount || 0)} processed to ${targetAccount} account`);
-    else toast("Request Rejected", note || "No reason given", "error");
+    try {
+        const res = await adminService.processFundingRequest(id, action, note.trim());
+        if (res.data?.success) {
+            const finalNote = [note.trim(), action === "approved" ? `Processed via admin` : ""].filter(Boolean).join(" · ");
+            setFunding(p => p.map(f => f.id === id ? { ...f, status: action, note: finalNote } : f));
+            
+            if (action === "approved") {
+                toast("Request Approved", `${fmt(request.amount || 0)} processed successfully`);
+                adminService.getUsers().then(uRes => {
+                    if(uRes.data?.success) setUsers(uRes.data.data.map(normalizeUserAccounts));
+                });
+            } else {
+                toast("Request Rejected", note || "No reason given", "error");
+            }
+        } else {
+            toast("Process Failed", res.data?.message || "Unknown error", "error");
+        }
+    } catch (err) {
+        toast("Server Error", "Could not process funding request", "error");
+    }
+
     setModal(null); setNote("");
     setTargetAccount("real");
   };
@@ -1632,7 +1638,7 @@ function ReportsPage({ users, trades, funding }) {
             </thead>
             <tbody>
               {users.map(u => (
-                <tr key={u.id} style={{ borderBottom: `1px solid ${C.border}` }}
+                <tr key={`${u.role}-${u.id}`} style={{ borderBottom: `1px solid ${C.border}` }}
                   onMouseEnter={e => e.currentTarget.style.background = C.bgHover}
                   onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
                   <td style={{ padding: "11px 14px" }}>
@@ -1794,6 +1800,131 @@ function SettingsToggle({ label, desc, danger, active, onToggle }) {
       <div onClick={onToggle} style={{ width: "42px", height: "23px", borderRadius: "12px", background: active ? (danger ? C.red : C.gold) : C.border, cursor: "pointer", position: "relative", transition: "background 0.2s", flexShrink: 0 }}>
         <div style={{ position: "absolute", top: "3px", left: active ? "22px" : "3px", width: "17px", height: "17px", borderRadius: "50%", background: active ? "#060B11" : C.textDim, transition: "left 0.2s" }} />
       </div>
+    </div>
+  );
+}
+// ═══════════════════════════════════════════════════════════════════════════
+// ADMINS PAGE
+// ═══════════════════════════════════════════════════════════════════════════
+function AdminsPage({ users, setUsers, toast }) {
+  const { isSuperAdmin } = useContext(AuthContext);
+  const [search, setSearch] = useState("");
+  const [modal, setModal] = useState(null);
+  const [form, setForm] = useState({});
+  const [confirm, setConfirm] = useState(null);
+
+  const filtered = users.filter(u => {
+    if (u.role !== 'admin' && u.role !== 'super_admin') return false;
+    const s = search.toLowerCase();
+    return u.name.toLowerCase().includes(s) || u.email.toLowerCase().includes(s);
+  });
+
+  const openAdd = () => { setForm({ name: "", email: "", password: "", firstName: "", lastName: "", phone: "", country: "", role: "admin", status: "active" }); setModal("add"); };
+  const openEdit = (u) => { setForm({ ...u }); setModal("edit"); };
+
+  const saveAdmin = async () => {
+    if (!form.email || (modal === "add" && !form.password)) return toast("Validation Error", "Email and password required", "error");
+    
+    try {
+        if (modal === "add") {
+            const [firstName, ...lastNameParts] = (form.name || "").split(" ");
+            const lastName = lastNameParts.join(" ");
+            const payload = {
+                ...form,
+                firstName: firstName || "Admin",
+                lastName: lastName || "User"
+            };
+            const res = await adminService.createAdmin(payload);
+            if (res.data?.success) {
+                setUsers(p => [...p, normalizeUserAccounts(res.data.data)]);
+                toast("Admin Created", form.email);
+            }
+        } else {
+            const res = await adminService.updateUser(form.id, { is_active: form.status === "active", role: form.role });
+            if (res.data?.success) {
+                setUsers(p => p.map(u => u.id === form.id ? normalizeUserAccounts({ ...u, ...form }) : u));
+                toast("Admin Updated", form.email);
+            }
+        }
+    } catch(err) {
+        toast("Error", err.response?.data?.message || "Action failed", "error");
+    }
+    setModal(null);
+  };
+
+  return (
+    <div>
+      {confirm && <Modal open onClose={() => setConfirm(null)} title="Confirm Action" width="400px"><p style={{ color: C.text, fontSize: "14px" }}>{confirm.msg}</p><div style={{ display: "flex", gap: "10px", justifyContent: "flex-end", marginTop: "20px" }}><Btn variant="secondary" onClick={() => setConfirm(null)}>Cancel</Btn><Btn danger onClick={confirm.onConfirm}>Confirm</Btn></div></Modal>}
+      
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px", flexWrap: "wrap", gap: "12px" }}>
+        <div><h2 className="syne" style={{ fontSize: "18px", fontWeight: 700, color: C.text }}>Administrator Management</h2><p style={{ fontSize: "12px", color: C.textMuted, marginTop: "2px" }}>{filtered.length} active administrators</p></div>
+        <Btn onClick={openAdd} icon="🛡">Add Admin</Btn>
+      </div>
+
+      <div style={{ marginBottom: "16px" }}>
+        <input placeholder="Search admins..." value={search} onChange={e => setSearch(e.target.value)} style={{ width: "300px", background: C.bgCard, border: `1px solid ${C.border}`, borderRadius: "7px", padding: "8px 12px", color: C.text, fontSize: "13px", outline: "none", boxSizing: "border-box", fontFamily: "inherit" }} />
+      </div>
+
+      <Card noPad>
+        <div style={{ overflowX: "auto" }}>
+          <table style={{ borderCollapse: "collapse", width: "100%", minWidth: "800px" }}>
+            <thead>
+              <tr style={{ borderBottom: `1px solid ${C.border}` }}>
+                {["Administrator", "Role", "Status", "Joined", "Actions"].map(h => (
+                  <th key={h} style={{ padding: "11px 14px", fontSize: "10px", color: C.textMuted, textTransform: "uppercase", letterSpacing: "0.1em", fontWeight: 700, textAlign: "left", background: C.bg, whiteSpace: "nowrap" }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.length === 0 && <tr><td colSpan={5} style={{ padding: "48px", textAlign: "center", color: C.textDim, fontSize: "13px" }}>No administrators found</td></tr>}
+              {filtered.map(u => (
+                <tr key={u.id} style={{ borderBottom: `1px solid ${C.border}`, transition: "background 0.1s" }}
+                  onMouseEnter={e => e.currentTarget.style.background = C.bgHover}
+                  onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+                  <td style={{ padding: "11px 14px" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                      <UserAvatar name={u.name} size={32} />
+                      <div><div style={{ fontSize: "12px", fontWeight: 600, color: C.text }}>{u.name}</div><div style={{ fontSize: "11px", color: C.textMuted }}>{u.email}</div></div>
+                    </div>
+                  </td>
+                  <td style={{ padding: "11px 14px" }}>
+                    <span style={{ color: u.role === 'super_admin' ? C.purple : C.gold, fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>{u.role.replace('_', ' ')}</span>
+                  </td>
+                  <td style={{ padding: "11px 14px" }}><StatusBadge status={u.status} /></td>
+                  <td style={{ padding: "11px 14px" }}><span className="mono" style={{ fontSize: "11px", color: C.textMuted }}>{fmtDate(u.joined)}</span></td>
+                  <td style={{ padding: "11px 14px" }}>
+                    <div style={{ display: "flex", gap: "6px" }}>
+                      <Btn size="sm" variant="ghost" onClick={() => openEdit(u)}>Edit</Btn>
+                      <Btn size="sm" danger onClick={() => {
+                          setConfirm({ msg: `Permanently delete administrator ${u.name}?`, onConfirm: async () => {
+                              try { await adminService.deleteUser(u.id); setUsers(p => p.filter(x => x.id !== u.id)); toast("Admin Deleted", u.name); } catch(err) { toast("Error", "Action failed", "error"); }
+                              setConfirm(null);
+                          }});
+                      }}>Delete</Btn>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </Card>
+
+      <Modal open={modal === "add" || modal === "edit"} onClose={() => setModal(null)} title={modal === "add" ? "Register New Admin" : "Edit Admin"} width="460px">
+        <Input label="Full Name" value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} placeholder="e.g. John Doe" />
+        <Input label="Email Address" type="email" value={form.email} onChange={e => setForm(p => ({ ...p, email: e.target.value }))} disabled={modal === "edit"} />
+        {modal === "add" && <Input label="Initial Password" type="password" value={form.password} onChange={e => setForm(p => ({ ...p, password: e.target.value }))} />}
+        <Sel label="Administrative Role" value={form.role} onChange={e => setForm(p => ({ ...p, role: e.target.value }))} options={[
+            { value: "admin", label: "Standard Administrator" },
+            { value: "super_admin", label: "Super Administrator" }
+        ].filter(o => isSuperAdmin || o.value !== 'super_admin')} />
+        <Sel label="Account Status" value={form.status} onChange={e => setForm(p => ({ ...p, status: e.target.value }))} options={[["active","Active"],["suspended","Suspended"]].map(([v,l]) => ({ value: v, label: l }))} />
+        
+        <div style={{ display: "flex", gap: "8px", justifyContent: "flex-end", marginTop: "16px" }}>
+          <Btn variant="secondary" onClick={() => setModal(null)}>Cancel</Btn>
+          <Btn onClick={saveAdmin}>{modal === "add" ? "Register Admin" : "Save Admin"}</Btn>
+        </div>
+      </Modal>
     </div>
   );
 }

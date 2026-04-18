@@ -79,47 +79,47 @@ const AppRoutes = () => {
 
       {/* Admin Routes - All protected for admins only */}
       <Route path="/admin" element={
-        <ProtectedRoute allowedRoles={['admin']}>
+        <ProtectedRoute allowedRoles={['admin', 'super_admin']}>
           <AdminDashboardPage />
         </ProtectedRoute>
       } />
       <Route path="/admin/users" element={
-        <ProtectedRoute allowedRoles={['admin']}>
+        <ProtectedRoute allowedRoles={['admin', 'super_admin']}>
           <UsersPage />
         </ProtectedRoute>
       } />
       <Route path="/admin/funding" element={
-        <ProtectedRoute allowedRoles={['admin']}>
+        <ProtectedRoute allowedRoles={['admin', 'super_admin']}>
           <FundingRequestsPage />
         </ProtectedRoute>
       } />
       <Route path="/admin/trades" element={
-        <ProtectedRoute allowedRoles={['admin']}>
+        <ProtectedRoute allowedRoles={['admin', 'super_admin']}>
           <TradesPage />
         </ProtectedRoute>
       } />
       <Route path="/admin/reports" element={
-        <ProtectedRoute allowedRoles={['admin']}>
+        <ProtectedRoute allowedRoles={['admin', 'super_admin']}>
           <ReportsPage />
         </ProtectedRoute>
       } />
       <Route path="/admin/audit" element={
-        <ProtectedRoute allowedRoles={['admin']}>
+        <ProtectedRoute allowedRoles={['admin', 'super_admin']}>
           <AuditPage />
         </ProtectedRoute>
       } />
       <Route path="/admin/settings" element={
-        <ProtectedRoute allowedRoles={['admin']}>
+        <ProtectedRoute allowedRoles={['admin', 'super_admin']}>
           <AdminSettingsPage />
         </ProtectedRoute>
       } />
       <Route path="/admin/kyc" element={
-        <ProtectedRoute allowedRoles={['admin']}>
+        <ProtectedRoute allowedRoles={['admin', 'super_admin']}>
           <KYCManagementPage />
         </ProtectedRoute>
       } />
       <Route path="/admin/transactions" element={
-        <ProtectedRoute allowedRoles={['admin']}>
+        <ProtectedRoute allowedRoles={['admin', 'super_admin']}>
           <TransactionsPage />
         </ProtectedRoute>
       } />

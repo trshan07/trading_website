@@ -137,7 +137,8 @@ export const AuthProvider = ({ children }) => {
         refreshUser: loadUser,
         selectedAccountType,
         switchAccountType,
-        isAdmin: user?.role === 'admin',
+        isAdmin: user?.role === 'admin' || user?.role === 'super_admin',
+        isSuperAdmin: user?.role === 'super_admin',
         isClient: user?.role === 'client'
     };
 

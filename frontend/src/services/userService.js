@@ -26,6 +26,23 @@ const userService = {
     changePassword: async (passwordData) => {
         const response = await api.put('/users/change-password', passwordData);
         return response.data;
+    },
+
+    /**
+     * Get user dashboard settings
+     */
+    getSettings: async () => {
+        const response = await api.get('/users/settings');
+        return response.data;
+    },
+
+    /**
+     * Update user settings
+     * @param {Object} settingsData - { theme, chartPreferences, notificationSettings }
+     */
+    updateSettings: async (settingsData) => {
+        const response = await api.put('/users/settings', settingsData);
+        return response.data;
     }
 };
 

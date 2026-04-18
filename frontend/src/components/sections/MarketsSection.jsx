@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import Container from '../layout/Container';
@@ -8,32 +8,85 @@ import Card from '../ui/Card';
 const MarketsSection = () => {
     const [activeTab, setActiveTab] = useState('Forex');
 
-    const marketData = {
+    const [marketData, setMarketData] = useState({
         Forex: [
-            { name: 'EUR/USD', change: '+0.05%', price: '1.0842' },
-            { name: 'GBP/USD', change: '-0.12%', price: '1.2654' },
-            { name: 'USD/JPY', change: '+0.21%', price: '148.32' },
-            { name: 'AUD/USD', change: '-0.08%', price: '0.6542' },
+            { name: 'EUR/USD', symbol: 'FX:EURUSD', change: '+0.00%', price: '0.0000', scanner: 'forex' },
+            { name: 'GBP/USD', symbol: 'FX:GBPUSD', change: '+0.00%', price: '0.0000', scanner: 'forex' },
+            { name: 'USD/JPY', symbol: 'FX:USDJPY', change: '+0.00%', price: '0.00', scanner: 'forex' },
+            { name: 'AUD/USD', symbol: 'FX:AUDUSD', change: '+0.00%', price: '0.0000', scanner: 'forex' },
         ],
         Commodities: [
-            { name: 'Gold', change: '+0.45%', price: '2024.50' },
-            { name: 'Silver', change: '+0.12%', price: '22.84' },
-            { name: 'Crude Oil', change: '-1.20%', price: '73.15' },
-            { name: 'Natural Gas', change: '+2.10%', price: '2.45' },
+            { name: 'Gold', symbol: 'OANDA:XAUUSD', change: '+0.00%', price: '0.00', scanner: 'cfd' },
+            { name: 'Silver', symbol: 'OANDA:XAGUSD', change: '+0.00%', price: '0.00', scanner: 'cfd' },
+            { name: 'Oil', symbol: 'OANDA:WTICOUSD', change: '+0.00%', price: '0.00', scanner: 'cfd' },
+            { name: 'Nat Gas', symbol: 'OANDA:NATGASUSD', change: '+0.00%', price: '0.00', scanner: 'cfd' },
         ],
         Indices: [
-            { name: 'S&P 500', change: '+0.32%', price: '4958.60' },
-            { name: 'Nasdaq 100', change: '+0.54%', price: '17642.10' },
-            { name: 'DAX 40', change: '-0.15%', price: '16952.30' },
-            { name: 'FTSE 100', change: '+0.08%', price: '7615.50' },
+            { name: 'S&P 500', symbol: 'OANDA:SPX500USD', change: '+0.00%', price: '0.00', scanner: 'cfd' },
+            { name: 'Nasdaq', symbol: 'OANDA:NAS100USD', change: '+0.00%', price: '0.00', scanner: 'cfd' },
+            { name: 'DAX', symbol: 'OANDA:DE30EUR', change: '+0.00%', price: '0.00', scanner: 'cfd' },
+            { name: 'UK 100', symbol: 'OANDA:UK100GBP', change: '+0.00%', price: '0.00', scanner: 'cfd' },
         ],
         Crypto: [
-            { name: 'Bitcoin', change: '+2.45%', price: '43250.00' },
-            { name: 'Ethereum', change: '+1.80%', price: '2315.40' },
-            { name: 'Solana', change: '+5.12%', price: '98.45' },
-            { name: 'Cardano', change: '-0.45%', price: '0.50' },
+            { name: 'Bitcoin', symbol: 'BINANCE:BTCUSDT', change: '+0.00%', price: '0.00', scanner: 'crypto' },
+            { name: 'Ethereum', symbol: 'BINANCE:ETHUSDT', change: '+0.00%', price: '0.00', scanner: 'crypto' },
+            { name: 'Solana', symbol: 'BINANCE:SOLUSDT', change: '+0.00%', price: '0.00', scanner: 'crypto' },
+            { name: 'Cardano', symbol: 'BINANCE:ADAUSDT', change: '+0.00%', price: '0.00', scanner: 'crypto' },
         ],
-    };
+    });
+
+    useEffect(() => {
+        const fetchTradingViewData = async () => {
+            const currentTabAssets = marketData[activeTab];
+            if (!currentTabAssets || currentTabAssets.length === 0) return;
+
+            const scanner = currentTabAssets[0].scanner || 'crypto';
+            const tickers = currentTabAssets.map(asset => asset.symbol);
+
+            try {
+                const response = await fetch(`https://scanner.tradingview.com/${scanner}/scan`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: JSON.stringify({
+                        symbols: { tickers },
+                        columns: ['close', 'change']
+                    })
+                });
+
+                if (!response.ok) throw new Error('Network response was not ok');
+                const result = await response.json();
+
+                if (result.data && result.data.length > 0) {
+                    setMarketData(prevData => {
+                        const newData = { ...prevData };
+                        const updatedAssets = newData[activeTab].map(asset => {
+                            const apiItem = result.data.find(item => item.s === asset.symbol);
+                            if (apiItem) {
+                                const price = apiItem.d[0];
+                                const change = apiItem.d[1];
+                                
+                                // Format logic
+                                const formattedPrice = price > 1000 ? price.toFixed(2) : (price < 1 ? price.toFixed(4) : price.toFixed(3));
+                                const formattedChange = change >= 0 ? `+${change.toFixed(2)}%` : `${change.toFixed(2)}%`;
+                                
+                                return { ...asset, price: formattedPrice, change: formattedChange };
+                            }
+                            return asset;
+                        });
+                        newData[activeTab] = updatedAssets;
+                        return newData;
+                    });
+                }
+            } catch (error) {
+                console.error("Failed to fetch live TradingView data:", error);
+            }
+        };
+
+        // Fetch immediately and set interval
+        fetchTradingViewData();
+        const interval = setInterval(fetchTradingViewData, 5000);
+        return () => clearInterval(interval);
+    }, [activeTab]);
 
     return (
         <section className="py-24 relative overflow-hidden">

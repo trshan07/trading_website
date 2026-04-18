@@ -21,8 +21,10 @@ CREATE TABLE IF NOT EXISTS accounts (
     account_number VARCHAR(50) UNIQUE NOT NULL,
     account_type VARCHAR(20) NOT NULL CHECK (account_type IN ('demo', 'real')),
     balance DECIMAL(15,2) DEFAULT 0,
+    credit DECIMAL(15,2) DEFAULT 0,
     currency VARCHAR(10) DEFAULT 'USD',
     status VARCHAR(20) DEFAULT 'active',
+    leverage INTEGER DEFAULT 50,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -83,3 +85,123 @@ CREATE TRIGGER update_trades_updated_at
     BEFORE UPDATE ON trades
     FOR EACH ROW
     EXECUTE FUNCTION update_updated_at_column();
+
+-- Create contact_messages table
+CREATE TABLE IF NOT EXISTS contact_messages (
+    id SERIAL PRIMARY KEY,
+    full_name VARCHAR(255) NOT NULL,
+    email VARCHAR(255) NOT NULL,
+    subject VARCHAR(255),
+    message TEXT NOT NULL,
+    status VARCHAR(20) DEFAULT 'new' CHECK (status IN ('new', 'read', 'replied', 'archived')),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TRIGGER update_contact_messages_updated_at
+    BEFORE UPDATE ON contact_messages
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+-- Create promotions table
+CREATE TABLE IF NOT EXISTS promotions (
+    id SERIAL PRIMARY KEY,
+    title VARCHAR(255) NOT NULL,
+    description TEXT NOT NULL,
+    code VARCHAR(50),
+    icon VARCHAR(100), -- CSS class or icon name
+    is_active BOOLEAN DEFAULT true,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TRIGGER update_promotions_updated_at
+    BEFORE UPDATE ON promotions
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+-- Create account_types_info table
+CREATE TABLE IF NOT EXISTS account_types_info (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    min_deposit DECIMAL(15,2),
+    leverage VARCHAR(20),
+    spreads_from VARCHAR(50),
+    features JSONB DEFAULT '[]',
+    is_active BOOLEAN DEFAULT true,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TRIGGER update_account_types_info_updated_at
+    BEFORE UPDATE ON account_types_info
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+-- Create kyc_submissions table
+CREATE TABLE IF NOT EXISTS kyc_submissions (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+    document_type VARCHAR(50) NOT NULL,
+    document_number VARCHAR(100),
+    file_path TEXT NOT NULL,
+    status VARCHAR(20) DEFAULT 'pending' CHECK (status IN ('pending', 'under_review', 'verified', 'rejected')),
+    rejection_reason TEXT,
+    reviewed_by INTEGER REFERENCES users(id),
+    reviewed_at TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TRIGGER update_kyc_submissions_updated_at
+    BEFORE UPDATE ON kyc_submissions
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+-- Create funding_requests table
+CREATE TABLE IF NOT EXISTS funding_requests (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+    account_id INTEGER REFERENCES accounts(id) ON DELETE CASCADE,
+    type VARCHAR(20) NOT NULL CHECK (type IN ('deposit', 'withdrawal')),
+    amount DECIMAL(15,2) NOT NULL,
+    method VARCHAR(50) NOT NULL,
+    status VARCHAR(20) DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected')),
+    proof_file TEXT,
+    bank_reference VARCHAR(100),
+    rejection_reason TEXT,
+    processed_by INTEGER REFERENCES users(id),
+    processed_at TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TRIGGER update_funding_requests_updated_at
+    BEFORE UPDATE ON funding_requests
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+-- Create transactions table (account ledger)
+CREATE TABLE IF NOT EXISTS transactions (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+    account_id INTEGER REFERENCES accounts(id) ON DELETE CASCADE,
+    type VARCHAR(50) NOT NULL, -- 'deposit', 'withdrawal', 'transfer', 'trade_profit', 'trade_loss', 'credit_add', 'credit_remove'
+    amount DECIMAL(15,2) NOT NULL,
+    balance_before DECIMAL(15,2) NOT NULL,
+    balance_after DECIMAL(15,2) NOT NULL,
+    reference_id INTEGER, -- Link to funding_request_id or trade_id
+    description TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Create admin_logs table
+CREATE TABLE IF NOT EXISTS admin_logs (
+    id SERIAL PRIMARY KEY,
+    admin_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+    action VARCHAR(100) NOT NULL,
+    target_id INTEGER, -- ID of the user or record being changed
+    details TEXT,
+    ip_address VARCHAR(45),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);

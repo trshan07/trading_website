@@ -5,31 +5,44 @@ import Container from '../../components/layout/Container';
 import Navbar from '../../components/layout/Navbar';
 import Footer from '../../components/layout/Footer';
 import accountBg from '../../assets/images/ResourceEx.jpeg';
+import publicService from '../../services/publicService';
 
 const AccountTypesPage = () => {
-    const accounts = [
-        {
-            name: 'Standard Account',
-            minDeposit: '$100',
-            spread: 'From 0.2 pips',
-            commission: '$0',
-            leverage: '1:400',
-            platforms: 'WebTrader, MT5',
-            features: ['Zero Commissions', 'Instant Execution', 'Full Asset Access', '24/5 Support'],
-            tag: 'Most Popular'
-        },
-        {
-            name: 'Raw Account',
-            minDeposit: '$500',
-            spread: 'From 0.0 pips',
-            commission: 'Fixed',
-            leverage: '1:400',
-            platforms: 'WebTrader, MT5, TradingView',
-            features: ['Institutional Spreads', 'Direct Liquidity Access', 'Priority Execution', 'Dedicated Account Manager'],
-            highlight: true,
-            tag: 'Professional Choice'
-        },
-    ];
+    const [accounts, setAccounts] = React.useState([]);
+    const [isLoading, setIsLoading] = React.useState(true);
+
+    React.useEffect(() => {
+        const fetchAccountTypes = async () => {
+            setIsLoading(true);
+            try {
+                const response = await publicService.getAccountTypes();
+                if (response.success) {
+                    setAccounts(response.data.map(acc => ({
+                        name: acc.name,
+                        minDeposit: `$${acc.min_deposit}`,
+                        spread: `From ${acc.spreads_from}`,
+                        commission: acc.name.includes('Elite') || acc.name.includes('Gold') ? 'Fixed' : '$0',
+                        leverage: acc.leverage,
+                        platforms: 'WebTrader, MT5',
+                        features: Array.isArray(acc.features) ? acc.features : JSON.parse(acc.features || '[]'),
+                        tag: acc.name.includes('Standard') ? 'Most Popular' : 'Institutional',
+                        highlight: acc.name.includes('Gold') || acc.name.includes('Elite')
+                    })));
+                }
+            } catch (error) {
+                console.error('Account protocol sync failed:', error);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+        fetchAccountTypes();
+    }, []);
+
+    if (isLoading) return (
+        <div className="min-h-screen bg-[#000F29] flex items-center justify-center">
+            <div className="w-12 h-12 border-4 border-gold border-t-transparent rounded-full animate-spin" />
+        </div>
+    );
 
     const fadeInUp = {
         hidden: { opacity: 0, y: 30 },

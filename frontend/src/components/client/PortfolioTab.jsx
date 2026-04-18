@@ -4,7 +4,7 @@ import AdvancedRealTimeChart from '../trading/TradingViewWidget';
 import { FaChartPie, FaWallet, FaArrowUp, FaArrowDown, FaCube, FaHistory, FaCheckCircle } from 'react-icons/fa';
 import { useTheme } from '../../context/ThemeContext';
 
-const PortfolioTab = ({ portfolio = {}, positions = [] }) => {
+const PortfolioTab = ({ portfolio = {}, positions = [], activityLogs = [] }) => {
   const { theme } = useTheme();
   
   return (
@@ -60,9 +60,11 @@ const PortfolioTab = ({ portfolio = {}, positions = [] }) => {
             <div>
                <FaHistory className="text-slate-900 dark:text-gold-500 mb-6 text-2xl transition-colors" />
                <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1.5">Journal Activity</p>
-               <h4 className="text-2xl font-black text-slate-900 dark:text-white italic tracking-tighter transition-colors">{positions.length + 8} Actions</h4>
+               <h4 className="text-2xl font-black text-slate-900 dark:text-white italic tracking-tighter transition-colors">{activityLogs.length} Actions</h4>
             </div>
-            <p className="text-[9px] text-slate-400 dark:text-slate-500 font-black uppercase tracking-widest mt-6">Last entry: 4 mins ago</p>
+            <p className="text-[9px] text-slate-400 dark:text-slate-500 font-black uppercase tracking-widest mt-6">
+              Last entry: {activityLogs[0] ? new Date(activityLogs[0].created_at).toLocaleTimeString() : 'No entries'}
+            </p>
         </div>
       </div>
 
@@ -154,19 +156,20 @@ const PortfolioTab = ({ portfolio = {}, positions = [] }) => {
            <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 p-6 sm:p-10 shadow-xl shadow-slate-200/50 dark:shadow-black/20 transition-colors duration-300 text-left">
               <h4 className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-[0.3em] mb-6 sm:mb-8 italic transition-colors">Journal Stream</h4>
               <div className="space-y-6">
-                 {[
-                    { label: 'Manual Order Initiate', time: '12m ago', type: 'EXECUTION' },
-                    { label: 'Global Sink Verified', time: '1h ago', type: 'NETWORK' },
-                    { label: 'Capital Injection Complete', time: '4h ago', type: 'ASSET' }
-                 ].map((log, idx) => (
+                 {activityLogs.slice(0, 10).map((log, idx) => (
                     <div key={idx} className="flex flex-col space-y-1">
-                       <p className="text-[11px] font-black text-slate-900 dark:text-white uppercase tracking-tight transition-colors">{log.label}</p>
+                       <p className="text-[11px] font-black text-slate-900 dark:text-white uppercase tracking-tight transition-colors">{log.message}</p>
                        <div className="flex justify-between items-center">
-                          <span className="text-[8px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest italic transition-colors">{log.time}</span>
+                          <span className="text-[8px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest italic transition-colors">
+                            {new Date(log.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </span>
                           <span className="text-[8px] font-black text-gold-600 dark:text-gold-500 uppercase tracking-widest transition-colors">{log.type}</span>
                        </div>
                     </div>
                  ))}
+                 {activityLogs.length === 0 && (
+                   <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest text-center">No Recent Activity</p>
+                 )}
               </div>
            </div>
         </div>

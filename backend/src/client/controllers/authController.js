@@ -1,8 +1,9 @@
 // controllers/authController.js
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
-const User = require('../models/User');
-const Account = require('../models/Account');
+const User = require('../../models/User');
+const Admin = require('../../models/Admin');
+const Account = require('../../models/Account');
 
 // Generate JWT
 const generateToken = (id, role) => {
@@ -80,15 +81,16 @@ const registerAdmin = async (req, res) => {
             return res.status(400).json({ message: 'Please add all required fields' });
         }
 
-        // Check if user exists
+        // Check if user exists in either table
         const userExists = await User.findByEmail(email);
+        const adminExists = await Admin.findByEmail(email);
 
-        if (userExists) {
-            return res.status(400).json({ message: 'User already exists' });
+        if (userExists || adminExists) {
+            return res.status(400).json({ message: 'User already exists with this email' });
         }
 
-        // Create user as admin
-        const user = await User.create({
+        // Create user as admin in the admins table
+        const user = await Admin.create({
             email,
             password,
             firstName,
@@ -126,11 +128,24 @@ const registerAdmin = async (req, res) => {
 const login = async (req, res) => {
     try {
         const { email, password } = req.body;
+        console.log(`[LOGIN] Attempt for: ${email}`);
 
-        // Check for user email
-        const user = await User.findByEmail(email);
+        // Check for user in clients table first, then admins
+        let user = await User.findByEmail(email);
+        let isAdmin = false;
 
         if (!user) {
+            user = await Admin.findByEmail(email);
+            if (user) {
+                isAdmin = true;
+                console.log(`[LOGIN] Found in admins table: ${email}`);
+            }
+        } else {
+            console.log(`[LOGIN] Found in users table: ${email}`);
+        }
+
+        if (!user) {
+            console.log(`[LOGIN] User not found in either table: ${email}`);
             return res.status(401).json({ 
                 success: false,
                 message: 'Invalid credentials' 
@@ -147,6 +162,7 @@ const login = async (req, res) => {
 
         // Check password
         const isValidPassword = await bcrypt.compare(password, user.password_hash);
+        console.log(`[LOGIN] Password valid: ${isValidPassword}`);
         
         if (!isValidPassword) {
             return res.status(401).json({ 

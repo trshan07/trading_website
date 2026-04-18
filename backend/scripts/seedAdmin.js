@@ -7,34 +7,29 @@ const seedAdmin = async () => {
         const adminEmail = 'admin@trade.local';
         const adminPassword = 'adminpassword123'; // The client should change this later
 
-        // Check if admin already exists
-        const { rows: existingRows } = await db.query('SELECT * FROM users WHERE email = $1', [adminEmail]);
-        if (existingRows.length > 0) {
-            console.log('Admin user already exists.');
-            process.exit(0);
-        }
-
-        // Create admin user
         const salt = await bcrypt.genSalt(10);
         const passwordHash = await bcrypt.hash(adminPassword, salt);
 
+        console.log('Seeding Super Admin into admins table...');
         const query = `
-            INSERT INTO users (email, password_hash, first_name, last_name, role, is_verified)
+            INSERT INTO admins (email, password_hash, first_name, last_name, role, is_active)
             VALUES ($1, $2, $3, $4, $5, $6)
+            ON CONFLICT (email) DO UPDATE 
+            SET role = EXCLUDED.role, password_hash = EXCLUDED.password_hash
             RETURNING id, email, role
         `;
-        const values = [adminEmail, passwordHash, 'System', 'Admin', 'admin', true];
-
+        const values = [adminEmail, passwordHash, 'Super', 'Admin', 'super_admin', true];
+        
         const { rows } = await db.query(query, values);
-        
-        console.log('Admin seeded successfully:', rows[0]);
-        console.log(`Login Email: ${adminEmail}`);
-        console.log(`Login Password: ${adminPassword}`);
-        
-        process.exit(0);
+        console.log('✅ Super Admin seeded successfully into admins table:');
+        console.log(`Email: ${rows[0].email}`);
+        console.log(`Role: ${rows[0].role}`);
+        console.log('Use these credentials to create other admins via the Super Admin panel.');
+
     } catch (error) {
-        console.error('Error seeding admin:', error);
-        process.exit(1);
+        console.error('❌ Error seeding Super Admin:', error);
+    } finally {
+        process.exit(0);
     }
 };
 

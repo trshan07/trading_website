@@ -65,7 +65,50 @@ const TradingViewWidget = ({
     containerRef.current.id = widgetId;
 
     const isDark = theme === 'dark';
-    const tvSymbol = symbol.includes(':') ? symbol : `BINANCE:${symbol.replace('/', '')}`;
+    
+    // Smart Symbol Mapping for Global Hub
+    let tvSymbol = symbol;
+    if (!symbol.includes(':')) {
+      const sym = symbol.replace(/[^A-Z0-9!]/g, ''); // Keep ! for futures
+      
+      // 1. Specific Fixes / Overrides
+      const overrides = {
+        'US10Y': 'TVC:US10Y',
+        'DXY': 'TVC:DXY',
+        'SPX': 'INDEX:SPX',
+        'NDX': 'INDEX:NDX',
+        'DJI': 'INDEX:DJI',
+        'VIX': 'TVC:VIX',
+        'BRENT': 'TVC:UKOIL',
+        'XAUUSD': 'TVC:GOLD',
+        'XAGUSD': 'TVC:SILVER',
+        'IBOV': 'BMFBOVESPA:IBOV',
+        'ES1!': 'CME_MINI:ES1!',
+        'YM1!': 'CBOT:YM1!',
+        'CL1!': 'NYMEX:CL1!',
+        'SPY': 'AMEX:SPY',
+        'QQQ': 'NASDAQ:QQQ',
+        'AAPL': 'NASDAQ:AAPL',
+        'TSLA': 'NASDAQ:TSLA',
+        'MSFT': 'NASDAQ:MSFT',
+        'GOOGL': 'NASDAQ:GOOGL'
+      };
+
+      if (overrides[sym]) {
+        tvSymbol = overrides[sym];
+      } else if (['BTC', 'ETH', 'SOL', 'ADA', 'BNB'].some(s => sym.startsWith(s))) {
+        tvSymbol = `BINANCE:${sym}`;
+      } else if (['EURUSD', 'GBPUSD', 'USDJPY', 'AUDUSD', 'USDCAD'].includes(sym)) {
+        tvSymbol = `FX:${sym}`;
+      } else {
+        tvSymbol = `BITSTAMP:${sym}`; // General Crypto Fallback
+      }
+    }
+
+    // Clear container
+    if (containerRef.current) {
+      containerRef.current.innerHTML = '';
+    }
 
     try {
       const widget = new window.TradingView.widget({
@@ -108,9 +151,10 @@ const TradingViewWidget = ({
     }
 
     return () => {
-      if (widgetRef.current) {
-        widgetRef.current = null;
+      if (containerRef.current) {
+        containerRef.current.innerHTML = '';
       }
+      widgetRef.current = null;
     };
   }, [scriptLoaded, symbol, theme]); // Added explicit cleanup logic
 

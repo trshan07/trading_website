@@ -1,19 +1,27 @@
 // frontend/src/components/trading/TerminalAssetList.jsx
 import React, { useState } from 'react';
 import { FaSearch, FaStar, FaRegStar, FaChevronDown, FaTimes } from 'react-icons/fa';
-import { MARKET_INSTRUMENTS, CATEGORIES, CATEGORY_COLORS } from '../../constants/marketData';
 import { calculateSpreads } from '../../utils/spreadCalculator';
 
-const TerminalAssetList = ({ activeSymbol, onSelectSymbol, favorites = [], onToggleFavorite, onClose, marketData = {} }) => {
+const TerminalAssetList = ({ 
+  activeSymbol, 
+  onSelectSymbol, 
+  favorites = [], 
+  onToggleFavorite, 
+  onClose, 
+  marketData = {},
+  instruments = [],
+  categories = []
+}) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [primaryCategory, setPrimaryCategory] = useState('All');
   const [secondaryFilter, setSecondaryFilter] = useState('All');
 
   // Filter options
-  const primaryOptions = ['All', 'Crypto', 'Forex', 'Stocks', 'Indices', 'Commodities', 'Futures', 'Bonds', 'Economy'];
+  const primaryOptions = ['All', ...(categories.length > 0 ? categories : ['Crypto', 'Forex', 'Stocks', 'Indices', 'Commodities', 'Futures', 'Bonds', 'Economy'])];
   const secondaryOptions = ['All', 'Watchlist', 'Popular', 'Top Gainers', 'Top Losers'];
 
-  let filtered = MARKET_INSTRUMENTS.filter(inst => {
+  let filtered = instruments.filter(inst => {
     let matchesPrimary = primaryCategory === 'All' || inst.category === primaryCategory;
     
     let matchesSecondary = true;
