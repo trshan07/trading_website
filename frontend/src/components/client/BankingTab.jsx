@@ -39,7 +39,11 @@ const BankingTab = ({
   onAddBankAccount,
   onDeleteBankAccount,
   onSetDefaultBankAccount,
+  onAddCreditCard,
+  onDeleteCreditCard,
+  onSetDefaultCreditCard,
   onShowTransferModal,
+  platformInfo,
   isDemo
 }) => {
   const [activeBankingTab, setActiveBankingTab] = useState('overview');
@@ -49,6 +53,9 @@ const BankingTab = ({
   const [showDeposit, setShowDeposit] = useState(false);
   const [withdrawAmount, setWithdrawAmount] = useState('');
   const [depositAmount, setDepositAmount] = useState('');
+  const [depositReference, setDepositReference] = useState('');
+  const [depositProof, setDepositProof] = useState(null);
+  const [depositProofName, setDepositProofName] = useState('');
   const [selectedMethod, setSelectedMethod] = useState('bank');
   const [showSuccessMessage, setShowSuccessMessage] = useState('');
   const [showErrorMessage, setShowErrorMessage] = useState('');
@@ -206,37 +213,25 @@ const BankingTab = ({
 
   const validateCardForm = () => {
     const errors = {};
-    const cleanCardNumber = cardForm.cardNumber.replace(/\s/g, '');
-
-    if (!cardForm.cardholderName.trim()) errors.cardholderName = 'Cardholder name is required';
-    if (!/^\d{13,19}$/.test(cleanCardNumber)) errors.cardNumber = 'Enter a valid card number';
-
-    if (!/^(0[1-9]|1[0-2])\/\d{2}$/.test(cardForm.expiry)) {
-      errors.expiry = 'Use MM/YY format';
-    } else {
-      const [month, year] = cardForm.expiry.split('/').map((part) => parseInt(part, 10));
-      const now = new Date();
-      const currentMonth = now.getMonth() + 1;
-      const currentYear = now.getFullYear() % 100;
-      if (year < currentYear || (year === currentYear && month < currentMonth)) {
-        errors.expiry = 'Card is expired';
-      }
-    }
-
-    if (!/^\d{3,4}$/.test(cardForm.cvv)) errors.cvv = 'Enter a valid CVV';
-    if (!cardForm.billingAddress.trim()) errors.billingAddress = 'Billing address is required';
-
+    if (!cardForm.cardholderName?.trim()) errors.cardholderName = 'Cardholder name is required';
+    if (!cardForm.cardNumber?.trim()) errors.cardNumber = 'Card number is required';
+    if (!cardForm.expiry?.trim()) errors.expiry = 'Expiry is required';
+    if (!cardForm.cvv?.trim()) errors.cvv = 'CVV is required';
+    if (!cardForm.billingAddress?.trim()) errors.billingAddress = 'Billing address is required';
     return errors;
   };
 
   const handleAddCardDetails = async (e) => {
     e.preventDefault();
+    console.log('Card Submit Clicked', cardForm);
     const errors = validateCardForm();
+    console.log('Card Validation Errors:', errors);
     if (Object.keys(errors).length > 0) {
       setCardErrors(errors);
       return;
     }
 
+    console.log('Validation Passed. Submitting...');
     setIsCardSubmitting(true);
     try {
       const result = await onAddCreditCard(cardForm);
@@ -314,13 +309,16 @@ const BankingTab = ({
     }
     
     if (onDeposit) {
-      onDeposit(depositAmount, selectedMethod);
+      onDeposit(depositAmount, selectedMethod, depositReference, depositProof);
     }
     
     setShowSuccessMessage('Deposit initiated successfully!');
     setTimeout(() => setShowSuccessMessage(''), 3000);
     setShowDeposit(false);
     setDepositAmount('');
+    setDepositReference('');
+    setDepositProof(null);
+    setDepositProofName('');
   };
 
   const handleWithdraw = () => {
@@ -703,7 +701,7 @@ const BankingTab = ({
                 </div>
               </div>
 
-              <div className="space-y-4">
+               <div className="space-y-4">
                 <label className="text-[10px] uppercase font-black text-slate-400 tracking-[0.3em] ml-2">Injection Magnitude</label>
                 <div className="relative">
                   <span className="absolute left-6 top-1/2 -translate-y-1/2 text-2xl font-black text-slate-300 dark:text-slate-700 italic">$</span>
@@ -716,6 +714,73 @@ const BankingTab = ({
                   />
                 </div>
               </div>
+
+              {selectedMethod === 'bank' && platformInfo && (
+                <div className="bg-slate-900 rounded-[2rem] p-6 sm:p-8 border border-slate-800 space-y-6 relative overflow-hidden">
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-gold-500/5 blur-3xl rounded-full translate-x-16 -translate-y-16"></div>
+                  <div className="flex items-center justify-between mb-2">
+                    <h4 className="text-[10px] font-black text-gold-500 uppercase tracking-[0.3em] italic">Receiver Protocol Details</h4>
+                    <span className="px-3 py-1 rounded-full bg-gold-500/10 text-gold-500 text-[8px] font-black uppercase tracking-widest border border-gold-500/20">Verified Vault</span>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                    <div className="space-y-1">
+                      <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest">Bank Entity</p>
+                      <p className="text-sm font-black text-white italic">{platformInfo.bank_name}</p>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest">Account Identity</p>
+                      <p className="text-sm font-black text-white italic">{platformInfo.account_name}</p>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest">IBAN / Account No</p>
+                      <p className="text-sm font-black text-white italic tracking-tighter">{platformInfo.iban || platformInfo.account_number}</p>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest">SWIFT / BIC</p>
+                      <p className="text-sm font-black text-white italic">{platformInfo.swift_bic}</p>
+                    </div>
+                  </div>
+
+                  <div className="pt-4 border-t border-slate-800 flex flex-col gap-4">
+                    <div className="space-y-2">
+                      <label className="text-[9px] uppercase font-black text-slate-400 tracking-[0.2em] ml-1">Transfer Reference *</label>
+                      <input
+                        type="text"
+                        value={depositReference}
+                        onChange={(e) => setDepositReference(e.target.value)}
+                        className="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-xl text-xs font-bold text-white focus:outline-none focus:ring-2 focus:ring-gold-500/20"
+                        placeholder="RT-XXXXXX"
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <label className="text-[9px] uppercase font-black text-slate-400 tracking-[0.2em] ml-1">Proof of Transfer *</label>
+                      <label className="flex items-center justify-between gap-4 px-4 py-3 bg-slate-800 border border-slate-700 rounded-xl cursor-pointer hover:border-gold-500/50 transition-all">
+                        <div className="flex items-center gap-3">
+                          <FaUpload className="text-gold-500 text-xs" />
+                          <span className="text-[10px] font-bold text-slate-300 truncate max-w-[200px]">
+                            {depositProofName || 'Upload transaction receipt'}
+                          </span>
+                        </div>
+                        <span className="text-[8px] font-black text-gold-500 uppercase tracking-widest">Select File</span>
+                        <input 
+                          type="file" 
+                          className="hidden" 
+                          onChange={(e) => {
+                            const file = e.target.files[0];
+                            if (file) {
+                              setDepositProof(file);
+                              setDepositProofName(file.name);
+                            }
+                          }}
+                          accept="image/*,.pdf"
+                        />
+                      </label>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               <div className="flex flex-col sm:flex-row gap-4 pt-4">
                 <button

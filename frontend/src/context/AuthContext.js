@@ -42,16 +42,27 @@ export const AuthProvider = ({ children }) => {
         }
 
         try {
-            const response = await api.get('/users/profile');
-            // Safe access to nested data
+            // Decode role from JWT payload (without verifying — server will verify)
+            let role = 'client';
+            try {
+                const payload = JSON.parse(atob(token.split('.')[1]));
+                role = payload.role || 'client';
+            } catch (_) {}
+
+            // Route to the correct profile endpoint based on role
+            const endpoint = (role === 'admin' || role === 'super_admin')
+                ? '/admin/profile'
+                : '/users/profile';
+
+            const response = await api.get(endpoint);
             const userData = response?.data?.data;
             
             if (userData) {
                 setUser({
                     id: userData.id || userData._id,
                     email: userData.email,
-                    firstName: userData.firstName || userData.first_name, // Mapping snake_case
-                    lastName: userData.lastName || userData.last_name,   // Mapping snake_case
+                    firstName: userData.firstName || userData.first_name,
+                    lastName: userData.lastName || userData.last_name,
                     phone: userData.phone,
                     country: userData.country,
                     role: userData.role,
@@ -63,7 +74,6 @@ export const AuthProvider = ({ children }) => {
             }
         } catch (error) {
             console.error('[AUTH] Profile load failed:', error.message);
-            // On 401, logout will be handled by api.js interceptor or here
             if (error.response?.status === 401) {
                 toast.error("Session expired. Please sign in again.");
                 logout();

@@ -164,6 +164,7 @@ const DashboardPage = () => {
     instruments,
     categories,
     portfolioHistory,
+    platformInfo,
     unreadNotifications: hookUnreadCount
   } = useDashboardData(selectedAccountType);
 
@@ -373,6 +374,7 @@ const DashboardPage = () => {
                   onAddCreditCard={handleAddCreditCard}
                   onDeleteCreditCard={handleDeleteCreditCard}
                   onSetDefaultCreditCard={handleSetDefaultCreditCard}
+                  platformInfo={platformInfo}
                   isDemo={isDemo}
                 />
               )}

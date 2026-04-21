@@ -14,6 +14,7 @@ const {
     withdraw,
     transfer
 } = require('../controllers/fundingController');
+const { getPlatformBankingInfo } = require('../controllers/platformController');
 const { protect } = require('../../middleware/authMiddleware');
 const upload = require('../../middleware/uploadMiddleware');
 
@@ -21,7 +22,7 @@ router.use(protect); // All funding routes require authentication
 
 // Bank Accounts
 router.get('/bank-accounts', getBankAccounts);
-router.post('/bank-accounts', addBankAccount);
+router.post('/bank-accounts', upload.single('proofOfBankAccount'), addBankAccount);
 router.delete('/bank-accounts/:id', deleteBankAccount);
 router.patch('/bank-accounts/:id/default', setDefaultBankAccount);
 
@@ -35,5 +36,8 @@ router.get('/transactions', getTransactions);
 router.post('/deposit', upload.single('proof'), deposit);
 router.post('/withdraw', withdraw);
 router.post('/transfer', transfer);
+
+// Platform Info
+router.get('/platform-info', getPlatformBankingInfo);
 
 module.exports = router;

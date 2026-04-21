@@ -4,10 +4,12 @@ const db = require('../config/database');
 class FundingRequest {
     static async findAll(status = null) {
         let query = `
-            SELECT fr.*, u.email as user_email, u.first_name, u.last_name, a.account_number 
+            SELECT fr.*, u.email as user_email, u.first_name, u.last_name, a.account_number,
+                   admins.email as admin_email
             FROM funding_requests fr
             JOIN users u ON fr.user_id = u.id
             JOIN accounts a ON fr.account_id = a.id
+            LEFT JOIN admins ON fr.processed_by = admins.id
         `;
         const values = [];
         

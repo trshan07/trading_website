@@ -1,11 +1,13 @@
 import React, { useState, useContext, useEffect } from 'react';
 import { FaUser, FaLock, FaBell, FaPalette, FaCog, FaChevronLeft, FaSave, FaCheckCircle, FaExclamationCircle, FaShieldAlt, FaRegMoon, FaSun } from 'react-icons/fa';
 import { AuthContext } from '../../context/AuthContext';
+import { useTheme } from '../../context/ThemeContext';
 import userService from '../../services/userService';
 import toast from 'react-hot-toast';
 
 const SettingsTab = () => {
     const { user, setUser } = useContext(AuthContext);
+    const { theme, setTheme } = useTheme();
     const [activeView, setActiveView] = useState('overview');
     const [loading, setLoading] = useState(false);
     
@@ -43,6 +45,9 @@ const SettingsTab = () => {
                 const res = await userService.getSettings();
                 if (res.success && res.data) {
                     setSettingsForm(res.data);
+                    if (res.data.theme) {
+                        setTheme(res.data.theme);
+                    }
                 }
             } catch (error) {
                 console.error("Failed to sync settings");
@@ -162,14 +167,20 @@ const SettingsTab = () => {
                         <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Color Protocol</label>
                         <div className="flex gap-4">
                             <button 
-                                onClick={() => setSettingsForm({...settingsForm, theme: 'light'})}
+                                onClick={() => {
+                                    setSettingsForm({...settingsForm, theme: 'light'});
+                                    setTheme('light');
+                                }}
                                 className={`flex-1 p-6 rounded-2xl border flex flex-col items-center gap-3 transition-all ${settingsForm.theme === 'light' ? 'border-gold-500 bg-gold-500/5 text-gold-500' : 'border-slate-100 dark:border-slate-800 text-slate-400'}`}
                             >
                                 <FaSun size={20} />
                                 <span className="text-[9px] font-black uppercase tracking-widest">Slate Light</span>
                             </button>
                             <button 
-                                onClick={() => setSettingsForm({...settingsForm, theme: 'dark'})}
+                                onClick={() => {
+                                    setSettingsForm({...settingsForm, theme: 'dark'});
+                                    setTheme('dark');
+                                }}
                                 className={`flex-1 p-6 rounded-2xl border flex flex-col items-center gap-3 transition-all ${settingsForm.theme === 'dark' ? 'border-gold-500 bg-gold-500/5 text-gold-500' : 'border-slate-100 dark:border-slate-800 text-slate-400'}`}
                             >
                                 <FaRegMoon size={20} />

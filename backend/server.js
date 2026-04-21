@@ -105,6 +105,9 @@ app.get('/api', (req, res) => {
         }
     });
 });
+// Serve static uploads
+const path = require('path');
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Auth routes
 app.use('/api/auth', authRoutes);

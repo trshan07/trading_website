@@ -39,6 +39,7 @@ export const useDashboardData = (accountType = 'demo') => {
   const [favorites, setFavorites] = useState([]);
   const [instruments, setInstruments] = useState([]);
   const [categories, setCategories] = useState([]);
+  const [platformInfo, setPlatformInfo] = useState(null);
   
   const [portfolioHistory, setPortfolioHistory] = useState([
     { date: '2024-03-01', balance: 0 },
@@ -95,7 +96,29 @@ export const useDashboardData = (accountType = 'demo') => {
   const fetchDocuments = useCallback(async () => {
     try {
       const res = await kycService.getDocuments();
-      if (res.success) setDocuments(res.data);
+      if (res.success) {
+        const getRelativeUrl = (filePath) => {
+          if (!filePath) return '';
+          const match = filePath.match(/[\\/]uploads[\\/]/);
+          if (match) {
+            const index = filePath.indexOf(match[0]);
+            return '/' + filePath.substring(index + 1).replace(/\\/g, '/');
+          }
+          return filePath.startsWith('/') ? filePath : `/${filePath}`;
+        };
+
+        const mappedDocs = res.data.map(doc => ({
+          id: doc.id,
+          name: doc.document_number, // We stored the original filename here
+          category: doc.document_type,
+          type: doc.file_path ? doc.file_path.split('.').pop().toUpperCase() : 'UNKNOWN',
+          size: 'N/A',
+          uploadDate: new Date(doc.created_at).toLocaleDateString(),
+          status: doc.status.charAt(0).toUpperCase() + doc.status.slice(1),
+          url: `${process.env.REACT_APP_API_URL || 'http://localhost:5000'}${getRelativeUrl(doc.file_path)}`
+        }));
+        setDocuments(mappedDocs);
+      }
     } catch (error) {
       console.error('KYC Fetch Failed:', error);
     }
@@ -149,6 +172,10 @@ export const useDashboardData = (accountType = 'demo') => {
       if (notifRes.success) setNotifications(notifRes.data);
       if (logRes.success) setActivityLogs(logRes.data);
       if (favRes.success) setFavorites(favRes.data);
+
+      // Fetch Platform Banking Info
+      const platRes = await fundingService.getPlatformInfo();
+      if (platRes.success) setPlatformInfo(platRes.data);
     } catch (error) {
       console.error('Infrastructure Fetch Failed:', error);
     }
@@ -219,9 +246,12 @@ export const useDashboardData = (accountType = 'demo') => {
       if (res.success) {
         setBankAccounts(prev => [...prev, res.data]);
         toast.success("Bank account added");
+        return res;
       }
+      return false;
     } catch (error) {
       toast.error("Failed to add bank account");
+      return false;
     }
   };
 
@@ -255,9 +285,13 @@ export const useDashboardData = (accountType = 'demo') => {
       if (res.success) {
         setCreditCards(prev => [...prev, res.data]);
         toast.success("Card added");
+        return res;
       }
+      return false;
     } catch (error) {
+      console.error("Add Card Error:", error);
       toast.error("Failed to add card");
+      return false;
     }
   };
 
@@ -285,13 +319,14 @@ export const useDashboardData = (accountType = 'demo') => {
     }
   };
 
-  const handleDeposit = async (amount, method, reference) => {
+  const handleDeposit = async (amount, method, reference, proof = null) => {
     try {
       const res = await fundingService.deposit({
         amount: parseFloat(amount),
         method,
         accountId,
-        reference
+        reference,
+        proof
       });
       if (res.success) {
         setTransactions(prev => [res.data, ...prev]);
@@ -404,7 +439,29 @@ export const useDashboardData = (accountType = 'demo') => {
     try {
       const res = await kycService.uploadDocument(doc);
       if (res.success) {
-        setDocuments(prev => [res.data, ...prev]);
+        const docData = res.data;
+        
+        const getRelativeUrl = (filePath) => {
+          if (!filePath) return '';
+          const match = filePath.match(/[\\/]uploads[\\/]/);
+          if (match) {
+            const index = filePath.indexOf(match[0]);
+            return '/' + filePath.substring(index + 1).replace(/\\/g, '/');
+          }
+          return filePath.startsWith('/') ? filePath : `/${filePath}`;
+        };
+
+        const mappedDoc = {
+          id: docData.id,
+          name: docData.document_number,
+          category: docData.document_type,
+          type: docData.file_path ? docData.file_path.split('.').pop().toUpperCase() : 'UNKNOWN',
+          size: 'N/A',
+          uploadDate: new Date(docData.created_at).toLocaleDateString(),
+          status: docData.status.charAt(0).toUpperCase() + docData.status.slice(1),
+          url: `${process.env.REACT_APP_API_URL || 'http://localhost:5000'}${getRelativeUrl(docData.file_path)}`
+        };
+        setDocuments(prev => [mappedDoc, ...prev]);
         toast.success("Document uploaded");
       }
     } catch (error) {
@@ -551,6 +608,7 @@ export const useDashboardData = (accountType = 'demo') => {
     notifications,
     priceAlerts,
     settings,
+    platformInfo,
     handleAddBankAccount,
     handleDeleteBankAccount,
     handleSetDefaultBankAccount,

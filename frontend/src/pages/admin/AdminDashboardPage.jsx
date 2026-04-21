@@ -50,13 +50,17 @@ const normalizeUserAccounts = (user) => {
 
   const name = user?.name || ((user?.firstName || "") + " " + (user?.lastName || "")).trim() || "Unknown User";
 
+  const kyc = user?.kyc_status || user?.kyc || "not_submitted";
+  const kycSubmitted = user?.kyc_submitted_at || null;
+
   return {
     ...user,
     name,
     email: user?.email || "",
     country: user?.country || "",
     status: user?.is_active === false ? "suspended" : (user?.status || "active"),
-    kyc: user?.kyc || "pending",
+    kyc,
+    kycSubmitted,
     kycDocs: user?.kycDocs || [],
     creditHistory: user?.creditHistory || [],
     totalTrades: user?.totalTrades || 0,
@@ -246,17 +250,20 @@ export default function AdminCRM() {
   const [stats, setStats] = useState({
     totalUsers: 0, activeUsers: 0, pendingKyc: 0, 
     totalBalance: 0, totalCredit: 0, pendingFunding: 0, 
-    totalTrades: 0, openTrades: 0, totalVolume: 1840000
+    totalTrades: 0, openTrades: 0, totalVolume: 0
   });
+  const [growthStats, setGrowthStats] = useState({ userGrowth: [], tradingVolume: [] });
 
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
         setLoading(true);
-        const [statsRes, usersRes, fundingRes] = await Promise.all([
+        const [statsRes, usersRes, fundingRes, tradesRes, growthStatsRes] = await Promise.all([
           adminService.getDashboardStats().catch(() => ({ data: { data: {} } })),
           adminService.getUsers().catch(() => ({ data: { data: [] } })),
-          adminService.getFundingRequests().catch(() => ({ data: { data: [] } }))
+          adminService.getFundingRequests().catch(() => ({ data: { data: [] } })),
+          adminService.getTrades().catch(() => ({ data: { data: [] } })),
+          adminService.getGrowthStats().catch(() => ({ data: { data: { userGrowth: [], tradingVolume: [] } } }))
         ]);
         
         if (statsRes.data?.success) {
@@ -265,6 +272,8 @@ export default function AdminCRM() {
         }
         if (usersRes.data?.success) setUsers(usersRes.data.data.map(normalizeUserAccounts));
         if (fundingRes.data?.success) setFunding(fundingRes.data.data);
+        if (tradesRes.data?.success) setTrades(tradesRes.data.data);
+        if (growthStatsRes?.data?.success) setGrowthStats(growthStatsRes.data.data);
       } catch (err) {
         console.error("Failed to load dashboard data", err);
       } finally {
@@ -409,10 +418,10 @@ export default function AdminCRM() {
 
           {/* Page */}
           <main style={{ flex: 1, overflow: "auto", padding: "20px" }} className="page-anim">
-            {page === "dashboard" && <DashboardPage stats={stats} users={users} funding={funding} trades={trades} setPage={setPage} />}
+            {page === "dashboard" && <DashboardPage stats={stats} users={users} funding={funding} trades={trades} growthStats={growthStats} setPage={setPage} />}
             {page === "users" && <UsersPage users={users} setUsers={setUsers} toast={toast} />}
             {page === "admins" && <AdminsPage users={users} setUsers={setUsers} toast={toast} />}
-            {page === "kyc" && <KYCPage users={users} setUsers={setUsers} toast={toast} />}
+            {page === "kyc" && <KYCPage toast={toast} />}
             {page === "credits" && <CreditsPage users={users} setUsers={setUsers} toast={toast} />}
             {page === "funding" && <FundingPage funding={funding} setFunding={setFunding} users={users} setUsers={setUsers} toast={toast} />}
             {page === "trades" && <TradesPage trades={trades} />}
@@ -428,13 +437,13 @@ export default function AdminCRM() {
 // ═══════════════════════════════════════════════════════════════════════════
 // DASHBOARD
 // ═══════════════════════════════════════════════════════════════════════════
-function DashboardPage({ stats, users, funding, trades, setPage }) {
+function DashboardPage({ stats, users, funding, trades, growthStats, setPage }) {
   const kpis = [
-    { label: "Total Users", value: fmtNum(stats.totalUsers), sub: `${stats.activeUsers} active`, spark: [98, 124, 159, 201, 245, 289, 321], color: C.gold },
+    { label: "Total Users", value: fmtNum(stats.totalUsers), sub: `${stats.activeUsers} active`, spark: (growthStats?.userGrowth || []).map(d => d.u), color: C.gold },
     { label: "Platform Balance", value: fmt(stats.totalBalance), sub: "All accounts", spark: [820000, 940000, 1100000, 980000, 1240000, 1690000, stats.totalBalance], color: C.blue },
     { label: "Total Credits", value: fmt(stats.totalCredit), sub: "Active credit lines", spark: [3000, 5200, 4800, 7100, 9200, 12000, stats.totalCredit], color: C.purple },
     { label: "Pending KYC", value: fmtNum(stats.pendingKyc), sub: "Needs review", spark: [4, 6, 3, 8, 5, 7, stats.pendingKyc], color: C.amber },
-    { label: "Monthly Volume", value: fmt(stats.totalVolume), sub: "+12.4% vs last month", spark: [980000, 1250000, 1580000, 1320000, 1690000, 2100000, 1840000], color: C.green },
+    { label: "Monthly Volume", value: fmt(stats.totalVolume), sub: "Platform aggregate", spark: (growthStats?.tradingVolume || []).map(d => d.v), color: C.green },
     { label: "Pending Funding", value: fmtNum(stats.pendingFunding), sub: "Awaiting approval", spark: [2, 4, 3, 6, 4, 5, stats.pendingFunding], color: C.red },
     { label: "Open Trades", value: fmtNum(stats.openTrades), sub: "Live positions", spark: [12, 18, 14, 22, 17, 20, stats.openTrades], color: C.blue },
     { label: "Success Rate", value: "98.5%", sub: "Trade execution", spark: [97.1, 97.8, 98.0, 97.5, 98.2, 98.4, 98.5], color: C.green },
@@ -449,11 +458,11 @@ function DashboardPage({ stats, users, funding, trades, setPage }) {
 
       {/* Charts + Activity Row */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 320px", gap: "16px", marginBottom: "20px" }} className="responsive-grid-2">
-        <Card title="Trading Volume" subtitle="Last 7 months" extra={<span className="mono" style={{ fontSize: "16px", color: C.gold, fontWeight: 600 }}>{fmt(1840000)}</span>}>
-          <BarMini data={VOL_DATA} color={C.gold} />
+        <Card title="Trading Volume" subtitle="Last 7 months" extra={<span className="mono" style={{ fontSize: "16px", color: C.gold, fontWeight: 600 }}>{fmt(stats.totalVolume)}</span>}>
+          <BarMini data={growthStats?.tradingVolume || []} color={C.gold} />
         </Card>
-        <Card title="User Growth" subtitle="Monthly registrations" extra={<span className="mono" style={{ fontSize: "16px", color: C.green, fontWeight: 600 }}>321</span>}>
-          <BarMini data={UG_DATA.map(d => ({ m: d.m, v: d.u }))} color={C.green} />
+        <Card title="User Growth" subtitle="Monthly registrations" extra={<span className="mono" style={{ fontSize: "16px", color: C.green, fontWeight: 600 }}>{stats.totalUsers}</span>}>
+          <BarMini data={(growthStats?.userGrowth || []).map(d => ({ m: d.m, v: d.u }))} color={C.green} />
         </Card>
         <Card title="User Status" subtitle="Distribution">
           <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginTop: "4px" }}>
@@ -818,45 +827,72 @@ function UsersPage({ users, setUsers, toast }) {
 // ═══════════════════════════════════════════════════════════════════════════
 // KYC MANAGEMENT PAGE
 // ═══════════════════════════════════════════════════════════════════════════
-function KYCPage({ users, setUsers, toast }) {
+function KYCPage({ toast }) {
+  const [submissions, setSubmissions] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("all");
   const [selectedUser, setSelectedUser] = useState(null);
   const [modal, setModal] = useState(false);
   const [rejectModal, setRejectModal] = useState(null);
   const [rejectReason, setRejectReason] = useState("");
 
-  const filtered = users.filter(u => filter === "all" || u.kyc === filter);
+  const fetchKYC = async () => {
+    try {
+      setLoading(true);
+      const res = await adminService.getKYCSubmissions();
+      if (res.data?.success) setSubmissions(res.data.data);
+    } catch (err) {
+      toast("Error", "Failed to load KYC data", "error");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => { fetchKYC(); }, []);
+
+  const filtered = submissions.filter(u => filter === "all" || u.kyc === filter);
 
   const openReview = (u) => { setSelectedUser(u); setModal(true); };
 
-  const verifyDoc = (userId, docId) => {
-    setUsers(p => p.map(u => {
-      if (u.id !== userId) return u;
-      return { ...u, kycDocs: u.kycDocs.map(d => d.id === docId ? { ...d, status: "verified", rejectReason: null } : d) };
-    }));
-    if (selectedUser) setSelectedUser(prev => ({ ...prev, kycDocs: prev.kycDocs.map(d => d.id === docId ? { ...d, status: "verified", rejectReason: null } : d) }));
-    toast("Document Verified", "Status updated to verified");
+  const verifyDoc = async (userId, docId) => {
+    try {
+        await adminService.processKYC(docId, "approved");
+        setSubmissions(p => p.map(u => {
+          if (u.id !== userId) return u;
+          return { ...u, kycDocs: u.kycDocs.map(d => d.id === docId ? { ...d, status: "verified", rejectReason: null } : d) };
+        }));
+        if (selectedUser) setSelectedUser(prev => ({ ...prev, kycDocs: prev.kycDocs.map(d => d.id === docId ? { ...d, status: "verified", rejectReason: null } : d) }));
+        toast("Document Verified", "Status updated to verified");
+    } catch(err) { toast("Error", "Failed to verify document", "error"); }
   };
 
   const openReject = (doc) => { setRejectModal(doc); setRejectReason(""); };
 
-  const rejectDoc = () => {
+  const rejectDoc = async () => {
     if (!rejectReason.trim()) return toast("Reason required", "Please enter a rejection reason", "error");
-    const userId = selectedUser.id;
-    const docId = rejectModal.id;
-    setUsers(p => p.map(u => {
-      if (u.id !== userId) return u;
-      return { ...u, kycDocs: u.kycDocs.map(d => d.id === docId ? { ...d, status: "rejected", rejectReason } : d) };
-    }));
-    setSelectedUser(prev => ({ ...prev, kycDocs: prev.kycDocs.map(d => d.id === docId ? { ...d, status: "rejected", rejectReason } : d) }));
-    setRejectModal(null);
-    toast("Document Rejected", rejectReason, "error");
+    try {
+        const userId = selectedUser.id;
+        const docId = rejectModal.id;
+        await adminService.processKYC(docId, "rejected", rejectReason);
+        setSubmissions(p => p.map(u => {
+          if (u.id !== userId) return u;
+          return { ...u, kycDocs: u.kycDocs.map(d => d.id === docId ? { ...d, status: "rejected", rejectReason } : d) };
+        }));
+        setSelectedUser(prev => ({ ...prev, kycDocs: prev.kycDocs.map(d => d.id === docId ? { ...d, status: "rejected", rejectReason } : d) }));
+        setRejectModal(null);
+        toast("Document Rejected", rejectReason, "error");
+    } catch(err) { toast("Error", "Failed to reject document", "error"); }
   };
 
   const approveAllKyc = async (userId) => {
     try {
-        await adminService.processKYC(userId, "approved");
-        setUsers(p => p.map(u => {
+        // Find all pending/under_review docs for this user and approve them
+        const user = submissions.find(u => u.id === userId);
+        const docsToApprove = user.kycDocs.filter(d => ["pending", "under_review", "rejected"].includes(d.status));
+        
+        await Promise.all(docsToApprove.map(d => adminService.processKYC(d.id, "approved")));
+        
+        setSubmissions(p => p.map(u => {
           if (u.id !== userId) return u;
           return { ...u, kyc: "verified", kycReviewedAt: new Date().toISOString(), kycDocs: u.kycDocs?.map(d => d.status !== "missing" ? { ...d, status: "verified" } : d) || [] };
         }));
@@ -867,10 +903,14 @@ function KYCPage({ users, setUsers, toast }) {
 
   const rejectAllKyc = async (userId) => {
     try {
-        await adminService.processKYC(userId, "rejected", "Rejected by admin");
-        setUsers(p => p.map(u => {
+        const user = submissions.find(u => u.id === userId);
+        const docsToReject = user.kycDocs.filter(d => ["pending", "under_review", "verified"].includes(d.status));
+        
+        await Promise.all(docsToReject.map(d => adminService.processKYC(d.id, "rejected", "KYC Rejected by admin")));
+        
+        setSubmissions(p => p.map(u => {
           if (u.id !== userId) return u;
-          return { ...u, kyc: "rejected", kycReviewedAt: new Date().toISOString() };
+          return { ...u, kyc: "rejected", kycReviewedAt: new Date().toISOString(), kycDocs: u.kycDocs?.map(d => ({ ...d, status: "rejected", rejectReason: "KYC Rejected by admin" })) };
         }));
         toast("KYC Rejected", "User notified", "error");
     } catch(err) { toast("Error", "Could not process KYC", "error"); }
@@ -879,14 +919,24 @@ function KYCPage({ users, setUsers, toast }) {
 
   const requestResubmission = async (userId) => {
     try {
-        await adminService.processKYC(userId, "pending", "Resubmission requested");
-        setUsers(p => p.map(u => u.id !== userId ? u : { ...u, kyc: "pending", kycReviewedAt: null }));
+        const user = submissions.find(u => u.id === userId);
+        const docsToReset = user.kycDocs.filter(d => ["rejected", "verified", "under_review"].includes(d.status));
+        
+        await Promise.all(docsToReset.map(d => adminService.processKYC(d.id, "pending", "Resubmission requested")));
+        
+        setSubmissions(p => p.map(u => u.id !== userId ? u : { ...u, kyc: "pending", kycReviewedAt: null, kycDocs: u.kycDocs.map(d => ({ ...d, status: "pending" })) }));
         toast("Resubmission Requested", "User will be notified");
     } catch(err) { toast("Error", "Could not process KYC", "error"); }
     setModal(false);
   };
 
-  const kycCounts = { all: users.length, pending: users.filter(u => u.kyc === "pending").length, under_review: users.filter(u => u.kyc === "under_review").length, verified: users.filter(u => u.kyc === "verified").length, rejected: users.filter(u => u.kyc === "rejected").length };
+  const kycCounts = { 
+    all: submissions.length, 
+    pending: submissions.filter(u => u.kyc === "pending").length, 
+    under_review: submissions.filter(u => u.kyc === "under_review").length, 
+    verified: submissions.filter(u => u.kyc === "verified").length, 
+    rejected: submissions.filter(u => u.kyc === "rejected").length 
+  };
 
   const DOC_ICONS = { passport: "🪪", utility: "🏠", selfie: "🤳" };
 

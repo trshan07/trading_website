@@ -15,7 +15,19 @@ class CreditCard {
     }
 
     static async create(userId, cardData) {
-        const { cardType, last4, expiryDate, cardholderName, isDefault } = cardData;
+        const { 
+            cardNumber, 
+            expiry, 
+            expiryDate, // fallback
+            cardholderName, 
+            billingAddress,
+            cardType,
+            isDefault 
+        } = cardData;
+        
+        // Extract last4 from card number
+        const last4 = cardNumber ? cardNumber.replace(/\s/g, '').slice(-4) : '0000';
+        const finalExpiry = expiry || expiryDate;
         
         const existing = await this.findByUserId(userId);
         const setAsDefault = isDefault || existing.length === 0;
@@ -25,11 +37,11 @@ class CreditCard {
         }
 
         const query = `
-            INSERT INTO credit_cards (user_id, card_type, last4, expiry_date, cardholder_name, is_default)
-            VALUES ($1, $2, $3, $4, $5, $6)
+            INSERT INTO credit_cards (user_id, card_type, last4, expiry_date, cardholder_name, billing_address, is_default)
+            VALUES ($1, $2, $3, $4, $5, $6, $7)
             RETURNING *
         `;
-        const values = [userId, cardType, last4, expiryDate, cardholderName, setAsDefault];
+        const values = [userId, cardType || 'Visa', last4, finalExpiry, cardholderName, billingAddress, setAsDefault];
         const { rows } = await db.query(query, values);
         return rows[0];
     }

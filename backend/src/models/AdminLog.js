@@ -4,9 +4,9 @@ const db = require('../config/database');
 class AdminLog {
     static async findAll(limit = 100) {
         const query = `
-            SELECT al.*, u.email as admin_email, u.first_name, u.last_name
+            SELECT al.*, a.email as admin_email, a.first_name, a.last_name
             FROM admin_logs al
-            JOIN users u ON al.admin_id = u.id
+            JOIN admins a ON al.admin_id = a.id
             ORDER BY al.created_at DESC
             LIMIT $1
         `;

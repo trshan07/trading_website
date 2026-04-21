@@ -21,8 +21,8 @@ const DocumentsTab = ({ documents, onUpload }) => {
   // Filter documents
   const filteredDocuments = documents.filter(doc => {
     const matchesCategory = selectedCategory === 'all' || doc.category === selectedCategory;
-    const matchesSearch = doc.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         doc.category.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = (doc.name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+                         (doc.category?.toLowerCase() || '').includes(searchTerm.toLowerCase());
     return matchesCategory && matchesSearch;
   });
 
@@ -161,10 +161,26 @@ const DocumentsTab = ({ documents, onUpload }) => {
                     </td>
                     <td className="px-8 py-6 last:rounded-r-[2rem] border-y border-r border-slate-50 dark:border-slate-800 group-hover:border-gold-500/20 text-center transition-colors">
                       <div className="flex justify-center space-x-3">
-                        <button className="p-2.5 bg-white dark:bg-slate-950 text-slate-400 dark:text-slate-600 rounded-xl border border-slate-100 dark:border-slate-800 hover:bg-slate-900 dark:hover:bg-gold-500 hover:text-white dark:hover:text-slate-900 transition-all shadow-sm">
+                        <button 
+                          onClick={() => window.open(doc.url, '_blank')}
+                          className="p-2.5 bg-white dark:bg-slate-950 text-slate-400 dark:text-slate-600 rounded-xl border border-slate-100 dark:border-slate-800 hover:bg-slate-900 dark:hover:bg-gold-500 hover:text-white dark:hover:text-slate-900 transition-all shadow-sm"
+                          title="View Document"
+                        >
                           <FaEye size={14} />
                         </button>
-                        <button className="p-2.5 bg-white dark:bg-slate-950 text-slate-400 dark:text-slate-600 rounded-xl border border-slate-100 dark:border-slate-800 hover:bg-gold-500 dark:hover:bg-gold-400 hover:text-white dark:hover:text-slate-900 transition-all shadow-sm">
+                        <button 
+                          onClick={() => {
+                            const link = document.createElement('a');
+                            link.href = doc.url;
+                            link.download = doc.name;
+                            link.target = '_blank';
+                            document.body.appendChild(link);
+                            link.click();
+                            document.body.removeChild(link);
+                          }}
+                          className="p-2.5 bg-white dark:bg-slate-950 text-slate-400 dark:text-slate-600 rounded-xl border border-slate-100 dark:border-slate-800 hover:bg-gold-500 dark:hover:bg-gold-400 hover:text-white dark:hover:text-slate-900 transition-all shadow-sm"
+                          title="Download Document"
+                        >
                           <FaDownload size={14} />
                         </button>
                       </div>

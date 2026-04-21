@@ -7,6 +7,16 @@ const fundingService = {
     return response.data;
   },
   addBankAccount: async (accountData) => {
+    if (accountData.proofOfBankAccount) {
+      const formData = new FormData();
+      Object.keys(accountData).forEach(key => {
+        formData.append(key, accountData[key]);
+      });
+      const response = await api.post('/funding/bank-accounts', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      return response.data;
+    }
     const response = await api.post('/funding/bank-accounts', accountData);
     return response.data;
   },
@@ -25,8 +35,15 @@ const fundingService = {
     return response.data;
   },
   addCreditCard: async (cardData) => {
-    const response = await api.post('/funding/credit-cards', cardData);
-    return response.data;
+    console.log('fundingService.addCreditCard called with:', cardData);
+    try {
+      const response = await api.post('/funding/credit-cards', cardData);
+      console.log('fundingService.addCreditCard response:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('fundingService.addCreditCard error:', error);
+      throw error;
+    }
   },
   deleteCreditCard: async (id) => {
     const response = await api.delete(`/funding/credit-cards/${id}`);
@@ -39,7 +56,27 @@ const fundingService = {
     return response.data;
   },
   deposit: async (depositData) => {
+    // Check if we need to send as FormData (if file is present)
+    if (depositData.proof) {
+      const formData = new FormData();
+      Object.keys(depositData).forEach(key => {
+        if (key === 'proof') {
+          formData.append('proof', depositData[key]);
+        } else {
+          formData.append(key, depositData[key]);
+        }
+      });
+      const response = await api.post('/funding/deposit', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      return response.data;
+    }
+
     const response = await api.post('/funding/deposit', depositData);
+    return response.data;
+  },
+  getPlatformInfo: async () => {
+    const response = await api.get('/funding/platform-info');
     return response.data;
   },
   withdraw: async (withdrawData) => {

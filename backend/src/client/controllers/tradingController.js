@@ -11,22 +11,31 @@ const executeTrade = async (req, res) => {
     const { accountId, symbol, side, amount, entryPrice, type = 'market', leverage = 100 } = req.body;
     const userId = req.user.id;
 
+    if (!accountId || !symbol || !side || !amount || !entryPrice) {
+        return res.status(400).json({ success: false, message: 'Missing required trade parameters' });
+    }
+
     try {
         const accounts = await Account.findByUserId(userId);
         const account = accounts.find(a => a.id == accountId);
 
         if (!account) {
-            return res.status(404).json({ success: false, message: 'Account not found' });
+            return res.status(404).json({ success: false, message: 'Account not found for this user' });
         }
 
         const usdAmount = parseFloat(amount);
         const price = parseFloat(entryPrice);
         const lev = parseFloat(leverage) || 100;
-        const requiredMargin = usdAmount / (lev / 100); // Simple margin calc for now
+        
+        if (isNaN(usdAmount) || isNaN(price) || usdAmount <= 0) {
+            return res.status(400).json({ success: false, message: 'Invalid trade amount or price' });
+        }
+
+        const requiredMargin = usdAmount / (lev / 100); 
         const quantity = usdAmount / price;
 
-        if (parseFloat(account.balance) < requiredMargin && side === 'buy') {
-            return res.status(400).json({ success: false, message: 'Insufficient balance for margin' });
+        if (parseFloat(account.balance) < requiredMargin) {
+            return res.status(400).json({ success: false, message: `Insufficient balance for margin ($${requiredMargin.toFixed(2)} required)` });
         }
 
         // 1. Create Order (executed)

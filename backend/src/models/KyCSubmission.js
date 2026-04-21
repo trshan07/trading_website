@@ -5,10 +5,10 @@ class KyCSubmission {
     static async findAll(status = null) {
         let query = `
             SELECT ks.*, u.email as user_email, u.first_name, u.last_name, 
-                   admin.email as admin_email
+                   admins.email as admin_email
             FROM kyc_submissions ks
             JOIN users u ON ks.user_id = u.id
-            LEFT JOIN users admin ON ks.reviewed_by = admin.id
+            LEFT JOIN admins ON ks.reviewed_by = admins.id
         `;
         const values = [];
         

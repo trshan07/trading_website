@@ -3,6 +3,7 @@ const db = require('../config/database');
 
 class BankAccount {
     static async findByUserId(userId) {
+        console.log('DB Debug - Fetching Bank Accounts for User ID:', userId);
         const query = 'SELECT * FROM bank_accounts WHERE user_id = $1 ORDER BY is_default DESC, created_at DESC';
         const { rows } = await db.query(query, [userId]);
         return rows;
@@ -15,7 +16,22 @@ class BankAccount {
     }
 
     static async create(userId, accountData) {
-        const { bankName, branchName, accountNumber, accountName, currency, swiftCode, isDefault } = accountData;
+        const { 
+            bankName, 
+            branchName, 
+            accountNumber, 
+            accountHolderName, 
+            accountName, // fallback
+            currency, 
+            swiftCode, 
+            iban,
+            beneficiaryName,
+            relationship,
+            proof_file,
+            isDefault 
+        } = accountData;
+        
+        const finalAccountName = accountHolderName || accountName;
         
         // If this is the first account, make it default
         const existing = await this.findByUserId(userId);
@@ -26,11 +42,19 @@ class BankAccount {
         }
 
         const query = `
-            INSERT INTO bank_accounts (user_id, bank_name, branch_name, account_number, account_name, currency, swift_code, is_default)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+            INSERT INTO bank_accounts (
+                user_id, bank_name, branch_name, account_number, account_name, 
+                account_holder_name, currency, swift_code, iban, 
+                beneficiary_name, relationship, proof_file, is_default
+            )
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
             RETURNING *
         `;
-        const values = [userId, bankName, branchName, accountNumber, accountName, currency || 'USD', swiftCode, setAsDefault];
+        const values = [
+            userId, bankName, branchName, accountNumber, finalAccountName,
+            finalAccountName, currency || 'USD', swiftCode, iban,
+            beneficiaryName, relationship, proof_file, setAsDefault
+        ];
         const { rows } = await db.query(query, values);
         return rows[0];
     }

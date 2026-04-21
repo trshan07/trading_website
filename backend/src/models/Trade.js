@@ -25,15 +25,15 @@ class Trade {
     }
 
     static async findById(id) {
-        const query = 'SELECT * FROM trades WHERE id = $1';
+        const query = 'SELECT * FROM positions WHERE id = $1';
         const { rows } = await db.query(query, [id]);
         return rows[0];
     }
 
     static async close(tradeId, exitPrice, pnl) {
         const query = `
-            UPDATE trades 
-            SET exit_price = $1, pnl = $2, status = 'closed', updated_at = CURRENT_TIMESTAMP
+            UPDATE positions 
+            SET close_price = $1, pnl = $2, status = 'closed', updated_at = CURRENT_TIMESTAMP
             WHERE id = $3 
             RETURNING *
         `;
@@ -51,16 +51,37 @@ class Trade {
         return rows;
     }
 
-    static async findAllOpen() {
-        const query = `
-            SELECT t.*, u.email, u.first_name, u.last_name 
-            FROM trades t
-            JOIN users u ON t.user_id = u.id
-            WHERE t.status = 'open'
-            ORDER BY t.created_at DESC
+    static async findAll(statusFilter = null) {
+        let query = `
+            SELECT p.id, p.user_id, p.account_id, p.symbol, p.side, 
+                   p.amount as usd_amount, p.quantity as amount, 
+                   p.entry_price, p.close_price as exit_price, p.pnl, 
+                   p.status, p.created_at, p.updated_at,
+                   u.email as user_email, u.first_name, u.last_name,
+                   a.account_number
+            FROM positions p
+            JOIN users u ON p.user_id = u.id
+            JOIN accounts a ON p.account_id = a.id
         `;
-        const { rows } = await db.query(query);
+        const values = [];
+        if (statusFilter && statusFilter !== 'all') {
+            query += ' WHERE p.status = $1';
+            values.push(statusFilter);
+        }
+        query += ' ORDER BY p.created_at DESC';
+        const { rows } = await db.query(query, values);
         return rows;
+    }
+
+    static async cancel(tradeId) {
+        const query = `
+            UPDATE positions
+            SET status = 'cancelled', updated_at = CURRENT_TIMESTAMP
+            WHERE id = $1 AND status = 'open'
+            RETURNING *
+        `;
+        const { rows } = await db.query(query, [tradeId]);
+        return rows[0];
     }
 }
 

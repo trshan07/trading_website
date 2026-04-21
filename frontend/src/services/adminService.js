@@ -13,6 +13,7 @@ export const adminService = {
   deleteUser: (userId) => api.delete(`/admin/users/${userId}`),
   updateUserStatus: (userId, status) => api.patch(`/admin/users/${userId}/status`, { status }),
   adjustUserBalance: (userId, data) => api.post(`/admin/users/${userId}/balance`, data),
+  resetUserPassword: (userId, password) => api.post(`/admin/users/${userId}/reset-password`, { password }),
   
   // Funding Requests
   getFundingRequests: (params) => api.get('/admin/funding', { params }),
@@ -23,6 +24,11 @@ export const adminService = {
   getTrades: (params) => api.get('/admin/trades', { params }),
   getTradeStats: () => api.get('/admin/trades/stats'),
   cancelTrade: (tradeId) => api.post(`/admin/trades/${tradeId}/cancel`),
+
+  // Platform Settings
+  getPlatformSettings: () => api.get('/admin/settings'),
+  updatePlatformSettings: (settings) => api.put('/admin/settings', settings),
+  getGrowthStats: () => api.get('/admin/growth-stats'),
   
   // KYC Management
   getKYCSubmissions: (params) => api.get('/admin/kyc', { params }),

@@ -13,13 +13,15 @@ const getDocuments = async (req, res) => {
 
 const uploadDocument = async (req, res) => {
     try {
-        const { document_type, document_number } = req.body;
+        // The frontend sends 'category' and 'name'
+        const { category, name, document_type, document_number } = req.body;
         
         // Handling file upload metadata from multer
         const docData = {
-            document_type: document_type || 'Identity Proof',
-            document_number: document_number || 'N/A',
-            file_path: req.file ? req.file.path : 'storage/uploads/mock_proof.jpg'
+            document_type: category || document_type || 'Identity Proof',
+            document_number: name || document_number || 'N/A',
+            // Save as relative URL path, e.g., '/uploads/16234...-name.pdf'
+            file_path: req.file ? `/uploads/${req.file.filename}` : '/uploads/mock_proof.jpg'
         };
 
         const submission = await KyCSubmission.create(req.user.id, docData);

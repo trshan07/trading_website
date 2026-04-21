@@ -12,6 +12,7 @@ const protect = async (req, res, next) => {
 
             // Verify token
             const decoded = jwt.verify(token, process.env.JWT_SECRET);
+            console.log('Auth Debug - Decoded Token:', { id: decoded.id, role: decoded.role });
 
             // Get user from the token based on the encoded role to avoid ID collisions
             let user;
@@ -20,6 +21,11 @@ const protect = async (req, res, next) => {
             } else {
                 user = await User.findById(decoded.id);
             }
+            
+            if (!user) {
+                return res.status(401).json({ message: 'Not authorized, user not found' });
+            }
+
             req.user = user;
 
             next();

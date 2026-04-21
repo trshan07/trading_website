@@ -13,19 +13,25 @@ const getBankAccounts = async (req, res) => {
         const accounts = await BankAccount.findByUserId(req.user.id);
         res.json({ success: true, data: accounts });
     } catch (error) {
+        console.error('Get Bank Accounts Error:', error);
         res.status(500).json({ success: false, message: 'Failed to fetch bank accounts' });
     }
 };
 
 const addBankAccount = async (req, res) => {
     try {
-        const account = await BankAccount.create(req.user.id, req.body);
+        const accountData = {
+            ...req.body,
+            proof_file: req.file ? req.file.path : null
+        };
+        const account = await BankAccount.create(req.user.id, accountData);
         
         await createActivityLog(req.user.id, 'SECURITY', `Linked Bank Account: ${req.body.bank_name}`);
         await createNotification(req.user.id, 'success', `Bank account ${req.body.bank_name} linked successfully.`);
         
         res.status(201).json({ success: true, data: account });
     } catch (error) {
+        console.error('Add Bank Account Error:', error);
         res.status(500).json({ success: false, message: 'Failed to add bank account' });
     }
 };
@@ -68,6 +74,7 @@ const addCreditCard = async (req, res) => {
         
         res.status(201).json({ success: true, data: card });
     } catch (error) {
+        console.error('Add Credit Card Error:', error);
         res.status(500).json({ success: false, message: 'Failed to add card' });
     }
 };
