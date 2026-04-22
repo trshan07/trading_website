@@ -34,8 +34,15 @@ const executeTrade = async (req, res) => {
         const requiredMargin = usdAmount / (lev / 100); 
         const quantity = usdAmount / price;
 
-        if (parseFloat(account.balance) < requiredMargin) {
-            return res.status(400).json({ success: false, message: `Insufficient balance for margin ($${requiredMargin.toFixed(2)} required)` });
+        const accountBalance = parseFloat(account.balance) || 0;
+        const accountCredit = parseFloat(account.credit) || 0;
+        const availableFunds = accountBalance + accountCredit;
+
+        if (availableFunds < requiredMargin) {
+            return res.status(400).json({
+                success: false,
+                message: `Insufficient funds for margin ($${requiredMargin.toFixed(2)} required, $${availableFunds.toFixed(2)} available)`
+            });
         }
 
         // 1. Create Order (executed)
@@ -62,15 +69,15 @@ const executeTrade = async (req, res) => {
         });
 
         // 3. Deduct Margin from Account
-        await Account.updateBalance(accountId, parseFloat(account.balance) - requiredMargin);
+        await Account.updateBalance(accountId, accountBalance - requiredMargin);
 
         // 4. Record Transaction
         await Transaction.create(userId, {
             account_id: accountId,
             type: 'Trade',
             amount: -requiredMargin,
-            balance_before: parseFloat(account.balance),
-            balance_after: parseFloat(account.balance) - requiredMargin,
+            balance_before: accountBalance,
+            balance_after: accountBalance - requiredMargin,
             reference_id: order.id,
             description: `Margin for ${side.toUpperCase()} ${symbol}`
         });

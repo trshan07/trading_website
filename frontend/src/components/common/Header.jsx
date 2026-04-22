@@ -3,13 +3,18 @@ import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { FaBars, FaTimes } from 'react-icons/fa';
-import { HiOutlineChartBar } from 'react-icons/hi';
 import ThemeToggle from '../ui/ThemeToggle';
+import { useTheme } from '../../context/ThemeContext';
+import logoLight from '../../assets/images/logos/logo-light.jpg';
+import logoDark from '../../assets/images/logos/logo-dark.png';
+
 
 const Header = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const location = useLocation();
+  const { theme } = useTheme();
+
 
   useEffect(() => {
     const handleScroll = () => {
@@ -38,12 +43,12 @@ const Header = () => {
       <nav className="container mx-auto px-4 md:px-6">
         <div className="flex justify-between items-center">
           {/* Logo */}
-          <Link to="/" className="flex items-center space-x-2">
-            <HiOutlineChartBar className="h-8 w-8 text-gold-500" />
-            <span className="text-2xl font-bold">
-              <span className="text-slate-900 dark:text-white transition-colors">Rizal's</span>
-              <span className="text-gold-500">Trade</span>
-            </span>
+          <Link to="/" className="flex items-center">
+            <img 
+              src={theme === 'dark' ? logoDark : logoLight} 
+              alt="Rizal's Trade" 
+              className="h-10 w-auto object-contain"
+            />
           </Link>
 
           {/* Desktop Navigation */}

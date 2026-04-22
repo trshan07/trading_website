@@ -5,10 +5,18 @@ import {
   FaFileAlt, FaCog, FaSignOutAlt,
   FaArrowUp, FaArrowDown, FaChevronLeft, FaChevronRight
 } from 'react-icons/fa';
+import { useTheme } from '../../context/ThemeContext';
+import logoLight from '../../assets/images/logos/logo-light.jpg';
+import logoDark from '../../assets/images/logos/logo-dark.png';
+import logoVerticalLight from '../../assets/images/logos/logo-vertical-light.jpg';
+import logoVerticalDark from '../../assets/images/logos/logo-vertical-dark.png';
+
 
 const Sidebar = ({ activeTab, onTabChange, onLogout, user, portfolio, showBalance, onShowStatement = () => {} }) => {
   const [activeMetric, setActiveMetric] = useState('equity');
   const [isCollapsed, setIsCollapsed] = useState(true);
+  const { theme } = useTheme();
+
 
   const menuItems = [
     { id: 'trading',   label: 'Trading',   icon: FaChartLine },
@@ -59,18 +67,12 @@ const Sidebar = ({ activeTab, onTabChange, onLogout, user, portfolio, showBalanc
 
       {/* Header & Logo */}
       <div className={`pt-5 pb-4 shrink-0 flex items-center justify-between transition-all ${isCollapsed ? 'px-3 flex-col space-y-4' : 'px-6'}`}>
-        <div className="flex items-center space-x-3 group cursor-pointer transition-all">
-          <div className="flex-shrink-0 w-11 h-11 bg-slate-900 dark:bg-gold-500 rounded-2xl flex items-center justify-center shadow-xl group-hover:bg-gold-500 dark:group-hover:bg-gold-400 transition-all duration-500 group-hover:rotate-[15deg]">
-            <FaChartLine className="text-white dark:text-slate-900 text-lg group-hover:text-gold-500 dark:group-hover:text-slate-900 transition-colors" />
-          </div>
-          {!isCollapsed && (
-            <div className="overflow-hidden transition-all duration-300">
-              <h1 className="text-xl font-black text-slate-900 dark:text-white tracking-tighter uppercase italic leading-none whitespace-nowrap">
-                Rizal<span className="text-gold-500">.</span>
-              </h1>
-              <p className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 mt-0.5 whitespace-nowrap">Terminal Prime</p>
-            </div>
-          )}
+        <div className="flex items-center group cursor-pointer transition-all">
+          <img 
+            src={theme === 'dark' ? logoVerticalDark : logoVerticalLight} 
+            alt="Rizal's Trade" 
+            className={`${isCollapsed ? 'h-10' : 'h-16'} w-auto object-contain transition-all duration-300`} 
+          />
         </div>
         
         {/* Toggle Button */}

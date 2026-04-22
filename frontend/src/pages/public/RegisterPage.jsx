@@ -7,6 +7,10 @@ import Button from '../../components/ui/Button';
 import authBg from '../../assets/images/real_trading_bg.png';
 import { AuthContext } from '../../context/AuthContext';
 import authService from '../../services/authService';
+import logoDark from '../../assets/images/logos/logo-dark.png';
+import logoVerticalDark from '../../assets/images/logos/logo-vertical-dark.png';
+
+
 
 const RegisterPage = () => {
   const navigate = useNavigate();
@@ -136,8 +140,8 @@ const RegisterPage = () => {
            className="text-center lg:text-left mb-6 mt-6 md:mt-2 lg:max-w-xl"
         >
           <div className="flex justify-center lg:justify-start mb-4">
-            <Link to="/" className="flex items-center space-x-3 group">
-              <span className="text-3xl font-display font-bold gradient-text italic tracking-wider">RIZALS TRADE</span>
+            <Link to="/" className="flex items-center group">
+              <img src={logoVerticalDark} alt="Rizal's Trade" className="h-28 w-auto object-contain" />
             </Link>
           </div>
           <h1 className="text-3xl md:text-4xl font-display font-bold text-gold tracking-wide mb-2">

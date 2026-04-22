@@ -35,6 +35,19 @@ export const AuthProvider = ({ children }) => {
         }
     }, [token]);
 
+    // Listen for session-expired events dispatched by the axios interceptor (api.js)
+    useEffect(() => {
+        const handleSessionExpired = () => {
+            console.warn('[AUTH] Session expired event received. Logging out.');
+            toast.error('Your session has expired. Please sign in again.');
+            logout();
+            // Redirect to login page
+            window.location.href = '/login';
+        };
+        window.addEventListener('auth:session-expired', handleSessionExpired);
+        return () => window.removeEventListener('auth:session-expired', handleSessionExpired);
+    }, []);
+
     const loadUser = async () => {
         if (!token || token === 'undefined' || token === 'null') {
             setLoading(false);

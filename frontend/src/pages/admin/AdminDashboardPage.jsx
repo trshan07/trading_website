@@ -2,6 +2,8 @@ import { useContext, useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../../context/AuthContext";
 import { adminService } from "../../services/adminService";
+import logoDark from "../../assets/images/logos/logo-dark.png";
+
 // ─── re-export everything from part 1 inline (merged single file) ──────────
 const VOL_DATA = [{ m: "Oct", v: 980000 }, { m: "Nov", v: 1250000 }, { m: "Dec", v: 1580000 }, { m: "Jan", v: 1320000 }, { m: "Feb", v: 1690000 }, { m: "Mar", v: 2100000 }, { m: "Apr", v: 1840000 }];
 const UG_DATA = [{ m: "Oct", u: 98 }, { m: "Nov", u: 124 }, { m: "Dec", u: 159 }, { m: "Jan", u: 201 }, { m: "Feb", u: 245 }, { m: "Mar", u: 289 }, { m: "Apr", u: 321 }];
@@ -29,6 +31,18 @@ const timeAgo = (d) => { if (!d) return "—"; const s = (Date.now() - new Date(
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" }) : "—";
 const fmtDateTime = (d) => d ? new Date(d).toLocaleString("en-US", { year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }) : "—";
 
+// Build a full URL from a server-relative file path (e.g. uploads\kyc\file.jpg)
+const API_BASE = (process.env.REACT_APP_API_URL || 'http://localhost:5000/api').replace('/api', '');
+const getFileUrl = (filePath) => {
+  if (!filePath) return null;
+  if (filePath.startsWith('http://') || filePath.startsWith('https://')) return filePath;
+  const normalized = filePath.replace(/\\/g, '/');
+  const uploadsIdx = normalized.indexOf('/uploads/');
+  if (uploadsIdx !== -1) return `${API_BASE}${normalized.substring(uploadsIdx)}`;
+  return `${API_BASE}${normalized.startsWith('/') ? normalized : '/' + normalized}`;
+};
+const isFilePdf = (filePath) => filePath?.toLowerCase().endsWith('.pdf');
+
 const toNum = (v) => {
   const n = Number(v);
   return Number.isFinite(n) ? n : 0;
@@ -48,7 +62,11 @@ const normalizeUserAccounts = (user) => {
   const realAccountId = user?.realAccountId || generateAccountId("real", user?.id);
   const demoAccountId = user?.demoAccountId || generateAccountId("demo", user?.id);
 
-  const name = user?.name || ((user?.firstName || "") + " " + (user?.lastName || "")).trim() || "Unknown User";
+  const name = user?.name
+    || ((user?.firstName || user?.first_name || "") + " " + (user?.lastName || user?.last_name || "")).trim()
+    || user?.email
+    || "Unknown User";
+
 
   const kyc = user?.kyc_status || user?.kyc || "not_submitted";
   const kycSubmitted = user?.kyc_submitted_at || null;
@@ -173,7 +191,7 @@ function Toast({ toasts }) {
 function Sparkline({ data, color = C.gold, h = 40, w = 110 }) {
   if (!data?.length) return null;
   const max = Math.max(...data), min = Math.min(...data);
-  const pts = data.map((v, i) => `${(i / (data.length - 1)) * w},${h - ((v - min) / (max - min || 1)) * (h - 4) - 2}`).join(" ");
+  const pts = data.map((v, i) => `${(i / (data.length - 1 || 1)) * w},${h - ((v - min) / (max - min || 1)) * (h - 4) - 2}`).join(" ");
   return (
     <svg width={w} height={h} style={{ display: "block", flexShrink: 0 }}>
       <polygon points={`0,${h} ${pts} ${w},${h}`} fill={`${color}20`} />
@@ -183,12 +201,13 @@ function Sparkline({ data, color = C.gold, h = 40, w = 110 }) {
 }
 
 function BarMini({ data, color = C.gold }) {
-  const max = Math.max(...data.map(d => d.v));
+  if (!data?.length) return null;
+  const max = Math.max(...data.map(d => d.v), 1);
   return (
     <div style={{ display: "flex", alignItems: "flex-end", gap: "3px", height: "64px" }}>
       {data.map((d, i) => (
         <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: "3px", minWidth: 0 }}>
-          <div style={{ width: "100%", height: `${(d.v / max) * 48}px`, background: i === data.length - 1 ? color : `${color}45`, borderRadius: "2px 2px 0 0", transition: "height 0.4s" }} />
+          <div style={{ width: "100%", height: `${(d.v / (max || 1)) * 48}px`, background: i === data.length - 1 ? color : `${color}45`, borderRadius: "2px 2px 0 0", transition: "height 0.4s" }} />
           <span style={{ fontSize: "7px", color: C.textDim, fontFamily: "monospace" }}>{d.m}</span>
         </div>
       ))}
@@ -241,6 +260,7 @@ export default function AdminCRM() {
   const [users, setUsers] = useState([]);
   const [funding, setFunding] = useState([]);
   const [trades, setTrades] = useState([]);
+  const [kycAlerts, setKycAlerts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [toasts, setToasts] = useState([]);
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -258,12 +278,13 @@ export default function AdminCRM() {
     const fetchDashboardData = async () => {
       try {
         setLoading(true);
-        const [statsRes, usersRes, fundingRes, tradesRes, growthStatsRes] = await Promise.all([
+        const [statsRes, usersRes, fundingRes, tradesRes, growthStatsRes, kycRes] = await Promise.all([
           adminService.getDashboardStats().catch(() => ({ data: { data: {} } })),
           adminService.getUsers().catch(() => ({ data: { data: [] } })),
           adminService.getFundingRequests().catch(() => ({ data: { data: [] } })),
           adminService.getTrades().catch(() => ({ data: { data: [] } })),
-          adminService.getGrowthStats().catch(() => ({ data: { data: { userGrowth: [], tradingVolume: [] } } }))
+          adminService.getGrowthStats().catch(() => ({ data: { data: { userGrowth: [], tradingVolume: [] } } })),
+          adminService.getKYCSubmissions({ status: 'pending' }).catch(() => ({ data: { data: [] } }))
         ]);
         
         if (statsRes.data?.success) {
@@ -274,6 +295,8 @@ export default function AdminCRM() {
         if (fundingRes.data?.success) setFunding(fundingRes.data.data);
         if (tradesRes.data?.success) setTrades(tradesRes.data.data);
         if (growthStatsRes?.data?.success) setGrowthStats(growthStatsRes.data.data);
+        // Store pending KYC submissions for the Overview alerts card
+        if (kycRes?.data?.success) setKycAlerts(kycRes.data.data || []);
       } catch (err) {
         console.error("Failed to load dashboard data", err);
       } finally {
@@ -361,10 +384,8 @@ export default function AdminCRM() {
 
         {/* ── SIDEBAR (Desktop) ─────────────────────────────── */}
         <aside className="hide-mobile" style={{ width: sidebarOpen ? "220px" : "56px", minWidth: sidebarOpen ? "220px" : "56px", background: C.bgCard, borderRight: `1px solid ${C.border}`, display: "flex", flexDirection: "column", transition: "all 0.22s cubic-bezier(0.4,0,0.2,1)", overflow: "hidden", position: "relative", zIndex: 10 }}>
-          {/* Logo */}
-          <div style={{ padding: "20px 16px 16px", borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "center", gap: "10px", flexShrink: 0 }}>
-            <div style={{ width: "32px", height: "32px", background: `linear-gradient(135deg,${C.gold},#8A5C00)`, borderRadius: "9px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "16px", flexShrink: 0 }}>◈</div>
-            {sidebarOpen && <div><div className="syne" style={{ fontWeight: 800, fontSize: "15px", color: C.text, letterSpacing: "-0.02em" }}>Rizal CRM</div><div style={{ fontSize: "9px", color: C.gold, letterSpacing: "0.2em", textTransform: "uppercase" }}>Admin Console</div></div>}
+          <div style={{ padding: "16px", borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+            <img src={logoDark} alt="Rizal's Trade" style={{ height: sidebarOpen ? "40px" : "24px", width: "auto", objectContain: "contain" }} />
           </div>
           {/* Nav */}
           <nav style={{ flex: 1, padding: "12px 0", overflowY: "auto", overflowX: "hidden" }}>
@@ -382,10 +403,7 @@ export default function AdminCRM() {
         {/* ── MOBILE SIDEBAR ────────────────────────────────── */}
         <aside style={{ position: "fixed", left: 0, top: 0, bottom: 0, width: "240px", background: C.bgCard, borderRight: `1px solid ${C.border}`, display: "flex", flexDirection: "column", zIndex: 200, transform: mobileMenuOpen ? "translateX(0)" : "translateX(-100%)", transition: "transform 0.25s cubic-bezier(0.4,0,0.2,1)" }}>
           <div style={{ padding: "20px 16px 16px", borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-              <div style={{ width: "32px", height: "32px", background: `linear-gradient(135deg,${C.gold},#8A5C00)`, borderRadius: "9px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "16px" }}>◈</div>
-              <div className="syne" style={{ fontWeight: 800, fontSize: "15px", color: C.text }}>Rizal CRM</div>
-            </div>
+            <img src={logoDark} alt="Rizal's Trade" style={{ height: "32px", width: "auto" }} />
             <button onClick={() => setMobileMenuOpen(false)} style={{ background: "none", border: "none", color: C.textMuted, fontSize: "18px", cursor: "pointer" }}>✕</button>
           </div>
           <nav style={{ flex: 1, padding: "12px 0", overflowY: "auto" }}><NavContent /></nav>
@@ -418,7 +436,7 @@ export default function AdminCRM() {
 
           {/* Page */}
           <main style={{ flex: 1, overflow: "auto", padding: "20px" }} className="page-anim">
-            {page === "dashboard" && <DashboardPage stats={stats} users={users} funding={funding} trades={trades} growthStats={growthStats} setPage={setPage} />}
+            {page === "dashboard" && <DashboardPage stats={stats} users={users} funding={funding} trades={trades} growthStats={growthStats} kycAlerts={kycAlerts} setPage={setPage} />}
             {page === "users" && <UsersPage users={users} setUsers={setUsers} toast={toast} />}
             {page === "admins" && <AdminsPage users={users} setUsers={setUsers} toast={toast} />}
             {page === "kyc" && <KYCPage toast={toast} />}
@@ -437,7 +455,7 @@ export default function AdminCRM() {
 // ═══════════════════════════════════════════════════════════════════════════
 // DASHBOARD
 // ═══════════════════════════════════════════════════════════════════════════
-function DashboardPage({ stats, users, funding, trades, growthStats, setPage }) {
+function DashboardPage({ stats, users, funding, trades, growthStats, kycAlerts = [], setPage }) {
   const kpis = [
     { label: "Total Users", value: fmtNum(stats.totalUsers), sub: `${stats.activeUsers} active`, spark: (growthStats?.userGrowth || []).map(d => d.u), color: C.gold },
     { label: "Platform Balance", value: fmt(stats.totalBalance), sub: "All accounts", spark: [820000, 940000, 1100000, 980000, 1240000, 1690000, stats.totalBalance], color: C.blue },
@@ -513,21 +531,23 @@ function DashboardPage({ stats, users, funding, trades, growthStats, setPage }) 
         </Card>
 
         {/* KYC Alerts */}
-        <Card title="KYC Alerts" subtitle="Recent submissions" extra={<Btn size="sm" variant="ghost" onClick={() => setPage("kyc")}>Review All</Btn>}>
+        <Card title="KYC Alerts" subtitle="Recent pending submissions" extra={<Btn size="sm" variant="ghost" onClick={() => setPage("kyc")}>Review All</Btn>}>
           <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-            {users.filter(u => ["pending", "under_review"].includes(u.kyc)).map(u => (
-              <div key={`${u.role}-${u.id}`} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 12px", background: C.bg, borderRadius: "8px", border: `1px solid ${C.border}` }}>
+            {kycAlerts.slice(0, 5).map(u => (
+              <div key={u.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 12px", background: C.bg, borderRadius: "8px", border: `1px solid ${C.border}` }}>
                 <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
                   <UserAvatar name={u.name} size={30} />
                   <div>
-                    <div style={{ fontSize: "12px", fontWeight: 600, color: C.text }}>{u.name}</div>
-                    <div style={{ fontSize: "10px", color: C.textMuted }}>Submitted {fmtDate(u.kycSubmitted)}</div>
+                    <div style={{ fontSize: "12px", fontWeight: 600, color: C.text }}>{u.name || u.email}</div>
+                    <div style={{ fontSize: "10px", color: C.textMuted }}>
+                      {u.kycDocs?.length || 0} doc{(u.kycDocs?.length || 0) !== 1 ? 's' : ''} · Submitted {fmtDate(u.kycSubmitted)}
+                    </div>
                   </div>
                 </div>
                 <StatusBadge status={u.kyc} />
               </div>
             ))}
-            {users.filter(u => ["pending", "under_review"].includes(u.kyc)).length === 0 && <div style={{ padding: "24px", textAlign: "center", color: C.textDim, fontSize: "13px" }}>All KYC up to date</div>}
+            {kycAlerts.length === 0 && <div style={{ padding: "24px", textAlign: "center", color: C.textDim, fontSize: "13px" }}>All KYC up to date ✓</div>}
           </div>
         </Card>
       </div>
@@ -1043,9 +1063,17 @@ function KYCPage({ toast }) {
                     </div>
                     <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                       <StatusBadge status={doc.status} />
-                      {doc.status !== "missing" && doc.file && (
-                        <div style={{ background: C.bgCard, borderRadius: "6px", padding: "5px 10px", fontSize: "11px", color: C.blue, cursor: "pointer", border: `1px solid ${C.border}` }}>👁 Preview</div>
-                      )}
+                      {doc.status !== "missing" && doc.file && (() => {
+                        const fileUrl = getFileUrl(doc.file);
+                        return fileUrl ? (
+                          <div
+                            onClick={() => window.open(fileUrl, '_blank')}
+                            style={{ background: C.bgCard, borderRadius: "6px", padding: "5px 10px", fontSize: "11px", color: C.blue, cursor: "pointer", border: `1px solid ${C.border}`, userSelect: "none" }}
+                          >
+                            {isFilePdf(doc.file) ? '📄 Open PDF' : '👁 Preview'}
+                          </div>
+                        ) : null;
+                      })()}
                       {doc.status !== "verified" && doc.status !== "missing" && (
                         <Btn size="sm" onClick={() => verifyDoc(selectedUser.id, doc.id)}>✓ Verify</Btn>
                       )}

@@ -3,10 +3,15 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 
 import { FaFacebookF, FaTwitter, FaLinkedinIn, FaInstagram, FaYoutube } from 'react-icons/fa';
-import { HiOutlineChartBar } from 'react-icons/hi';
+import { useTheme } from '../../context/ThemeContext';
+import logoLight from '../../assets/images/logos/logo-light.jpg';
+import logoDark from '../../assets/images/logos/logo-dark.png';
+
 
 const Footer = () => {
   const currentYear = new Date().getFullYear();
+  const { theme } = useTheme();
+
 
   const footerLinks = {
     company: [
@@ -50,12 +55,12 @@ const Footer = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8 mb-12">
           {/* Brand Column */}
           <div className="lg:col-span-1">
-            <Link to="/" className="flex items-center space-x-2 mb-4">
-              <HiOutlineChartBar className="h-8 w-8 text-gold-500" />
-              <span className="text-2xl font-bold">
-                <span className="text-white">Rizal's</span>
-                <span className="text-gold-500">Trade</span>
-              </span>
+            <Link to="/" className="flex items-center mb-4">
+              <img 
+                src={theme === 'dark' ? logoDark : logoLight} 
+                alt="Rizal's Trade" 
+                className="h-10 w-auto object-contain" 
+              />
             </Link>
             <p className="text-navy-200 mb-4 text-sm">
               Your trusted partner in online trading. Experience the future of investing with our cutting-edge platform.

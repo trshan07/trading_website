@@ -179,6 +179,9 @@ const RealTimeChart = ({
         const ws = new WebSocket(`wss://stream.binance.com:9443/ws/${wsSymbol}@kline_${interval}`);
         wsRef.current = ws;
 
+        // Suppress errors (e.g. network close race conditions)
+        ws.onerror = () => {};
+
         ws.onmessage = (event) => {
           try {
             // Re-check existence inside every async callback
@@ -220,7 +223,16 @@ const RealTimeChart = ({
       active = false;
       resizeObserver.disconnect();
       if (wsRef.current) {
-        try { wsRef.current.close(); } catch (e) {}
+        try {
+          // Null out all handlers FIRST to silence any incoming messages/errors during close
+          wsRef.current.onmessage = null;
+          wsRef.current.onerror = null;
+          wsRef.current.onclose = null;
+          // Only close if not already closing/closed
+          if (wsRef.current.readyState === WebSocket.OPEN || wsRef.current.readyState === WebSocket.CONNECTING) {
+            wsRef.current.close();
+          }
+        } catch (e) {}
         wsRef.current = null;
       }
       // Null refs BEFORE calling remove() to stop pending async callbacks immediately

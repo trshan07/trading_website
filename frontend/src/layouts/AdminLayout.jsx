@@ -15,7 +15,8 @@ import {
 } from '@ant-design/icons';
 import { Layout, Menu, Button, Avatar, Dropdown, Badge, theme } from 'antd';
 import { useAuth } from '../hooks/useAuth';
-import logo from '../assets/images/logo.png';
+import logo from '../assets/images/logos/logo-dark.png';
+
 
 const { Header, Sider, Content } = Layout;
 

@@ -7,6 +7,10 @@ import { toast } from 'react-hot-toast';
 import Button from '../../components/ui/Button';
 import authBg from '../../assets/images/real_trading_bg.png';
 import authService from '../../services/authService';
+import logoDark from '../../assets/images/logos/logo-dark.png';
+import logoVerticalLight from '../../assets/images/logos/logo-vertical-light.jpg';
+
+
 
 const ForgotPasswordPage = () => {
   const navigate = useNavigate();
@@ -108,8 +112,8 @@ const ForgotPasswordPage = () => {
            className="text-center lg:text-left mb-8 mt-10 md:mt-0 lg:max-w-xl"
         >
           <div className="flex justify-center lg:justify-start mb-6">
-            <Link to="/" className="flex items-center space-x-3 group">
-              <span className="text-3xl font-display font-bold gradient-text italic tracking-wider">RIZALS TRADE</span>
+            <Link to="/" className="flex items-center group">
+              <img src={logoVerticalLight} alt="Rizal's Trade" className="h-28 w-auto object-contain" />
             </Link>
           </div>
           <h1 className="text-3xl md:text-4xl font-display font-bold text-gold tracking-wide mb-2">

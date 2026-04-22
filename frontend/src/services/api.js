@@ -32,10 +32,15 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response && error.response.status === 401) {
+      const hadToken = !!localStorage.getItem('token');
       localStorage.removeItem('token');
       localStorage.removeItem('user');
       localStorage.removeItem('trading_mode');
-      console.warn('[AUTH] Session Revoked - 401 Unauthorized');
+      // Only fire the event if there WAS a token (i.e. this is a real expiry, not a pre-login request)
+      if (hadToken) {
+        console.warn('[AUTH] Session expired - dispatching logout event');
+        window.dispatchEvent(new CustomEvent('auth:session-expired'));
+      }
     }
     return Promise.reject(error);
   }

@@ -2,6 +2,10 @@ import React, { useState } from 'react';
 import { Link, NavLink } from 'react-router-dom';
 import { HiMenu, HiX, HiChevronDown } from 'react-icons/hi';
 import Container from './Container';
+import { useTheme } from '../../context/ThemeContext';
+import logoLight from '../../assets/images/logos/logo-light.jpg';
+import logoDark from '../../assets/images/logos/logo-dark.png';
+
 
 // Refactored Sub-components
 import { navLinks } from './navbar-refactor/NavConfig';
@@ -11,14 +15,20 @@ import MobileMenu from './navbar-refactor/MobileMenu';
 
 const Navbar = () => {
     const [isOpen, setIsOpen] = useState(false);
+    const { theme } = useTheme();
+
 
     return (
         <nav className="fixed w-full z-50 bg-navy/80 backdrop-blur-lg border-b border-white/10">
             <Container>
                 <div className="flex justify-between items-center h-20">
                     {/* Logo */}
-                    <Link to="/" className="flex items-center space-x-2">
-                        <span className="text-2xl font-bold font-display gradient-text italic">RIZALS TRADE</span>
+                    <Link to="/" className="flex items-center">
+                        <img 
+                          src={theme === 'dark' ? logoDark : logoLight} 
+                          alt="Rizal's Trade" 
+                          className="h-10 w-auto object-contain"
+                        />
                     </Link>
 
                     {/* Desktop Nav */}

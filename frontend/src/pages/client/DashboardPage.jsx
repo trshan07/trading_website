@@ -170,11 +170,15 @@ const DashboardPage = () => {
 
   const isDemo = selectedAccountType === 'demo';
 
+  const accountBalance = parseFloat(activeAccount?.balance) || 0;
+  const accountCredit = parseFloat(activeAccount?.credit) || 0;
+  const accountTotalFunds = accountBalance + accountCredit;
+
   const walletData = {
-    mainWallet: activeAccount?.balance || 0,
+    mainWallet: accountBalance,
     tradingWallet: 0, // Placeholder if you have separate trading/main wallets
-    totalBalance: activeAccount?.balance || 0,
-    equity: activeAccount?.balance || 0,
+    totalBalance: accountTotalFunds,
+    equity: accountTotalFunds,
   };
 
 
@@ -215,20 +219,22 @@ const DashboardPage = () => {
     });
     
     const balance = parseFloat(activeAccount.balance) || 0;
-    const equity = balance + totalUnrealizedPnL;
+    const credit = parseFloat(activeAccount.credit) || 0;
+    const totalFunds = balance + credit;
+    const equity = totalFunds + totalUnrealizedPnL;
     const marginLevel = totalMargin > 0 ? (equity / totalMargin) * 100 : 0;
     
     return {
       ...portfolio,
-      totalBalance: balance,
-      availableBalance: balance - totalMargin,
+      totalBalance: totalFunds,
+      availableBalance: totalFunds - totalMargin,
       freeMargin: equity - totalMargin,
       equity: equity,
       margin: totalMargin,
       marginLevel: marginLevel,
       dailyPnL: totalUnrealizedPnL,
       positionsCount: positions.length,
-      credit: parseFloat(activeAccount.credit) || 0,
+      credit,
       leverage: activeAccount.leverage || 100
     };
   }, [user, activeAccount, positions, marketData, portfolio]);
@@ -309,7 +315,7 @@ const DashboardPage = () => {
 
         {/* Scrollable Region */}
         <div className="flex-1 overflow-y-auto relative custom-scrollbar bg-[var(--bg-primary)]">
-          <main className="px-3 sm:px-6 md:px-10 py-6 md:py-10 max-w-[1600px] mx-auto w-full">
+          <main className="px-2 sm:px-6 md:px-10 py-4 md:py-10 max-w-[1600px] mx-auto w-full">
             {/* Demo Mode Banner */}
             {isDemo && (
               <div className="mb-6 sm:mb-8 p-4 sm:p-6 bg-amber-500/10 border border-amber-500/20 rounded-[2rem] flex flex-col md:flex-row items-center justify-between gap-6 transition-all hover:bg-amber-500/20">

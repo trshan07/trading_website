@@ -2,16 +2,26 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import Container from './Container';
 import { FaFacebook, FaTwitter, FaLinkedin, FaYoutube } from 'react-icons/fa';
+import { useTheme } from '../../context/ThemeContext';
+import logoLight from '../../assets/images/logos/logo-light.jpg';
+import logoDark from '../../assets/images/logos/logo-dark.png';
+
 
 const Footer = () => {
+    const { theme } = useTheme();
+
     return (
         <footer className="relative z-10 bg-[#000F29]/80 backdrop-blur-lg pt-16 md:pt-24 pb-8 md:pb-12 border-t border-white/10 shadow-[0_-10px_40px_rgba(0,0,0,0.5)]">
             <Container>
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-10 md:gap-12 mb-12 md:mb-16">
                     {/* Brand - Full width on mobile */}
                     <div className="col-span-2 lg:col-span-1 text-center lg:text-left mb-4 md:mb-0">
-                        <Link to="/" className="text-2xl font-bold font-display gradient-text italic mb-4 md:mb-6 block">
-                            RIZALS TRADE
+                        <Link to="/" className="mb-4 md:mb-6 block">
+                            <img 
+                              src={theme === 'dark' ? logoDark : logoLight} 
+                              alt="Rizal's Trade" 
+                              className="h-10 w-auto object-contain mx-auto lg:mx-0" 
+                            />
                         </Link>
                         <p className="text-white/50 text-sm leading-relaxed mb-6 max-w-sm mx-auto lg:mx-0">
                             Empowering traders globally with institutional-grade technology, deep liquidity, and a commitment to transparency.

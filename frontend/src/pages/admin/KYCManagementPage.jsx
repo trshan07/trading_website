@@ -1,34 +1,12 @@
 // frontend/src/pages/admin/KYCManagementPage.jsx
 import React, { useState, useEffect } from 'react';
 import {
-  Card,
-  Table,
-  Button,
-  Space,
-  Modal,
-  Tag,
-  Image,
-  Descriptions,
-  Timeline,
-  Badge,
-  Tabs,
-  message,
-  Input,
-  Select,
-  Upload,
-  Tooltip,
-  Progress,
+  Card, Table, Button, Space, Modal, Tag, Descriptions,
+  Badge, Tabs, message, Input, Tooltip, Image,
 } from 'antd';
 import {
-  CheckOutlined,
-  CloseOutlined,
-  EyeOutlined,
-  DownloadOutlined,
-  UploadOutlined,
-  FileImageOutlined,
-  IdcardOutlined,
-  BankOutlined,
-  ReloadOutlined,
+  CheckOutlined, CloseOutlined, EyeOutlined, DownloadOutlined,
+  IdcardOutlined, ReloadOutlined, FilePdfOutlined, FileImageOutlined,
 } from '@ant-design/icons';
 import { adminService } from '../../services/adminService';
 import moment from 'moment';
@@ -36,327 +14,255 @@ import moment from 'moment';
 const { TabPane } = Tabs;
 const { TextArea } = Input;
 
+// Build a full URL from a server-relative file path
+const API_BASE = (process.env.REACT_APP_API_URL || 'http://localhost:5000/api').replace('/api', '');
+const getFileUrl = (filePath) => {
+  if (!filePath) return null;
+  if (filePath.startsWith('http://') || filePath.startsWith('https://')) return filePath;
+  const normalized = filePath.replace(/\\/g, '/');
+  const uploadsIdx = normalized.indexOf('/uploads/');
+  if (uploadsIdx !== -1) return `${API_BASE}${normalized.substring(uploadsIdx)}`;
+  return `${API_BASE}${normalized.startsWith('/') ? normalized : '/' + normalized}`;
+};
+
+const isPdf = (filePath) => filePath?.toLowerCase().endsWith('.pdf');
+
 const KYCManagementPage = () => {
   const [submissions, setSubmissions] = useState([]);
   const [loading, setLoading] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
-  const [selectedSubmission, setSelectedSubmission] = useState(null);
+  const [selectedUser, setSelectedUser] = useState(null);
   const [activeTab, setActiveTab] = useState('pending');
+  const [rejectDocId, setRejectDocId] = useState(null);
   const [rejectReason, setRejectReason] = useState('');
-  const [pagination, setPagination] = useState({ current: 1, pageSize: 10, total: 0 });
 
-  useEffect(() => {
-    fetchKYCSubmissions();
-  }, [pagination.current, pagination.pageSize, activeTab]);
+  useEffect(() => { fetchKYCSubmissions(); }, [activeTab]); // eslint-disable-line
 
   const fetchKYCSubmissions = async () => {
     setLoading(true);
     try {
-      const data = await adminService.getKYCSubmissions({
-        page: pagination.current,
-        limit: pagination.pageSize,
-        status: activeTab,
-      });
-      setSubmissions(data.submissions);
-      setPagination({ ...pagination, total: data.total });
-    } catch (error) {
+      const params = activeTab !== 'all' ? { status: activeTab } : {};
+      const response = await adminService.getKYCSubmissions(params);
+      // axios wraps in .data; backend sends { success, data: [...] }
+      const list = response?.data?.data || response?.data || [];
+      setSubmissions(Array.isArray(list) ? list : []);
+    } catch (err) {
+      console.error('KYC fetch error:', err);
       message.error('Failed to fetch KYC submissions');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleApprove = async (submissionId) => {
+  const handleProcess = async (docId, status, reason = null) => {
     try {
-      await adminService.approveKYC(submissionId);
-      message.success('KYC approved successfully');
-      fetchKYCSubmissions();
-      setModalVisible(false);
-    } catch (error) {
-      message.error('Failed to approve KYC');
-    }
-  };
-
-  const handleReject = async (submissionId) => {
-    if (!rejectReason.trim()) {
-      message.error('Please provide a rejection reason');
-      return;
-    }
-    try {
-      await adminService.rejectKYC(submissionId, rejectReason);
-      message.success('KYC rejected');
+      await adminService.processKYC(docId, status, reason);
+      message.success(`Document ${status} successfully`);
       setModalVisible(false);
       setRejectReason('');
+      setRejectDocId(null);
       fetchKYCSubmissions();
-    } catch (error) {
-      message.error('Failed to reject KYC');
+    } catch (err) {
+      console.error('KYC process error:', err);
+      message.error(`Failed to ${status} document`);
     }
   };
 
   const columns = [
     {
       title: 'User',
-      dataIndex: 'userName',
-      key: 'userName',
-      render: (text, record) => (
+      key: 'user',
+      render: (_, r) => (
         <div>
-          <div style={{ fontWeight: 'bold' }}>{text}</div>
-          <div style={{ fontSize: '12px', color: '#666' }}>{record.userEmail}</div>
+          <div style={{ fontWeight: 700 }}>{r.name}</div>
+          <div style={{ fontSize: 12, color: '#888' }}>{r.email}</div>
         </div>
       ),
     },
     {
-      title: 'Document Type',
-      dataIndex: 'documentType',
-      key: 'documentType',
-      render: (type) => (
-        <Tag icon={<IdcardOutlined />} color="blue">
-          {type?.toUpperCase()}
-        </Tag>
+      title: 'Documents',
+      key: 'docs',
+      render: (_, r) => (
+        <Space wrap>
+          {(r.kycDocs || []).map(doc => (
+            <Tag key={doc.id} icon={<IdcardOutlined />} color="blue">
+              {doc.label || doc.type}
+            </Tag>
+          ))}
+        </Space>
       ),
     },
     {
       title: 'Submitted',
-      dataIndex: 'createdAt',
-      key: 'createdAt',
-      render: (date) => moment(date).format('YYYY-MM-DD HH:mm'),
+      dataIndex: 'kycSubmitted',
+      render: (d) => d ? moment(d).format('YYYY-MM-DD HH:mm') : '—',
     },
     {
       title: 'Status',
-      dataIndex: 'status',
-      key: 'status',
-      render: (status) => (
-        <Badge 
-          status={
-            status === 'approved' ? 'success' :
-            status === 'rejected' ? 'error' : 'warning'
-          }
-          text={status?.toUpperCase()}
+      dataIndex: 'kyc',
+      render: (s) => (
+        <Badge
+          status={s === 'verified' || s === 'approved' ? 'success' : s === 'rejected' ? 'error' : 'warning'}
+          text={s?.toUpperCase()}
         />
       ),
     },
     {
       title: 'Actions',
-      key: 'actions',
-      render: (_, record) => (
-        <Space>
-          <Button
-            icon={<EyeOutlined />}
-            onClick={() => {
-              setSelectedSubmission(record);
-              setModalVisible(true);
-            }}
-          >
-            Review
-          </Button>
-          {activeTab === 'pending' && (
-            <>
-              <Button
-                type="primary"
-                icon={<CheckOutlined />}
-                onClick={() => handleApprove(record.id)}
-                style={{ backgroundColor: '#52c41a', borderColor: '#52c41a' }}
-              >
-                Approve
-              </Button>
-              <Button
-                danger
-                icon={<CloseOutlined />}
-                onClick={() => {
-                  setSelectedSubmission(record);
-                  setRejectReason('');
-                  Modal.confirm({
-                    title: 'Reject KYC Submission',
-                    content: (
-                      <div>
-                        <p>Please provide a reason for rejection:</p>
-                        <TextArea
-                          rows={4}
-                          value={rejectReason}
-                          onChange={(e) => setRejectReason(e.target.value)}
-                          placeholder="Enter rejection reason..."
-                        />
-                      </div>
-                    ),
-                    onOk: () => handleReject(record.id),
-                  });
-                }}
-              >
-                Reject
-              </Button>
-            </>
-          )}
-        </Space>
+      render: (_, r) => (
+        <Button
+          icon={<EyeOutlined />}
+          onClick={() => { setSelectedUser(r); setRejectDocId(null); setRejectReason(''); setModalVisible(true); }}
+        >
+          Review
+        </Button>
       ),
     },
   ];
 
   return (
-    <div style={{ padding: '24px', background: '#f0f2f5', minHeight: '100vh' }}>
-      <Card 
-        title="KYC Management" 
-        style={{ borderRadius: '12px', borderTop: '4px solid #FFD700' }}
-        extra={
-          <Button 
-            icon={<ReloadOutlined />} 
-            onClick={fetchKYCSubmissions}
-            loading={loading}
-          >
-            Refresh
-          </Button>
-        }
+    <div style={{ padding: 24, background: '#f0f2f5', minHeight: '100vh' }}>
+      <Card
+        title="KYC Document Management"
+        style={{ borderRadius: 12, borderTop: '4px solid #FFD700' }}
+        extra={<Button icon={<ReloadOutlined />} onClick={fetchKYCSubmissions} loading={loading}>Refresh</Button>}
       >
         <Tabs activeKey={activeTab} onChange={setActiveTab}>
-          <TabPane tab={<Badge count={0}><span>Pending</span></Badge>} key="pending" />
+          <TabPane tab="Pending" key="pending" />
           <TabPane tab="Approved" key="approved" />
           <TabPane tab="Rejected" key="rejected" />
           <TabPane tab="All" key="all" />
         </Tabs>
-        
-        <Table
-          columns={columns}
-          dataSource={submissions}
-          loading={loading}
-          pagination={pagination}
-          onChange={(newPagination) => setPagination(newPagination)}
-          rowKey="id"
-        />
+        <Table columns={columns} dataSource={submissions} loading={loading} rowKey="id" pagination={{ pageSize: 10 }} />
       </Card>
 
-      {/* Review Modal */}
+      {/* ── Review Modal ── */}
       <Modal
-        title="KYC Document Review"
+        title={`KYC Review — ${selectedUser?.name || ''}`}
         open={modalVisible}
-        onCancel={() => {
-          setModalVisible(false);
-          setRejectReason('');
-        }}
+        onCancel={() => { setModalVisible(false); setRejectDocId(null); setRejectReason(''); }}
         footer={null}
-        width={800}
+        width={860}
+        destroyOnClose
       >
-        {selectedSubmission && (
+        {selectedUser && (
           <div>
-            <Descriptions column={2} bordered style={{ marginBottom: 24 }}>
-              <Descriptions.Item label="User Name">{selectedSubmission.userName}</Descriptions.Item>
-              <Descriptions.Item label="Email">{selectedSubmission.userEmail}</Descriptions.Item>
-              <Descriptions.Item label="Document Type">{selectedSubmission.documentType?.toUpperCase()}</Descriptions.Item>
-              <Descriptions.Item label="Document Number">{selectedSubmission.documentNumber}</Descriptions.Item>
-              <Descriptions.Item label="Submitted Date">
-                {moment(selectedSubmission.createdAt).format('YYYY-MM-DD HH:mm:ss')}
+            <Descriptions column={2} bordered size="small" style={{ marginBottom: 20 }}>
+              <Descriptions.Item label="Name">{selectedUser.name}</Descriptions.Item>
+              <Descriptions.Item label="Email">{selectedUser.email}</Descriptions.Item>
+              <Descriptions.Item label="Submitted">
+                {selectedUser.kycSubmitted ? moment(selectedUser.kycSubmitted).format('YYYY-MM-DD HH:mm') : '—'}
               </Descriptions.Item>
-              <Descriptions.Item label="Status">
-                <Badge 
-                  status={
-                    selectedSubmission.status === 'approved' ? 'success' :
-                    selectedSubmission.status === 'rejected' ? 'error' : 'warning'
-                  }
-                  text={selectedSubmission.status?.toUpperCase()}
+              <Descriptions.Item label="Overall Status">
+                <Badge
+                  status={selectedUser.kyc === 'verified' || selectedUser.kyc === 'approved' ? 'success' : selectedUser.kyc === 'rejected' ? 'error' : 'warning'}
+                  text={selectedUser.kyc?.toUpperCase()}
                 />
               </Descriptions.Item>
             </Descriptions>
 
-            <div style={{ marginBottom: 24 }}>
-              <h4>Front Side:</h4>
-              <Image
-                src={selectedSubmission.frontImage}
-                alt="Document Front"
-                style={{ maxWidth: '100%', maxHeight: '400px', borderRadius: '8px' }}
-                fallback="https://via.placeholder.com/400x300?text=No+Image"
-              />
-              <Button 
-                icon={<DownloadOutlined />} 
-                onClick={() => window.open(selectedSubmission.frontImage)}
-                style={{ marginTop: 8 }}
-              >
-                Download Front
-              </Button>
-            </div>
-
-            {selectedSubmission.backImage && (
-              <div style={{ marginBottom: 24 }}>
-                <h4>Back Side:</h4>
-                <Image
-                  src={selectedSubmission.backImage}
-                  alt="Document Back"
-                  style={{ maxWidth: '100%', maxHeight: '400px', borderRadius: '8px' }}
-                  fallback="https://via.placeholder.com/400x300?text=No+Image"
-                />
-                <Button 
-                  icon={<DownloadOutlined />} 
-                  onClick={() => window.open(selectedSubmission.backImage)}
-                  style={{ marginTop: 8 }}
-                >
-                  Download Back
-                </Button>
-              </div>
+            {(selectedUser.kycDocs || []).length === 0 && (
+              <div style={{ textAlign: 'center', padding: 40, color: '#999' }}>No documents submitted yet.</div>
             )}
 
-            {selectedSubmission.selfie && (
-              <div style={{ marginBottom: 24 }}>
-                <h4>Selfie with Document:</h4>
-                <Image
-                  src={selectedSubmission.selfie}
-                  alt="Selfie"
-                  style={{ maxWidth: '100%', maxHeight: '400px', borderRadius: '8px' }}
-                  fallback="https://via.placeholder.com/400x300?text=No+Image"
-                />
-                <Button 
-                  icon={<DownloadOutlined />} 
-                  onClick={() => window.open(selectedSubmission.selfie)}
-                  style={{ marginTop: 8 }}
-                >
-                  Download Selfie
-                </Button>
-              </div>
-            )}
+            {(selectedUser.kycDocs || []).map((doc) => {
+              const fileUrl = getFileUrl(doc.file);
+              const docIsPdf = isPdf(doc.file);
 
-            {selectedSubmission.status === 'rejected' && selectedSubmission.rejectionReason && (
-              <div style={{ marginBottom: 24 }}>
-                <h4 style={{ color: '#f5222d' }}>Rejection Reason:</h4>
-                <p style={{ background: '#fff1f0', padding: '12px', borderRadius: '8px' }}>
-                  {selectedSubmission.rejectionReason}
-                </p>
-              </div>
-            )}
+              return (
+                <div key={doc.id} style={{ marginBottom: 24, padding: 16, border: '1px solid #e8e8e8', borderRadius: 8, background: '#fafafa' }}>
+                  {/* Doc header row */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, flexWrap: 'wrap', gap: 8 }}>
+                    <Space>
+                      <Tag color="blue" icon={<IdcardOutlined />} style={{ fontSize: 13, padding: '4px 10px' }}>
+                        {doc.label || doc.type?.toUpperCase()}
+                      </Tag>
+                      <Badge
+                        status={doc.status === 'approved' || doc.status === 'verified' ? 'success' : doc.status === 'rejected' ? 'error' : 'warning'}
+                        text={doc.status?.toUpperCase()}
+                      />
+                    </Space>
+                    <Space>
+                      {fileUrl && (
+                        <Tooltip title="Open / download document">
+                          <Button size="small" icon={<DownloadOutlined />} onClick={() => window.open(fileUrl, '_blank')}>
+                            Open / Download
+                          </Button>
+                        </Tooltip>
+                      )}
+                      {doc.status === 'pending' && (
+                        <>
+                          <Button
+                            size="small" type="primary" icon={<CheckOutlined />}
+                            style={{ backgroundColor: '#52c41a', borderColor: '#52c41a' }}
+                            onClick={() => handleProcess(doc.id, 'approved')}
+                          >Approve</Button>
+                          <Button size="small" danger icon={<CloseOutlined />}
+                            onClick={() => { setRejectDocId(doc.id); setRejectReason(''); }}
+                          >Reject</Button>
+                        </>
+                      )}
+                    </Space>
+                  </div>
 
-            {selectedSubmission.status === 'pending' && (
-              <div style={{ marginTop: 24, textAlign: 'right' }}>
-                <Space>
-                  <Button onClick={() => setModalVisible(false)}>Cancel</Button>
-                  <Button 
-                    danger
-                    icon={<CloseOutlined />}
-                    onClick={() => {
-                      Modal.confirm({
-                        title: 'Reject KYC Submission',
-                        content: (
-                          <div>
-                            <p>Please provide a reason for rejection:</p>
-                            <TextArea
-                              rows={4}
-                              value={rejectReason}
-                              onChange={(e) => setRejectReason(e.target.value)}
-                              placeholder="Enter rejection reason..."
-                            />
-                          </div>
-                        ),
-                        onOk: () => handleReject(selectedSubmission.id),
-                      });
-                    }}
-                  >
-                    Reject
-                  </Button>
-                  <Button 
-                    type="primary" 
-                    icon={<CheckOutlined />}
-                    onClick={() => handleApprove(selectedSubmission.id)}
-                    style={{ backgroundColor: '#52c41a', borderColor: '#52c41a' }}
-                  >
-                    Approve
-                  </Button>
-                </Space>
-              </div>
-            )}
+                  {/* Inline reject form */}
+                  {rejectDocId === doc.id && (
+                    <div style={{ marginBottom: 12, padding: 12, background: '#fff1f0', border: '1px solid #ffa39e', borderRadius: 6 }}>
+                      <p style={{ margin: '0 0 8px', fontWeight: 700, color: '#cf1322' }}>Rejection Reason:</p>
+                      <TextArea
+                        rows={3} value={rejectReason}
+                        onChange={e => setRejectReason(e.target.value)}
+                        placeholder="Provide a clear reason for rejection..."
+                        style={{ marginBottom: 8 }}
+                      />
+                      <Space>
+                        <Button size="small" onClick={() => { setRejectDocId(null); setRejectReason(''); }}>Cancel</Button>
+                        <Button size="small" danger type="primary"
+                          onClick={() => {
+                            if (!rejectReason.trim()) { message.error('Please enter a rejection reason'); return; }
+                            handleProcess(doc.id, 'rejected', rejectReason);
+                          }}
+                        >Confirm Reject</Button>
+                      </Space>
+                    </div>
+                  )}
+
+                  {/* Rejection reason display */}
+                  {doc.status === 'rejected' && doc.rejectReason && (
+                    <div style={{ background: '#fff1f0', padding: '8px 12px', borderRadius: 6, marginBottom: 12, border: '1px solid #ffa39e' }}>
+                      <strong style={{ color: '#cf1322' }}>Rejected: </strong>{doc.rejectReason}
+                    </div>
+                  )}
+
+                  {/* Document preview */}
+                  {fileUrl ? (
+                    docIsPdf ? (
+                      <div style={{ textAlign: 'center', padding: 24, background: '#fff', border: '1px dashed #d9d9d9', borderRadius: 6 }}>
+                        <FilePdfOutlined style={{ fontSize: 52, color: '#ff4d4f', display: 'block', marginBottom: 10 }} />
+                        <p style={{ color: '#666', margin: '0 0 12px' }}>PDF Document — cannot be previewed inline</p>
+                        <Button type="primary" icon={<EyeOutlined />} onClick={() => window.open(fileUrl, '_blank')}>
+                          Open PDF
+                        </Button>
+                      </div>
+                    ) : (
+                      <div style={{ textAlign: 'center', background: '#fff', padding: 8, borderRadius: 6, border: '1px solid #e8e8e8' }}>
+                        <Image
+                          src={fileUrl}
+                          alt={doc.label || 'KYC Document'}
+                          style={{ maxWidth: '100%', maxHeight: 360, objectFit: 'contain', borderRadius: 4 }}
+                          fallback="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNDAgMTgwIj48cmVjdCB3aWR0aD0iMjQwIiBoZWlnaHQ9IjE4MCIgZmlsbD0iI2Y1ZjVmNSIvPjx0ZXh0IHg9IjEyMCIgeT0iOTAiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzk5OSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+SW1hZ2Ugbm90IGF2YWlsYWJsZTwvdGV4dD48L3N2Zz4="
+                        />
+                      </div>
+                    )
+                  ) : (
+                    <div style={{ textAlign: 'center', padding: 24, background: '#fff', border: '1px dashed #d9d9d9', borderRadius: 6, color: '#bbb' }}>
+                      <FileImageOutlined style={{ fontSize: 40, display: 'block', marginBottom: 8 }} />
+                      No file attached
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         )}
       </Modal>

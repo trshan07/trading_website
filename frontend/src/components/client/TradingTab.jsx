@@ -30,7 +30,7 @@ const TradingTab = ({
 }) => {
   const [activeSubTab, setActiveSubTab] = useState('positions');
   const [showSidebar, setShowSidebar] = useState(true);
-  const [activeMobileView, setActiveMobileView] = useState('chart'); // 'markets', 'chart', 'trade'
+  const [activeMobileView, setActiveMobileView] = useState('chart'); // 'markets', 'chart', 'trade', 'portfolio'
   const [activeOrderIntent, setActiveOrderIntent] = useState({ side: 'buy', type: 'market' });
   const [chartMode, setChartMode] = useState('advanced'); // 'advanced' | 'execution'
   const { theme } = useTheme();
@@ -43,7 +43,8 @@ const TradingTab = ({
         {[
           { id: 'markets', label: 'Markets', icon: FaListUl },
           { id: 'chart', label: 'Chart', icon: FaChartLine },
-          { id: 'trade', label: 'Trade', icon: FaBolt }
+          { id: 'trade', label: 'Trade', icon: FaBolt },
+          { id: 'portfolio', label: 'Portfolio', icon: FaHistory }
         ].map((view) => (
           <button
             key={view.id}
@@ -61,7 +62,7 @@ const TradingTab = ({
       </div>
 
       {/* Top Section: Three-column Terminal */}
-      <div className="flex-1 flex flex-col lg:flex-row overflow-x-hidden overflow-y-auto lg:overflow-hidden relative">
+      <div className={`flex-1 flex flex-col lg:flex-row overflow-x-hidden overflow-y-auto lg:overflow-hidden relative ${activeMobileView === 'portfolio' ? 'hidden lg:flex' : 'flex'}`}>
         
         {/* Column 1: Asset List (Left) — controlled by showSidebar on desktop */}
         <div className={`
@@ -172,8 +173,12 @@ const TradingTab = ({
       </div>
 
       {/* Bottom Section: Portfolio Management */}
-      <div className="h-64 flex flex-col bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 shadow-2xl z-10 transition-colors">
-        <div className="flex items-center space-x-1 px-4 border-b border-slate-50 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50">
+      <div className={`
+        ${activeMobileView === 'portfolio' ? 'flex-1' : 'h-64'} 
+        ${activeMobileView === 'portfolio' ? 'flex' : 'hidden lg:flex'} 
+        flex-col bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 shadow-2xl z-10 transition-colors
+      `}>
+        <div className="flex items-center space-x-1 px-4 border-b border-slate-50 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50 overflow-x-auto scrollbar-hide">
           {[
             { id: 'positions', label: 'Positions', count: positions.length, icon: FaChartLine },
             { id: 'orders', label: 'Pending', count: orders.length, icon: FaListUl },
@@ -206,6 +211,7 @@ const TradingTab = ({
               <PositionsTable 
                 positions={positions}
                 onClose={onClosePosition}
+                compact={window.innerWidth < 1024}
               />
             ) : (
               <div className="text-center py-10">
@@ -218,6 +224,7 @@ const TradingTab = ({
               <OpenOrders 
                 orders={orders}
                 onCancel={onCancelOrder}
+                compact={window.innerWidth < 1024}
               />
             ) : (
               <div className="text-center py-10">

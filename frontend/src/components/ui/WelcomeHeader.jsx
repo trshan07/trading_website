@@ -11,7 +11,7 @@ const WelcomeHeader = ({ user, portfolio, onDeposit, onTrade }) => {
       {/* Background Glow Effect */}
       <div className="absolute -inset-1 bg-gradient-to-r from-gold-500/10 via-slate-100 dark:via-slate-800 to-rose-500/10 rounded-[3rem] blur-2xl opacity-50 group-hover:opacity-100 transition duration-1000"></div>
       
-      <div className="relative bg-white/50 dark:bg-slate-900/50 backdrop-blur-xl border border-white dark:border-slate-800 rounded-[2.5rem] p-8 sm:p-10 flex flex-col lg:flex-row justify-between items-center shadow-xl shadow-slate-200/50 dark:shadow-black/20 transition-colors duration-300">
+      <div className="relative bg-white/50 dark:bg-slate-900/50 backdrop-blur-xl border border-white dark:border-slate-800 rounded-[2.5rem] p-6 sm:p-10 flex flex-col lg:flex-row justify-between items-center shadow-xl shadow-slate-200/50 dark:shadow-black/20 transition-colors duration-300">
         <div className="mb-8 lg:mb-0 text-center lg:text-left">
           <div className="flex items-center justify-center lg:justify-start space-x-3 mb-2">
             <span className="px-3 py-1 bg-gold-50 dark:bg-gold-500/10 text-gold-600 dark:text-gold-400 text-[10px] font-black uppercase tracking-widest rounded-full border border-gold-100 dark:border-gold-500/20 transition-colors">

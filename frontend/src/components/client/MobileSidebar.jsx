@@ -3,6 +3,12 @@ import {
   FaChartLine, FaTimes, FaSignOutAlt, FaChartBar, FaDatabase, FaWallet, FaFileAlt, FaCog, FaExchangeAlt
 } from 'react-icons/fa';
 import ThemeToggle from '../ui/ThemeToggle';
+import { useTheme } from '../../context/ThemeContext';
+import logoLight from '../../assets/images/logos/logo-light.jpg';
+import logoDark from '../../assets/images/logos/logo-dark.png';
+import logoVerticalLight from '../../assets/images/logos/logo-vertical-light.jpg';
+import logoVerticalDark from '../../assets/images/logos/logo-vertical-dark.png';
+
 
 const MobileSidebar = ({ 
   show, 
@@ -16,7 +22,9 @@ const MobileSidebar = ({
   onSwitchAccount = () => {},
   onShowStatement = () => {}
 }) => {
+  const { theme } = useTheme();
   if (!show) return null;
+
 
   const isDemo = user?.selectedAccountType === 'demo';
 
@@ -39,11 +47,12 @@ const MobileSidebar = ({
       <div className="relative w-[280px] bg-white dark:bg-slate-900 shadow-2xl flex flex-col h-full overflow-hidden animate-in slide-in-from-left duration-300 transition-colors">
         {/* Drawer Header */}
         <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center shrink-0">
-          <div className="flex items-center space-x-2">
-            <div className="w-8 h-8 flex items-center justify-center bg-slate-900 dark:bg-gold-500 rounded-lg text-gold-500 dark:text-slate-900 shadow-md">
-              <FaChartLine size={14} />
-            </div>
-            <h2 className="text-xl font-black italic tracking-tighter text-slate-900 dark:text-white uppercase leading-none">RIZAL<span className="text-gold-500">.</span></h2>
+          <div className="flex items-center">
+            <img 
+              src={theme === 'dark' ? logoVerticalDark : logoVerticalLight} 
+              alt="Rizal's Trade" 
+              className="h-12 w-auto object-contain" 
+            />
           </div>
           <div className="flex items-center space-x-2">
             <ThemeToggle />

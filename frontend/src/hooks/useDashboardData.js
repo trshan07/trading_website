@@ -182,7 +182,9 @@ export const useDashboardData = (accountType = 'demo') => {
   }, []);
 
   const fetchPositions = useCallback(async () => {
-    if (!accountId) return;
+    if (!accountId) return; // No account = nothing to fetch
+    const token = localStorage.getItem('token');
+    if (!token) return; // No token = don't fire, avoids 401 spam after logout
     try {
       const response = await tradingService.getOpenPositions(accountId);
       if (response.success) {
@@ -233,10 +235,11 @@ export const useDashboardData = (accountType = 'demo') => {
   }, [user, fetchBanking, fetchTransactions, fetchDocuments, fetchAlerts, fetchSettings, fetchInfrastructure]);
 
   useEffect(() => {
+    if (!accountId) return; // Don't start polling at all without an account
     fetchPositions();
     const pollInterval = setInterval(fetchPositions, 10000);
     return () => clearInterval(pollInterval);
-  }, [fetchPositions]);
+  }, [fetchPositions, accountId]);
 
   // --- Handlers (Sync with Backend) ---
 

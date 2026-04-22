@@ -88,7 +88,7 @@ const MarketsTab = ({
   const activeInstrument = instruments.find(i => i.symbol === activeSymbol);
 
   return (
-    <div className="flex flex-col h-[calc(100vh-10rem)] min-h-[900px] lg:min-h-[1050px] -mx-4 md:-mx-10 border-t border-slate-100 dark:border-slate-800 animate-in fade-in slide-in-from-bottom-4 duration-700">
+    <div className="flex flex-col h-[calc(100vh-10rem)] min-h-[500px] lg:min-h-[1050px] -mx-4 md:-mx-10 border-t border-slate-100 dark:border-slate-800 animate-in fade-in slide-in-from-bottom-4 duration-700">
       <div className="flex-1 flex flex-col lg:flex-row overflow-x-hidden overflow-y-auto lg:overflow-hidden gap-6">
 
         {/* Left Sidebar: Asset List */}
