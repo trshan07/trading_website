@@ -108,13 +108,13 @@ const AboutPage = () => {
                         >
                             <div className="aspect-square rounded-[3rem] border border-white/10 flex items-center justify-center overflow-hidden group relative shadow-2xl">
                                 {/* Base Image */}
-                                <img src={aboutBg} alt="About Rizals" className="absolute inset-0 w-full h-full object-cover opacity-90 group-hover:scale-105 transition-transform duration-1000" />
+                                <img src={aboutBg} alt="About TIK TRADES" className="absolute inset-0 w-full h-full object-cover opacity-90 group-hover:scale-105 transition-transform duration-1000" />
                                 
                                 {/* Gradual dark gradient from bottom for text readability */}
                                 <div className="absolute inset-0 bg-gradient-to-t from-[#000F29] via-[#000F29]/30 to-transparent opacity-80" />
                                 
                                 <div className="relative z-10 text-center p-12 mt-auto pb-16">
-                                    <span className="text-6xl sm:text-7xl lg:text-8xl font-display font-bold text-white/20 italic select-none block mb-4">RIZALS</span>
+                                    <span className="text-6xl sm:text-7xl lg:text-8xl font-display font-bold text-white/20 italic select-none block mb-4">TIK TRADES</span>
                                     <p className="text-xs uppercase tracking-[0.5em] text-gold font-bold bg-navy/50 px-4 py-2 rounded-full inline-block backdrop-blur-md">Institutional DNA</p>
                                 </div>
 

@@ -23,6 +23,8 @@ const RealTimeChart = ({
   const chartRef = useRef(null);
   const seriesRef = useRef(null);
   const wsRef = useRef(null);
+  const wsConnectTimerRef = useRef(null);
+  const candleTimesRef = useRef([]);
   const [interval, setInterval] = useState('15m');
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [lastPrice, setLastPrice] = useState(null);
@@ -33,6 +35,12 @@ const RealTimeChart = ({
 
   // Format symbol cleanly for Binance API
   const binanceSymbol = symbol.replace(/[^A-Z0-9]/g, '');
+  const isBinanceWsCandidate = useCallback((sym) => {
+    if (!sym) return false;
+    const s = sym.replace(/[^A-Z0-9]/g, '');
+    // Binance klines are reliable for spot-like symbols (primarily quote-paired crypto symbols)
+    return s.endsWith('USDT') || s.endsWith('BTC') || s.endsWith('BUSD');
+  }, []);
 
   // --- Helper: Generate Mock Data ---
   const generateMockData = (basePrice, count = 300) => {
@@ -64,16 +72,24 @@ const RealTimeChart = ({
       
       if (!res.success || !res.data) throw new Error('Proxy error');
 
-      return res.data.map(d => ({
+      const candles = res.data.map(d => ({
         time: d[0] / 1000,
         open: parseFloat(d[1]),
         high: parseFloat(d[2]),
         low: parseFloat(d[3]),
         close: parseFloat(d[4]),
       }));
+
+      return {
+        candles,
+        isMock: Boolean(res.isMock)
+      };
     } catch (err) {
       // Failover is handled by proxy, but we handle it here too for maximum safety
-      return generateMockData(initialPrice); 
+      return {
+        candles: generateMockData(initialPrice),
+        isMock: true
+      };
     } finally {
       setIsLoading(false);
     }
@@ -90,6 +106,10 @@ const RealTimeChart = ({
     if (wsRef.current) {
       try { wsRef.current.close(); } catch (e) {}
       wsRef.current = null;
+    }
+    if (wsConnectTimerRef.current) {
+      clearTimeout(wsConnectTimerRef.current);
+      wsConnectTimerRef.current = null;
     }
     
     if (chartRef.current) {
@@ -159,13 +179,17 @@ const RealTimeChart = ({
     seriesRef.current = candles;
 
     // Load historical data then open WS
-    fetchData(binanceSymbol, interval).then(data => {
+    fetchData(binanceSymbol, interval).then(result => {
       // strict check: if not active OR chart/series already nulled, bail out.
       if (!active || !seriesRef.current || !chartRef.current) return;
 
       try {
+        const data = result?.candles || [];
+        const isMock = Boolean(result?.isMock);
+
         if (data.length > 0) {
           seriesRef.current.setData(data);
+          candleTimesRef.current = data.map(c => c.time);
           chartRef.current.timeScale().fitContent();
           
           const last = data[data.length - 1];
@@ -174,31 +198,49 @@ const RealTimeChart = ({
           setPriceChange(((last.close - first.open) / first.open * 100).toFixed(2));
         }
 
+        // Don't open Binance WS for fallback/mock data or unsupported symbols.
+        if (isMock || !isBinanceWsCandidate(binanceSymbol)) return;
+
         // Open WebSocket for live kline updates
         const wsSymbol = binanceSymbol.toLowerCase();
-        const ws = new WebSocket(`wss://stream.binance.com:9443/ws/${wsSymbol}@kline_${interval}`);
-        wsRef.current = ws;
+        wsConnectTimerRef.current = setTimeout(() => {
+          if (!active || wsRef.current) return;
+          const ws = new WebSocket(`wss://stream.binance.com:9443/ws/${wsSymbol}@kline_${interval}`);
+          wsRef.current = ws;
 
-        // Suppress errors (e.g. network close race conditions)
-        ws.onerror = () => {};
+          // Suppress errors (e.g. unsupported symbol/race conditions)
+          ws.onerror = () => {};
+          ws.onclose = () => {
+            if (wsRef.current === ws) wsRef.current = null;
+          };
 
-        ws.onmessage = (event) => {
-          try {
-            // Re-check existence inside every async callback
-            if (!active || !seriesRef.current) return;
-            const { k } = JSON.parse(event.data);
-            if (!k) return;
-            const tick = {
-              time: k.t / 1000,
-              open: parseFloat(k.o),
-              high: parseFloat(k.h),
-              low: parseFloat(k.l),
-              close: parseFloat(k.c),
-            };
-            seriesRef.current.update(tick);
-            setLastPrice(tick.close);
-          } catch (e) {}
-        };
+          ws.onmessage = (event) => {
+            try {
+              // Re-check existence inside every async callback
+              if (!active || !seriesRef.current) return;
+              const { k } = JSON.parse(event.data);
+              if (!k) return;
+              const tick = {
+                time: k.t / 1000,
+                open: parseFloat(k.o),
+                high: parseFloat(k.h),
+                low: parseFloat(k.l),
+                close: parseFloat(k.c),
+              };
+              seriesRef.current.update(tick);
+              if (
+                candleTimesRef.current.length === 0 ||
+                candleTimesRef.current[candleTimesRef.current.length - 1] !== tick.time
+              ) {
+                candleTimesRef.current.push(tick.time);
+                if (candleTimesRef.current.length > 2000) {
+                  candleTimesRef.current = candleTimesRef.current.slice(-2000);
+                }
+              }
+              setLastPrice(tick.close);
+            } catch (e) {}
+          };
+        }, 120);
       } catch (err) {
         console.error('[RealTimeChart] Chart update error:', err);
       }
@@ -222,6 +264,10 @@ const RealTimeChart = ({
     return () => {
       active = false;
       resizeObserver.disconnect();
+      if (wsConnectTimerRef.current) {
+        clearTimeout(wsConnectTimerRef.current);
+        wsConnectTimerRef.current = null;
+      }
       if (wsRef.current) {
         try {
           // Null out all handlers FIRST to silence any incoming messages/errors during close
@@ -245,36 +291,62 @@ const RealTimeChart = ({
           currentChart.remove();
         } catch (e) {}
       }
+      candleTimesRef.current = [];
     };
-  }, [symbol, interval, isDark, initialPrice]);
+  }, [symbol, interval, isDark, initialPrice, fetchData, isBinanceWsCandidate]);
 
   // --- Plot Buy/Sell markers when positions change ---
   useEffect(() => {
     if (!seriesRef.current) return;
+
+    const snapToNearestCandleTime = (unixTime) => {
+      const times = candleTimesRef.current;
+      if (!times || times.length === 0) return Math.floor(Date.now() / 1000);
+
+      if (unixTime <= times[0]) return times[0];
+      if (unixTime >= times[times.length - 1]) return times[times.length - 1];
+
+      let lo = 0;
+      let hi = times.length - 1;
+      while (lo <= hi) {
+        const mid = Math.floor((lo + hi) / 2);
+        if (times[mid] === unixTime) return times[mid];
+        if (times[mid] < unixTime) lo = mid + 1;
+        else hi = mid - 1;
+      }
+
+      const lower = times[Math.max(0, hi)];
+      const upper = times[Math.min(times.length - 1, lo)];
+      return (Math.abs(unixTime - lower) <= Math.abs(upper - unixTime)) ? lower : upper;
+    };
+
     const relevant = positions.filter(
       p => p?.symbol && p.symbol.replace(/[^A-Z0-9]/g, '') === binanceSymbol
     );
+
     const markers = relevant.map(pos => {
       const side = (pos.side || pos.type || 'buy').toLowerCase();
       const isBuy = side === 'buy';
-      // Use recorded entry time or snap to nearest candle time (now)
-      const t = pos.created_at || pos.entryTime || pos.openTime
-        ? Math.floor(new Date(pos.created_at || pos.entryTime || pos.openTime).getTime() / 1000)
+      // Position times are rarely exact candle opens; snap for guaranteed marker visibility.
+      const rawT = pos.created_at || pos.createdAt || pos.entryTime || pos.openTime
+        ? Math.floor(new Date(pos.created_at || pos.createdAt || pos.entryTime || pos.openTime).getTime() / 1000)
         : Math.floor(Date.now() / 1000);
+      const t = snapToNearestCandleTime(rawT);
+
       return {
         time: t,
         position: isBuy ? 'belowBar' : 'aboveBar',
         color: isBuy ? '#10b981' : '#ef4444',
         shape: isBuy ? 'arrowUp' : 'arrowDown',
         size: 2,
-        text: `${isBuy ? '▲ BUY' : '▼ SELL'} @ ${Number(pos.entryPrice || pos.entry_price || 0).toLocaleString()}`,
+        text: `${isBuy ? 'BUY' : 'SELL'} @ ${Number(pos.entryPrice || pos.entry_price || 0).toLocaleString()}`,
       };
     });
+
     markers.sort((a, b) => a.time - b.time);
     try { seriesRef.current.setMarkers(markers); } catch (e) {}
-  }, [positions, symbol]);
-
-  // Fullscreen Escape key
+  }, [positions, symbol, interval]);
+// Fullscreen Escape key
   useEffect(() => {
     const onKey = (e) => { if (e.key === 'Escape' && isFullscreen) setIsFullscreen(false); };
     window.addEventListener('keydown', onKey);
@@ -355,3 +427,5 @@ const RealTimeChart = ({
 };
 
 export default RealTimeChart;
+
+

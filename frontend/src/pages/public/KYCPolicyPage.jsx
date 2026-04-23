@@ -64,7 +64,7 @@ const KYCPolicyPage = () => {
                                 <div className="prose prose-invert max-w-none relative z-10">
                                     <h3 className="text-xl md:text-2xl font-display font-bold text-white mb-6 uppercase tracking-widest border-b border-white/10 pb-4">Know Your Customer</h3>
                                     <p className="text-white/70 text-lg leading-relaxed mb-12 italic border-l-2 border-gold pl-6">
-                                        "To maintain an institutional-grade trading environment, Rizals Trade implements stringent Know Your Customer (KYC) protocols to guarantee maximum security and regulatory conformity."
+                                        "To maintain an institutional-grade trading environment, TIK TRADES implements stringent Know Your Customer (KYC) protocols to guarantee maximum security and regulatory conformity."
                                     </p>
 
                                     <div className="space-y-12">

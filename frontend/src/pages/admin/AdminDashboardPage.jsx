@@ -385,7 +385,7 @@ export default function AdminCRM() {
         {/* ── SIDEBAR (Desktop) ─────────────────────────────── */}
         <aside className="hide-mobile" style={{ width: sidebarOpen ? "220px" : "56px", minWidth: sidebarOpen ? "220px" : "56px", background: C.bgCard, borderRight: `1px solid ${C.border}`, display: "flex", flexDirection: "column", transition: "all 0.22s cubic-bezier(0.4,0,0.2,1)", overflow: "hidden", position: "relative", zIndex: 10 }}>
           <div style={{ padding: "16px", borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-            <img src={logoDark} alt="Rizal's Trade" style={{ height: sidebarOpen ? "40px" : "24px", width: "auto", objectContain: "contain" }} />
+            <img src={logoDark} alt="TIK TRADES" style={{ height: sidebarOpen ? "40px" : "24px", width: "auto", objectContain: "contain" }} />
           </div>
           {/* Nav */}
           <nav style={{ flex: 1, padding: "12px 0", overflowY: "auto", overflowX: "hidden" }}>
@@ -403,7 +403,7 @@ export default function AdminCRM() {
         {/* ── MOBILE SIDEBAR ────────────────────────────────── */}
         <aside style={{ position: "fixed", left: 0, top: 0, bottom: 0, width: "240px", background: C.bgCard, borderRight: `1px solid ${C.border}`, display: "flex", flexDirection: "column", zIndex: 200, transform: mobileMenuOpen ? "translateX(0)" : "translateX(-100%)", transition: "transform 0.25s cubic-bezier(0.4,0,0.2,1)" }}>
           <div style={{ padding: "20px 16px 16px", borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-            <img src={logoDark} alt="Rizal's Trade" style={{ height: "32px", width: "auto" }} />
+            <img src={logoDark} alt="TIK TRADES" style={{ height: "32px", width: "auto" }} />
             <button onClick={() => setMobileMenuOpen(false)} style={{ background: "none", border: "none", color: C.textMuted, fontSize: "18px", cursor: "pointer" }}>✕</button>
           </div>
           <nav style={{ flex: 1, padding: "12px 0", overflowY: "auto" }}><NavContent /></nav>
@@ -1749,7 +1749,7 @@ function ReportsPage({ users, trades, funding }) {
 function SettingsPage({ toast }) {
   const [tab, setTab] = useState("platform");
   const [alertToggles, setAlertToggles] = useState([true, true, true, false, true]);
-  const [settings, setSettings] = useState({ platformName: "Rizal Trade Platform", supportEmail: "support@rizaltrade.com", defaultLeverage: "100", maxLeverage: "500", minDeposit: "100", maxWithdrawal: "50000", maintenanceMode: false, emailNotifications: true, smsAlerts: false, autoKyc: false, tradingEnabled: true, withdrawalsEnabled: true, depositsEnabled: true, twoFaRequired: true, maxCreditPerUser: "50000" });
+  const [settings, setSettings] = useState({ platformName: "TIK TRADES Platform", supportEmail: "support@tiktrades.com", defaultLeverage: "100", maxLeverage: "500", minDeposit: "100", maxWithdrawal: "50000", maintenanceMode: false, emailNotifications: true, smsAlerts: false, autoKyc: false, tradingEnabled: true, withdrawalsEnabled: true, depositsEnabled: true, twoFaRequired: true, maxCreditPerUser: "50000" });
   const set = (k, v) => setSettings(p => ({ ...p, [k]: v }));
   const toggle = (k) => setSettings(p => ({ ...p, [k]: !p[k] }));
 

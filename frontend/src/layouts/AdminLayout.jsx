@@ -95,9 +95,9 @@ const AdminLayout = () => {
           borderBottom: '1px solid rgba(255,215,0,0.2)'
         }}>
           {!collapsed ? (
-            <img src={logo} alt="Rizal's Trade" style={{ height: '40px' }} />
+            <img src={logo} alt="TIK TRADES" style={{ height: '40px' }} />
           ) : (
-            <img src={logo} alt="Rizal's Trade" style={{ height: '32px' }} />
+            <img src={logo} alt="TIK TRADES" style={{ height: '32px' }} />
           )}
         </div>
         <Menu

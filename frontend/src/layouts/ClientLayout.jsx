@@ -24,7 +24,7 @@ const ClientLayout = () => {
               </svg>
             </button>
             <h1 className="text-xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter">
-              Rizal's Trade <span className="text-gold-500">Client Portal</span>
+              TIK TRADES <span className="text-gold-500">Client Portal</span>
             </h1>
           </div>
 

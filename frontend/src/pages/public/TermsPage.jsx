@@ -11,7 +11,7 @@ const TermsPage = () => {
     const termSections = [
         {
             title: "1. Scope of Services",
-            content: "Rizals Trade provides institutional-grade trading infrastructure and liquidity access. By establishing an account, you acknowledge that our services comprise the execution of trades across various financial instruments as specified in our platform documentation."
+            content: "TIK TRADES provides institutional-grade trading infrastructure and liquidity access. By establishing an account, you acknowledge that our services comprise the execution of trades across various financial instruments as specified in our platform documentation."
         },
         {
             title: "2. Regulatory Compliance",
@@ -85,7 +85,7 @@ const TermsPage = () => {
                                     
                                     <div className="prose prose-invert max-w-none">
                                         <p className="text-white/70 text-lg leading-relaxed mb-12 italic border-l-2 border-gold pl-6">
-                                            "This agreement constitutes the entire legal understanding between Rizals Trade Ltd. and its authorized operators, governing the use of our proprietary trading core and secondary execution loops."
+                                            "This agreement constitutes the entire legal understanding between TIK TRADES Ltd. and its authorized operators, governing the use of our proprietary trading core and secondary execution loops."
                                         </p>
 
                                         <div className="space-y-12">

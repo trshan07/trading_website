@@ -7,8 +7,7 @@ import Button from '../../components/ui/Button';
 import authBg from '../../assets/images/real_trading_bg.png';
 import { AuthContext } from '../../context/AuthContext';
 import authService from '../../services/authService';
-import logoDark from '../../assets/images/logos/logo-dark.png';
-import logoVerticalDark from '../../assets/images/logos/logo-vertical-dark.png';
+import authLogo from '../../assets/logo/Horizontal Color/PDF/PNG.png';
 
 
 
@@ -63,7 +62,7 @@ const RegisterPage = () => {
         const userData = response.data;
         // Automatically log them in. Use the selected account type.
         contextLogin({ ...userData, selectedAccountType: accountType }, userData.token);
-        toast.success("Account Provisioned Successfully! Welcome to Rizal's Trade.");
+        toast.success("Account Provisioned Successfully! Welcome to TIK TRADES.");
         navigate('/dashboard');
       } else {
         throw new Error('Invalid response structure');
@@ -141,7 +140,7 @@ const RegisterPage = () => {
         >
           <div className="flex justify-center lg:justify-start mb-4">
             <Link to="/" className="flex items-center group">
-              <img src={logoVerticalDark} alt="Rizal's Trade" className="h-28 w-auto object-contain" />
+              <img src={authLogo} alt="TIK TRADES" className="h-28 w-auto object-contain" />
             </Link>
           </div>
           <h1 className="text-3xl md:text-4xl font-display font-bold text-gold tracking-wide mb-2">
@@ -417,7 +416,7 @@ const RegisterPage = () => {
          <div className="max-w-7xl mx-auto px-4 md:px-6 py-2 md:py-3 flex flex-col md:flex-row items-center justify-between text-[8px] md:text-[10px] tracking-widest uppercase text-white/40 space-y-2 md:space-y-0">
             
             <div className="flex items-center space-x-4 md:space-x-6">
-                <span>Rizals Trade Ltd.</span>
+                <span>TIK TRADES Ltd.</span>
                 <span className="w-px h-3 md:h-4 bg-white/20"></span>
                 <span>Secure Network</span>
                 <span className="w-px h-3 md:h-4 bg-white/20 hidden md:block"></span>

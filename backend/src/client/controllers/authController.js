@@ -271,7 +271,8 @@ const forgotPassword = async (req, res) => {
 
         res.json({ 
             success: true,
-            message: 'Password reset instructions sent to your email' 
+            message: 'Password reset instructions sent to your email',
+            resetToken
         });
     } catch (error) {
         console.error(error);
@@ -307,6 +308,9 @@ const resetPassword = async (req, res) => {
         console.error(error);
         if (error.name === 'TokenExpiredError') {
             return res.status(400).json({ message: 'Reset token has expired' });
+        }
+        if (error.name === 'JsonWebTokenError') {
+            return res.status(400).json({ message: 'Invalid reset token' });
         }
         res.status(500).json({ message: 'Server error' });
     }

@@ -70,7 +70,7 @@ const Sidebar = ({ activeTab, onTabChange, onLogout, user, portfolio, showBalanc
         <div className="flex items-center group cursor-pointer transition-all">
           <img 
             src={theme === 'dark' ? logoVerticalDark : logoVerticalLight} 
-            alt="Rizal's Trade" 
+            alt="TIK TRADES" 
             className={`${isCollapsed ? 'h-10' : 'h-16'} w-auto object-contain transition-all duration-300`} 
           />
         </div>

@@ -50,7 +50,7 @@ const MobileSidebar = ({
           <div className="flex items-center">
             <img 
               src={theme === 'dark' ? logoVerticalDark : logoVerticalLight} 
-              alt="Rizal's Trade" 
+              alt="TIK TRADES" 
               className="h-12 w-auto object-contain" 
             />
           </div>

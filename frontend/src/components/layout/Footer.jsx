@@ -19,7 +19,7 @@ const Footer = () => {
                         <Link to="/" className="mb-4 md:mb-6 block">
                             <img 
                               src={theme === 'dark' ? logoDark : logoLight} 
-                              alt="Rizal's Trade" 
+                              alt="TIK TRADES" 
                               className="h-10 w-auto object-contain mx-auto lg:mx-0" 
                             />
                         </Link>
@@ -92,7 +92,7 @@ const Footer = () => {
                         Trading foreign exchange and CFDs on margin carries a high level of risk and may not be suitable for all investors. The high degree of leverage can work against you as well as for you. Before deciding to trade, you should carefully consider your investment objectives, level of experience, and risk appetite.
                     </p>
                     <p className="pt-4 border-t border-white/5">
-                        &copy; {new Date().getFullYear()} Rizals Trade. All rights reserved.
+                        &copy; {new Date().getFullYear()} TIK TRADES. All rights reserved.
                     </p>
                 </div>
             </Container>

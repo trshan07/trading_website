@@ -15,7 +15,7 @@ const PromotionsSection = () => {
         },
         {
             title: 'Refer a Friend',
-            description: 'Earn up to $500 for every friend you refer who starts trading with Rizals Trade.',
+            description: 'Earn up to $500 for every friend you refer who starts trading with TIK TRADES.',
             tag: 'Earn More',
         },
         {

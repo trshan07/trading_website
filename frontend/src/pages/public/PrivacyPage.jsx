@@ -12,7 +12,7 @@ const PrivacyPage = () => {
         {
             title: "Information Collection",
             icon: <HiUserGroup className="w-6 h-6" />,
-            content: "We collect information necessary to provide you with our services, including but not limited to identification data, contact information, financial historical data, and technical data related to your trading activities. This data is essential for maintaining your operator status within the Rizals Trade network."
+            content: "We collect information necessary to provide you with our services, including but not limited to identification data, contact information, financial historical data, and technical data related to your trading activities. This data is essential for maintaining your operator status within the TIK TRADES network."
         },
         {
             title: "Use of Information",
@@ -67,7 +67,7 @@ const PrivacyPage = () => {
                             >
                                 <div className="absolute top-0 left-1/2 -translate-x-1/2 w-48 h-[2px] bg-gold/50" />
                                 <p className="text-white/70 text-lg leading-relaxed max-w-2xl mx-auto font-medium">
-                                    At Rizals Trade, we operate with a "Privacy by Design" philosophy. We are committed to protecting the integrity and confidentiality of our clients' personal and financial datasets.
+                                    At TIK TRADES, we operate with a "Privacy by Design" philosophy. We are committed to protecting the integrity and confidentiality of our clients' personal and financial datasets.
                                 </p>
                             </motion.div>
 

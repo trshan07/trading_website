@@ -7,8 +7,7 @@ import { toast } from 'react-hot-toast';
 import Button from '../../components/ui/Button';
 import authBg from '../../assets/images/real_trading_bg.png';
 import authService from '../../services/authService';
-import logoDark from '../../assets/images/logos/logo-dark.png';
-import logoVerticalLight from '../../assets/images/logos/logo-vertical-light.jpg';
+import authLogo from '../../assets/logo/Horizontal Color/PDF/PNG.png';
 
 
 
@@ -31,12 +30,21 @@ const ForgotPasswordPage = () => {
     setIsLoading(true);
 
     try {
-      await authService.forgotPassword(email);
+      const response = await authService.forgotPassword(email);
+      const resetToken = response?.resetToken;
+
+      if (!resetToken) {
+        setErrorMsg("Reset token was not returned by server. Please contact support.");
+        toast.error("Recovery Fault");
+        return;
+      }
+
       setSuccessMsg("Recovery session established. Redirecting to reset protocol...");
       toast.success("Recovery Token Dispatched");
       
       // Store email for reset page
       sessionStorage.setItem('resetEmail', email);
+      sessionStorage.setItem('resetToken', resetToken);
 
       setTimeout(() => {
         navigate('/reset-password');
@@ -113,7 +121,7 @@ const ForgotPasswordPage = () => {
         >
           <div className="flex justify-center lg:justify-start mb-6">
             <Link to="/" className="flex items-center group">
-              <img src={logoVerticalLight} alt="Rizal's Trade" className="h-28 w-auto object-contain" />
+              <img src={authLogo} alt="TIK TRADES" className="h-32 w-auto object-contain" />
             </Link>
           </div>
           <h1 className="text-3xl md:text-4xl font-display font-bold text-gold tracking-wide mb-2">
@@ -231,7 +239,7 @@ const ForgotPasswordPage = () => {
          <div className="max-w-7xl mx-auto px-4 md:px-6 py-2 md:py-3 flex flex-col md:flex-row items-center justify-between text-[8px] md:text-[10px] tracking-widest uppercase text-white/40 space-y-2 md:space-y-0">
             
             <div className="flex items-center space-x-4 md:space-x-6">
-                <span>Rizals Trade Ltd.</span>
+                <span>TIK TRADES Ltd.</span>
                 <span className="w-px h-3 md:h-4 bg-white/20"></span>
                 <span>Secure Network</span>
                 <span className="w-px h-3 md:h-4 bg-white/20 hidden md:block"></span>
