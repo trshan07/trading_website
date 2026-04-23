@@ -1,4 +1,5 @@
 const http = require('http');
+require('dotenv').config();
 
 const options = (path, method = 'POST') => ({
   hostname: 'localhost',
@@ -24,6 +25,7 @@ const makeRequest = (opts, body) => {
 };
 
 async function test() {
+  const superAdminPassword = process.env.SUPER_ADMIN_PASSWORD || 'Q9#vL2!mT7@xR4$kP8zN';
   try {
     console.log('Testing Health Check...');
     const health = await makeRequest({ ...options('/api/health', 'GET') });
@@ -50,8 +52,8 @@ async function test() {
 
     console.log('Testing Admin Login...');
     const adminLogin = await makeRequest(options('/api/auth/login'), {
-      email: 'admin@trade.local',
-      password: 'adminpassword123'
+      email: 'info@tiktrades.com',
+      password: superAdminPassword
     });
     console.log('Admin Login:', adminLogin);
 
@@ -61,3 +63,4 @@ async function test() {
 }
 
 test();
+

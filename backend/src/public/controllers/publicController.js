@@ -2,6 +2,7 @@
 const ContactMessage = require('../models/ContactMessage');
 const Promotion = require('../models/Promotion');
 const AccountTypeInfo = require('../models/AccountTypeInfo');
+const { sendContactFormEmail } = require('../../services/emailService');
 
 // @desc    Get all market assets
 // @route   GET /api/public/markets
@@ -36,9 +37,26 @@ const submitContactForm = async (req, res) => {
             message
         });
 
+        // Forward contact message to support inbox (best-effort; should not fail form submission)
+        let emailDelivered = true;
+        try {
+            await sendContactFormEmail({
+                fullName,
+                email,
+                subject,
+                message
+            });
+        } catch (mailError) {
+            emailDelivered = false;
+            console.error('Contact email dispatch failed:', mailError.message);
+        }
+
         res.status(201).json({
             success: true,
-            message: 'Support request initiated successfully',
+            message: emailDelivered
+                ? 'Support request initiated successfully'
+                : 'Support request saved. Email dispatch is temporarily unavailable.',
+            emailDelivered,
             data: newMessage
         });
     } catch (error) {

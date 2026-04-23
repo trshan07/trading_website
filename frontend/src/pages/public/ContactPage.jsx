@@ -54,7 +54,7 @@ const ContactPage = () => {
         {
             icon: <HiOutlineMail className="w-8 h-8" />,
             title: "Email Us",
-            detail: "support@yourbrokerage.com",
+            detail: "support@tiktrades.com | info@tiktrades.com",
             label: "Send Email",
             color: "blue"
         },
@@ -222,3 +222,6 @@ const ContactPage = () => {
 };
 
 export default ContactPage;
+
+
+

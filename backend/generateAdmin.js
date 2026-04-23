@@ -14,7 +14,7 @@ const pool = new Pool({
 async function createAdmin() {
     try {
         // Choose your admin password
-        const password = 'Admin@123'; // Change this to your desired password
+        const password = 'Admin@tik123'; // Change this to your desired password
         
         // Generate hash
         const salt = await bcrypt.genSalt(10);
@@ -26,7 +26,7 @@ async function createAdmin() {
         // Check if admin already exists
         const existingAdmin = await pool.query(
             'SELECT * FROM users WHERE email = $1',
-            ['admin@rizalstrade.com']
+            ['info@tiktrades.com']
         );
         
         if (existingAdmin.rows.length > 0) {
@@ -38,7 +38,7 @@ async function createAdmin() {
             if (existingAdmin.rows[0].role !== 'admin') {
                 await pool.query(
                     'UPDATE users SET role = $1 WHERE email = $2',
-                    ['admin', 'admin@rizalstrade.com']
+                    ['admin', 'info@tiktrades.com']
                 );
                 console.log('User promoted to admin successfully!');
             }
@@ -50,7 +50,7 @@ async function createAdmin() {
                 ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
                 RETURNING id, email, role
             `, [
-                'admin@rizalstrade.com', 
+                'info@tiktrades.com', 
                 hashedPassword, 
                 'Super', 
                 'Admin', 
@@ -74,3 +74,4 @@ async function createAdmin() {
 }
 
 createAdmin();
+

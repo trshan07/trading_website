@@ -1,0 +1,14 @@
+{
+  "compilerOptions": {
+    "skipLibCheck": true,
+    "checkJs": false
+  },
+  "typeAcquisition": {
+    "enable": false
+  },
+  "exclude": [
+    "**/node_modules",
+    "**/build",
+    "**/dist"
+  ]
+}

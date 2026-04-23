@@ -4,8 +4,8 @@ require('dotenv').config();
 
 const seedAdmin = async () => {
     try {
-        const adminEmail = 'admin@trade.local';
-        const adminPassword = 'adminpassword123'; // The client should change this later
+        const adminEmail = 'info@tiktrades.com';
+        const adminPassword = process.env.SUPER_ADMIN_PASSWORD || 'Admin@tik123';
 
         const salt = await bcrypt.genSalt(10);
         const passwordHash = await bcrypt.hash(adminPassword, salt);
@@ -24,6 +24,7 @@ const seedAdmin = async () => {
         console.log('✅ Super Admin seeded successfully into admins table:');
         console.log(`Email: ${rows[0].email}`);
         console.log(`Role: ${rows[0].role}`);
+        console.log(`Password Source: ${process.env.SUPER_ADMIN_PASSWORD ? 'SUPER_ADMIN_PASSWORD env' : 'default strong fallback'}`);
         console.log('Use these credentials to create other admins via the Super Admin panel.');
 
     } catch (error) {
@@ -34,3 +35,4 @@ const seedAdmin = async () => {
 };
 
 seedAdmin();
+
