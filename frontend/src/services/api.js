@@ -1,12 +1,10 @@
 import axios from 'axios';
 
-const raw = import.meta.env.VITE_APP_API_URL || 'http://localhost:5000/api';
-
-   export const apiBaseUrl =
-     raw.includes('localhost') && typeof window !== 'undefined' && window.location.hostname !== 'localhost'
-       ? raw.replace('localhost', window.location.hostname)
-       : raw;
-       debugger
+let apiBaseUrl = process.env.VITE_APP_API_URL || 'http://localhost:5000/api';
+// Dynamically route to local network IP instead of localhost phone loopback when testing on mobile devices
+if (apiBaseUrl.includes('localhost') && typeof window !== 'undefined' && window.location.hostname !== 'localhost') {
+  apiBaseUrl = apiBaseUrl.replace('localhost', window.location.hostname);
+}
 
 const api = axios.create({
   baseURL: apiBaseUrl,
