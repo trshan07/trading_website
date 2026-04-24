@@ -6,6 +6,7 @@ const raw = import.meta.env.VITE_APP_API_URL || 'http://localhost:5000/api';
      raw.includes('localhost') && typeof window !== 'undefined' && window.location.hostname !== 'localhost'
        ? raw.replace('localhost', window.location.hostname)
        : raw;
+       debugger
 
 const api = axios.create({
   baseURL: apiBaseUrl,
