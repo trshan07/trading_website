@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-let apiBaseUrl = process.env.VITE_APP_API_URL || 'http://localhost:5000/api';
+let apiBaseUrl = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
 // Dynamically route to local network IP instead of localhost phone loopback when testing on mobile devices
 if (apiBaseUrl.includes('localhost') && typeof window !== 'undefined' && window.location.hostname !== 'localhost') {
   apiBaseUrl = apiBaseUrl.replace('localhost', window.location.hostname);
