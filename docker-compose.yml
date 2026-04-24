@@ -78,5 +78,5 @@ volumes:
   postgres_data:
 
 networks:
-  rizals_network:
+  trade_network:
     driver: bridge
