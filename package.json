@@ -1,9 +1,25 @@
 {
-  "name": "your-package-name",
+  "name": "trading_website",
   "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
   "scripts": {
     "start": "node backend/server.js",
-    ...
+     "client": "cd frontend && npm start",
+    "server": "cd backend && npm run dev",
+    "dev": "concurrently \"npm run server\" \"npm run client\"",
+    "setup": "npm install && cd frontend && npm install && cd ../backend && npm install"
   },
-  // ... other configurations
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/trshan07/trading_website.git"
+  },
+  "keywords": ["trading", "broker", "mvp", "react", "node"],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/trshan07/trading_website/issues"
+  },
+  "homepage": "https://github.com/trshan07/trading_website#readme"
 }
