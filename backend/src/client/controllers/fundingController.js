@@ -5,6 +5,7 @@ const FundingRequest = require('../../models/FundingRequest');
 const Account = require('../../models/Account');
 const { createNotification } = require('./notificationController');
 const { createActivityLog } = require('./activityController');
+const { getUploadPathFromFile } = require('../../utils/uploadPath');
 
 // --- Bank Account Methods ---
 
@@ -22,7 +23,7 @@ const addBankAccount = async (req, res) => {
     try {
         const accountData = {
             ...req.body,
-            proof_file: req.file ? req.file.path : null
+            proof_file: getUploadPathFromFile(req.file)
         };
         const account = await BankAccount.create(req.user.id, accountData);
         
@@ -110,7 +111,7 @@ const deposit = async (req, res) => {
             type: 'deposit',
             amount,
             method,
-            proof_file: req.file ? req.file.path : null, // Handle via multer middleware
+            proof_file: getUploadPathFromFile(req.file),
             bank_reference: reference
         });
 

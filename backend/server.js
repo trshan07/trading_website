@@ -32,22 +32,16 @@ app.use(helmet({
 }));
 
 // CORS configuration
-const allowedOrigins = (process.env.CLIENT_URL || 'http://localhost:3000').split(',');
-app.use(cors({
-    origin: (origin, callback) => {
-        // Allow requests with no origin, or when in development mode (to support mobile LAN testing)
-        if (!origin || process.env.NODE_ENV === 'development') return callback(null, true);
-        
-        if (allowedOrigins.indexOf(origin) !== -1 || allowedOrigins.includes(origin)) {
-            callback(null, true);
-        } else {
-            console.warn(`Origin ${origin} not allowed by CORS`);
-            callback(new Error('Not allowed by CORS'));
-        }
-    },
-    credentials: true,
+const corsOptions = {
+    origin: '*',
+    credentials: false,
+    methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
     optionsSuccessStatus: 200
-}));
+};
+
+app.use(cors(corsOptions));
+app.options(/.*/, cors(corsOptions));
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -97,7 +91,7 @@ app.get('/api', (req, res) => {
                 deleteUser: 'DELETE /api/admin/users/:id'
             },
             protected: {
-                profile: 'GET /api/user/profile',
+                profile: 'GET /api/users/profile',
                 adminDashboard: 'GET /api/admin/dashboard'
             },
             health: 'GET /api/health',

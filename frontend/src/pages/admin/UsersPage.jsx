@@ -2,7 +2,6 @@
 import React, { useState, useEffect } from 'react';
 import { Card, Table, Button, Space, Modal, Form, Input, Select, Switch, message, Tag, Avatar, InputNumber, Drawer, Descriptions, Badge, Popconfirm, Tooltip, Row, Col, Statistic } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined, EyeOutlined, SearchOutlined, ExportOutlined, DollarOutlined, StopOutlined, CheckCircleOutlined, UserAddOutlined, TeamOutlined, WalletOutlined } from '@ant-design/icons';
-import axios from 'axios';
 import moment from 'moment';
 import { useAuth } from '../../context/AuthContext';
 import { adminService } from '../../services/adminService';
@@ -32,19 +31,13 @@ const UsersPage = () => {
   const fetchUsers = async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('token');
-      const response = await axios.get('/api/admin/users', {
-        params: {
-          page: pagination.current,
-          limit: pagination.pageSize,
-          search: searchText,
-        },
-        headers: { Authorization: `Bearer ${token}` }
+      const response = await adminService.getUsers({
+        page: pagination.current,
+        limit: pagination.pageSize,
+        search: searchText,
       });
-      if (response.data.success) {
-        setUsers(response.data.data.users);
-        setPagination({ ...pagination, total: response.data.data.total });
-      }
+      setUsers(response.users || []);
+      setPagination({ ...pagination, total: response.total || 0 });
     } catch (error) {
       // Demo data for development
       setUsers([
@@ -61,13 +54,12 @@ const UsersPage = () => {
 
   const fetchStats = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await axios.get('/api/admin/users/stats', {
-        headers: { Authorization: `Bearer ${token}` }
+      const response = await adminService.getDashboardStats();
+      setStats({
+        totalUsers: response.totalUsers || 0,
+        activeUsers: response.activeUsers || 0,
+        totalBalance: response.totalBalance || 0,
       });
-      if (response.data.success) {
-        setStats(response.data.data);
-      }
     } catch (error) {
       setStats({ totalUsers: 4, activeUsers: 3, totalBalance: 74800 });
     }
@@ -93,10 +85,7 @@ const UsersPage = () => {
 
   const handleUpdateUser = async (values) => {
     try {
-      const token = localStorage.getItem('token');
-      await axios.put(`/api/admin/users/${editingUser.id}`, values, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      await adminService.updateUser(editingUser.id, values);
       message.success('User updated successfully');
       setModalVisible(false);
       setEditingUser(null);
@@ -109,10 +98,7 @@ const UsersPage = () => {
 
   const handleDeleteUser = async (userId) => {
     try {
-      const token = localStorage.getItem('token');
-      await axios.delete(`/api/admin/users/${userId}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      await adminService.deleteUser(userId);
       message.success('User deleted successfully');
       fetchUsers();
       fetchStats();
@@ -123,9 +109,9 @@ const UsersPage = () => {
 
   const handleAdjustBalance = async (values) => {
     try {
-      const token = localStorage.getItem('token');
-      await axios.post(`/api/admin/users/${selectedUser.id}/balance`, values, {
-        headers: { Authorization: `Bearer ${token}` }
+      await adminService.adjustUserBalance(selectedUser.id, {
+        ...values,
+        description: values.reason,
       });
       message.success('Balance adjusted successfully');
       setDrawerVisible(false);
@@ -140,10 +126,7 @@ const UsersPage = () => {
   const handleToggleStatus = async (userId, currentStatus) => {
     try {
       const newStatus = currentStatus === 'active' ? 'suspended' : 'active';
-      const token = localStorage.getItem('token');
-      await axios.patch(`/api/admin/users/${userId}/status`, { status: newStatus }, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      await adminService.updateUserStatus(userId, newStatus);
       message.success(`User ${newStatus === 'active' ? 'activated' : 'suspended'} successfully`);
       fetchUsers();
     } catch (error) {

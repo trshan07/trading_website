@@ -1,4 +1,3 @@
-// controllers/adminController.js
 const db = require('../../config/database');
 const User = require('../../models/User');
 const Admin = require('../../models/Admin');
@@ -9,59 +8,129 @@ const Transaction = require('../../models/Transaction');
 const AdminLog = require('../../models/AdminLog');
 const Trade = require('../../models/Trade');
 const PlatformSettings = require('../../models/PlatformSettings');
+const { normalizeStoredUploadPath } = require('../../utils/uploadPath');
+
+const toNumber = (value, fallback = 0) => {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : fallback;
+};
+
+const toBoolean = (value) => {
+    if (typeof value === 'boolean') return value;
+    if (typeof value === 'string') {
+        if (value.toLowerCase() === 'true') return true;
+        if (value.toLowerCase() === 'false') return false;
+    }
+    return value;
+};
+
+const paginate = (items, page = 1, limit = 10) => {
+    const safePage = Math.max(parseInt(page, 10) || 1, 1);
+    const safeLimit = Math.max(parseInt(limit, 10) || 10, 1);
+    const start = (safePage - 1) * safeLimit;
+
+    return {
+        page: safePage,
+        limit: safeLimit,
+        total: items.length,
+        items: items.slice(start, start + safeLimit)
+    };
+};
+
+const mapUserName = (user) =>
+    `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.email || 'Unknown User';
+
+const attachAccountsAndHistory = async (user) => {
+    const accounts = await Account.findByUserId(user.id);
+    const realAcc = accounts.find((account) => account.account_type === 'real') || {};
+    const demoAcc = accounts.find((account) => account.account_type === 'demo') || {};
+    const logs = await AdminLog.findByTargetId(user.id);
+
+    const creditHistory = logs
+        .filter((log) => log.action === 'ADJUST_CREDIT')
+        .map((log) => {
+            const match = log.details.match(/by\s+([-0-9.]+)\s+for\s+account\s+(.+)/i);
+            const amount = match ? parseFloat(match[1]) : 0;
+            const accountLabel = match ? match[2] : 'unknown';
+
+            return {
+                id: log.id,
+                amount: Math.abs(amount),
+                type: amount >= 0 ? 'credit' : 'debit',
+                account: accountLabel.toLowerCase().includes('rl') ? 'real' : 'demo',
+                note: log.details,
+                date: log.created_at
+            };
+        });
+
+    const status = user.is_active === false ? 'suspended' : 'active';
+
+    return {
+        ...user,
+        name: mapUserName(user),
+        status,
+        balance: toNumber(realAcc.balance) + toNumber(demoAcc.balance),
+        realBalance: toNumber(realAcc.balance),
+        demoBalance: toNumber(demoAcc.balance),
+        realCredit: toNumber(realAcc.credit),
+        demoCredit: toNumber(demoAcc.credit),
+        realAccountId: realAcc.id || null,
+        demoAccountId: demoAcc.id || null,
+        realAccountNumber: realAcc.account_number || null,
+        demoAccountNumber: demoAcc.account_number || null,
+        leverage: realAcc.leverage || demoAcc.leverage || 50,
+        accounts,
+        creditHistory
+    };
+};
+
+const findAdjustableAccount = async (userId, accountId) => {
+    if (accountId) {
+        const account = await Account.findById(accountId);
+        if (account && String(account.user_id) === String(userId)) {
+            return account;
+        }
+    }
+
+    const accounts = await Account.findByUserId(userId);
+    return accounts.find((account) => account.account_type === 'real')
+        || accounts.find((account) => account.account_type === 'demo')
+        || null;
+};
+
+const createCsv = (rows, headers) => {
+    const escape = (value) => {
+        const text = value == null ? '' : String(value);
+        if (/[",\n]/.test(text)) {
+            return `"${text.replace(/"/g, '""')}"`;
+        }
+        return text;
+    };
+
+    const headerLine = headers.map((header) => escape(header.label)).join(',');
+    const lines = rows.map((row) => headers.map((header) => escape(row[header.key])).join(','));
+
+    return [headerLine, ...lines].join('\n');
+};
+
+const sendCsv = (res, filename, csv) => {
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.status(200).send(csv);
+};
 
 // @desc    Get all users
 // @route   GET /api/admin/users
 // @access  Private/Admin
 const getUsers = async (req, res) => {
     try {
-        const { role } = req.query;
+        const { role, search } = req.query;
         let users = [];
-        
-        const attachAccountsAndHistory = async (u) => {
-            const accounts = await Account.findByUserId(u.id);
-            const realAcc = accounts.find(a => a.account_type === 'real') || {};
-            const demoAcc = accounts.find(a => a.account_type === 'demo') || {};
-            
-            // Fetch credit history from AdminLogs
-            const logs = await AdminLog.findByTargetId(u.id);
-            const creditHistory = logs
-                .filter(log => log.action === 'ADJUST_CREDIT')
-                .map(log => {
-                    // details: "Adjusted credit by 500 for account RL-123"
-                    const match = log.details.match(/by\s+([-0-9.]+)\s+for\s+account\s+(.+)/i);
-                    const amt = match ? parseFloat(match[1]) : 0;
-                    const accountStr = match ? match[2] : 'unknown';
-                    return {
-                        id: log.id,
-                        amount: Math.abs(amt),
-                        type: amt >= 0 ? 'credit' : 'debit',
-                        account: accountStr.toLowerCase().includes('rl') ? 'real' : 'demo',
-                        note: log.details,
-                        date: log.created_at
-                    };
-                });
-
-            return {
-                ...u,
-                realBalance: parseFloat(realAcc.balance) || 0,
-                demoBalance: parseFloat(demoAcc.balance) || 0,
-                realCredit: parseFloat(realAcc.credit) || 0,
-                demoCredit: parseFloat(demoAcc.credit) || 0,
-                realAccountId: realAcc.account_number || null,
-                demoAccountId: demoAcc.account_number || null,
-                leverage: realAcc.leverage || demoAcc.leverage || 50,
-                accountType: realAcc.account_type ? 'Real' : 'Demo',
-                accounts,
-                creditHistory
-            };
-        };
 
         if (role === 'admin' || role === 'super_admin') {
             users = await Admin.findAll();
-            if (role) users = users.filter(u => u.role === role);
+            if (role) users = users.filter((user) => user.role === role);
         } else {
-            // Fetch clients with their latest KYC status
             const { rows: rawClients } = await db.query(`
                 SELECT u.id, u.email, u.first_name, u.last_name, u.phone, u.country, u.role, u.is_active, u.created_at,
                        k.status as kyc_status, k.created_at as kyc_submitted_at
@@ -74,9 +143,9 @@ const getUsers = async (req, res) => {
                 WHERE u.role = 'client'
                 ORDER BY u.created_at DESC
             `);
-            
+
             const clients = await Promise.all(rawClients.map(attachAccountsAndHistory));
-            
+
             if (role === 'client') {
                 users = clients;
             } else {
@@ -84,11 +153,104 @@ const getUsers = async (req, res) => {
                 users = [...clients, ...admins];
             }
         }
-        
+
+        if (search) {
+            const needle = search.toLowerCase();
+            users = users.filter((user) => {
+                const name = mapUserName(user).toLowerCase();
+                return name.includes(needle) || String(user.email || '').toLowerCase().includes(needle);
+            });
+        }
+
         res.json({
             success: true,
             count: users.length,
             data: users
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+};
+
+// @desc    Create client user
+// @route   POST /api/admin/users
+// @access  Private/Admin
+const createUser = async (req, res) => {
+    try {
+        const {
+            email,
+            password,
+            firstName,
+            lastName,
+            name,
+            phone,
+            country,
+            role,
+            status,
+            is_active,
+            initialBalance
+        } = req.body;
+
+        if (!email || !password) {
+            return res.status(400).json({ success: false, message: 'Email and password are required' });
+        }
+
+        const existingUser = await User.findByEmail(email);
+        const existingAdmin = await Admin.findByEmail(email);
+        if (existingUser || existingAdmin) {
+            return res.status(400).json({ success: false, message: 'User already exists' });
+        }
+
+        const [parsedFirstName = '', ...lastParts] = String(name || '').trim().split(/\s+/).filter(Boolean);
+        const payload = {
+            email,
+            password,
+            firstName: firstName || parsedFirstName || 'Client',
+            lastName: lastName || lastParts.join(' ') || 'User',
+            phone,
+            country,
+            role: role === 'client' || role === 'user' || !role ? 'client' : role,
+            is_active: is_active != null ? toBoolean(is_active) : status !== 'suspended'
+        };
+
+        const user = await User.create(payload);
+        await Account.ensureAccounts(user.id);
+
+        const balanceAmount = toNumber(initialBalance, 0);
+        if (balanceAmount > 0) {
+            const account = await findAdjustableAccount(user.id);
+            if (account) {
+                const updatedAccount = await Account.updateBalance(account.id, toNumber(account.balance) + balanceAmount);
+                await Transaction.create(user.id, {
+                    account_id: updatedAccount.id,
+                    type: 'deposit',
+                    amount: balanceAmount,
+                    balance_before: account.balance,
+                    balance_after: updatedAccount.balance,
+                    description: 'Initial balance assigned during admin user creation'
+                });
+            }
+        }
+
+        await AdminLog.create(req.user.id, {
+            action: 'CREATE_USER',
+            target_id: user.id,
+            details: `Created client user ${user.email}`,
+            ip_address: req.ip
+        });
+
+        const createdUser = await attachAccountsAndHistory({
+            ...user,
+            phone,
+            country,
+            role: payload.role,
+            is_active: payload.is_active
+        });
+
+        res.status(201).json({
+            success: true,
+            data: createdUser
         });
     } catch (error) {
         console.error(error);
@@ -103,20 +265,19 @@ const getUser = async (req, res) => {
     try {
         let user = await User.findById(req.params.id);
         if (!user) user = await Admin.findById(req.params.id);
-        
+
         if (!user) {
             return res.status(404).json({ success: false, message: 'User not found' });
         }
 
-        // Get user accounts if client
-        let accounts = [];
+        let payload = user;
         if (user.role === 'client') {
-            accounts = await Account.findByUserId(user.id);
+            payload = await attachAccountsAndHistory(user);
         }
 
         res.json({
             success: true,
-            data: { ...user, accounts }
+            data: payload
         });
     } catch (error) {
         console.error(error);
@@ -129,15 +290,37 @@ const getUser = async (req, res) => {
 // @access  Private/Admin
 const updateUser = async (req, res) => {
     try {
-        const { firstName, lastName, phone, country, is_active, role } = req.body;
-        
+        const body = req.body || {};
+        const fullName = String(body.name || '').trim();
+        const [parsedFirstName = '', ...lastParts] = fullName.split(/\s+/).filter(Boolean);
+
+        const firstName = body.firstName || parsedFirstName || body.first_name;
+        const lastName = body.lastName || lastParts.join(' ') || body.last_name;
+        const phone = body.phone;
+        const country = body.country;
+        const is_active = body.is_active != null
+            ? toBoolean(body.is_active)
+            : body.status
+                ? body.status !== 'suspended'
+                : undefined;
+        const role = body.role;
+
         let user = await User.update(req.params.id, {
-            firstName, lastName, phone, country, is_active
+            firstName,
+            lastName,
+            phone,
+            country,
+            is_active
         });
 
         if (!user) {
             user = await Admin.update(req.params.id, {
-                firstName, lastName, phone, country, is_active, role
+                firstName,
+                lastName,
+                phone,
+                country,
+                is_active,
+                role
             });
         }
 
@@ -145,7 +328,6 @@ const updateUser = async (req, res) => {
             return res.status(404).json({ success: false, message: 'User not found' });
         }
 
-        // Log action
         await AdminLog.create(req.user.id, {
             action: 'UPDATE_USER',
             target_id: user.id,
@@ -163,51 +345,40 @@ const updateUser = async (req, res) => {
     }
 };
 
-// @desc    Adjust user balance or credit
-// @route   POST /api/admin/users/:id/balance
+// @desc    Update user status
+// @route   PATCH /api/admin/users/:id/status
 // @access  Private/Admin
-const adjustBalance = async (req, res) => {
+const updateUserStatus = async (req, res) => {
     try {
-        const { accountId, type, amount, description } = req.body;
-        const userId = req.params.id;
-
-        const account = await Account.findById(accountId);
-        if (!account || account.user_id != userId) {
-            return res.status(404).json({ success: false, message: 'Account not found' });
+        const { status } = req.body;
+        if (!status) {
+            return res.status(400).json({ success: false, message: 'Status is required' });
         }
 
-        let result;
-        const numAmount = parseFloat(amount);
-        
-        if (type === 'balance') {
-            const newBalance = parseFloat(account.balance) + numAmount;
-            result = await Account.updateBalance(accountId, newBalance);
-            
-            // Create transaction record
-            await Transaction.create(userId, {
-                account_id: accountId,
-                type: numAmount >= 0 ? 'deposit' : 'withdrawal',
-                amount: Math.abs(numAmount),
-                balance_before: account.balance,
-                balance_after: newBalance,
-                description: description || `Admin adjustment: ${numAmount >= 0 ? 'Credit' : 'Debit'}`
-            });
-        } else if (type === 'credit') {
-            const newCredit = parseFloat(account.credit) + numAmount;
-            result = await Account.updateCredit(accountId, newCredit);
+        const isActive = status === 'active';
+
+        let user = await User.update(req.params.id, { is_active: isActive });
+        if (!user) {
+            user = await Admin.update(req.params.id, { is_active: isActive });
         }
 
-        // Log action
+        if (!user) {
+            return res.status(404).json({ success: false, message: 'User not found' });
+        }
+
         await AdminLog.create(req.user.id, {
-            action: `ADJUST_${type.toUpperCase()}`,
-            target_id: userId,
-            details: `Adjusted ${type} by ${amount} for account ${account.account_number}`,
+            action: 'UPDATE_USER_STATUS',
+            target_id: user.id,
+            details: `Set status to ${status} for ${user.email}`,
             ip_address: req.ip
         });
 
         res.json({
             success: true,
-            data: result
+            data: {
+                ...user,
+                status
+            }
         });
     } catch (error) {
         console.error(error);
@@ -215,8 +386,74 @@ const adjustBalance = async (req, res) => {
     }
 };
 
-// @desc    Get dashboard stats
-// @route   GET /api/admin/stats
+// @desc    Adjust user balance or credit
+// @route   POST /api/admin/users/:id/balance
+// @access  Private/Admin
+const adjustBalance = async (req, res) => {
+    try {
+        const { accountId, type, amount, description, reason } = req.body;
+        const userId = req.params.id;
+        const account = await findAdjustableAccount(userId, accountId);
+
+        if (!account) {
+            return res.status(404).json({ success: false, message: 'Account not found' });
+        }
+
+        const requestedAmount = toNumber(amount);
+        if (!requestedAmount) {
+            return res.status(400).json({ success: false, message: 'Amount must be greater than zero' });
+        }
+
+        const normalizedType = String(type || 'balance').toLowerCase();
+        const label = description || reason || 'Admin balance adjustment';
+
+        if (normalizedType === 'credit') {
+            const nextCredit = toNumber(account.credit) + requestedAmount;
+            const updatedAccount = await Account.updateCredit(account.id, nextCredit);
+
+            await AdminLog.create(req.user.id, {
+                action: 'ADJUST_CREDIT',
+                target_id: userId,
+                details: `Adjusted credit by ${requestedAmount} for account ${account.account_number}`,
+                ip_address: req.ip
+            });
+
+            return res.json({
+                success: true,
+                data: updatedAccount
+            });
+        }
+
+        const signedAmount = normalizedType === 'subtract' ? -Math.abs(requestedAmount) : Math.abs(requestedAmount);
+        const nextBalance = toNumber(account.balance) + signedAmount;
+
+        const updatedAccount = await Account.updateBalance(account.id, nextBalance);
+        await Transaction.create(userId, {
+            account_id: account.id,
+            type: signedAmount >= 0 ? 'deposit' : 'withdrawal',
+            amount: Math.abs(signedAmount),
+            balance_before: account.balance,
+            balance_after: nextBalance,
+            description: label
+        });
+
+        await AdminLog.create(req.user.id, {
+            action: 'ADJUST_BALANCE',
+            target_id: userId,
+            details: `Adjusted balance by ${signedAmount} for account ${account.account_number}`,
+            ip_address: req.ip
+        });
+
+        res.json({
+            success: true,
+            data: updatedAccount
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+};
+
 // @desc    Get dashboard stats
 // @route   GET /api/admin/stats
 // @access  Private/Admin
@@ -241,21 +478,20 @@ const getDashboardStats = async (req, res) => {
                     (SELECT SUM(credit) FROM accounts) as total_credit,
                     (SELECT COUNT(*) FROM positions) as total_trades,
                     (SELECT SUM(quantity) FROM positions) as total_volume
-                FROM users LIMIT 1
             `)
         ]);
 
         const stats = {
             totalUsers: clients.length,
             totalAdmins: admins.length,
-            activeUsers: clients.filter(u => u.is_active).length,
+            activeUsers: clients.filter((user) => user.is_active).length,
             pendingKyc: kycPending.length,
             pendingFunding: fundingPending.length,
             openTrades: openTrades.length,
-            totalBalance: parseFloat(totals.rows[0].total_balance || 0),
-            totalCredit: parseFloat(totals.rows[0].total_credit || 0),
-            totalTrades: parseInt(totals.rows[0].total_trades || 0),
-            totalVolume: parseFloat(totals.rows[0].total_volume || 0)
+            totalBalance: toNumber(totals.rows[0]?.total_balance),
+            totalCredit: toNumber(totals.rows[0]?.total_credit),
+            totalTrades: parseInt(totals.rows[0]?.total_trades || 0, 10),
+            totalVolume: toNumber(totals.rows[0]?.total_volume)
         };
 
         res.json({
@@ -268,12 +504,11 @@ const getDashboardStats = async (req, res) => {
     }
 };
 
-// @desc    Get growth stats (User growth and Trading volume)
+// @desc    Get growth stats
 // @route   GET /api/admin/growth-stats
 // @access  Private/Admin
 const getGrowthStats = async (req, res) => {
     try {
-        // Last 7 months user growth
         const userGrowth = await db.query(`
             SELECT 
                 TO_CHAR(created_at, 'Mon') as m,
@@ -284,7 +519,6 @@ const getGrowthStats = async (req, res) => {
             ORDER BY DATE_TRUNC('month', created_at)
         `);
 
-        // Last 7 months trading volume
         const tradingVolume = await db.query(`
             SELECT 
                 TO_CHAR(created_at, 'Mon') as m,
@@ -315,38 +549,36 @@ const getKyCSubmissions = async (req, res) => {
     try {
         const { status } = req.query;
         const submissions = await KyCSubmission.findAll(status);
-        
-        // Group by user
-        const grouped = submissions.reduce((acc, s) => {
-            if (!acc[s.user_id]) {
-                acc[s.user_id] = {
-                    id: s.user_id,
-                    name: `${s.first_name || ''} ${s.last_name || ''}`.trim() || s.user_email,
-                    email: s.user_email,
-                    kyc: 'pending', // Will calculate below
-                    kycSubmitted: s.created_at,
-                    kycReviewedAt: s.reviewed_at,
+
+        const grouped = submissions.reduce((acc, submission) => {
+            if (!acc[submission.user_id]) {
+                acc[submission.user_id] = {
+                    id: submission.user_id,
+                    name: `${submission.first_name || ''} ${submission.last_name || ''}`.trim() || submission.user_email,
+                    email: submission.user_email,
+                    kyc: 'pending',
+                    kycSubmitted: submission.created_at,
+                    kycReviewedAt: submission.reviewed_at,
                     kycDocs: []
                 };
             }
-            
-            acc[s.user_id].kycDocs.push({
-                id: s.id,
-                type: s.document_type || 'passport',
-                label: (s.document_type || 'Document').charAt(0).toUpperCase() + (s.document_type || 'Document').slice(1),
-                file: s.file_path,
-                status: s.status,
-                uploadedAt: s.created_at,
-                rejectReason: s.rejection_reason
+
+            acc[submission.user_id].kycDocs.push({
+                id: submission.id,
+                type: submission.document_type || 'passport',
+                label: (submission.document_type || 'Document').charAt(0).toUpperCase() + (submission.document_type || 'Document').slice(1),
+                file: normalizeStoredUploadPath(submission.file_path),
+                status: submission.status,
+                uploadedAt: submission.created_at,
+                rejectReason: submission.rejection_reason
             });
-            
-            // If any doc is under_review or pending, the whole thing is
-            const statuses = acc[s.user_id].kycDocs.map(d => d.status);
-            if (statuses.includes('rejected')) acc[s.user_id].kyc = 'rejected';
-            else if (statuses.includes('pending')) acc[s.user_id].kyc = 'pending';
-            else if (statuses.includes('under_review')) acc[s.user_id].kyc = 'under_review';
-            else if (statuses.every(st => st === 'approved' || st === 'verified')) acc[s.user_id].kyc = 'verified';
-            
+
+            const statuses = acc[submission.user_id].kycDocs.map((doc) => doc.status);
+            if (statuses.includes('rejected')) acc[submission.user_id].kyc = 'rejected';
+            else if (statuses.includes('pending')) acc[submission.user_id].kyc = 'pending';
+            else if (statuses.includes('under_review')) acc[submission.user_id].kyc = 'under_review';
+            else if (statuses.every((value) => value === 'approved' || value === 'verified')) acc[submission.user_id].kyc = 'verified';
+
             return acc;
         }, {});
 
@@ -369,7 +601,6 @@ const processKYC = async (req, res) => {
             reviewed_by: req.user.id
         });
 
-        // Log action
         await AdminLog.create(req.user.id, {
             action: 'PROCESS_KYC',
             target_id: result.user_id,
@@ -391,26 +622,65 @@ const getFundingRequests = async (req, res) => {
     try {
         const { status } = req.query;
         const rawRequests = await FundingRequest.findAll(status);
-        
-        const mappedRequests = rawRequests.map(f => {
-            const isDemo = f.account_number && f.account_number.startsWith('DM');
+
+        const mappedRequests = rawRequests.map((request) => {
+            const isDemo = request.account_number && request.account_number.startsWith('DM');
             return {
-                id: f.id,
-                userId: f.user_id,
-                userName: `${f.first_name || ''} ${f.last_name || ''}`.trim() || f.user_email,
-                type: f.type,
-                amount: parseFloat(f.amount),
-                method: f.method,
-                bankRef: f.bank_reference,
-                proof: f.proof_file,
-                status: f.status,
-                created: f.created_at,
+                id: request.id,
+                userId: request.user_id,
+                userName: `${request.first_name || ''} ${request.last_name || ''}`.trim() || request.user_email,
+                userEmail: request.user_email,
+                type: request.type,
+                amount: toNumber(request.amount),
+                method: request.method,
+                bankRef: request.bank_reference,
+                proof: normalizeStoredUploadPath(request.proof_file),
+                proofImage: normalizeStoredUploadPath(request.proof_file),
+                status: request.status,
+                created: request.created_at,
+                createdAt: request.created_at,
+                updatedAt: request.processed_at || request.updated_at || request.created_at,
                 processedAccount: isDemo ? 'demo' : 'real',
-                note: f.rejection_reason || ''
+                note: request.rejection_reason || '',
+                rejectionReason: request.rejection_reason || ''
             };
         });
 
         res.json({ success: true, data: mappedRequests });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+};
+
+// @desc    Export funding requests
+// @route   GET /api/admin/funding/export
+// @access  Private/Admin
+const exportFundingRequests = async (req, res) => {
+    try {
+        const requests = await FundingRequest.findAll(req.query.status);
+        const csv = createCsv(
+            requests.map((request) => ({
+                id: request.id,
+                user_email: request.user_email,
+                type: request.type,
+                amount: request.amount,
+                method: request.method,
+                status: request.status,
+                created_at: request.created_at
+            })),
+            [
+                { key: 'id', label: 'ID' },
+                { key: 'user_email', label: 'User Email' },
+                { key: 'type', label: 'Type' },
+                { key: 'amount', label: 'Amount' },
+                { key: 'method', label: 'Method' },
+                { key: 'status', label: 'Status' },
+                { key: 'created_at', label: 'Created At' }
+            ]
+        );
+
+        sendCsv(res, 'funding-requests.csv', csv);
     } catch (error) {
         console.error(error);
         res.status(500).json({ success: false, message: 'Server error' });
@@ -424,7 +694,7 @@ const processFunding = async (req, res) => {
     try {
         const { status, reason } = req.body;
         const request = await FundingRequest.findById(req.params.id);
-        
+
         if (!request) return res.status(404).json({ success: false, message: 'Request not found' });
         if (request.status !== 'pending') return res.status(400).json({ success: false, message: 'Request already processed' });
 
@@ -434,31 +704,25 @@ const processFunding = async (req, res) => {
             processed_by: req.user.id
         });
 
-        // If approved, update user balance
         if (status === 'approved') {
             const account = await Account.findById(request.account_id);
-            const amount = parseFloat(request.amount);
-            
+            const amount = toNumber(request.amount);
+
             if (request.type === 'deposit') {
-                const newBalance = parseFloat(account.balance) + amount;
+                const newBalance = toNumber(account.balance) + amount;
                 await Account.updateBalance(request.account_id, newBalance);
                 await Transaction.create(request.user_id, {
                     account_id: request.account_id,
                     type: 'deposit',
-                    amount: amount,
+                    amount,
                     balance_before: account.balance,
                     balance_after: newBalance,
                     description: `Deposit via ${request.method} approved`,
                     reference_id: request.id
                 });
-            } else if (request.type === 'withdrawal') {
-                // Withdrawal amount is usually already deducted or checked at request time
-                // For completeness, if we didn't deduct at request time, do it now.
-                // But typically we should have checked and reserved it.
             }
         }
 
-        // Log action
         await AdminLog.create(req.user.id, {
             action: 'PROCESS_FUNDING',
             target_id: request.user_id,
@@ -473,7 +737,7 @@ const processFunding = async (req, res) => {
     }
 };
 
-// @desc    Get all trades (admin)
+// @desc    Get all trades
 // @route   GET /api/admin/trades
 // @access  Private/Admin
 const getTrades = async (req, res) => {
@@ -481,21 +745,39 @@ const getTrades = async (req, res) => {
         const { status } = req.query;
         const rawTrades = await Trade.findAll(status);
 
-        const mappedTrades = rawTrades.map(t => ({
-            id: t.id,
-            userId: t.user_id,
-            userName: `${t.first_name || ''} ${t.last_name || ''}`.trim() || t.user_email,
-            symbol: t.symbol,
-            type: t.side,          // DB: side -> UI: type (buy/sell direction)
-            lots: parseFloat(t.amount),
-            openPrice: parseFloat(t.entry_price),
-            closePrice: t.exit_price ? parseFloat(t.exit_price) : null,
-            swap: 0,               // not tracked in current schema, default 0
-            profit: parseFloat(t.pnl) || 0,
-            status: t.status,
-            opened: t.created_at,
-            accountNumber: t.account_number
-        }));
+        const mappedTrades = rawTrades.map((trade) => {
+            const normalizedStatus = trade.status === 'open'
+                ? 'pending'
+                : trade.status === 'closed'
+                    ? 'completed'
+                    : trade.status;
+            const amount = toNumber(trade.amount);
+            const price = toNumber(trade.entry_price);
+
+            return {
+                id: trade.id,
+                userId: trade.user_id,
+                userName: `${trade.first_name || ''} ${trade.last_name || ''}`.trim() || trade.user_email,
+                userEmail: trade.user_email,
+                pair: trade.symbol,
+                symbol: trade.symbol,
+                type: String(trade.side || '').toUpperCase(),
+                amount,
+                lots: amount,
+                price,
+                openPrice: price,
+                closePrice: trade.exit_price ? toNumber(trade.exit_price) : null,
+                total: amount * price,
+                swap: 0,
+                profit: toNumber(trade.pnl),
+                status: normalizedStatus,
+                createdAt: trade.created_at,
+                updatedAt: trade.updated_at || trade.created_at,
+                completedAt: normalizedStatus === 'completed' ? (trade.updated_at || trade.created_at) : null,
+                opened: trade.created_at,
+                accountNumber: trade.account_number
+            };
+        });
 
         res.json({ success: true, data: mappedTrades });
     } catch (error) {
@@ -504,7 +786,54 @@ const getTrades = async (req, res) => {
     }
 };
 
-// @desc    Cancel a trade (admin)
+// @desc    Get trade stats
+// @route   GET /api/admin/trades/stats
+// @access  Private/Admin
+const getTradeStats = async (req, res) => {
+    try {
+        const [aggregate, volumeRows] = await Promise.all([
+            db.query(`
+                SELECT
+                    COUNT(*)::int AS total_trades,
+                    COALESCE(SUM(quantity), 0) AS total_volume,
+                    COUNT(*) FILTER (WHERE status = 'open')::int AS active_trades,
+                    COUNT(*) FILTER (WHERE status = 'closed')::int AS completed_trades
+                FROM positions
+            `),
+            db.query(`
+                SELECT TO_CHAR(DATE_TRUNC('day', created_at), 'YYYY-MM-DD') AS date,
+                       COALESCE(SUM(quantity), 0) AS volume
+                FROM positions
+                WHERE created_at >= CURRENT_DATE - INTERVAL '6 days'
+                GROUP BY DATE_TRUNC('day', created_at)
+                ORDER BY DATE_TRUNC('day', created_at)
+            `)
+        ]);
+
+        const row = aggregate.rows[0] || {};
+        const completedTrades = parseInt(row.completed_trades || 0, 10);
+        const totalTrades = parseInt(row.total_trades || 0, 10);
+
+        res.json({
+            success: true,
+            data: {
+                totalTrades,
+                totalVolume: toNumber(row.total_volume),
+                activeTrades: parseInt(row.active_trades || 0, 10),
+                successRate: totalTrades ? (completedTrades / totalTrades) * 100 : 0,
+                volumeData: volumeRows.rows.map((item) => ({
+                    date: item.date,
+                    volume: toNumber(item.volume)
+                }))
+            }
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+};
+
+// @desc    Cancel a trade
 // @route   POST /api/admin/trades/:id/cancel
 // @access  Private/Admin
 const cancelTrade = async (req, res) => {
@@ -529,6 +858,116 @@ const cancelTrade = async (req, res) => {
     }
 };
 
+// @desc    Get transactions
+// @route   GET /api/admin/transactions
+// @access  Private/Admin
+const getTransactions = async (req, res) => {
+    try {
+        const { rows } = await db.query(`
+            SELECT t.id,
+                   t.user_id,
+                   t.account_id,
+                   t.type,
+                   t.amount,
+                   t.balance_before,
+                   t.balance_after,
+                   t.reference_id,
+                   t.description,
+                   t.created_at,
+                   u.email AS user_email,
+                   u.first_name,
+                   u.last_name,
+                   a.account_number,
+                   fr.method,
+                   fr.status AS funding_status,
+                   fr.processed_at
+            FROM transactions t
+            JOIN users u ON t.user_id = u.id
+            LEFT JOIN accounts a ON t.account_id = a.id
+            LEFT JOIN funding_requests fr ON t.reference_id = fr.id
+            ORDER BY t.created_at DESC
+        `);
+
+        const mapped = rows.map((transaction) => ({
+            id: transaction.id,
+            userId: transaction.user_id,
+            userName: `${transaction.first_name || ''} ${transaction.last_name || ''}`.trim() || transaction.user_email,
+            userEmail: transaction.user_email,
+            type: transaction.type,
+            amount: toNumber(transaction.amount),
+            status: transaction.funding_status || 'completed',
+            method: transaction.method || 'internal',
+            reference: transaction.reference_id || null,
+            notes: transaction.description || '',
+            accountNumber: transaction.account_number || null,
+            createdAt: transaction.created_at,
+            updatedAt: transaction.processed_at || transaction.created_at
+        }));
+
+        res.json({ success: true, data: mapped });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+};
+
+// @desc    Get transaction stats
+// @route   GET /api/admin/transactions/stats
+// @access  Private/Admin
+const getTransactionStats = async (req, res) => {
+    try {
+        const { rows } = await db.query(`
+            SELECT
+                COUNT(*)::int AS total_transactions,
+                COALESCE(SUM(amount), 0) AS total_volume,
+                COUNT(*) FILTER (WHERE fr.status = 'pending')::int AS pending_transactions
+            FROM transactions t
+            LEFT JOIN funding_requests fr ON t.reference_id = fr.id
+        `);
+
+        const stats = rows[0] || {};
+        res.json({
+            success: true,
+            data: {
+                totalTransactions: parseInt(stats.total_transactions || 0, 10),
+                totalVolume: toNumber(stats.total_volume),
+                pendingTransactions: parseInt(stats.pending_transactions || 0, 10)
+            }
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+};
+
+// @desc    Export transactions
+// @route   GET /api/admin/transactions/export
+// @access  Private/Admin
+const exportTransactions = async (req, res) => {
+    try {
+        const { rows } = await db.query(`
+            SELECT t.id, u.email AS user_email, t.type, t.amount, t.description, t.created_at
+            FROM transactions t
+            JOIN users u ON t.user_id = u.id
+            ORDER BY t.created_at DESC
+        `);
+
+        const csv = createCsv(rows, [
+            { key: 'id', label: 'ID' },
+            { key: 'user_email', label: 'User Email' },
+            { key: 'type', label: 'Type' },
+            { key: 'amount', label: 'Amount' },
+            { key: 'description', label: 'Description' },
+            { key: 'created_at', label: 'Created At' }
+        ]);
+
+        sendCsv(res, 'transactions.csv', csv);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+};
+
 // @desc    Get admin logs
 // @route   GET /api/admin/logs
 // @access  Private/Admin
@@ -536,6 +975,28 @@ const getAdminLogs = async (req, res) => {
     try {
         const logs = await AdminLog.findAll();
         res.json({ success: true, data: logs });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+};
+
+// @desc    Export admin logs
+// @route   GET /api/admin/logs/export
+// @access  Private/Admin
+const exportAdminLogs = async (req, res) => {
+    try {
+        const logs = await AdminLog.findAll();
+        const csv = createCsv(logs, [
+            { key: 'id', label: 'ID' },
+            { key: 'admin_email', label: 'Admin Email' },
+            { key: 'action', label: 'Action' },
+            { key: 'target_id', label: 'Target ID' },
+            { key: 'details', label: 'Details' },
+            { key: 'created_at', label: 'Created At' }
+        ]);
+
+        sendCsv(res, 'admin-logs.csv', csv);
     } catch (error) {
         console.error(error);
         res.status(500).json({ success: false, message: 'Server error' });
@@ -561,7 +1022,7 @@ const getSettings = async (req, res) => {
 const updateSettings = async (req, res) => {
     try {
         await PlatformSettings.updateBatch(req.body);
-        
+
         await AdminLog.create(req.user.id, {
             action: 'UPDATE_SETTINGS',
             target_id: null,
@@ -576,7 +1037,7 @@ const updateSettings = async (req, res) => {
     }
 };
 
-// @desc    Reset a user's password (Admin)
+// @desc    Reset a user's password
 // @route   POST /api/admin/users/:id/reset-password
 // @access  Private/Admin
 const resetUserPassword = async (req, res) => {
@@ -586,7 +1047,11 @@ const resetUserPassword = async (req, res) => {
             return res.status(400).json({ success: false, message: 'Password must be at least 8 characters' });
         }
 
-        const user = await User.updatePassword(req.params.id, password);
+        let user = await User.updatePassword(req.params.id, password);
+        if (!user) {
+            user = await Admin.updatePassword(req.params.id, password);
+        }
+
         if (!user) {
             return res.status(404).json({ success: false, message: 'User not found' });
         }
@@ -612,7 +1077,7 @@ const deleteUser = async (req, res) => {
     try {
         let user = await User.delete(req.params.id);
         if (!user) user = await Admin.delete(req.params.id);
-        
+
         if (!user) {
             return res.status(404).json({ success: false, message: 'User not found' });
         }
@@ -627,14 +1092,13 @@ const deleteUser = async (req, res) => {
     }
 };
 
-// @desc    Create admin user (by super admin)
+// @desc    Create admin user
 // @route   POST /api/admin/users/admin
 // @access  Private/Admin
 const createAdmin = async (req, res) => {
     try {
-        const { email, password, firstName, lastName, phone, country, role } = req.body;
+        const { email, password, firstName, lastName, phone, country, role, status, is_active } = req.body;
 
-        // Check if exists in either table
         const userExists = await User.findByEmail(email);
         const adminExists = await Admin.findByEmail(email);
         if (userExists || adminExists) {
@@ -648,7 +1112,8 @@ const createAdmin = async (req, res) => {
             lastName,
             phone,
             country,
-            role: role || 'admin'
+            role: role || 'admin',
+            is_active: is_active != null ? toBoolean(is_active) : status !== 'suspended'
         });
 
         res.status(201).json({
@@ -692,8 +1157,10 @@ const getAdminProfile = async (req, res) => {
 
 module.exports = {
     getUsers,
+    createUser,
     getUser,
     updateUser,
+    updateUserStatus,
     adjustBalance,
     resetUserPassword,
     getDashboardStats,
@@ -701,13 +1168,19 @@ module.exports = {
     getKyCSubmissions,
     processKYC,
     getFundingRequests,
+    exportFundingRequests,
     processFunding,
     getTrades,
+    getTradeStats,
     cancelTrade,
+    getTransactions,
+    getTransactionStats,
+    exportTransactions,
     getSettings,
     updateSettings,
     getGrowthStats,
     getAdminLogs,
+    exportAdminLogs,
     deleteUser,
     createAdmin
 };

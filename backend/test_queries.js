@@ -7,8 +7,8 @@ async function test() {
             SELECT 
                 (SELECT SUM(balance) FROM accounts) as total_balance,
                 (SELECT SUM(credit) FROM accounts) as total_credit,
-                (SELECT COUNT(*) FROM trades) as total_trades,
-                (SELECT SUM(amount) FROM trades) as total_volume
+                (SELECT COUNT(*) FROM positions) as total_trades,
+                (SELECT SUM(quantity) FROM positions) as total_volume
         `);
         console.log('Stats OK:', stats.rows[0]);
 
@@ -27,8 +27,8 @@ async function test() {
         const tradingVolume = await db.query(`
             SELECT 
                 TO_CHAR(created_at, 'Mon') as m,
-                SUM(amount) as v
-            FROM trades
+                SUM(quantity) as v
+            FROM positions
             WHERE created_at > CURRENT_DATE - INTERVAL '7 months'
             GROUP BY TO_CHAR(created_at, 'Mon'), DATE_TRUNC('month', created_at)
             ORDER BY DATE_TRUNC('month', created_at)
