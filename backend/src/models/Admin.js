@@ -25,9 +25,9 @@ class Admin {
             );
             return this.normalizeAdmin(rows[0]);
         } catch (error) {
-            if (isMissingColumnError(error) && getMissingColumnName(error) === 'first_name') {
+            if (isMissingColumnError(error)) {
                 const { rows } = await db.query(
-                    'SELECT id, name, email, role, is_active, created_at FROM admins WHERE id = $1',
+                    'SELECT id, name, email, password, role, is_active, created_at FROM admins WHERE id = $1',
                     [id]
                 );
                 return this.normalizeAdmin(rows[0]);
@@ -41,8 +41,8 @@ class Admin {
             const { rows } = await db.query('SELECT id, email, first_name, last_name, phone, country, role, is_active, created_at FROM admins ORDER BY created_at DESC');
             return rows.map((row) => this.normalizeAdmin(row));
         } catch (error) {
-            if (isMissingColumnError(error) && getMissingColumnName(error) === 'first_name') {
-                const { rows } = await db.query('SELECT id, name, email, role, is_active, created_at FROM admins ORDER BY created_at DESC');
+            if (isMissingColumnError(error)) {
+                const { rows } = await db.query('SELECT id, name, email, password, role, is_active, created_at FROM admins ORDER BY created_at DESC');
                 return rows.map((row) => this.normalizeAdmin(row));
             }
             throw error;

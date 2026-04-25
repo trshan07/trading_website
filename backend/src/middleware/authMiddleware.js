@@ -1,6 +1,32 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const Admin = require('../models/Admin');
+const db = require('../config/database');
+const { isMissingColumnError } = require('../utils/dbCompat');
+
+const findLegacyAdminById = async (id) => {
+    const { rows } = await db.query(
+        'SELECT id, name, email, password, role, is_active, created_at FROM admins WHERE id = $1',
+        [id]
+    );
+
+    if (!rows[0]) {
+        return null;
+    }
+
+    const nameParts = String(rows[0].name || '').trim().split(/\s+/).filter(Boolean);
+    const firstName = nameParts[0] || '';
+    const lastName = nameParts.slice(1).join(' ');
+
+    return {
+        ...rows[0],
+        first_name: firstName,
+        last_name: lastName,
+        password_hash: rows[0].password,
+        phone: null,
+        country: null,
+    };
+};
 
 const protect = async (req, res, next) => {
     const authHeader = req.headers.authorization;
@@ -23,7 +49,15 @@ const protect = async (req, res, next) => {
         // Get user from the token based on the encoded role to avoid ID collisions
         let user;
         if (decoded.role === 'admin' || decoded.role === 'super_admin') {
-            user = await Admin.findById(decoded.id);
+            try {
+                user = await Admin.findById(decoded.id);
+            } catch (error) {
+                if (isMissingColumnError(error)) {
+                    user = await findLegacyAdminById(decoded.id);
+                } else {
+                    throw error;
+                }
+            }
         } else {
             user = await User.findById(decoded.id);
         }
