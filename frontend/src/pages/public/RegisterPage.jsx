@@ -61,7 +61,13 @@ const RegisterPage = () => {
       if (response.success && response.data) {
         const userData = response.data;
         // Automatically log them in. Use the selected account type.
-        contextLogin({ ...userData, selectedAccountType: accountType }, userData.token);
+        const loginResult = await contextLogin(
+          { ...userData, selectedAccountType: accountType },
+          userData.token
+        );
+        if (!loginResult?.success) {
+          throw new Error(loginResult?.error || 'Unable to establish session');
+        }
         toast.success("Account Provisioned Successfully! Welcome to TIK TRADES.");
         navigate('/dashboard');
       } else {

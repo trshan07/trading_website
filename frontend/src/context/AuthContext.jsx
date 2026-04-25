@@ -46,17 +46,18 @@ export const AuthProvider = ({ children }) => {
         return () => window.removeEventListener('auth:session-expired', handleSessionExpired);
     }, []);
 
-    const loadUser = async () => {
-        if (!token || token === 'undefined' || token === 'null') {
+    const loadUser = async (tokenOverride = token, accountTypeOverride = selectedAccountType) => {
+        if (!tokenOverride || tokenOverride === 'undefined' || tokenOverride === 'null') {
+            setUser(null);
             setLoading(false);
-            return;
+            return null;
         }
 
         try {
             let role = 'client';
 
             try {
-                const payload = JSON.parse(atob(token.split('.')[1]));
+                const payload = JSON.parse(atob(tokenOverride.split('.')[1]));
                 role = payload.role || 'client';
             } catch (_) {}
 
@@ -70,7 +71,7 @@ export const AuthProvider = ({ children }) => {
                 throw new Error('Malformed profile data received');
             }
 
-            setUser({
+            const normalizedUser = {
                 id: userData.id || userData._id,
                 email: userData.email,
                 firstName: userData.firstName || userData.first_name,
@@ -79,8 +80,11 @@ export const AuthProvider = ({ children }) => {
                 country: userData.country,
                 role: userData.role,
                 accounts: userData.accounts || [],
-                selectedAccountType,
-            });
+                selectedAccountType: accountTypeOverride,
+            };
+
+            setUser(normalizedUser);
+            return normalizedUser;
         } catch (error) {
             const status = error.response?.status;
             console.error(`[AUTH] Profile load failed (HTTP ${status}):`, error.message);
@@ -94,6 +98,8 @@ export const AuthProvider = ({ children }) => {
             } else if (!status) {
                 toast.error('Network error. Please check your connection.');
             }
+
+            return null;
         } finally {
             setLoading(false);
         }
@@ -101,6 +107,7 @@ export const AuthProvider = ({ children }) => {
 
     const login = async (userData, authToken) => {
         try {
+            setLoading(true);
             localStorage.setItem('token', authToken);
             const mode = userData.selectedAccountType || 'demo';
             localStorage.setItem('trading_mode', mode);
@@ -118,9 +125,15 @@ export const AuthProvider = ({ children }) => {
                 selectedAccountType: mode,
             });
 
-            return { success: true };
+            const verifiedUser = await loadUser(authToken, mode);
+            if (!verifiedUser) {
+                return { success: false, error: 'Unable to verify your session' };
+            }
+
+            return { success: true, user: verifiedUser };
         } catch (error) {
             console.error('Context login error:', error);
+            setLoading(false);
             return { success: false, error: 'Login failed' };
         }
     };

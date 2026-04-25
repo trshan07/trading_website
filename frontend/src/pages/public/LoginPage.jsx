@@ -47,7 +47,14 @@ const handleSubmit = async (e) => {
       const userData = response.data;
       
       // Pass the user data to context
-      contextLogin({ ...userData, selectedAccountType: accountType }, userData.token);
+      const loginResult = await contextLogin(
+        { ...userData, selectedAccountType: accountType },
+        userData.token
+      );
+
+      if (!loginResult?.success) {
+        throw new Error(loginResult?.error || 'Unable to establish session');
+      }
       
       toast.success(`Welcome back, ${userData.firstName || 'User'}! [${accountType.toUpperCase()} MODE]`);
       
@@ -77,7 +84,13 @@ const handleSubmit = async (e) => {
       if (response.success && response.data) {
         const guestData = response.data;
         // Guests are always in demo mode
-        contextLogin({ ...guestData, selectedAccountType: 'demo' }, guestData.token);
+        const loginResult = await contextLogin(
+          { ...guestData, selectedAccountType: 'demo' },
+          guestData.token
+        );
+        if (!loginResult?.success) {
+          throw new Error(loginResult?.error || 'Unable to establish guest session');
+        }
         toast.success("Guest Connection Established! Welcome to the Demo Terminal.");
         navigate('/dashboard');
       } else {
