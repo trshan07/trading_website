@@ -1131,7 +1131,12 @@ const createAdmin = async (req, res) => {
 // @access  Private/Admin
 const getAdminProfile = async (req, res) => {
     try {
-        const admin = await Admin.findById(req.user.id);
+        let admin = req.user;
+
+        if (!admin || (admin.role !== 'admin' && admin.role !== 'super_admin')) {
+            admin = await Admin.findById(req.user.id);
+        }
+
         if (!admin) {
             return res.status(404).json({ success: false, message: 'Admin not found' });
         }

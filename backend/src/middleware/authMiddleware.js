@@ -58,6 +58,12 @@ const protect = async (req, res, next) => {
                     throw error;
                 }
             }
+
+            // Some older deployments stored admin roles in the users table.
+            // Fall back so valid admin sessions are not rejected during migration.
+            if (!user) {
+                user = await User.findById(decoded.id);
+            }
         } else {
             user = await User.findById(decoded.id);
         }

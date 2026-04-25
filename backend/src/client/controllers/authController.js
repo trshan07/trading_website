@@ -130,18 +130,17 @@ const login = async (req, res) => {
         const { email, password } = req.body;
         console.log(`[LOGIN] Attempt for: ${email}`);
 
-        // Check for user in clients table first, then admins
-        let user = await User.findByEmail(email);
-        let isAdmin = false;
+        // Prefer the admins table first so admin/super-admin accounts do not
+        // accidentally authenticate against a duplicate legacy users row.
+        let user = await Admin.findByEmail(email);
 
-        if (!user) {
-            user = await Admin.findByEmail(email);
-            if (user) {
-                isAdmin = true;
-                console.log(`[LOGIN] Found in admins table: ${email}`);
-            }
+        if (user) {
+            console.log(`[LOGIN] Found in admins table: ${email}`);
         } else {
-            console.log(`[LOGIN] Found in users table: ${email}`);
+            user = await User.findByEmail(email);
+            if (user) {
+                console.log(`[LOGIN] Found in users table: ${email}`);
+            }
         }
 
         if (!user) {
