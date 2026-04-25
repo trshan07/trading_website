@@ -3,12 +3,12 @@
   "private": true,
   "version": "0.0.0",
   "scripts": {
-    "start": "node ../scripts/run-frontend.js start",
-    "build": "node ../scripts/run-frontend.js build",
-    "test": "node ../scripts/run-frontend.js test",
-    "eject": "react-scripts eject",
-    "dev": "node ../scripts/run-frontend.js start"
-  },
+  "start": "vite",
+  "build": "vite build",
+  "test": "react-scripts test",
+  "eject": "react-scripts eject",
+  "dev": "vite"
+},
   "dependencies": {
     "@ant-design/icons": "^6.1.1",
     "@headlessui/react": "^2.2.9",

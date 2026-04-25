@@ -462,7 +462,7 @@ export const useDashboardData = (accountType = 'demo') => {
           size: 'N/A',
           uploadDate: new Date(docData.created_at).toLocaleDateString(),
           status: docData.status.charAt(0).toUpperCase() + docData.status.slice(1),
-          url: `${process.env.REACT_APP_API_URL || 'http://localhost:5000'}${getRelativeUrl(docData.file_path)}`
+          url: `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${getRelativeUrl(docData.file_path)}`
         };
         setDocuments(prev => [mappedDoc, ...prev]);
         toast.success("Document uploaded");

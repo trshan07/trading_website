@@ -15,7 +15,7 @@ const { TabPane } = Tabs;
 const { TextArea } = Input;
 
 // Build a full URL from a server-relative file path
-const API_BASE = (process.env.REACT_APP_API_URL || 'http://localhost:5000/api').replace('/api', '');
+const API_BASE = (import.meta.env.VITE_API_URL || 'http://localhost:5000/api').replace('/api', '');
 const getFileUrl = (filePath) => {
   if (!filePath) return null;
   if (filePath.startsWith('http://') || filePath.startsWith('https://')) return filePath;
