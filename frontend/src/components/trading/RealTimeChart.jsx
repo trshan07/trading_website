@@ -24,6 +24,7 @@ const RealTimeChart = ({
   const seriesRef = useRef(null);
   const wsRef = useRef(null);
   const wsConnectTimerRef = useRef(null);
+  const wsClosingRef = useRef(false);
   const candleTimesRef = useRef([]);
   const shouldUseLiveWsRef = useRef(true);
   const [interval, setInterval] = useState('15m');
@@ -113,7 +114,15 @@ const RealTimeChart = ({
 
     // Cleanup previous chart/WS before creating new ones
     if (wsRef.current) {
-      try { wsRef.current.close(); } catch (e) {}
+      try {
+        wsClosingRef.current = true;
+        wsRef.current.onmessage = null;
+        wsRef.current.onerror = null;
+        wsRef.current.onclose = null;
+        if (wsRef.current.readyState === WebSocket.OPEN || wsRef.current.readyState === WebSocket.CONNECTING) {
+          wsRef.current.close(1000, 'Chart reinit');
+        }
+      } catch (e) {}
       wsRef.current = null;
     }
     if (wsConnectTimerRef.current) {
@@ -221,6 +230,7 @@ const RealTimeChart = ({
         const wsSymbol = binanceSymbol.toLowerCase();
         wsConnectTimerRef.current = setTimeout(() => {
           if (!active || wsRef.current || !shouldUseLiveWsRef.current || !canUseLiveConnections()) return;
+          wsClosingRef.current = false;
           const ws = new WebSocket(`wss://stream.binance.com:9443/ws/${wsSymbol}@kline_${interval}`);
           wsRef.current = ws;
 
@@ -229,12 +239,16 @@ const RealTimeChart = ({
             setLiveStatus('live');
           };
           ws.onerror = () => {
-            if (!active || wsRef.current !== ws) return;
+            if (!active || wsRef.current !== ws || wsClosingRef.current) return;
             setLiveStatus(canUseLiveConnections() ? 'reconnecting' : 'offline');
           };
-          ws.onclose = () => {
+          ws.onclose = (event) => {
             if (wsRef.current === ws) wsRef.current = null;
             if (!active) return;
+            if (wsClosingRef.current || event.code === 1000) {
+              setLiveStatus(canUseLiveConnections() ? 'idle' : 'offline');
+              return;
+            }
             setLiveStatus(canUseLiveConnections() ? 'reconnecting' : 'offline');
           };
 
@@ -296,6 +310,7 @@ const RealTimeChart = ({
       setLiveStatus('offline');
       if (wsRef.current) {
         try {
+          wsClosingRef.current = true;
           wsRef.current.onmessage = null;
           wsRef.current.onerror = null;
           wsRef.current.onclose = null;
@@ -329,6 +344,7 @@ const RealTimeChart = ({
       }
       if (wsRef.current) {
         try {
+          wsClosingRef.current = true;
           // Null out all handlers FIRST to silence any incoming messages/errors during close
           wsRef.current.onmessage = null;
           wsRef.current.onerror = null;
