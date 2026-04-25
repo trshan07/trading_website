@@ -33,36 +33,11 @@ app.use(helmet({
     contentSecurityPolicy: false,
 }));
 
-<<<<<<< HEAD
-// CORS — reads comma-separated origins from CLIENT_URL env var
-const allowedOrigins = (process.env.CLIENT_URL || 'http://localhost:3000')
-    .split(',')
-    .map(o => o.trim());
-
-app.use(cors({
-    origin: (origin, callback) => {
-        // Allow requests with no origin (mobile apps, curl, Postman)
-        if (!origin) return callback(null, true);
-
-        // Allow all origins in development
-        if (process.env.NODE_ENV === 'development') return callback(null, true);
-
-        if (allowedOrigins.includes(origin)) {
-            callback(null, true);
-        } else {
-            console.warn(`🚫 CORS blocked origin: ${origin}`);
-            callback(new Error('Not allowed by CORS'));
-        }
-    },
-    credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-=======
 // CORS configuration
 const corsOptions = {
     origin: '*',
     credentials: false,
     methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
->>>>>>> 68af07c1a79ca025e98f029dea2c481150706638
     allowedHeaders: ['Content-Type', 'Authorization'],
     optionsSuccessStatus: 200
 };
@@ -124,11 +99,7 @@ app.get('/api', (req, res) => {
                 deleteUser:  'DELETE /api/admin/users/:id'
             },
             protected: {
-<<<<<<< HEAD
-                profile:        'GET /api/user/profile',
-=======
                 profile: 'GET /api/users/profile',
->>>>>>> 68af07c1a79ca025e98f029dea2c481150706638
                 adminDashboard: 'GET /api/admin/dashboard'
             },
             health: 'GET /api/health',
@@ -229,18 +200,9 @@ app.use((err, req, res, next) => {
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
     console.log(`\n🚀 Server running on port ${PORT}`);
-<<<<<<< HEAD
-    console.log(`📝 Environment : ${process.env.NODE_ENV || 'development'}`);
-    console.log(`🌐 API URL     : ${process.env.API_URL || `http://localhost:${PORT}`}/api`);
-    console.log(`🔐 Auth URL    : ${process.env.API_URL || `http://localhost:${PORT}`}/api/auth`);
-    console.log(`🛡️  Admin URL   : ${process.env.API_URL || `http://localhost:${PORT}`}/api/admin`);
-    console.log(`💻 Client URL  : ${process.env.CLIENT_URL || 'http://localhost:3000'}\n`);
-});
-=======
     console.log(`📝 Environment: ${process.env.NODE_ENV || 'development'}`);
     console.log(`🔗 API URL: http://localhost:${PORT}/api`);
     console.log(`🔗 Auth URL: http://localhost:${PORT}/api/auth`);
     console.log(`🔗 Admin URL: http://localhost:${PORT}/api/admin`);
     console.log(`💻 Client URL: ${process.env.CLIENT_URL || 'http://localhost:3000'}\n`);
 });
->>>>>>> 68af07c1a79ca025e98f029dea2c481150706638
