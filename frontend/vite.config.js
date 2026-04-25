@@ -3,7 +3,7 @@ import react from '@vitejs/plugin-react'
 
 export default defineConfig({
   plugins: [react({
-    include: '**/*.{jsx,js}',  // ← parse JSX in .js files too
+    include: '**/*.{jsx,js}',
   })],
   build: {
     outDir: 'dist',
