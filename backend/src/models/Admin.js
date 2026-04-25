@@ -1,24 +1,52 @@
 
 const db = require('../config/database');
 const bcrypt = require('bcryptjs');
+const { isMissingColumnError, getMissingColumnName } = require('../utils/dbCompat');
 
 class Admin {
     static async findByEmail(email) {
-        const { rows } = await db.query('SELECT * FROM admins WHERE email = $1', [email]);
-        return rows[0];
+        try {
+            const { rows } = await db.query('SELECT * FROM admins WHERE email = $1', [email]);
+            return this.normalizeAdmin(rows[0]);
+        } catch (error) {
+            if (isMissingColumnError(error)) {
+                const { rows } = await db.query('SELECT id, name, email, password, role, is_active, created_at FROM admins WHERE email = $1', [email]);
+                return this.normalizeAdmin(rows[0]);
+            }
+            throw error;
+        }
     }
 
     static async findById(id) {
-        const { rows } = await db.query(
-            'SELECT id, email, first_name, last_name, phone, country, role, is_active, created_at FROM admins WHERE id = $1', 
-            [id]
-        );
-        return rows[0];
+        try {
+            const { rows } = await db.query(
+                'SELECT id, email, first_name, last_name, phone, country, role, is_active, created_at FROM admins WHERE id = $1',
+                [id]
+            );
+            return this.normalizeAdmin(rows[0]);
+        } catch (error) {
+            if (isMissingColumnError(error) && getMissingColumnName(error) === 'first_name') {
+                const { rows } = await db.query(
+                    'SELECT id, name, email, role, is_active, created_at FROM admins WHERE id = $1',
+                    [id]
+                );
+                return this.normalizeAdmin(rows[0]);
+            }
+            throw error;
+        }
     }
 
     static async findAll() {
-        const { rows } = await db.query('SELECT id, email, first_name, last_name, phone, country, role, is_active, created_at FROM admins ORDER BY created_at DESC');
-        return rows;
+        try {
+            const { rows } = await db.query('SELECT id, email, first_name, last_name, phone, country, role, is_active, created_at FROM admins ORDER BY created_at DESC');
+            return rows.map((row) => this.normalizeAdmin(row));
+        } catch (error) {
+            if (isMissingColumnError(error) && getMissingColumnName(error) === 'first_name') {
+                const { rows } = await db.query('SELECT id, name, email, role, is_active, created_at FROM admins ORDER BY created_at DESC');
+                return rows.map((row) => this.normalizeAdmin(row));
+            }
+            throw error;
+        }
     }
 
     static async create(adminData) {
@@ -28,14 +56,15 @@ class Admin {
         const hashedPassword = await bcrypt.hash(password, salt);
 
         const query = `
-            INSERT INTO admins (email, password_hash, first_name, last_name, phone, country, role, is_active)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+            INSERT INTO admins (email, password_hash, first_name, last_name, phone, country, role, is_active, name)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
             RETURNING id, email, first_name, last_name, role, is_active, created_at
         `;
         
-        const values = [email, hashedPassword, firstName, lastName, phone, country, role, is_active];
+        const fullName = [firstName, lastName].filter(Boolean).join(' ').trim() || email;
+        const values = [email, hashedPassword, firstName, lastName, phone, country, role, is_active, fullName];
         const { rows } = await db.query(query, values);
-        return rows[0];
+        return this.normalizeAdmin(rows[0]);
     }
 
     static async update(adminId, updateData) {
@@ -56,7 +85,7 @@ class Admin {
         
         const values = [firstName, lastName, phone, country, is_active, role, adminId];
         const { rows } = await db.query(query, values);
-        return rows[0];
+        return this.normalizeAdmin(rows[0]);
     }
 
     static async updatePassword(adminId, newPassword) {
@@ -79,6 +108,26 @@ class Admin {
         const query = 'DELETE FROM admins WHERE id = $1 RETURNING id';
         const { rows } = await db.query(query, [adminId]);
         return rows[0];
+    }
+
+    static normalizeAdmin(row) {
+        if (!row) {
+            return row;
+        }
+
+        const derivedName = row.name || '';
+        const nameParts = derivedName.trim().split(/\s+/).filter(Boolean);
+        const derivedFirstName = nameParts[0] || '';
+        const derivedLastName = nameParts.slice(1).join(' ');
+
+        return {
+            ...row,
+            first_name: row.first_name ?? derivedFirstName,
+            last_name: row.last_name ?? derivedLastName,
+            password_hash: row.password_hash ?? row.password,
+            phone: row.phone ?? null,
+            country: row.country ?? null,
+        };
     }
 }
 

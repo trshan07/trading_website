@@ -28,6 +28,33 @@ ADD COLUMN IF NOT EXISTS is_default BOOLEAN DEFAULT FALSE;
 ALTER TABLE credit_cards
 ADD COLUMN IF NOT EXISTS billing_address TEXT;
 
+ALTER TABLE admins
+ADD COLUMN IF NOT EXISTS first_name VARCHAR(100);
+
+ALTER TABLE admins
+ADD COLUMN IF NOT EXISTS last_name VARCHAR(100);
+
+ALTER TABLE admins
+ADD COLUMN IF NOT EXISTS phone VARCHAR(50);
+
+ALTER TABLE admins
+ADD COLUMN IF NOT EXISTS country VARCHAR(100);
+
+ALTER TABLE admins
+ADD COLUMN IF NOT EXISTS password_hash VARCHAR(255);
+
+UPDATE admins
+SET first_name = COALESCE(first_name, NULLIF(name, ''))
+WHERE first_name IS NULL AND name IS NOT NULL;
+
+UPDATE admins
+SET last_name = COALESCE(last_name, '')
+WHERE last_name IS NULL;
+
+UPDATE admins
+SET password_hash = COALESCE(password_hash, password)
+WHERE password_hash IS NULL AND password IS NOT NULL;
+
 ALTER TABLE positions
 ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
 
