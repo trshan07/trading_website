@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   postgres:
     image: postgres:15
@@ -35,8 +33,8 @@ services:
       JWT_SECRET: ${JWT_SECRET}
       CLIENT_URL: ${CLIENT_URL}
       API_URL: ${API_URL}
-      ports:
-        - "5000:5000"
+    ports:
+      - "5000:5000"
     depends_on:
       postgres:
         condition: service_healthy
@@ -45,7 +43,7 @@ services:
     restart: unless-stopped
 
   frontend:
-    build:                          # ← was NOT indented before, now fixed
+    build:
       context: ./frontend
       dockerfile: Dockerfile
       args:
