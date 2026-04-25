@@ -10,8 +10,7 @@ COPY . .
 ARG VITE_API_URL
 ENV VITE_API_URL=$VITE_API_URL
 
-# Tell vite explicitly where root is
-RUN npm run build -- --root /app
+RUN npm run build
 
 # Stage 2 - Serve with Nginx
 FROM nginx:alpine
