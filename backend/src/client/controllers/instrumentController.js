@@ -1,19 +1,37 @@
 const pool = require('../../config/database');
+const { isMissingRelationError } = require('../../utils/dbCompat');
 
 // Get all instruments and their categories
 exports.getAllInstruments = async (req, res) => {
     try {
-        const result = await pool.query(`
-            SELECT 
-                i.*, 
-                c.text_color, 
-                c.bg_color, 
-                c.border_color
-            FROM instruments i
-            LEFT JOIN instrument_categories c ON i.category_name = c.name
-            WHERE i.is_active = TRUE
-            ORDER BY i.category_name, i.symbol
-        `);
+        let result;
+        try {
+            result = await pool.query(`
+                SELECT 
+                    i.*, 
+                    c.text_color, 
+                    c.bg_color, 
+                    c.border_color
+                FROM instruments i
+                LEFT JOIN instrument_categories c ON i.category_name = c.name
+                WHERE i.is_active = TRUE
+                ORDER BY i.category_name, i.symbol
+            `);
+        } catch (error) {
+            if (!isMissingRelationError(error)) {
+                throw error;
+            }
+            result = await pool.query(`
+                SELECT 
+                    i.*,
+                    NULL AS text_color,
+                    NULL AS bg_color,
+                    NULL AS border_color
+                FROM instruments i
+                WHERE i.is_active = TRUE
+                ORDER BY i.category_name, i.symbol
+            `);
+        }
 
         // Transform into a format compatible with the frontend
         const instruments = result.rows.map(row => ({
@@ -40,8 +58,22 @@ exports.getAllInstruments = async (req, res) => {
 // Get all categories
 exports.getCategories = async (req, res) => {
     try {
-        const result = await pool.query('SELECT name FROM instrument_categories ORDER BY name');
-        const categories = result.rows.map(row => row.name);
+        let categories = [];
+        try {
+            const result = await pool.query('SELECT name FROM instrument_categories ORDER BY name');
+            categories = result.rows.map(row => row.name);
+        } catch (error) {
+            if (!isMissingRelationError(error)) {
+                throw error;
+            }
+            const fallback = await pool.query(`
+                SELECT DISTINCT category_name AS name
+                FROM instruments
+                WHERE category_name IS NOT NULL AND is_active = TRUE
+                ORDER BY category_name
+            `);
+            categories = fallback.rows.map(row => row.name);
+        }
         res.json({ success: true, data: categories });
     } catch (error) {
         res.status(500).json({ success: false, message: 'Failed to fetch categories' });

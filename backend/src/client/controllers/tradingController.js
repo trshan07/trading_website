@@ -6,6 +6,7 @@ const Account = require('../../models/Account');
 const Transaction = require('../../models/Transaction');
 const { createNotification } = require('./notificationController');
 const { createActivityLog } = require('./activityController');
+const { isMissingRelationError } = require('../../utils/dbCompat');
 
 const executeTrade = async (req, res) => {
     const { accountId, symbol, side, amount, entryPrice, type = 'market', leverage = 100 } = req.body;
@@ -103,6 +104,9 @@ const getOpenPositions = async (req, res) => {
         const positions = await Position.findByAccountId(accountId, 'open');
         res.json({ success: true, data: positions });
     } catch (error) {
+        if (isMissingRelationError(error)) {
+            return res.json({ success: true, data: [] });
+        }
         res.status(500).json({ success: false, message: 'Failed to fetch positions' });
     }
 };
@@ -168,6 +172,9 @@ const getAlerts = async (req, res) => {
         const alerts = await PriceAlert.findByUserId(req.user.id);
         res.json({ success: true, data: alerts });
     } catch (error) {
+        if (isMissingRelationError(error)) {
+            return res.json({ success: true, data: [] });
+        }
         res.status(500).json({ success: false, message: 'Failed to fetch alerts' });
     }
 };

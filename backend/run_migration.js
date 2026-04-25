@@ -13,7 +13,7 @@ const pool = new Pool({
 
 async function migrate() {
     console.log('Running migration...');
-    const sqlPath = path.join(__dirname, '../database/update.sql');
+    const sqlPath = path.join(__dirname, 'database/update.sql');
     const sql = fs.readFileSync(sqlPath, 'utf8');
     try {
         await pool.query(sql);

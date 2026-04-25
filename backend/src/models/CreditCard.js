@@ -1,11 +1,24 @@
 // backend/src/models/CreditCard.js
 const db = require('../config/database');
+const { isMissingColumnError, isMissingRelationError } = require('../utils/dbCompat');
 
 class CreditCard {
     static async findByUserId(userId) {
-        const query = 'SELECT * FROM credit_cards WHERE user_id = $1 ORDER BY is_default DESC, created_at DESC';
-        const { rows } = await db.query(query, [userId]);
-        return rows;
+        try {
+            const query = 'SELECT * FROM credit_cards WHERE user_id = $1 ORDER BY is_default DESC, created_at DESC';
+            const { rows } = await db.query(query, [userId]);
+            return rows;
+        } catch (error) {
+            if (isMissingColumnError(error)) {
+                const legacyQuery = 'SELECT * FROM credit_cards WHERE user_id = $1 ORDER BY created_at DESC';
+                const { rows } = await db.query(legacyQuery, [userId]);
+                return rows.map((row, index) => ({ ...row, is_default: index === 0 }));
+            }
+            if (isMissingRelationError(error)) {
+                return [];
+            }
+            throw error;
+        }
     }
 
     static async findById(id) {
@@ -36,26 +49,53 @@ class CreditCard {
             await this.clearDefaults(userId);
         }
 
-        const query = `
-            INSERT INTO credit_cards (user_id, card_type, last4, expiry_date, cardholder_name, billing_address, is_default)
-            VALUES ($1, $2, $3, $4, $5, $6, $7)
-            RETURNING *
-        `;
         const values = [userId, cardType || 'Visa', last4, finalExpiry, cardholderName, billingAddress, setAsDefault];
-        const { rows } = await db.query(query, values);
-        return rows[0];
+        try {
+            const query = `
+                INSERT INTO credit_cards (user_id, card_type, last4, expiry_date, cardholder_name, billing_address, is_default)
+                VALUES ($1, $2, $3, $4, $5, $6, $7)
+                RETURNING *
+            `;
+            const { rows } = await db.query(query, values);
+            return rows[0];
+        } catch (error) {
+            if (isMissingColumnError(error)) {
+                const legacyQuery = `
+                    INSERT INTO credit_cards (user_id, card_type, last4, expiry_date, cardholder_name, is_verified)
+                    VALUES ($1, $2, $3, $4, $5, FALSE)
+                    RETURNING *
+                `;
+                const { rows } = await db.query(legacyQuery, values.slice(0, 5));
+                return { ...rows[0], billing_address: billingAddress, is_default: setAsDefault };
+            }
+            throw error;
+        }
     }
 
     static async setDefault(userId, id) {
         await this.clearDefaults(userId);
-        const query = 'UPDATE credit_cards SET is_default = true WHERE id = $1 AND user_id = $2 RETURNING *';
-        const { rows } = await db.query(query, [id, userId]);
-        return rows[0];
+        try {
+            const query = 'UPDATE credit_cards SET is_default = true WHERE id = $1 AND user_id = $2 RETURNING *';
+            const { rows } = await db.query(query, [id, userId]);
+            return rows[0];
+        } catch (error) {
+            if (isMissingColumnError(error) || isMissingRelationError(error)) {
+                return this.findById(id);
+            }
+            throw error;
+        }
     }
 
     static async clearDefaults(userId) {
-        const query = 'UPDATE credit_cards SET is_default = false WHERE user_id = $1';
-        await db.query(query, [userId]);
+        try {
+            const query = 'UPDATE credit_cards SET is_default = false WHERE user_id = $1';
+            await db.query(query, [userId]);
+        } catch (error) {
+            if (isMissingColumnError(error) || isMissingRelationError(error)) {
+                return;
+            }
+            throw error;
+        }
     }
 
     static async delete(id, userId) {

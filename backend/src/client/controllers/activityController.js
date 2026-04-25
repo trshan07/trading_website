@@ -1,4 +1,5 @@
 const pool = require('../../config/database');
+const { isMissingRelationError } = require('../../utils/dbCompat');
 
 // Activity Controller Logic
 exports.getActivityLogs = async (req, res) => {
@@ -37,6 +38,9 @@ exports.getFavorites = async (req, res) => {
         const symbols = result.rows.map(row => row.symbol);
         res.json({ success: true, data: symbols });
     } catch (error) {
+        if (isMissingRelationError(error)) {
+            return res.json({ success: true, data: [] });
+        }
         res.status(500).json({ success: false, message: 'Server error' });
     }
 };
@@ -67,6 +71,9 @@ exports.toggleFavorite = async (req, res) => {
             return res.json({ success: true, action: 'added', symbol });
         }
     } catch (error) {
+        if (isMissingRelationError(error)) {
+            return res.status(503).json({ success: false, message: 'Favorites are unavailable until database migrations are applied' });
+        }
         res.status(500).json({ success: false, message: 'Server error' });
     }
 };
