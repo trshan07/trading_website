@@ -1,6 +1,7 @@
 // backend/src/controllers/kycController.js
 const KyCSubmission = require('../../models/KyCSubmission');
 const User = require('../../models/User');
+const { getUploadPathFromFile } = require('../../utils/uploadPath');
 
 const getDocuments = async (req, res) => {
     try {
@@ -20,8 +21,7 @@ const uploadDocument = async (req, res) => {
         const docData = {
             document_type: category || document_type || 'Identity Proof',
             document_number: name || document_number || 'N/A',
-            // Save as relative URL path, e.g., '/uploads/16234...-name.pdf'
-            file_path: req.file ? `/uploads/${req.file.filename}` : '/uploads/mock_proof.jpg'
+            file_path: getUploadPathFromFile(req.file) || '/uploads/mock_proof.jpg'
         };
 
         const submission = await KyCSubmission.create(req.user.id, docData);

@@ -3,20 +3,31 @@ const db = require('../config/database');
 
 class Trade {
     static async create(tradeData) {
-        const { userId, accountId, symbol, side, type, amount, entryPrice } = tradeData;
+        const { userId, accountId, symbol, side, amount, entryPrice, quantity, margin } = tradeData;
         const query = `
-            INSERT INTO trades (user_id, account_id, symbol, side, type, amount, entry_price, status)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, 'open')
+            INSERT INTO positions (
+                user_id, account_id, symbol, side, amount, quantity,
+                entry_price, current_price, margin, status
+            )
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $7, $8, 'open')
             RETURNING *
         `;
-        const values = [userId, accountId, symbol, side, type, amount, entryPrice];
+        const parsedAmount = Number(amount) || 0;
+        const parsedEntryPrice = Number(entryPrice) || 0;
+        const parsedQuantity = quantity != null
+            ? Number(quantity)
+            : parsedEntryPrice > 0
+                ? parsedAmount / parsedEntryPrice
+                : 0;
+        const parsedMargin = margin != null ? Number(margin) : parsedAmount;
+        const values = [userId, accountId, symbol, side, parsedAmount, parsedQuantity, parsedEntryPrice, parsedMargin];
         const { rows } = await db.query(query, values);
         return rows[0];
     }
 
     static async findActiveByUserId(userId, accountId) {
         const query = `
-            SELECT * FROM trades 
+            SELECT * FROM positions
             WHERE user_id = $1 AND account_id = $2 AND status = 'open'
             ORDER BY id DESC
         `;
@@ -33,7 +44,7 @@ class Trade {
     static async close(tradeId, exitPrice, pnl) {
         const query = `
             UPDATE positions 
-            SET close_price = $1, pnl = $2, status = 'closed', updated_at = CURRENT_TIMESTAMP
+            SET close_price = $1, pnl = $2, status = 'closed', closed_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
             WHERE id = $3 
             RETURNING *
         `;
@@ -43,7 +54,7 @@ class Trade {
 
     static async getHistory(userId, accountId) {
         const query = `
-            SELECT * FROM trades 
+            SELECT * FROM positions
             WHERE user_id = $1 AND account_id = $2 AND status = 'closed'
             ORDER BY updated_at DESC
         `;
@@ -76,7 +87,7 @@ class Trade {
     static async cancel(tradeId) {
         const query = `
             UPDATE positions
-            SET status = 'cancelled', updated_at = CURRENT_TIMESTAMP
+            SET status = 'cancelled', closed_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
             WHERE id = $1 AND status = 'open'
             RETURNING *
         `;
