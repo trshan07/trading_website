@@ -46,6 +46,7 @@ const TickerSection = () => {
                     }));
                 }
             } catch (err) {
+                if (typeof navigator !== 'undefined' && !navigator.onLine) return;
                 console.error("Ticker fetch error", err);
             }
         };

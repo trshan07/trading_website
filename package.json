@@ -4,9 +4,9 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "node backend/server.js",
-     "client": "cd frontend && npm start",
-    "server": "cd backend && npm run dev",
+    "start": "node scripts/run-backend.js start",
+    "client": "node scripts/run-frontend.js start",
+    "server": "node scripts/run-backend.js dev",
     "dev": "concurrently \"npm run server\" \"npm run client\"",
     "setup": "npm install && cd frontend && npm install && cd ../backend && npm install"
   },

@@ -78,6 +78,7 @@ const MarketsSection = () => {
                     });
                 }
             } catch (error) {
+                if (typeof navigator !== 'undefined' && !navigator.onLine) return;
                 console.error("Failed to fetch live TradingView data:", error);
             }
         };

@@ -25,11 +25,13 @@ const RealTimeChart = ({
   const wsRef = useRef(null);
   const wsConnectTimerRef = useRef(null);
   const candleTimesRef = useRef([]);
+  const shouldUseLiveWsRef = useRef(true);
   const [interval, setInterval] = useState('15m');
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [lastPrice, setLastPrice] = useState(null);
   const [priceChange, setPriceChange] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [liveStatus, setLiveStatus] = useState('connecting');
 
   const isDark = theme === 'dark';
 
@@ -40,6 +42,11 @@ const RealTimeChart = ({
     const s = sym.replace(/[^A-Z0-9]/g, '');
     // Binance klines are reliable for spot-like symbols (primarily quote-paired crypto symbols)
     return s.endsWith('USDT') || s.endsWith('BTC') || s.endsWith('BUSD');
+  }, []);
+
+  const canUseLiveConnections = useCallback(() => {
+    if (typeof window === 'undefined') return true;
+    return navigator.onLine && document.visibilityState !== 'hidden';
   }, []);
 
   // --- Helper: Generate Mock Data ---
@@ -101,6 +108,8 @@ const RealTimeChart = ({
 
     // Guards against the async fetchData or ResizeObserver resolver after this effect has cleaned up.
     let active = true;
+    shouldUseLiveWsRef.current = true;
+    setLiveStatus(canUseLiveConnections() ? 'connecting' : 'offline');
 
     // Cleanup previous chart/WS before creating new ones
     if (wsRef.current) {
@@ -199,19 +208,34 @@ const RealTimeChart = ({
         }
 
         // Don't open Binance WS for fallback/mock data or unsupported symbols.
-        if (isMock || !isBinanceWsCandidate(binanceSymbol)) return;
+        if (isMock || !isBinanceWsCandidate(binanceSymbol)) {
+          setLiveStatus(isMock ? 'fallback' : 'idle');
+          return;
+        }
+        if (!canUseLiveConnections()) {
+          setLiveStatus('offline');
+          return;
+        }
 
         // Open WebSocket for live kline updates
         const wsSymbol = binanceSymbol.toLowerCase();
         wsConnectTimerRef.current = setTimeout(() => {
-          if (!active || wsRef.current) return;
+          if (!active || wsRef.current || !shouldUseLiveWsRef.current || !canUseLiveConnections()) return;
           const ws = new WebSocket(`wss://stream.binance.com:9443/ws/${wsSymbol}@kline_${interval}`);
           wsRef.current = ws;
 
-          // Suppress errors (e.g. unsupported symbol/race conditions)
-          ws.onerror = () => {};
+          ws.onopen = () => {
+            if (!active || wsRef.current !== ws) return;
+            setLiveStatus('live');
+          };
+          ws.onerror = () => {
+            if (!active || wsRef.current !== ws) return;
+            setLiveStatus(canUseLiveConnections() ? 'reconnecting' : 'offline');
+          };
           ws.onclose = () => {
             if (wsRef.current === ws) wsRef.current = null;
+            if (!active) return;
+            setLiveStatus(canUseLiveConnections() ? 'reconnecting' : 'offline');
           };
 
           ws.onmessage = (event) => {
@@ -238,6 +262,7 @@ const RealTimeChart = ({
                 }
               }
               setLastPrice(tick.close);
+              setLiveStatus('live');
             } catch (e) {}
           };
         }, 120);
@@ -261,8 +286,42 @@ const RealTimeChart = ({
 
     resizeObserver.observe(containerRef.current);
 
+    const handleOnline = () => {
+      if (!active) return;
+      setLiveStatus('connecting');
+    };
+
+    const handleOffline = () => {
+      if (!active) return;
+      setLiveStatus('offline');
+      if (wsRef.current) {
+        try {
+          wsRef.current.onmessage = null;
+          wsRef.current.onerror = null;
+          wsRef.current.onclose = null;
+          wsRef.current.close(1000, 'Browser offline');
+        } catch (e) {}
+        wsRef.current = null;
+      }
+    };
+
+    const handleVisibilityChange = () => {
+      if (!active) return;
+      if (document.visibilityState === 'hidden') {
+        handleOffline();
+      }
+    };
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
     return () => {
       active = false;
+      shouldUseLiveWsRef.current = false;
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
       resizeObserver.disconnect();
       if (wsConnectTimerRef.current) {
         clearTimeout(wsConnectTimerRef.current);
@@ -354,6 +413,24 @@ const RealTimeChart = ({
   }, [isFullscreen]);
 
   const isUp = Number(priceChange) >= 0;
+  const liveLabel = {
+    live: 'LIVE',
+    connecting: 'CONNECTING',
+    reconnecting: 'RECONNECTING',
+    offline: 'OFFLINE',
+    fallback: 'SIMULATED',
+    idle: 'READY',
+  }[liveStatus] || 'LIVE';
+  const liveTone = liveStatus === 'live'
+    ? 'text-emerald-400'
+    : liveStatus === 'fallback'
+      ? 'text-amber-400'
+      : 'text-slate-400';
+  const liveDotTone = liveStatus === 'live'
+    ? 'bg-emerald-500 animate-pulse'
+    : liveStatus === 'fallback'
+      ? 'bg-amber-400'
+      : 'bg-slate-500';
 
   return (
     <div className={`flex flex-col h-full w-full ${isDark ? 'bg-[#0a0f1c]' : 'bg-white'} ${isFullscreen ? 'fixed inset-0 z-[100]' : 'relative'}`}>
@@ -406,9 +483,9 @@ const RealTimeChart = ({
           {isLoading && (
             <span className="text-[8px] text-slate-400 uppercase tracking-widest animate-pulse">Loading...</span>
           )}
-          <span className="flex items-center gap-1.5 text-[8px] font-black text-emerald-400 uppercase tracking-widest">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-            LIVE
+          <span className={`flex items-center gap-1.5 text-[8px] font-black uppercase tracking-widest ${liveTone}`}>
+            <span className={`w-1.5 h-1.5 rounded-full ${liveDotTone}`} />
+            {liveLabel}
           </span>
           <button
             onClick={() => setIsFullscreen(f => !f)}

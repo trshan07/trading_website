@@ -11,9 +11,17 @@ const TradingViewWidget = ({
   const widgetRef = useRef(null);
   const [scriptLoaded, setScriptLoaded] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isOnline, setIsOnline] = useState(
+    typeof navigator === 'undefined' ? true : navigator.onLine
+  );
 
   // Load TradingView Script
   useEffect(() => {
+    if (!isOnline) {
+      setScriptLoaded(false);
+      return undefined;
+    }
+
     const scriptId = 'tradingview-widget-script';
     let script = document.getElementById(scriptId);
 
@@ -33,6 +41,19 @@ const TradingViewWidget = ({
       if (widgetRef.current) {
         widgetRef.current = null;
       }
+    };
+  }, [isOnline]);
+
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
     };
   }, []);
 
@@ -59,7 +80,7 @@ const TradingViewWidget = ({
   // Initialize/Update Widget
   useEffect(() => {
     // Safety check for dependencies
-    if (!scriptLoaded || !containerRef.current || !window.TradingView || !symbol) return;
+    if (!isOnline || !scriptLoaded || !containerRef.current || !window.TradingView || !symbol) return;
 
     const widgetId = `tradingview_${Math.random().toString(36).substring(7)}`;
     containerRef.current.id = widgetId;
@@ -156,7 +177,7 @@ const TradingViewWidget = ({
       }
       widgetRef.current = null;
     };
-  }, [scriptLoaded, symbol, theme]); // Added explicit cleanup logic
+  }, [isOnline, scriptLoaded, symbol, theme]); // Added explicit cleanup logic
 
   const isDark = theme === 'dark';
 
@@ -167,10 +188,23 @@ const TradingViewWidget = ({
         : `relative ${isDark ? 'bg-slate-900' : 'bg-white'}`
     }`}>
       <div className="flex-1 relative min-h-[500px]">
-        <div 
-          ref={containerRef} 
-          className="absolute inset-0 w-full h-full"
-        />
+        {isOnline ? (
+          <div 
+            ref={containerRef} 
+            className="absolute inset-0 w-full h-full"
+          />
+        ) : (
+          <div className="absolute inset-0 flex items-center justify-center px-6">
+            <div className={`max-w-md rounded-2xl border px-6 py-5 text-center ${
+              isDark ? 'border-slate-700 bg-slate-900 text-slate-300' : 'border-slate-200 bg-white text-slate-600'
+            }`}>
+              <div className="text-sm font-black uppercase tracking-widest">Advanced Chart Offline</div>
+              <div className="mt-3 text-sm leading-6">
+                TradingView needs an internet connection. Reconnect to load the advanced chart.
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Trade Execution Markers Overlay */}
         {positions && positions.length > 0 && (() => {
@@ -249,8 +283,8 @@ const TradingViewWidget = ({
       }`}>
         <div className="flex items-center gap-4">
           <span className="flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-            LIVE MARKET DATA
+            <span className={`w-2 h-2 rounded-full ${isOnline ? 'bg-emerald-500 animate-pulse' : 'bg-slate-500'}`} />
+            {isOnline ? 'LIVE MARKET DATA' : 'OFFLINE MODE'}
           </span>
           <span className="opacity-40">|</span>
           <span>POWERED BY TRADINGVIEW</span>

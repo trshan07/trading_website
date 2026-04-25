@@ -8,7 +8,7 @@ const cookieParser = require('cookie-parser');
 const path = require('path');
 
 // Load environment variables
-dotenv.config();
+dotenv.config({ path: path.resolve(__dirname, '../.env') });
 
 const app = express();
 const server = createServer(app);

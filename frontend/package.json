@@ -3,11 +3,11 @@
   "private": true,
   "version": "0.0.0",
   "scripts": {
-    "start": "react-scripts start",
-    "build": "react-scripts build",
-    "test": "react-scripts test",
+    "start": "node ../scripts/run-frontend.js start",
+    "build": "node ../scripts/run-frontend.js build",
+    "test": "node ../scripts/run-frontend.js test",
     "eject": "react-scripts eject",
-    "dev": "react-scripts start"
+    "dev": "node ../scripts/run-frontend.js start"
   },
   "dependencies": {
     "@ant-design/icons": "^6.1.1",
