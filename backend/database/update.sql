@@ -28,6 +28,89 @@ ADD COLUMN IF NOT EXISTS is_default BOOLEAN DEFAULT FALSE;
 ALTER TABLE credit_cards
 ADD COLUMN IF NOT EXISTS billing_address TEXT;
 
+ALTER TABLE positions
+ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
+
+ALTER TABLE positions
+ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
+
+ALTER TABLE positions
+ADD COLUMN IF NOT EXISTS side VARCHAR(10);
+
+ALTER TABLE positions
+ADD COLUMN IF NOT EXISTS amount NUMERIC(18, 8);
+
+ALTER TABLE positions
+ADD COLUMN IF NOT EXISTS quantity NUMERIC(18, 8);
+
+ALTER TABLE positions
+ADD COLUMN IF NOT EXISTS entry_price NUMERIC(18, 8);
+
+ALTER TABLE positions
+ADD COLUMN IF NOT EXISTS pnl NUMERIC(18, 8) DEFAULT 0;
+
+ALTER TABLE positions
+ADD COLUMN IF NOT EXISTS margin NUMERIC(18, 8) DEFAULT 0;
+
+ALTER TABLE positions
+ADD COLUMN IF NOT EXISTS close_price NUMERIC(18, 8);
+
+ALTER TABLE instruments
+ADD COLUMN IF NOT EXISTS category_name VARCHAR(50);
+
+ALTER TABLE instruments
+ADD COLUMN IF NOT EXISTS default_price NUMERIC(18, 8);
+
+ALTER TABLE instruments
+ADD COLUMN IF NOT EXISTS default_change NUMERIC(18, 2);
+
+ALTER TABLE instruments
+ADD COLUMN IF NOT EXISTS default_volume VARCHAR(50);
+
+UPDATE positions
+SET created_at = COALESCE(created_at, opened_at, CURRENT_TIMESTAMP)
+WHERE created_at IS NULL;
+
+UPDATE positions
+SET updated_at = COALESCE(updated_at, created_at, opened_at, CURRENT_TIMESTAMP)
+WHERE updated_at IS NULL;
+
+UPDATE positions
+SET side = COALESCE(side, type)
+WHERE side IS NULL AND type IS NOT NULL;
+
+UPDATE positions
+SET quantity = COALESCE(quantity, volume)
+WHERE quantity IS NULL AND volume IS NOT NULL;
+
+UPDATE positions
+SET entry_price = COALESCE(entry_price, open_price)
+WHERE entry_price IS NULL AND open_price IS NOT NULL;
+
+UPDATE positions
+SET pnl = COALESCE(pnl, profit_loss, 0)
+WHERE pnl IS NULL;
+
+UPDATE positions
+SET amount = COALESCE(amount, quantity * entry_price, 0)
+WHERE amount IS NULL;
+
+UPDATE instruments
+SET category_name = COALESCE(category_name, category)
+WHERE category_name IS NULL AND category IS NOT NULL;
+
+UPDATE instruments
+SET default_price = COALESCE(default_price, 0)
+WHERE default_price IS NULL;
+
+UPDATE instruments
+SET default_change = COALESCE(default_change, 0)
+WHERE default_change IS NULL;
+
+UPDATE instruments
+SET default_volume = COALESCE(default_volume, 'N/A')
+WHERE default_volume IS NULL;
+
 CREATE TABLE IF NOT EXISTS instrument_categories (
     id SERIAL PRIMARY KEY,
     name VARCHAR(50) UNIQUE NOT NULL,
