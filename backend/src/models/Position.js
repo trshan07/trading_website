@@ -1,25 +1,52 @@
 // backend/src/models/Position.js
 const db = require('../config/database');
+const { isMissingColumnError, getMissingColumnName } = require('../utils/dbCompat');
 
 class Position {
     static async findByUserId(userId, limit = 50) {
-        const query = 'SELECT * FROM positions WHERE user_id = $1 ORDER BY created_at DESC LIMIT $2';
-        const { rows } = await db.query(query, [userId, limit]);
-        return rows;
+        try {
+            const query = 'SELECT * FROM positions WHERE user_id = $1 ORDER BY created_at DESC LIMIT $2';
+            const { rows } = await db.query(query, [userId, limit]);
+            return rows;
+        } catch (error) {
+            if (isMissingColumnError(error) && getMissingColumnName(error) === 'created_at') {
+                const legacyQuery = 'SELECT * FROM positions WHERE user_id = $1 ORDER BY opened_at DESC LIMIT $2';
+                const { rows } = await db.query(legacyQuery, [userId, limit]);
+                return rows;
+            }
+            throw error;
+        }
     }
 
     static async findByAccountId(accountId, status = 'open') {
-        let query = 'SELECT * FROM positions WHERE account_id = $1';
-        const values = [accountId];
-        
-        if (status) {
-            query += ' AND status = $2';
-            values.push(status);
+        try {
+            let query = 'SELECT * FROM positions WHERE account_id = $1';
+            const values = [accountId];
+
+            if (status) {
+                query += ' AND status = $2';
+                values.push(status);
+            }
+
+            query += ' ORDER BY created_at DESC';
+            const { rows } = await db.query(query, values);
+            return rows;
+        } catch (error) {
+            if (isMissingColumnError(error) && getMissingColumnName(error) === 'created_at') {
+                let legacyQuery = 'SELECT * FROM positions WHERE account_id = $1';
+                const legacyValues = [accountId];
+
+                if (status) {
+                    legacyQuery += ' AND status = $2';
+                    legacyValues.push(status);
+                }
+
+                legacyQuery += ' ORDER BY opened_at DESC';
+                const { rows } = await db.query(legacyQuery, legacyValues);
+                return rows;
+            }
+            throw error;
         }
-        
-        query += ' ORDER BY created_at DESC';
-        const { rows } = await db.query(query, values);
-        return rows;
     }
 
     static async findById(id) {

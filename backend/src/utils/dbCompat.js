@@ -8,8 +8,14 @@ const isMissingColumnError = (error) => error?.code === MISSING_COLUMN;
 const isSchemaMismatchError = (error) =>
     isMissingRelationError(error) || isMissingColumnError(error);
 
+const getMissingColumnName = (error) => {
+    const match = error?.message?.match(/column\s+"([^"]+)"/i);
+    return match ? match[1] : null;
+};
+
 module.exports = {
     isMissingRelationError,
     isMissingColumnError,
     isSchemaMismatchError,
+    getMissingColumnName,
 };
