@@ -49,53 +49,59 @@ export const AuthProvider = ({ children }) => {
     }, []);
 
     const loadUser = async () => {
-        if (!token || token === 'undefined' || token === 'null') {
-            setLoading(false);
-            return;
-        }
+    if (!token || token === 'undefined' || token === 'null') {
+        setLoading(false);
+        return;
+    }
 
+    try {
+        let role = 'client';
         try {
-            // Decode role from JWT payload (without verifying — server will verify)
-            let role = 'client';
-            try {
-                const payload = JSON.parse(atob(token.split('.')[1]));
-                role = payload.role || 'client';
-            } catch (_) {}
+            const payload = JSON.parse(atob(token.split('.')[1]));
+            role = payload.role || 'client';
+        } catch (_) {}
 
-            // Route to the correct profile endpoint based on role
-            const endpoint = (role === 'admin' || role === 'super_admin')
-                ? '/admin/profile'
-                : '/users/profile';
+        const endpoint = (role === 'admin' || role === 'super_admin')
+            ? '/admin/profile'
+            : '/users/profile';
 
-            const response = await api.get(endpoint);
-            const userData = response?.data?.data;
-            
-            if (userData) {
-                setUser({
-                    id: userData.id || userData._id,
-                    email: userData.email,
-                    firstName: userData.firstName || userData.first_name,
-                    lastName: userData.lastName || userData.last_name,
-                    phone: userData.phone,
-                    country: userData.country,
-                    role: userData.role,
-                    accounts: userData.accounts || [],
-                    selectedAccountType: selectedAccountType
-                });
-            } else {
-                throw new Error("Malformed profile data received");
-            }
-        } catch (error) {
-            console.error('[AUTH] Profile load failed:', error.message);
-            if (error.response?.status === 401) {
-                toast.error("Session expired. Please sign in again.");
-                logout();
-            }
-        } finally {
-            setLoading(false);
+        const response = await api.get(endpoint);
+        const userData = response?.data?.data;
+
+        if (userData) {
+            setUser({
+                id: userData.id || userData._id,
+                email: userData.email,
+                firstName: userData.firstName || userData.first_name,
+                lastName: userData.lastName || userData.last_name,
+                phone: userData.phone,
+                country: userData.country,
+                role: userData.role,
+                accounts: userData.accounts || [],
+                selectedAccountType: selectedAccountType
+            });
+        } else {
+            throw new Error("Malformed profile data received");
         }
-    };
+    } catch (error) {
+        const status = error.response?.status;
+        console.error(`[AUTH] Profile load failed (HTTP ${status}):`, error.message);
 
+        if (status === 401) {
+            toast.error("Session expired. Please sign in again.");
+            logout();
+        } else if (status >= 500) {
+            // Server error — don't log out, token may still be valid
+            // User stays null but we don't wipe their token
+            toast.error("Unable to load your profile. Please refresh the page.");
+        } else if (!status) {
+            // Network error (no response at all)
+            toast.error("Network error. Please check your connection.");
+        }
+    } finally {
+        setLoading(false);
+    }
+};
     const login = async (userData, token) => {
         try {
             // Store token and mode
