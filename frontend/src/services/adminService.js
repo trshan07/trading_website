@@ -1,5 +1,6 @@
 // frontend/src/services/adminService.js
 import api from './api';
+import { getUploadUrl } from '../utils/uploadUrl';
 
 const enrichResponse = (response, extra = {}) => Object.assign(response, extra);
 
@@ -17,7 +18,7 @@ const normalizeFundingRequest = (request) => ({
   createdAt: request?.createdAt || request?.created || request?.created_at,
   updatedAt: request?.updatedAt || request?.updated_at || request?.createdAt || request?.created,
   rejectionReason: request?.rejectionReason || request?.rejection_reason || request?.note || '',
-  proofImage: request?.proofImage || request?.proof || null,
+  proofImage: getUploadUrl(request?.proofImage || request?.proof),
 });
 
 const normalizeTrade = (trade) => ({

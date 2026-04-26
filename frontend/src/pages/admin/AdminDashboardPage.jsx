@@ -2,6 +2,7 @@ import { useContext, useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../../context/AuthContext";
 import { adminService } from "../../services/adminService";
+import { getUploadUrl, isPdfFile } from "../../utils/uploadUrl";
 import logoDark from "../../assets/images/logos/logo-dark.png";
 
 // ─── re-export everything from part 1 inline (merged single file) ──────────
@@ -30,18 +31,6 @@ const fmtNum = (n) => new Intl.NumberFormat("en-US").format(n ?? 0);
 const timeAgo = (d) => { if (!d) return "—"; const s = (Date.now() - new Date(d)) / 1000; if (s < 60) return `${~~s}s ago`; if (s < 3600) return `${~~(s / 60)}m ago`; if (s < 86400) return `${~~(s / 3600)}h ago`; return `${~~(s / 86400)}d ago`; };
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" }) : "—";
 const fmtDateTime = (d) => d ? new Date(d).toLocaleString("en-US", { year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }) : "—";
-
-// Build a full URL from a server-relative file path (e.g. uploads\kyc\file.jpg)
-const API_URL = (import.meta.env.VITE_API_URL || 'http://localhost:5000/api').replace(/\/$/, '');
-const getFileUrl = (filePath) => {
-  if (!filePath) return null;
-  if (filePath.startsWith('http://') || filePath.startsWith('https://')) return filePath;
-  const normalized = filePath.replace(/\\/g, '/');
-  const uploadsIdx = normalized.indexOf('/uploads/');
-  if (uploadsIdx !== -1) return `${API_URL}${normalized.substring(uploadsIdx)}`;
-  return `${API_URL}${normalized.startsWith('/') ? normalized : '/' + normalized}`;
-};
-const isFilePdf = (filePath) => filePath?.toLowerCase().endsWith('.pdf');
 
 const toNum = (v) => {
   const n = Number(v);
@@ -1132,13 +1121,13 @@ function KYCPage({ toast }) {
                     <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                       <StatusBadge status={doc.status} />
                       {doc.status !== "missing" && doc.file && (() => {
-                        const fileUrl = getFileUrl(doc.file);
+                        const fileUrl = getUploadUrl(doc.file);
                         return fileUrl ? (
                           <div
                             onClick={() => window.open(fileUrl, '_blank')}
                             style={{ background: C.bgCard, borderRadius: "6px", padding: "5px 10px", fontSize: "11px", color: C.blue, cursor: "pointer", border: `1px solid ${C.border}`, userSelect: "none" }}
                           >
-                            {isFilePdf(doc.file) ? '📄 Open PDF' : '👁 Preview'}
+                            {isPdfFile(doc.file) ? '📄 Open PDF' : '👁 Preview'}
                           </div>
                         ) : null;
                       })()}

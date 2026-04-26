@@ -8,13 +8,10 @@ import {
   Modal,
   Form,
   Input,
-  Select,
   message,
   Tag,
   Image,
   Descriptions,
-  Upload,
-  Timeline,
   Badge,
   Tabs,
 } from 'antd';
@@ -23,13 +20,12 @@ import {
   CloseOutlined,
   EyeOutlined,
   DownloadOutlined,
-  UploadOutlined,
-  ClockCircleOutlined,
+  FilePdfOutlined,
 } from '@ant-design/icons';
 import { adminService } from '../../services/adminService';
+import { getUploadUrl, isPdfFile } from '../../utils/uploadUrl';
 import moment from 'moment';
 
-const { Option } = Select;
 const { TabPane } = Tabs;
 
 const FundingRequestsPage = () => {
@@ -191,6 +187,9 @@ const FundingRequestsPage = () => {
     },
   ];
 
+  const proofUrl = getUploadUrl(selectedRequest?.proofImage);
+  const proofIsPdf = isPdfFile(selectedRequest?.proofImage);
+
   return (
     <div>
       <Card 
@@ -267,17 +266,27 @@ const FundingRequestsPage = () => {
               )}
             </Descriptions>
             
-            {selectedRequest.proofImage && (
+            {proofUrl && (
               <div style={{ marginBottom: 24 }}>
                 <h4>Proof of Payment:</h4>
-                <Image
-                  src={selectedRequest.proofImage}
-                  alt="Proof"
-                  style={{ maxWidth: '100%', maxHeight: '400px' }}
-                />
+                {proofIsPdf ? (
+                  <div style={{ textAlign: 'center', padding: 24, background: '#fff', border: '1px dashed #d9d9d9', borderRadius: 6 }}>
+                    <FilePdfOutlined style={{ fontSize: 52, color: '#ff4d4f', display: 'block', marginBottom: 10 }} />
+                    <p style={{ color: '#666', margin: '0 0 12px' }}>PDF proof document cannot be previewed inline</p>
+                    <Button type="primary" icon={<EyeOutlined />} onClick={() => window.open(proofUrl, '_blank')}>
+                      Open PDF
+                    </Button>
+                  </div>
+                ) : (
+                  <Image
+                    src={proofUrl}
+                    alt="Proof"
+                    style={{ maxWidth: '100%', maxHeight: '400px' }}
+                  />
+                )}
                 <Button 
                   icon={<DownloadOutlined />} 
-                  onClick={() => window.open(selectedRequest.proofImage)}
+                  onClick={() => window.open(proofUrl, '_blank')}
                   style={{ marginTop: 8 }}
                 >
                   Download Proof

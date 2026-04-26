@@ -9,23 +9,11 @@ import {
   IdcardOutlined, ReloadOutlined, FilePdfOutlined, FileImageOutlined,
 } from '@ant-design/icons';
 import { adminService } from '../../services/adminService';
+import { getUploadUrl, isPdfFile } from '../../utils/uploadUrl';
 import moment from 'moment';
 
 const { TabPane } = Tabs;
 const { TextArea } = Input;
-
-// Build a full URL from a server-relative file path
-const API_URL = (import.meta.env.VITE_API_URL || 'http://localhost:5000/api').replace(/\/$/, '');
-const getFileUrl = (filePath) => {
-  if (!filePath) return null;
-  if (filePath.startsWith('http://') || filePath.startsWith('https://')) return filePath;
-  const normalized = filePath.replace(/\\/g, '/');
-  const uploadsIdx = normalized.indexOf('/uploads/');
-  if (uploadsIdx !== -1) return `${API_URL}${normalized.substring(uploadsIdx)}`;
-  return `${API_URL}${normalized.startsWith('/') ? normalized : '/' + normalized}`;
-};
-
-const isPdf = (filePath) => filePath?.toLowerCase().endsWith('.pdf');
 
 const KYCManagementPage = () => {
   const [submissions, setSubmissions] = useState([]);
@@ -166,8 +154,8 @@ const KYCManagementPage = () => {
             )}
 
             {(selectedUser.kycDocs || []).map((doc) => {
-              const fileUrl = getFileUrl(doc.file);
-              const docIsPdf = isPdf(doc.file);
+              const fileUrl = getUploadUrl(doc.file);
+              const docIsPdf = isPdfFile(doc.file);
 
               return (
                 <div key={doc.id} style={{ marginBottom: 24, padding: 16, border: '1px solid #e8e8e8', borderRadius: 8, background: '#fafafa' }}>

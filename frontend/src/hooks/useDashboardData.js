@@ -9,6 +9,7 @@ import { toast } from 'react-hot-toast';
 import { MARKET_INSTRUMENTS } from '../constants/marketData';
 import websocketService from '../services/websocketService';
 import { maskAccountNumber } from '../components/client/banking/utils';
+import { getUploadUrl } from '../utils/uploadUrl';
 
 const normalizeInstrument = (instrument = {}) => ({
   symbol: instrument.symbol,
@@ -66,24 +67,11 @@ const buildMarketSnapshot = (instrumentList = []) => instrumentList.reduce((acc,
   return acc;
 }, {});
 
-const apiBaseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-const assetBaseUrl = apiBaseUrl.replace(/\/api\/?$/, '');
-
 const toTitleCase = (value = '') => value
   .toString()
   .replace(/_/g, ' ')
   .toLowerCase()
   .replace(/\b\w/g, (char) => char.toUpperCase());
-
-const getRelativeUploadUrl = (filePath = '') => {
-  if (!filePath) return '';
-  const match = filePath.match(/[\\/]uploads[\\/]/);
-  if (match) {
-    const index = filePath.indexOf(match[0]);
-    return '/' + filePath.substring(index + 1).replace(/\\/g, '/');
-  }
-  return filePath.startsWith('/') ? filePath : `/${filePath}`;
-};
 
 const normalizeDocument = (doc = {}) => ({
   id: doc.id,
@@ -93,7 +81,7 @@ const normalizeDocument = (doc = {}) => ({
   size: 'N/A',
   uploadDate: doc.created_at ? new Date(doc.created_at).toLocaleDateString() : '',
   status: toTitleCase(doc.status || 'pending'),
-  url: `${assetBaseUrl}${getRelativeUploadUrl(doc.file_path)}`,
+  url: getUploadUrl(doc.file_path),
 });
 
 const normalizeBankAccount = (account = {}) => ({
