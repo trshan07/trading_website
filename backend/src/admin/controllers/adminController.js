@@ -734,7 +734,7 @@ const exportFundingRequests = async (req, res) => {
 // @access  Private/Admin
 const processFunding = async (req, res) => {
     try {
-        const { status, reason } = req.body;
+        const { status, reason, accountId } = req.body;
         const request = await FundingRequest.findById(req.params.id);
 
         if (!request) return res.status(404).json({ success: false, message: 'Request not found' });
@@ -747,19 +747,48 @@ const processFunding = async (req, res) => {
         });
 
         if (status === 'approved') {
-            const account = await Account.findById(request.account_id);
             const amount = toNumber(request.amount);
+            let accountIdToUse = request.account_id;
+
+            if (request.type === 'deposit' && accountId) {
+                const selectedAccount = await Account.findById(accountId);
+                if (!selectedAccount || String(selectedAccount.user_id) !== String(request.user_id)) {
+                    return res.status(400).json({ success: false, message: 'Invalid target account selected' });
+                }
+                accountIdToUse = selectedAccount.id;
+            }
+
+            const account = await Account.findById(accountIdToUse);
+            if (!account) {
+                return res.status(404).json({ success: false, message: 'Funding account not found' });
+            }
 
             if (request.type === 'deposit') {
                 const newBalance = toNumber(account.balance) + amount;
-                await Account.updateBalance(request.account_id, newBalance);
+                await Account.updateBalance(accountIdToUse, newBalance);
                 await Transaction.create(request.user_id, {
-                    account_id: request.account_id,
+                    account_id: accountIdToUse,
                     type: 'deposit',
                     amount,
                     balance_before: account.balance,
                     balance_after: newBalance,
                     description: `Deposit via ${request.method} approved`,
+                    reference_id: request.id
+                });
+            } else if (request.type === 'withdrawal') {
+                const newBalance = toNumber(account.balance) - amount;
+                if (newBalance < 0) {
+                    return res.status(400).json({ success: false, message: 'Insufficient balance to approve this withdrawal' });
+                }
+
+                await Account.updateBalance(accountIdToUse, newBalance);
+                await Transaction.create(request.user_id, {
+                    account_id: accountIdToUse,
+                    type: 'withdrawal',
+                    amount,
+                    balance_before: account.balance,
+                    balance_after: newBalance,
+                    description: `Withdrawal via ${request.method} approved`,
                     reference_id: request.id
                 });
             }
@@ -771,6 +800,17 @@ const processFunding = async (req, res) => {
             details: `Funding ${request.type} ${status}. Amount: ${request.amount}`,
             ip_address: req.ip
         });
+
+        await createActivityLog(
+            request.user_id,
+            'FUNDING',
+            `${request.type === 'deposit' ? 'Deposit' : 'Withdrawal'} ${status}: $${toNumber(request.amount)}`
+        );
+        await createNotification(
+            request.user_id,
+            status === 'approved' ? 'success' : 'info',
+            `${request.type === 'deposit' ? 'Deposit' : 'Withdrawal'} request ${status}${reason ? `: ${reason}` : '.'}`
+        );
 
         res.json({ success: true, data: result });
     } catch (error) {
@@ -788,11 +828,6 @@ const getTrades = async (req, res) => {
         const rawTrades = await Trade.findAll(status);
 
         const mappedTrades = rawTrades.map((trade) => {
-            const normalizedStatus = trade.status === 'open'
-                ? 'pending'
-                : trade.status === 'closed'
-                    ? 'completed'
-                    : trade.status;
             const amount = toNumber(trade.amount);
             const price = toNumber(trade.entry_price);
 
@@ -803,7 +838,7 @@ const getTrades = async (req, res) => {
                 userEmail: trade.user_email,
                 pair: trade.symbol,
                 symbol: trade.symbol,
-                type: String(trade.side || '').toUpperCase(),
+                type: String(trade.side || '').toLowerCase(),
                 amount,
                 lots: amount,
                 price,
@@ -812,10 +847,10 @@ const getTrades = async (req, res) => {
                 total: amount * price,
                 swap: 0,
                 profit: toNumber(trade.pnl),
-                status: normalizedStatus,
+                status: trade.status,
                 createdAt: trade.created_at,
                 updatedAt: trade.updated_at || trade.created_at,
-                completedAt: normalizedStatus === 'completed' ? (trade.updated_at || trade.created_at) : null,
+                completedAt: trade.status === 'closed' ? (trade.updated_at || trade.created_at) : null,
                 opened: trade.created_at,
                 accountNumber: trade.account_number
             };

@@ -8,7 +8,15 @@ class PlatformSettings {
         
         const settings = {};
         rows.forEach(row => {
-            settings[row.key] = row.value;
+            let parsedValue = row.value;
+            if (typeof parsedValue === 'string') {
+                try {
+                    parsedValue = JSON.parse(parsedValue);
+                } catch (_) {
+                    // Keep legacy plain strings as-is.
+                }
+            }
+            settings[row.key] = parsedValue;
         });
         return settings;
     }

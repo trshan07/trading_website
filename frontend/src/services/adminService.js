@@ -25,7 +25,7 @@ const normalizeTrade = (trade) => ({
   id: trade?.id != null ? String(trade.id) : trade?.id,
   userEmail: trade?.userEmail || trade?.user_email || '',
   pair: trade?.pair || trade?.symbol,
-  type: String(trade?.type || '').toUpperCase(),
+  type: String(trade?.type || '').toLowerCase(),
   createdAt: trade?.createdAt || trade?.opened || trade?.created_at,
   updatedAt: trade?.updatedAt || trade?.updated_at || trade?.createdAt,
 });
@@ -121,8 +121,8 @@ export const adminService = {
     });
   },
 
-  processFundingRequest: (requestId, status, reason = null) =>
-    api.post(`/admin/funding/${requestId}/process`, { status, reason }),
+  processFundingRequest: (requestId, status, reason = null, accountId = null) =>
+    api.post(`/admin/funding/${requestId}/process`, { status, reason, accountId }),
   approveFundingRequest: (requestId) =>
     adminService.processFundingRequest(requestId, 'approved'),
   rejectFundingRequest: (requestId, reason) =>
@@ -138,7 +138,7 @@ export const adminService = {
     let normalized = (response.data?.data || []).map(normalizeTrade);
 
     if (params.type && params.type !== 'all') {
-      normalized = normalized.filter((trade) => trade.type === String(params.type).toUpperCase());
+      normalized = normalized.filter((trade) => trade.type === String(params.type).toLowerCase());
     }
     if (params.search) {
       normalized = filterBySearch(normalized, params.search, ['id', 'userName', 'userEmail', 'pair']);

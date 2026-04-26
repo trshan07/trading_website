@@ -443,7 +443,7 @@ export default function AdminCRM() {
             {page === "credits" && <CreditsPage users={users} setUsers={setUsers} toast={toast} />}
             {page === "funding" && <FundingPage funding={funding} setFunding={setFunding} users={users} setUsers={setUsers} toast={toast} />}
             {page === "trades" && <TradesPage trades={trades} />}
-            {page === "reports" && <ReportsPage users={users} trades={trades} funding={funding} />}
+            {page === "reports" && <ReportsPage users={users} trades={trades} funding={funding} toast={toast} />}
             {page === "settings" && <SettingsPage toast={toast} />}
           </main>
         </div>
@@ -603,13 +603,54 @@ function UsersPage({ users, setUsers, toast }) {
   });
 
   const openEdit = (u) => { setForm({ ...u }); setModal("edit"); };
-  const openAdd = () => { setForm({ name: "", email: "", phone: "", country: "", accountType: "Basic", status: "pending", kyc: "pending", balance: 0, credit: 0, realBalance: 0, demoBalance: 0, realCredit: 0, demoCredit: 0, leverage: 50, notes: "" }); setModal("add"); };
+  const openAdd = () => { setForm({ name: "", email: "", password: "", phone: "", country: "", accountType: "Basic", status: "pending", kyc: "pending", balance: 0, credit: 0, realBalance: 0, demoBalance: 0, realCredit: 0, demoCredit: 0, leverage: 50, notes: "" }); setModal("add"); };
   const openView = (u) => { setForm({ ...u }); setModal("view"); };
 
   const saveUser = async () => {
     if (!form.name || !form.email) return toast("Validation Error", "Name and email required", "error");
     if (modal === "add") {
-      toast("Not Supported", "Please create new users via the public registration page", "error");
+      if (!form.password || form.password.length < 8) {
+        return toast("Validation Error", "Password must be at least 8 characters", "error");
+      }
+
+      try {
+        const [firstName, ...lastNameParts] = form.name.split(" ");
+        const lastName = lastNameParts.join(" ");
+        const payload = {
+          email: form.email,
+          password: form.password,
+          firstName: firstName || "Client",
+          lastName: lastName || "User",
+          phone: form.phone,
+          country: form.country,
+          status: form.status,
+          is_active: form.status === "active",
+          initialBalance: form.balance,
+        };
+
+        const res = await adminService.createUser(payload);
+        if (res.data?.success) {
+          if ((parseFloat(form.credit) || 0) > 0) {
+            await adminService.adjustUserBalance(res.data.data.id, {
+              accountId: res.data.data.realAccountId,
+              type: "credit",
+              amount: parseFloat(form.credit),
+              reason: "Initial credit assigned during user creation",
+              description: "Initial credit assigned during user creation",
+            });
+          }
+
+          const usersRes = await adminService.getUsers();
+          if (usersRes.data?.success) {
+            setUsers(usersRes.data.data.map(normalizeUserAccounts));
+          }
+          toast("User Created", form.email);
+        } else {
+          toast("Create Failed", res.data?.message || "Could not create user", "error");
+        }
+      } catch (err) {
+        toast("Server Error", err.response?.data?.message || "Could not create user", "error");
+      }
       setModal(null);
       return;
     }
@@ -658,7 +699,7 @@ function UsersPage({ users, setUsers, toast }) {
     setResetForm({ password: "", confirmPassword: "" });
   };
 
-  const submitResetPassword = () => {
+  const submitResetPassword = async () => {
     const nextPassword = resetForm.password?.trim() || "";
     if (nextPassword.length < 8) {
       return toast("Validation Error", "Password must be at least 8 characters", "error");
@@ -667,17 +708,26 @@ function UsersPage({ users, setUsers, toast }) {
       return toast("Validation Error", "Passwords do not match", "error");
     }
 
-    setUsers(p => p.map(u => (u.id === resetModal.id
-      ? {
-          ...u,
-          passwordResetAt: new Date().toISOString(),
-          forcePasswordChange: true,
-        }
-      : u)));
+    try {
+      const res = await adminService.resetUserPassword(resetModal.id, nextPassword);
+      if (res.data?.success) {
+        setUsers(p => p.map(u => (u.id === resetModal.id
+          ? {
+              ...u,
+              passwordResetAt: new Date().toISOString(),
+              forcePasswordChange: true,
+            }
+          : u)));
 
-    toast("Password Reset", `${resetModal.name} must set a new password on next login`);
-    setResetModal(null);
-    setResetForm({ password: "", confirmPassword: "" });
+        toast("Password Reset", `${resetModal.name} password was updated`);
+        setResetModal(null);
+        setResetForm({ password: "", confirmPassword: "" });
+      } else {
+        toast("Reset Failed", res.data?.message || "Could not reset password", "error");
+      }
+    } catch (err) {
+      toast("Error", err.response?.data?.message || "Could not reset password", "error");
+    }
   };
 
   return (
@@ -761,6 +811,7 @@ function UsersPage({ users, setUsers, toast }) {
           <Input label="Email Address" type="email" value={form.email} onChange={e => setForm(p => ({ ...p, email: e.target.value }))} />
           <Input label="Phone" value={form.phone} onChange={e => setForm(p => ({ ...p, phone: e.target.value }))} />
           <Input label="Country" value={form.country} onChange={e => setForm(p => ({ ...p, country: e.target.value }))} />
+          {modal === "add" && <Input label="Temporary Password" type="password" value={form.password} onChange={e => setForm(p => ({ ...p, password: e.target.value }))} />}
           <Sel label="Account Type" value={form.accountType} onChange={e => setForm(p => ({ ...p, accountType: e.target.value }))} options={["Basic","Standard","Premium","VIP"].map(v => ({ value: v, label: v }))} />
           <Sel label="Leverage" value={String(form.leverage)} onChange={e => setForm(p => ({ ...p, leverage: parseInt(e.target.value) }))} options={[10,20,30,50,100,200,500].map(v => ({ value: String(v), label: `1:${v}` }))} />
           <Sel label="Account Status" value={form.status} onChange={e => setForm(p => ({ ...p, status: e.target.value }))} options={[["active","Active"],["pending","Pending"],["suspended","Suspended"]].map(([v,l]) => ({ value: v, label: l }))} />
@@ -1370,10 +1421,14 @@ function FundingPage({ funding, setFunding, users, setUsers, toast }) {
     }
 
     try {
-        const res = await adminService.processFundingRequest(id, action, note.trim());
+        const selectedUser = users.find(u => u.id === request.userId);
+        const accountId = action === "approved" && request.type === "deposit"
+          ? selectedUser?.[targetAccount === "demo" ? "demoAccountId" : "realAccountId"]
+          : undefined;
+        const res = await adminService.processFundingRequest(id, action, note.trim(), accountId);
         if (res.data?.success) {
             const finalNote = [note.trim(), action === "approved" ? `Processed via admin` : ""].filter(Boolean).join(" · ");
-            setFunding(p => p.map(f => f.id === id ? { ...f, status: action, note: finalNote } : f));
+            setFunding(p => p.map(f => f.id === id ? { ...f, status: action, note: finalNote, processedAccount: request.type === "deposit" ? targetAccount : f.processedAccount } : f));
             
             if (action === "approved") {
                 toast("Request Approved", `${fmt(request.amount || 0)} processed successfully`);
@@ -1611,7 +1666,7 @@ function TradesPage({ trades }) {
 // ═══════════════════════════════════════════════════════════════════════════
 // REPORTS PAGE
 // ═══════════════════════════════════════════════════════════════════════════
-function ReportsPage({ users, trades, funding }) {
+function ReportsPage({ users, trades, funding, toast }) {
   const accountDist = ["Basic", "Standard", "Premium", "VIP"].map((t, i) => ({
     type: t, count: users.filter(u => u.accountType === t).length,
     volume: users.filter(u => u.accountType === t).reduce((s, u) => s + u.balance, 0),
@@ -1628,9 +1683,19 @@ function ReportsPage({ users, trades, funding }) {
 
   return (
     <div>
-      <div style={{ marginBottom: "20px" }}>
-        <h2 className="syne" style={{ fontSize: "18px", fontWeight: 700, color: C.text }}>Analytics & Reports</h2>
-        <p style={{ fontSize: "12px", color: C.textMuted, marginTop: "2px" }}>Platform-wide performance overview</p>
+      <div style={{ marginBottom: "20px", display: "flex", justifyContent: "space-between", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
+        <div>
+          <h2 className="syne" style={{ fontSize: "18px", fontWeight: 700, color: C.text }}>Analytics & Reports</h2>
+          <p style={{ fontSize: "12px", color: C.textMuted, marginTop: "2px" }}>Platform-wide performance overview</p>
+        </div>
+        <Btn onClick={async () => {
+          try {
+            await adminService.generateReport();
+            toast("Report Exported", "Admin report downloaded");
+          } catch (err) {
+            toast("Export Failed", "Could not generate report", "error");
+          }
+        }}>Export Report</Btn>
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", marginBottom: "20px" }} className="responsive-grid-2">
@@ -1767,11 +1832,91 @@ function ReportsPage({ users, trades, funding }) {
 function SettingsPage({ toast }) {
   const [tab, setTab] = useState("platform");
   const [alertToggles, setAlertToggles] = useState([true, true, true, false, true]);
-  const [settings, setSettings] = useState({ platformName: "TIK TRADES Platform", supportEmail: "support@tiktrades.com", defaultLeverage: "100", maxLeverage: "500", minDeposit: "100", maxWithdrawal: "50000", maintenanceMode: false, emailNotifications: true, smsAlerts: false, autoKyc: false, tradingEnabled: true, withdrawalsEnabled: true, depositsEnabled: true, twoFaRequired: true, maxCreditPerUser: "50000" });
+  const [settings, setSettings] = useState({ platformName: "TIK TRADES Platform", supportEmail: "support@tiktrades.com", defaultLeverage: "100", maxLeverage: "500", defaultAccountType: "Standard", minDeposit: "100", maxWithdrawal: "50000", maintenanceMode: false, emailNotifications: true, smsAlerts: false, autoKyc: false, tradingEnabled: true, withdrawalsEnabled: true, depositsEnabled: true, twoFaRequired: true, maxCreditPerUser: "50000" });
+  const [saving, setSaving] = useState(false);
   const set = (k, v) => setSettings(p => ({ ...p, [k]: v }));
   const toggle = (k) => setSettings(p => ({ ...p, [k]: !p[k] }));
 
   const TABS = [["platform", "Platform"], ["trading", "Trading"], ["security", "Security"], ["notifications", "Notifications"]];
+
+  useEffect(() => {
+    const loadSettings = async () => {
+      try {
+        const res = await adminService.getSettings();
+        const data = res.data?.data || {};
+
+        setSettings(prev => ({
+          ...prev,
+          platformName: data.platform_name ?? prev.platformName,
+          supportEmail: data.support_email ?? prev.supportEmail,
+          defaultLeverage: String(data.default_leverage ?? prev.defaultLeverage),
+          maxLeverage: String(data.max_leverage ?? prev.maxLeverage),
+          defaultAccountType: data.default_account_type ?? prev.defaultAccountType,
+          minDeposit: String(data.min_deposit ?? prev.minDeposit),
+          maxWithdrawal: String(data.max_withdrawal ?? prev.maxWithdrawal),
+          maintenanceMode: data.maintenance_mode ?? prev.maintenanceMode,
+          emailNotifications: data.email_notifications ?? prev.emailNotifications,
+          smsAlerts: data.sms_alerts ?? prev.smsAlerts,
+          autoKyc: data.auto_kyc ?? prev.autoKyc,
+          tradingEnabled: data.trading_enabled ?? prev.tradingEnabled,
+          withdrawalsEnabled: data.withdrawals_enabled ?? prev.withdrawalsEnabled,
+          depositsEnabled: data.deposits_enabled ?? prev.depositsEnabled,
+          twoFaRequired: data.two_fa_required ?? prev.twoFaRequired,
+          maxCreditPerUser: String(data.max_credit_per_user ?? prev.maxCreditPerUser),
+        }));
+
+        if (data.alert_triggers) {
+          setAlertToggles([
+            !!data.alert_triggers.large_deposit,
+            !!data.alert_triggers.withdrawal_pending,
+            !!data.alert_triggers.kyc_submitted,
+            !!data.alert_triggers.account_suspended,
+            !!data.alert_triggers.failed_login,
+          ]);
+        }
+      } catch (err) {
+        toast("Load Failed", "Could not load platform settings", "error");
+      }
+    };
+
+    loadSettings();
+  }, [toast]);
+
+  const saveSettings = async (message) => {
+    try {
+      setSaving(true);
+      await adminService.updatePlatformSettings({
+        platform_name: settings.platformName,
+        support_email: settings.supportEmail,
+        min_deposit: Number(settings.minDeposit) || 0,
+        max_withdrawal: Number(settings.maxWithdrawal) || 0,
+        max_credit_per_user: Number(settings.maxCreditPerUser) || 0,
+        maintenance_mode: !!settings.maintenanceMode,
+        email_notifications: !!settings.emailNotifications,
+        sms_alerts: !!settings.smsAlerts,
+        auto_kyc: !!settings.autoKyc,
+        trading_enabled: !!settings.tradingEnabled,
+        withdrawals_enabled: !!settings.withdrawalsEnabled,
+        deposits_enabled: !!settings.depositsEnabled,
+        default_leverage: String(settings.defaultLeverage),
+        max_leverage: String(settings.maxLeverage),
+        default_account_type: settings.defaultAccountType,
+        two_fa_required: !!settings.twoFaRequired,
+        alert_triggers: {
+          large_deposit: !!alertToggles[0],
+          withdrawal_pending: !!alertToggles[1],
+          kyc_submitted: !!alertToggles[2],
+          account_suspended: !!alertToggles[3],
+          failed_login: !!alertToggles[4],
+        },
+      });
+      toast("Settings Saved", message);
+    } catch (err) {
+      toast("Save Failed", err.response?.data?.message || "Could not update settings", "error");
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return (
     <div>
@@ -1796,7 +1941,7 @@ function SettingsPage({ toast }) {
               <Input label="Minimum Deposit (USD)" type="number" value={settings.minDeposit} onChange={e => set("minDeposit", e.target.value)} />
               <Input label="Maximum Withdrawal (USD)" type="number" value={settings.maxWithdrawal} onChange={e => set("maxWithdrawal", e.target.value)} />
               <Input label="Max Credit Per User (USD)" type="number" value={settings.maxCreditPerUser} onChange={e => set("maxCreditPerUser", e.target.value)} />
-              <Btn onClick={() => toast("Settings Saved", "Platform settings updated")} fullWidth>Save Settings</Btn>
+              <Btn onClick={() => saveSettings("Platform settings updated")} fullWidth disabled={saving}>{saving ? "Saving..." : "Save Settings"}</Btn>
             </Card>
             <Card title="Platform Controls">
               <SettingsToggle label="Maintenance Mode" desc="Redirect all users to maintenance page" danger active={settings.maintenanceMode} onToggle={() => toggle("maintenanceMode")} />
@@ -1811,8 +1956,8 @@ function SettingsPage({ toast }) {
             <Card title="Leverage Settings">
               <Input label="Default Leverage" value={settings.defaultLeverage} onChange={e => set("defaultLeverage", e.target.value)} hint="Applied to new accounts" />
               <Input label="Maximum Leverage" value={settings.maxLeverage} onChange={e => set("maxLeverage", e.target.value)} hint="Maximum allowed" />
-              <Sel label="Default Account Type" value="Standard" onChange={() => {}} options={["Basic","Standard","Premium","VIP"].map(v => ({ value: v, label: v }))} />
-              <Btn onClick={() => toast("Saved", "Trading config updated")} fullWidth>Save</Btn>
+              <Sel label="Default Account Type" value={settings.defaultAccountType} onChange={e => set("defaultAccountType", e.target.value)} options={["Basic","Standard","Premium","VIP"].map(v => ({ value: v, label: v }))} />
+              <Btn onClick={() => saveSettings("Trading config updated")} fullWidth disabled={saving}>{saving ? "Saving..." : "Save"}</Btn>
             </Card>
             <Card title="Trading Rules">
               {[["Auto KYC Verification", "Automatically approve matching KYC", "autoKyc"], ["Trading Enabled", "Allow live trading", "tradingEnabled"]].map(([l, d, k]) => (
@@ -1828,7 +1973,7 @@ function SettingsPage({ toast }) {
               <div style={{ marginTop: "16px" }}>
                 <Input label="Session Timeout (minutes)" value="30" onChange={() => {}} />
                 <Input label="Max Login Attempts" value="5" onChange={() => {}} />
-                <Btn onClick={() => toast("Saved", "Security settings updated")} fullWidth>Save</Btn>
+                <Btn onClick={() => saveSettings("Security settings updated")} fullWidth disabled={saving}>{saving ? "Saving..." : "Save"}</Btn>
               </div>
             </Card>
             <Card title="Danger Zone" style={{ border: `1px solid ${C.red}30` }}>
@@ -1859,6 +2004,9 @@ function SettingsPage({ toast }) {
                     </div>
                   </div>
               ))}
+              <div style={{ marginTop: "14px" }}>
+                <Btn onClick={() => saveSettings("Notification settings updated")} fullWidth disabled={saving}>{saving ? "Saving..." : "Save Notifications"}</Btn>
+              </div>
             </Card>
           </>
         )}
