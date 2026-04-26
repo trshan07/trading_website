@@ -55,6 +55,9 @@ CREATE TABLE IF NOT EXISTS orders (
     amount NUMERIC(18, 8), -- USD amount
     quantity NUMERIC(18, 8),
     entry_price NUMERIC(18, 8),
+    leverage NUMERIC(10, 2) DEFAULT 100,
+    take_profit NUMERIC(18, 8),
+    stop_loss NUMERIC(18, 8),
     status VARCHAR(20) DEFAULT 'pending', -- 'pending', 'executed', 'cancelled'
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -72,6 +75,9 @@ CREATE TABLE IF NOT EXISTS positions (
     current_price NUMERIC(18, 8),
     pnl NUMERIC(18, 8) DEFAULT 0,
     margin NUMERIC(18, 8) DEFAULT 0,
+    leverage NUMERIC(10, 2) DEFAULT 100,
+    take_profit NUMERIC(18, 8),
+    stop_loss NUMERIC(18, 8),
     status VARCHAR(20) DEFAULT 'open', -- 'open', 'closed'
     close_price NUMERIC(18, 8),
     closed_at TIMESTAMP,

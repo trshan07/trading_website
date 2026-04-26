@@ -1,6 +1,6 @@
 // backend/src/models/Position.js
 const db = require('../config/database');
-const { isMissingColumnError, getMissingColumnName } = require('../utils/dbCompat');
+const { isMissingColumnError, getMissingColumnName, isMissingRelationError } = require('../utils/dbCompat');
 
 class Position {
     static async findByUserId(userId, limit = 50) {
@@ -56,16 +56,47 @@ class Position {
     }
 
     static async create(userId, positionData) {
-        const { accountId, symbol, side, amount, quantity, entryPrice, margin } = positionData;
-        
+        const {
+            accountId,
+            symbol,
+            side,
+            amount,
+            quantity,
+            entryPrice,
+            margin,
+            leverage = null,
+            takeProfit = null,
+            stopLoss = null
+        } = positionData;
+
         const query = `
+            INSERT INTO positions (
+                user_id, account_id, symbol, side, amount, quantity, entry_price, current_price,
+                margin, leverage, take_profit, stop_loss, status
+            )
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, 'open')
+            RETURNING *
+        `;
+        const values = [userId, accountId, symbol, side, amount, quantity, entryPrice, entryPrice, margin, leverage, takeProfit, stopLoss];
+        const legacyQuery = `
             INSERT INTO positions (user_id, account_id, symbol, side, amount, quantity, entry_price, current_price, margin, status)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'open')
             RETURNING *
         `;
-        const values = [userId, accountId, symbol, side, amount, quantity, entryPrice, entryPrice, margin];
-        const { rows } = await db.query(query, values);
-        return rows[0];
+        const legacyValues = [userId, accountId, symbol, side, amount, quantity, entryPrice, entryPrice, margin];
+        try {
+            const { rows } = await db.query(query, values);
+            return rows[0];
+        } catch (error) {
+            if (isMissingColumnError(error)) {
+                const { rows } = await db.query(legacyQuery, legacyValues);
+                return rows[0];
+            }
+            if (isMissingRelationError(error)) {
+                throw error;
+            }
+            throw error;
+        }
     }
 
     static async close(id, closePrice, pnl) {

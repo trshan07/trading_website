@@ -41,6 +41,20 @@ const OpenOrders = ({ orders = [], onCancel, compact = false }) => {
                 </div>
               ))}
             </div>
+            <div className="flex flex-col space-y-2 mb-4 pl-3">
+              <div className="flex justify-between items-center text-[9px] uppercase font-black text-slate-400">
+                <span>Leverage:</span>
+                <span className="text-slate-900 dark:text-white">1:{order.leverage || 1}</span>
+              </div>
+              <div className="flex justify-between items-center text-[9px] uppercase font-black text-slate-400">
+                <span>Take Profit:</span>
+                <span className="text-emerald-500">{order.takeProfit ? `$${order.takeProfit.toLocaleString()}` : 'Off'}</span>
+              </div>
+              <div className="flex justify-between items-center text-[9px] uppercase font-black text-slate-400">
+                <span>Stop Loss:</span>
+                <span className="text-rose-500">{order.stopLoss ? `$${order.stopLoss.toLocaleString()}` : 'Off'}</span>
+              </div>
+            </div>
             <button
               onClick={() => onCancel(order.id)}
               className="w-full py-3 bg-slate-900 dark:bg-slate-700 text-white font-black rounded-2xl text-[9px] uppercase tracking-[0.2em] hover:bg-rose-600 dark:hover:bg-rose-500 transition-all flex items-center justify-center space-x-2 group/btn"
@@ -59,13 +73,16 @@ const OpenOrders = ({ orders = [], onCancel, compact = false }) => {
       {/* Column Headers */}
       <div
         className="grid items-center text-[9px] uppercase font-black text-slate-400 dark:text-slate-500 tracking-[0.2em] px-6 pb-4 border-b border-slate-100 dark:border-slate-800 mb-2"
-        style={{ gridTemplateColumns: '2fr 1fr 1fr 1fr 1.2fr 1.2fr 1.2fr 1fr' }}
+        style={{ gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr 1fr 1.2fr 1.2fr 1.2fr 1fr 1fr' }}
       >
         <span>Instrument</span>
         <span>Type</span>
         <span>Side</span>
         <span className="text-right">Quantity</span>
         <span className="text-right">Limit Price</span>
+        <span className="text-right">Lev</span>
+        <span className="text-right">TP</span>
+        <span className="text-right">SL</span>
         <span className="text-right">Placed At</span>
         <span className="text-center">Status</span>
         <span className="text-right">Action</span>
@@ -87,7 +104,7 @@ const OpenOrders = ({ orders = [], onCancel, compact = false }) => {
                   ? 'bg-white dark:bg-slate-800 border-gold-500/20 shadow-xl shadow-slate-200/50 dark:shadow-black/30 -translate-y-0.5'
                   : 'bg-slate-50/50 dark:bg-slate-800/20 border-transparent'
               }`}
-              style={{ gridTemplateColumns: '2fr 1fr 1fr 1fr 1.2fr 1.2fr 1.2fr 1fr' }}
+              style={{ gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr 1fr 1.2fr 1.2fr 1.2fr 1fr 1fr' }}
             >
               {/* Left Accent */}
               <div className={`absolute left-0 top-3 bottom-3 w-1 rounded-full transition-all duration-300 ${
@@ -134,6 +151,21 @@ const OpenOrders = ({ orders = [], onCancel, compact = false }) => {
               <div className="text-right">
                 <p className="text-sm font-bold text-slate-600 dark:text-slate-300 tabular-nums">${Number(order.entryPrice || order.price || 0).toLocaleString()}</p>
                 <p className="text-[8px] text-slate-400 dark:text-slate-600 font-bold tracking-widest uppercase">limit</p>
+              </div>
+
+              <div className="text-right">
+                <p className="text-sm font-bold text-slate-600 dark:text-slate-300 tabular-nums">1:{order.leverage || 1}</p>
+                <p className="text-[8px] text-slate-400 dark:text-slate-600 font-bold tracking-widest uppercase">lev</p>
+              </div>
+
+              <div className="text-right">
+                <p className="text-sm font-bold text-emerald-500 tabular-nums">{order.takeProfit ? `$${order.takeProfit.toLocaleString()}` : 'Off'}</p>
+                <p className="text-[8px] text-slate-400 dark:text-slate-600 font-bold tracking-widest uppercase">tp</p>
+              </div>
+
+              <div className="text-right">
+                <p className="text-sm font-bold text-rose-500 tabular-nums">{order.stopLoss ? `$${order.stopLoss.toLocaleString()}` : 'Off'}</p>
+                <p className="text-[8px] text-slate-400 dark:text-slate-600 font-bold tracking-widest uppercase">sl</p>
               </div>
 
               {/* Time */}

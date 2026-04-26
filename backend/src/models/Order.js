@@ -1,6 +1,6 @@
 // backend/src/models/Order.js
 const db = require('../config/database');
-const { isMissingRelationError } = require('../utils/dbCompat');
+const { isMissingRelationError, isMissingColumnError } = require('../utils/dbCompat');
 
 class Order {
     static async findByUserId(userId, limit = 50) {
@@ -38,18 +38,43 @@ class Order {
     }
 
     static async create(userId, orderData) {
-        const { accountId, symbol, side, type, amount, quantity, entryPrice, status = 'pending' } = orderData;
-        
+        const {
+            accountId,
+            symbol,
+            side,
+            type,
+            amount,
+            quantity,
+            entryPrice,
+            leverage = null,
+            takeProfit = null,
+            stopLoss = null,
+            status = 'pending'
+        } = orderData;
+
         const query = `
+            INSERT INTO orders (
+                user_id, account_id, symbol, side, type, amount, quantity, entry_price,
+                leverage, take_profit, stop_loss, status
+            )
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+            RETURNING *
+        `;
+        const values = [userId, accountId, symbol, side, type, amount, quantity, entryPrice, leverage, takeProfit, stopLoss, status];
+        const legacyQuery = `
             INSERT INTO orders (user_id, account_id, symbol, side, type, amount, quantity, entry_price, status)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
             RETURNING *
         `;
-        const values = [userId, accountId, symbol, side, type, amount, quantity, entryPrice, status];
+        const legacyValues = [userId, accountId, symbol, side, type, amount, quantity, entryPrice, status];
         try {
             const { rows } = await db.query(query, values);
             return rows[0];
         } catch (error) {
+            if (isMissingColumnError(error)) {
+                const { rows } = await db.query(legacyQuery, legacyValues);
+                return rows[0];
+            }
             if (isMissingRelationError(error)) {
                 const friendlyError = new Error('Orders table is not available');
                 friendlyError.code = error.code;

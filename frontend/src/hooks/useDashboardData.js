@@ -344,12 +344,13 @@ export const useDashboardData = (accountType = 'demo') => {
     const token = localStorage.getItem('token');
     if (!token) return; // No token = don't fire, avoids 401 spam after logout
     try {
-      const response = await tradingService.getOpenPositions(accountId);
+        const response = await tradingService.getOpenPositions(accountId);
       if (response.success) {
         const mappedPositions = response.data.map(pos => {
             const currentPrice = marketData[pos.symbol]?.price || parseFloat(pos.entry_price);
             const qty = parseFloat(pos.quantity);
             const entryPrice = parseFloat(pos.entry_price);
+            const totalPositionValue = parseFloat(pos.amount) || (qty * entryPrice);
             const side = pos.side.toUpperCase();
             
             const pnl = side === 'BUY' 
@@ -361,12 +362,16 @@ export const useDashboardData = (accountType = 'demo') => {
               symbol: pos.symbol,
               type: side,
               side: side.toLowerCase(),
+              amount: totalPositionValue,
               quantity: qty,
               entryPrice: entryPrice,
               currentPrice: currentPrice,
               pnl: pnl,
-              pnlPercent: (pnl / (qty * entryPrice)) * 100,
+              pnlPercent: totalPositionValue > 0 ? (pnl / totalPositionValue) * 100 : 0,
               margin: parseFloat(pos.margin),
+              leverage: parseFloat(pos.leverage) || null,
+              takeProfit: pos.take_profit != null ? parseFloat(pos.take_profit) : null,
+              stopLoss: pos.stop_loss != null ? parseFloat(pos.stop_loss) : null,
               createdAt: pos.created_at,
               entryTime: pos.created_at,
               swap: parseFloat(pos.swap) || 0,
@@ -396,6 +401,9 @@ export const useDashboardData = (accountType = 'demo') => {
           amount: parseFloat(order.amount) || 0,
           quantity: parseFloat(order.quantity) || 0,
           entryPrice: parseFloat(order.entry_price) || 0,
+          leverage: parseFloat(order.leverage) || null,
+          takeProfit: order.take_profit != null ? parseFloat(order.take_profit) : null,
+          stopLoss: order.stop_loss != null ? parseFloat(order.stop_loss) : null,
           createdAt: order.created_at,
           status: order.status,
         }));
@@ -586,7 +594,10 @@ export const useDashboardData = (accountType = 'demo') => {
             side: order.side.toLowerCase(),
             amount: usdInvestment,
             entryPrice: entryPrice,
-            type: order.type.toLowerCase()
+            type: order.type.toLowerCase(),
+            leverage: order.leverage,
+            takeProfit: order.takeProfit,
+            stopLoss: order.stopLoss
         });
 
         if (response.success) {

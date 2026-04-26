@@ -9,7 +9,17 @@ const { createActivityLog } = require('./activityController');
 const { isMissingRelationError } = require('../../utils/dbCompat');
 
 const executeTrade = async (req, res) => {
-    const { accountId, symbol, side, amount, entryPrice, type = 'market', leverage = 100 } = req.body;
+    const {
+        accountId,
+        symbol,
+        side,
+        amount,
+        entryPrice,
+        type = 'market',
+        leverage = 100,
+        takeProfit = null,
+        stopLoss = null
+    } = req.body;
     const userId = req.user.id;
 
     if (!accountId || !symbol || !side || !amount || !entryPrice) {
@@ -27,12 +37,18 @@ const executeTrade = async (req, res) => {
         const usdAmount = parseFloat(amount);
         const price = parseFloat(entryPrice);
         const lev = parseFloat(leverage) || 100;
+        const tp = takeProfit == null ? null : parseFloat(takeProfit);
+        const sl = stopLoss == null ? null : parseFloat(stopLoss);
         
-        if (isNaN(usdAmount) || isNaN(price) || usdAmount <= 0) {
+        if (isNaN(usdAmount) || isNaN(price) || usdAmount <= 0 || isNaN(lev) || lev <= 0) {
             return res.status(400).json({ success: false, message: 'Invalid trade amount or price' });
         }
 
-        const requiredMargin = usdAmount / (lev / 100); 
+        if ((tp !== null && isNaN(tp)) || (sl !== null && isNaN(sl))) {
+            return res.status(400).json({ success: false, message: 'Invalid take profit or stop loss value' });
+        }
+
+        const requiredMargin = usdAmount / lev;
         const quantity = usdAmount / price;
 
         const accountBalance = parseFloat(account.balance) || 0;
@@ -55,6 +71,9 @@ const executeTrade = async (req, res) => {
                 amount: usdAmount,
                 quantity,
                 entryPrice: price,
+                leverage: lev,
+                takeProfit: tp,
+                stopLoss: sl,
                 status: 'pending'
             });
 
@@ -77,6 +96,9 @@ const executeTrade = async (req, res) => {
             amount: usdAmount,
             quantity,
             entryPrice: price,
+            leverage: lev,
+            takeProfit: tp,
+            stopLoss: sl,
             status: 'executed'
         });
 
@@ -88,7 +110,10 @@ const executeTrade = async (req, res) => {
             amount: usdAmount,
             quantity,
             entryPrice: price,
-            margin: requiredMargin
+            margin: requiredMargin,
+            leverage: lev,
+            takeProfit: tp,
+            stopLoss: sl
         });
 
         // 3. Deduct Margin from Account

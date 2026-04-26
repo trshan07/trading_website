@@ -41,6 +41,9 @@ const OrderPanel = ({ onSubmit, symbol = 'BTCUSDT', marketData = {}, onClose, on
   const flashClass = lastDir === 'up' ? 'flash-up' : lastDir === 'down' ? 'flash-down' : '';
   
   const { bidPrice, askPrice, spreadAmt } = calculateSpreads(symbol, currentPrice);
+  const executionPrice = selectedSide === 'buy' ? askPrice : bidPrice;
+  const totalPositionValue = Number(amount) || 0;
+  const requiredMargin = leverage > 0 ? totalPositionValue / leverage : 0;
 
   const getPipDistance = (target) => {
     if (!target || !currentPrice) return null;
@@ -62,7 +65,6 @@ const OrderPanel = ({ onSubmit, symbol = 'BTCUSDT', marketData = {}, onClose, on
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    const executionPrice = selectedSide === 'buy' ? askPrice : bidPrice;
     onSubmit({
       symbol,
       type: orderType === 'market' ? 'market' : 'limit',
@@ -164,7 +166,7 @@ const OrderPanel = ({ onSubmit, symbol = 'BTCUSDT', marketData = {}, onClose, on
         <div className="space-y-4">
           <div className="flex justify-between items-center mb-1">
             <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">Entry Amount</label>
-            <span className="text-[9px] font-black uppercase text-slate-500 tracking-widest italic">{symbol.split('/')[0]}</span>
+            <span className="text-[9px] font-black uppercase text-slate-500 tracking-widest italic">USD Notional</span>
           </div>
           
           <div className="flex items-center space-x-2">
@@ -287,12 +289,16 @@ const OrderPanel = ({ onSubmit, symbol = 'BTCUSDT', marketData = {}, onClose, on
          {/* Order Summary */}
          <div className="bg-slate-50 dark:bg-slate-950/50 border border-slate-100 dark:border-slate-800 rounded-2xl p-5 space-y-3 shadow-inner">
             <div className="flex justify-between items-center text-[9px] uppercase font-black">
+               <span className="text-slate-400 dark:text-slate-500 tracking-widest">Execution Price</span>
+               <span className="text-slate-900 dark:text-white italic">${executionPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 6 })}</span>
+            </div>
+            <div className="flex justify-between items-center text-[9px] uppercase font-black">
                <span className="text-slate-400 dark:text-slate-500 tracking-widest">Total Position Value</span>
-               <span className="text-slate-900 dark:text-white italic">${(amount * currentPrice).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+               <span className="text-slate-900 dark:text-white italic">${totalPositionValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
             </div>
             <div className="flex justify-between items-center text-[9px] uppercase font-black">
                <span className="text-slate-400 dark:text-slate-500 tracking-widest">Required Margin</span>
-               <span className="text-gold-500 italic">${((amount * currentPrice) / leverage).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+               <span className="text-gold-500 italic">${requiredMargin.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
             </div>
          </div>
       </div>
