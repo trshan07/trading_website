@@ -9,6 +9,8 @@ const AdminLog = require('../../models/AdminLog');
 const Trade = require('../../models/Trade');
 const PlatformSettings = require('../../models/PlatformSettings');
 const { normalizeStoredUploadPath } = require('../../utils/uploadPath');
+const { createNotification } = require('../../client/controllers/notificationController');
+const { createActivityLog } = require('../../client/controllers/activityController');
 
 const toNumber = (value, fallback = 0) => {
     const parsed = Number(value);
@@ -51,13 +53,23 @@ const attachAccountsAndHistory = async (user) => {
         .map((log) => {
             const match = log.details.match(/by\s+([-0-9.]+)\s+for\s+account\s+(.+)/i);
             const amount = match ? parseFloat(match[1]) : 0;
-            const accountLabel = match ? match[2] : 'unknown';
+            const accountLabel = (match ? match[2] : 'unknown').trim();
+            const normalizedLabel = accountLabel.toLowerCase();
+            const accountType = normalizedLabel === String(realAcc.account_number || '').toLowerCase()
+                ? 'real'
+                : normalizedLabel === String(demoAcc.account_number || '').toLowerCase()
+                    ? 'demo'
+                    : normalizedLabel.includes('real')
+                        ? 'real'
+                        : normalizedLabel.includes('demo')
+                            ? 'demo'
+                            : 'unknown';
 
             return {
                 id: log.id,
                 amount: Math.abs(amount),
                 type: amount >= 0 ? 'credit' : 'debit',
-                account: accountLabel.toLowerCase().includes('rl') ? 'real' : 'demo',
+                account: accountType,
                 note: log.details,
                 date: log.created_at
             };
@@ -421,6 +433,14 @@ const adjustBalance = async (req, res) => {
             }
 
             const updatedAccount = await Account.updateCredit(account.id, nextCredit);
+            await Transaction.create(userId, {
+                account_id: account.id,
+                type: normalizedType,
+                amount: Math.abs(signedCredit),
+                balance_before: toNumber(account.balance),
+                balance_after: toNumber(account.balance),
+                description: label
+            });
 
             await AdminLog.create(req.user.id, {
                 action: 'ADJUST_CREDIT',
@@ -428,6 +448,17 @@ const adjustBalance = async (req, res) => {
                 details: `Adjusted credit by ${signedCredit} for account ${account.account_number}`,
                 ip_address: req.ip
             });
+
+            await createActivityLog(
+                userId,
+                'FUNDING',
+                `${normalizedType === 'credit' ? 'Credit Added' : 'Credit Removed'}: $${Math.abs(signedCredit)} (${account.account_type} account)`
+            );
+            await createNotification(
+                userId,
+                normalizedType === 'credit' ? 'success' : 'info',
+                `${normalizedType === 'credit' ? 'Credit added' : 'Credit removed'}: $${Math.abs(signedCredit)} on your ${account.account_type} account.`
+            );
 
             return res.json({
                 success: true,
