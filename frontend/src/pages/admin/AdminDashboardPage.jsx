@@ -909,6 +909,35 @@ function KYCPage({ toast }) {
   const [rejectModal, setRejectModal] = useState(null);
   const [rejectReason, setRejectReason] = useState("");
 
+  const deriveKycState = (user) => {
+    const docs = user?.kycDocs || [];
+    const statuses = docs.map((doc) => doc.status);
+
+    let kyc = "pending";
+    if (statuses.includes("rejected")) kyc = "rejected";
+    else if (statuses.includes("pending")) kyc = "pending";
+    else if (statuses.includes("under_review")) kyc = "under_review";
+    else if (statuses.length && statuses.every((value) => value === "verified")) kyc = "verified";
+
+    return {
+      ...user,
+      kyc,
+      kycReviewedAt: kyc === "verified" || kyc === "rejected" ? (user.kycReviewedAt || new Date().toISOString()) : null,
+    };
+  };
+
+  const updateSubmissionDocs = (userId, updater) => {
+    setSubmissions((prev) => prev.map((user) => {
+      if (user.id !== userId) return user;
+      return deriveKycState({ ...user, kycDocs: updater(user.kycDocs || []) });
+    }));
+
+    setSelectedUser((prev) => {
+      if (!prev || prev.id !== userId) return prev;
+      return deriveKycState({ ...prev, kycDocs: updater(prev.kycDocs || []) });
+    });
+  };
+
   const fetchKYC = async () => {
     try {
       setLoading(true);
@@ -930,11 +959,7 @@ function KYCPage({ toast }) {
   const verifyDoc = async (userId, docId) => {
     try {
         await adminService.processKYC(docId, "approved");
-        setSubmissions(p => p.map(u => {
-          if (u.id !== userId) return u;
-          return { ...u, kycDocs: u.kycDocs.map(d => d.id === docId ? { ...d, status: "verified", rejectReason: null } : d) };
-        }));
-        if (selectedUser) setSelectedUser(prev => ({ ...prev, kycDocs: prev.kycDocs.map(d => d.id === docId ? { ...d, status: "verified", rejectReason: null } : d) }));
+        updateSubmissionDocs(userId, (docs) => docs.map(d => d.id === docId ? { ...d, status: "verified", rejectReason: null } : d));
         toast("Document Verified", "Status updated to verified");
     } catch(err) { toast("Error", "Failed to verify document", "error"); }
   };
@@ -947,11 +972,7 @@ function KYCPage({ toast }) {
         const userId = selectedUser.id;
         const docId = rejectModal.id;
         await adminService.processKYC(docId, "rejected", rejectReason);
-        setSubmissions(p => p.map(u => {
-          if (u.id !== userId) return u;
-          return { ...u, kycDocs: u.kycDocs.map(d => d.id === docId ? { ...d, status: "rejected", rejectReason } : d) };
-        }));
-        setSelectedUser(prev => ({ ...prev, kycDocs: prev.kycDocs.map(d => d.id === docId ? { ...d, status: "rejected", rejectReason } : d) }));
+        updateSubmissionDocs(userId, (docs) => docs.map(d => d.id === docId ? { ...d, status: "rejected", rejectReason } : d));
         setRejectModal(null);
         toast("Document Rejected", rejectReason, "error");
     } catch(err) { toast("Error", "Failed to reject document", "error"); }
@@ -965,10 +986,7 @@ function KYCPage({ toast }) {
         
         await Promise.all(docsToApprove.map(d => adminService.processKYC(d.id, "approved")));
         
-        setSubmissions(p => p.map(u => {
-          if (u.id !== userId) return u;
-          return { ...u, kyc: "verified", kycReviewedAt: new Date().toISOString(), kycDocs: u.kycDocs?.map(d => d.status !== "missing" ? { ...d, status: "verified" } : d) || [] };
-        }));
+        updateSubmissionDocs(userId, (docs) => docs.map(d => d.status !== "missing" ? { ...d, status: "verified", rejectReason: null } : d));
         toast("KYC Approved", "User fully verified ✓");
     } catch(err) { toast("Error", "Could not process KYC", "error"); }
     setModal(false);
@@ -981,10 +999,7 @@ function KYCPage({ toast }) {
         
         await Promise.all(docsToReject.map(d => adminService.processKYC(d.id, "rejected", "KYC Rejected by admin")));
         
-        setSubmissions(p => p.map(u => {
-          if (u.id !== userId) return u;
-          return { ...u, kyc: "rejected", kycReviewedAt: new Date().toISOString(), kycDocs: u.kycDocs?.map(d => ({ ...d, status: "rejected", rejectReason: "KYC Rejected by admin" })) };
-        }));
+        updateSubmissionDocs(userId, (docs) => docs.map(d => ({ ...d, status: "rejected", rejectReason: "KYC Rejected by admin" })));
         toast("KYC Rejected", "User notified", "error");
     } catch(err) { toast("Error", "Could not process KYC", "error"); }
     setModal(false);
@@ -997,7 +1012,7 @@ function KYCPage({ toast }) {
         
         await Promise.all(docsToReset.map(d => adminService.processKYC(d.id, "pending", "Resubmission requested")));
         
-        setSubmissions(p => p.map(u => u.id !== userId ? u : { ...u, kyc: "pending", kycReviewedAt: null, kycDocs: u.kycDocs.map(d => ({ ...d, status: "pending" })) }));
+        updateSubmissionDocs(userId, (docs) => docs.map(d => ({ ...d, status: "pending", rejectReason: null })));
         toast("Resubmission Requested", "User will be notified");
     } catch(err) { toast("Error", "Could not process KYC", "error"); }
     setModal(false);

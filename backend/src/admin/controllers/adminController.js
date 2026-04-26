@@ -618,6 +618,7 @@ const getKyCSubmissions = async (req, res) => {
         const submissions = await KyCSubmission.findAll(status);
 
         const grouped = submissions.reduce((acc, submission) => {
+            const normalizedStatus = submission.status === 'approved' ? 'verified' : submission.status;
             if (!acc[submission.user_id]) {
                 acc[submission.user_id] = {
                     id: submission.user_id,
@@ -635,7 +636,7 @@ const getKyCSubmissions = async (req, res) => {
                 type: submission.document_type || 'passport',
                 label: (submission.document_type || 'Document').charAt(0).toUpperCase() + (submission.document_type || 'Document').slice(1),
                 file: normalizeStoredUploadPath(submission.file_path),
-                status: submission.status,
+                status: normalizedStatus,
                 uploadedAt: submission.created_at,
                 rejectReason: submission.rejection_reason
             });
