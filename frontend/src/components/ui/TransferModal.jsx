@@ -1,25 +1,34 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { FaExchangeAlt, FaTimes, FaWallet, FaArrowRight } from 'react-icons/fa';
 
-const TransferModal = ({ show, onClose, onTransfer, walletData }) => {
+const TransferModal = ({ show, onClose, onTransfer, walletData, accounts = [] }) => {
   const [amount, setAmount] = useState('');
-  const [fromWallet, setFromWallet] = useState('Main Wallet');
-  const [toWallet, setToWallet] = useState('Trading Wallet');
+  const [fromAccount, setFromAccount] = useState('');
+  const [toAccount, setToAccount] = useState('');
+
+  useEffect(() => {
+    if (accounts.length > 0) {
+      if (!fromAccount) setFromAccount(accounts[0].id);
+      if (!toAccount && accounts.length > 1) setToAccount(accounts[1].id);
+      else if (!toAccount) setToAccount(accounts[0].id);
+    }
+  }, [accounts, show]);
 
   if (!show) return null;
 
   const handleTransfer = (e) => {
     e.preventDefault();
     if (!amount || parseFloat(amount) <= 0) return;
-    onTransfer(amount, fromWallet, toWallet);
+    if (fromAccount === toAccount) return;
+    onTransfer(amount, fromAccount, toAccount);
     setAmount('');
     onClose();
   };
 
   const swapWallets = () => {
-    const temp = fromWallet;
-    setFromWallet(toWallet);
-    setToWallet(temp);
+    const temp = fromAccount;
+    setFromAccount(toAccount);
+    setToAccount(temp);
   };
 
   return (
@@ -36,8 +45,18 @@ const TransferModal = ({ show, onClose, onTransfer, walletData }) => {
         <form onSubmit={handleTransfer} className="p-8 space-y-6">
           <div className="flex items-center justify-between gap-4">
             <div className="flex-1 p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700">
-              <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">From</p>
-              <p className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-tight">{fromWallet}</p>
+              <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">From Account</p>
+              <select 
+                value={fromAccount} 
+                onChange={(e) => setFromAccount(e.target.value)}
+                className="w-full bg-transparent text-xs font-black text-slate-900 dark:text-white uppercase tracking-tight focus:outline-none"
+              >
+                {accounts.map(acc => (
+                  <option key={`from-${acc.id}`} value={acc.id} className="text-slate-900">
+                    {(acc.account_type || acc.type || 'Account').toUpperCase()} (${parseFloat(acc.balance).toLocaleString()})
+                  </option>
+                ))}
+              </select>
             </div>
             <button 
               type="button"
@@ -47,8 +66,18 @@ const TransferModal = ({ show, onClose, onTransfer, walletData }) => {
               <FaExchangeAlt size={12} />
             </button>
             <div className="flex-1 p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700">
-              <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">To</p>
-              <p className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-tight">{toWallet}</p>
+              <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">To Account</p>
+              <select 
+                value={toAccount} 
+                onChange={(e) => setToAccount(e.target.value)}
+                className="w-full bg-transparent text-xs font-black text-slate-900 dark:text-white uppercase tracking-tight focus:outline-none"
+              >
+                {accounts.map(acc => (
+                  <option key={`to-${acc.id}`} value={acc.id} className="text-slate-900">
+                    {(acc.account_type || acc.type || 'Account').toUpperCase()}
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
 
@@ -66,10 +95,15 @@ const TransferModal = ({ show, onClose, onTransfer, walletData }) => {
               />
             </div>
             <div className="mt-2 flex justify-between px-2">
-              <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider italic">Available: ${walletData.mainWallet?.toLocaleString()}</span>
+              <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider italic">
+                Available: ${accounts.find(a => a.id == fromAccount)?.balance ? parseFloat(accounts.find(a => a.id == fromAccount)?.balance).toLocaleString() : '0.00'}
+              </span>
               <button 
                 type="button"
-                onClick={() => setAmount(walletData.mainWallet)}
+                onClick={() => {
+                  const maxAmt = accounts.find(a => a.id == fromAccount)?.balance || 0;
+                  setAmount(maxAmt);
+                }}
                 className="text-[9px] font-black text-gold-500 uppercase tracking-wider hover:underline"
               >
                 Max Amount

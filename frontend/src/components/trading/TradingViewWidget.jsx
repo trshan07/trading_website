@@ -270,75 +270,7 @@ const TradingViewWidget = ({
           </div>
         )}
 
-        {symbolPositions.length > 0 && (
-          <div className="pointer-events-none absolute bottom-0 left-0 top-0 z-10 flex flex-col justify-center space-y-1.5 pl-2">
-            {symbolPositions.map((position, index) => {
-              const isBuy = (position.side || position.type || '').toUpperCase() === 'BUY';
 
-              return (
-                <div
-                  key={position.id || index}
-                  className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 shadow-lg backdrop-blur-sm ${
-                    isBuy
-                      ? 'border-emerald-500/50 bg-emerald-500/20 text-emerald-400'
-                      : 'border-rose-500/50 bg-rose-500/20 text-rose-400'
-                  }`}
-                >
-                  <span className={`text-[14px] font-black leading-none ${isBuy ? 'text-emerald-400' : 'text-rose-400'}`}>
-                    {isBuy ? '^' : 'v'}
-                  </span>
-                  <div className="flex flex-col">
-                    <span
-                      className={`text-[8px] font-black uppercase tracking-widest ${
-                        isBuy ? 'text-emerald-400' : 'text-rose-400'
-                      }`}
-                    >
-                      {isBuy ? 'BUY' : 'SELL'}
-                    </span>
-                    <span className="text-[9px] font-black tabular-nums text-white">
-                      @ ${Number(position.entryPrice || position.entry_price || 0).toLocaleString()}
-                    </span>
-                    {position.quantity && (
-                      <span className="text-[7px] font-bold text-slate-400">{position.quantity} units</span>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-
-        {activeIntent && (
-          <div className="pointer-events-none absolute right-8 top-8 z-10 animate-in fade-in zoom-in duration-300">
-            <div
-              className={`flex items-center space-x-3 rounded-2xl border px-6 py-3 shadow-2xl backdrop-blur-md ${
-                activeIntent.side === 'buy'
-                  ? 'border-emerald-500/30 bg-emerald-500/10'
-                  : 'border-rose-500/30 bg-rose-500/10'
-              }`}
-            >
-              <div
-                className={`h-2 w-2 rounded-full animate-ping ${
-                  activeIntent.side === 'buy' ? 'bg-emerald-500' : 'bg-rose-500'
-                }`}
-              />
-              <div className="flex flex-col">
-                <span
-                  className={`text-[10px] font-black uppercase tracking-[0.2em] ${
-                    activeIntent.side === 'buy' ? 'text-emerald-500' : 'text-rose-500'
-                  }`}
-                >
-                  New {activeIntent.side} Order
-                </span>
-                <span className="mt-0.5 text-[8px] font-bold uppercase tracking-widest text-slate-500">
-                  {activeIntent.type === 'market'
-                    ? 'Market Execution'
-                    : `Pending @ ${activeIntent.price || '...'}`}
-                </span>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
 
       <div

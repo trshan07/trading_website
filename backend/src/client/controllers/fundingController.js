@@ -198,13 +198,15 @@ const transfer = async (req, res) => {
         const fromAccount = accounts.find(a => a.id == fromAccountId);
         const toAccount = accounts.find(a => a.id == toAccountId);
 
-        if (!fromAccount || fromAccount.balance < amount) {
+        const parsedAmount = parseFloat(amount);
+        
+        if (!fromAccount || parseFloat(fromAccount.balance || 0) < parsedAmount) {
             return res.status(400).json({ success: false, message: 'Insufficient funds for transfer' });
         }
 
         // Processing transfer (atomic operation would be better)
-        const newFromBalance = parseFloat(fromAccount.balance) - parseFloat(amount);
-        const newToBalance = parseFloat(toAccount.balance) + parseFloat(amount);
+        const newFromBalance = parseFloat(fromAccount.balance || 0) - parsedAmount;
+        const newToBalance = parseFloat(toAccount.balance || 0) + parsedAmount;
 
         await Account.updateBalance(fromAccountId, newFromBalance);
         await Account.updateBalance(toAccountId, newToBalance);
@@ -213,8 +215,8 @@ const transfer = async (req, res) => {
         await Transaction.create(req.user.id, {
             account_id: fromAccountId,
             type: 'Transfer',
-            amount: -parseFloat(amount),
-            balance_before: parseFloat(fromAccount.balance),
+            amount: -parsedAmount,
+            balance_before: parseFloat(fromAccount.balance || 0),
             balance_after: newFromBalance,
             description: `Transfer to ${toAccount.account_type} account`
         });
@@ -222,16 +224,16 @@ const transfer = async (req, res) => {
         await Transaction.create(req.user.id, {
             account_id: toAccountId,
             type: 'Transfer',
-            amount: parseFloat(amount),
-            balance_before: parseFloat(toAccount.balance),
+            amount: parsedAmount,
+            balance_before: parseFloat(toAccount.balance || 0),
             balance_after: newToBalance,
             description: `Transfer from ${fromAccount.account_type} account`
         });
 
         res.json({ success: true, message: 'Transfer completed successfully' });
 
-        await createActivityLog(req.user.id, 'FUNDING', `Internal Transfer: $${amount}`);
-        await createNotification(req.user.id, 'success', `Successfully transferred $${amount} between accounts.`);
+        await createActivityLog(req.user.id, 'FUNDING', `Internal Transfer: $${parsedAmount}`);
+        await createNotification(req.user.id, 'success', `Successfully transferred $${parsedAmount} between accounts.`);
     } catch (error) {
         res.status(500).json({ success: false, message: 'Transfer failed' });
     }

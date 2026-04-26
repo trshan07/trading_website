@@ -85,10 +85,10 @@ const RealTimeChart = ({
   };
 
   // --- Fetch Historical Kline Data via Backend Proxy ---
-  const fetchData = useCallback(async (sym, iv) => {
+  const fetchData = useCallback(async (sym, iv, initPrice) => {
     try {
       setIsLoading(true);
-      const res = await infraService.getMarketHistory(sym, iv, initialPrice);
+      const res = await infraService.getMarketHistory(sym, iv, initPrice);
       
       if (!res.success || !res.data) throw new Error('Proxy error');
 
@@ -107,13 +107,13 @@ const RealTimeChart = ({
     } catch (err) {
       // Failover is handled by proxy, but we handle it here too for maximum safety
       return {
-        candles: generateMockData(initialPrice),
+        candles: generateMockData(initPrice),
         isMock: true
       };
     } finally {
       setIsLoading(false);
     }
-  }, [initialPrice]);
+  }, []); // initialPrice removed from dependencies to prevent re-creating this function on every price update
 
   // --- Build / Rebuild chart ---
   useEffect(() => {
@@ -209,7 +209,7 @@ const RealTimeChart = ({
     seriesRef.current = candles;
 
     // Load historical data then open WS
-    fetchData(binanceSymbol, interval).then(result => {
+    fetchData(binanceSymbol, interval, initialPrice).then(result => {
       // strict check: if not active OR chart/series already nulled, bail out.
       if (!active || !seriesRef.current || !chartRef.current) return;
 
@@ -288,6 +288,9 @@ const RealTimeChart = ({
                 }
               }
               setLastPrice(tick.close);
+              window.dispatchEvent(new CustomEvent('active_price_update', { 
+                detail: { symbol, price: tick.close } 
+              }));
               setLiveStatus('live');
             } catch (e) {}
           };
@@ -380,7 +383,7 @@ const RealTimeChart = ({
       }
       candleTimesRef.current = [];
     };
-  }, [symbol, interval, isDark, initialPrice, fetchData, isBinanceWsCandidate]);
+  }, [symbol, interval, isDark, fetchData, isBinanceWsCandidate]); // initialPrice removed from dependencies
 
   // --- Plot Buy/Sell markers when positions change ---
   useEffect(() => {

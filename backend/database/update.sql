@@ -70,17 +70,25 @@ ADD COLUMN IF NOT EXISTS country VARCHAR(100);
 ALTER TABLE admins
 ADD COLUMN IF NOT EXISTS password_hash VARCHAR(255);
 
-UPDATE admins
-SET first_name = COALESCE(first_name, NULLIF(name, ''))
-WHERE first_name IS NULL AND name IS NOT NULL;
+DO $$ 
+BEGIN
+    -- Migrate admins data if legacy columns exist
+    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='admins' AND column_name='name') THEN
+        UPDATE admins
+        SET first_name = COALESCE(first_name, NULLIF(name, ''))
+        WHERE first_name IS NULL;
+    END IF;
+
+    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='admins' AND column_name='password') THEN
+        UPDATE admins
+        SET password_hash = COALESCE(password_hash, password)
+        WHERE password_hash IS NULL;
+    END IF;
+END $$;
 
 UPDATE admins
 SET last_name = COALESCE(last_name, '')
 WHERE last_name IS NULL;
-
-UPDATE admins
-SET password_hash = COALESCE(password_hash, password)
-WHERE password_hash IS NULL AND password IS NOT NULL;
 
 ALTER TABLE positions
 ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
@@ -130,37 +138,66 @@ ADD COLUMN IF NOT EXISTS default_change NUMERIC(18, 2);
 ALTER TABLE instruments
 ADD COLUMN IF NOT EXISTS default_volume VARCHAR(50);
 
-UPDATE positions
-SET created_at = COALESCE(created_at, opened_at, CURRENT_TIMESTAMP)
-WHERE created_at IS NULL;
+DO $$ 
+BEGIN
+    -- Migrate positions data if legacy columns exist
+    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='positions' AND column_name='opened_at') THEN
+        UPDATE positions
+        SET created_at = COALESCE(created_at, opened_at, CURRENT_TIMESTAMP)
+        WHERE created_at IS NULL;
+        
+        UPDATE positions
+        SET updated_at = COALESCE(updated_at, created_at, opened_at, CURRENT_TIMESTAMP)
+        WHERE updated_at IS NULL;
+    ELSE
+        UPDATE positions
+        SET created_at = COALESCE(created_at, CURRENT_TIMESTAMP)
+        WHERE created_at IS NULL;
+        
+        UPDATE positions
+        SET updated_at = COALESCE(updated_at, created_at, CURRENT_TIMESTAMP)
+        WHERE updated_at IS NULL;
+    END IF;
 
-UPDATE positions
-SET updated_at = COALESCE(updated_at, created_at, opened_at, CURRENT_TIMESTAMP)
-WHERE updated_at IS NULL;
+    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='positions' AND column_name='type') THEN
+        UPDATE positions
+        SET side = COALESCE(side, type)
+        WHERE side IS NULL;
+    END IF;
 
-UPDATE positions
-SET side = COALESCE(side, type)
-WHERE side IS NULL AND type IS NOT NULL;
+    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='positions' AND column_name='volume') THEN
+        UPDATE positions
+        SET quantity = COALESCE(quantity, volume)
+        WHERE quantity IS NULL;
+    END IF;
 
-UPDATE positions
-SET quantity = COALESCE(quantity, volume)
-WHERE quantity IS NULL AND volume IS NOT NULL;
+    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='positions' AND column_name='open_price') THEN
+        UPDATE positions
+        SET entry_price = COALESCE(entry_price, open_price)
+        WHERE entry_price IS NULL;
+    END IF;
 
-UPDATE positions
-SET entry_price = COALESCE(entry_price, open_price)
-WHERE entry_price IS NULL AND open_price IS NOT NULL;
-
-UPDATE positions
-SET pnl = COALESCE(pnl, profit_loss, 0)
-WHERE pnl IS NULL;
+    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='positions' AND column_name='profit_loss') THEN
+        UPDATE positions
+        SET pnl = COALESCE(pnl, profit_loss, 0)
+        WHERE pnl IS NULL;
+    ELSE
+        UPDATE positions
+        SET pnl = COALESCE(pnl, 0)
+        WHERE pnl IS NULL;
+    END IF;
+    
+    -- Migrate instruments data if legacy column exists
+    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='instruments' AND column_name='category') THEN
+        UPDATE instruments
+        SET category_name = COALESCE(category_name, category)
+        WHERE category_name IS NULL;
+    END IF;
+END $$;
 
 UPDATE positions
 SET amount = COALESCE(amount, quantity * entry_price, 0)
 WHERE amount IS NULL;
-
-UPDATE instruments
-SET category_name = COALESCE(category_name, category)
-WHERE category_name IS NULL AND category IS NOT NULL;
 
 UPDATE instruments
 SET default_price = COALESCE(default_price, 0)

@@ -8,6 +8,7 @@ import { AuthContext } from '../context/AuthContext';
 import { toast } from 'react-hot-toast';
 import { MARKET_INSTRUMENTS } from '../constants/marketData';
 import websocketService from '../services/websocketService';
+import { calculateSpreads } from '../utils/spreadCalculator';
 import { maskAccountNumber } from '../components/client/banking/utils';
 import { getUploadUrl } from '../utils/uploadUrl';
 
@@ -729,6 +730,34 @@ export const useDashboardData = (accountType = 'demo') => {
     }
   };
 
+  // --- Chart Sync Integration ---
+  useEffect(() => {
+    const handleChartUpdate = (e) => {
+      const { symbol, price } = e.detail;
+      setMarketData(prev => {
+        if (!prev[symbol]) return prev;
+        if (prev[symbol].price === price) return prev;
+        
+        // Use the centralized spread calculator to get perfectly centered Bid/Ask
+        const { bidPrice, askPrice } = calculateSpreads(symbol, price);
+
+        return {
+          ...prev,
+          [symbol]: {
+            ...prev[symbol],
+            price: price,
+            bid: parseFloat(bidPrice),
+            ask: parseFloat(askPrice),
+            lastDir: price > prev[symbol].price ? 'up' : price < prev[symbol].price ? 'down' : 'none'
+          }
+        };
+      });
+    };
+
+    window.addEventListener('active_price_update', handleChartUpdate);
+    return () => window.removeEventListener('active_price_update', handleChartUpdate);
+  }, []);
+
   // --- WebSocket Price Integration (Kept as is for UX) ---
   useEffect(() => {
     const handleLiveData = (liveTickers) => {
@@ -744,26 +773,13 @@ export const useDashboardData = (accountType = 'demo') => {
               newData[symbol] = {
                 ...newData[symbol],
                 price: newPrice,
+                bid: liveTickers[symbol].bid,
+                ask: liveTickers[symbol].ask,
+                change: liveTickers[symbol].change,
+                volume: liveTickers[symbol].volume,
                 lastDir: newPrice > oldPrice ? 'up' : newPrice < oldPrice ? 'down' : 'none',
               };
               updated = true;
-            }
-          }
-        });
-
-        // Simulate subtle movement for non-live assets
-        Object.keys(newData).forEach(key => {
-          if (!liveTickers[key]) {
-            if (Math.random() > 0.8) { 
-               const oldPrice = newData[key].price;
-               const movement = 1 + (Math.random() - 0.5) * 0.0006;
-               const newPrice = oldPrice * movement;
-               newData[key] = {
-                 ...newData[key],
-                 price: newPrice,
-                 lastDir: newPrice > oldPrice ? 'up' : newPrice < oldPrice ? 'down' : 'none',
-               };
-               updated = true;
             }
           }
         });

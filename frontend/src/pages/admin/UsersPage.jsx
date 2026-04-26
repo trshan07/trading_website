@@ -482,8 +482,10 @@ const UsersPage = () => {
                   initialValue="add"
                 >
                   <Select size="large">
-                    <Option value="add">Add Funds</Option>
-                    <Option value="subtract">Subtract Funds</Option>
+                    <Option value="add">Add Cash Balance</Option>
+                    <Option value="subtract">Subtract Cash Balance</Option>
+                    <Option value="credit">Add Administrative Credit</Option>
+                    <Option value="debit">Remove Administrative Credit</Option>
                   </Select>
                 </Form.Item>
                 

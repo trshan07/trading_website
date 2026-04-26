@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useContext, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { toast } from 'react-hot-toast';
 
 import AccountStatementModal from '../../components/ui/AccountStatementModal';
 
@@ -24,6 +25,7 @@ import QuickCategories from '../../components/client/QuickCategories';
 import MobileSidebar from '../../components/client/MobileSidebar';
 import TransferModal from '../../components/ui/TransferModal';
 import UploadDocumentModal from '../../components/ui/UploadDocumentModal';
+import MobileBottomNav from '../../components/client/MobileBottomNav';
 
 const DashboardPage = () => {
   const { user, logout, loading: authLoading, selectedAccountType, switchAccountType } = useContext(AuthContext);
@@ -174,13 +176,6 @@ const DashboardPage = () => {
   const accountCredit = parseFloat(activeAccount?.credit) || 0;
   const accountTotalFunds = accountBalance + accountCredit;
 
-  const walletData = {
-    mainWallet: accountBalance,
-    tradingWallet: 0, // Placeholder if you have separate trading/main wallets
-    totalBalance: accountTotalFunds,
-    equity: accountTotalFunds,
-  };
-
 
   // Dynamic Portfolio Data
   const [portfolio, setPortfolio] = useState({
@@ -193,9 +188,9 @@ const DashboardPage = () => {
     dailyPnLPercent: 0,
     weeklyPnL: 0,
     monthlyPnL: 0,
-    yearlyPnL: 0,
-    positionsCount: 0
   });
+
+
 
   // Live Portfolio Calculation (Real-time P&L)
   const livePortfolio = useMemo(() => {
@@ -226,8 +221,9 @@ const DashboardPage = () => {
     
     return {
       ...portfolio,
-      totalBalance: totalFunds,
-      availableBalance: totalFunds - totalMargin,
+      totalBalance: totalFunds,       // Balance = cash + credit (what admin gave)
+      cashBalance: balance,           // raw cash only (for withdrawal checks)
+      availableBalance: equity - totalMargin,
       freeMargin: equity - totalMargin,
       equity: equity,
       margin: totalMargin,
@@ -238,6 +234,16 @@ const DashboardPage = () => {
       leverage: activeAccount.leverage || 100
     };
   }, [user, activeAccount, positions, marketData, portfolio]);
+
+  const walletData = useMemo(() => ({
+    mainWallet: livePortfolio.cashBalance,       // cash only — for withdrawal limit checks
+    tradingWallet: livePortfolio.margin,         // show used margin as trading wallet
+    totalBalance: livePortfolio.totalBalance,    // total funds including credit
+    equity: livePortfolio.equity,
+    bonusWallet: livePortfolio.credit,           // show credit as bonus wallet
+    pendingWithdrawals: 0,
+    pendingDeposits: 0,
+  }), [livePortfolio]);
 
   const handleLogout = () => {
     logout();
@@ -315,7 +321,7 @@ const DashboardPage = () => {
 
         {/* Scrollable Region */}
         <div className="flex-1 overflow-y-auto relative custom-scrollbar bg-[var(--bg-primary)]">
-          <main className="px-2 sm:px-6 md:px-10 py-4 md:py-10 max-w-[1600px] mx-auto w-full">
+          <main className="px-2 sm:px-6 md:px-10 py-4 md:py-10 pb-24 lg:pb-10 max-w-[1600px] mx-auto w-full">
             {/* Demo Mode Banner */}
             {isDemo && (
               <div className="mb-6 sm:mb-8 p-4 sm:p-6 bg-amber-500/10 border border-amber-500/20 rounded-[2rem] flex flex-col md:flex-row items-center justify-between gap-6 transition-all hover:bg-amber-500/20">
@@ -331,7 +337,15 @@ const DashboardPage = () => {
                   </div>
                 </div>
                 <button 
-                  onClick={() => setActiveMainTab('settings')} 
+                  onClick={() => {
+                    const hasLiveAccount = user?.accounts?.some(acc => (acc.account_type || acc.type || '').toLowerCase() === 'live');
+                    if (hasLiveAccount) {
+                      switchAccountType('live');
+                    } else {
+                      setActiveMainTab('documents');
+                      toast.info('Please complete your verification to unlock a Real Account.');
+                    }
+                  }} 
                   className="w-full md:w-auto px-8 py-4 bg-white dark:bg-slate-800 text-slate-900 dark:text-white rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] hover:scale-105 transition-transform border border-slate-100 dark:border-slate-700 shadow-xl"
                 >
                   Apply for Real Account
@@ -448,6 +462,7 @@ const DashboardPage = () => {
             onClose={() => setShowTransferModal(false)}
             onTransfer={handleTransfer}
             walletData={walletData}
+            accounts={user?.accounts || []}
           />
 
           <UploadDocumentModal
@@ -457,6 +472,15 @@ const DashboardPage = () => {
           />
 
         </div>
+
+        {/* Mobile Bottom Navigation */}
+        <MobileBottomNav 
+          activeTab={activeMainTab}
+          onTabChange={(tab) => {
+            navigate(`/dashboard/${tab}`);
+            setShowMobileMenu(false);
+          }}
+        />
       </div>
 
       <style>{`

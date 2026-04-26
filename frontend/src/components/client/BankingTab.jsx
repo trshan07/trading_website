@@ -9,7 +9,7 @@ import {
   FaPaypal, FaBitcoin, FaArrowUp, FaArrowDown,
   FaShieldAlt, FaCcVisa, FaCcMastercard, FaCcAmex,
   FaCcDiscover, FaCalendarAlt, FaUser, FaBuilding,
-  FaIdCard, FaHome, FaPhone, FaEnvelope, FaBars
+  FaIdCard, FaHome, FaPhone, FaEnvelope, FaBars, FaUpload
 } from 'react-icons/fa';
 import {
   BANK_ACCOUNT_TYPES,
@@ -486,58 +486,22 @@ const BankingTab = ({
 
       {/* Banking Navigation - Responsive */}
       <div className="bg-white dark:bg-slate-900 rounded-[2rem] border border-slate-100 dark:border-slate-800 p-3 shadow-xl shadow-slate-200/50 dark:shadow-black/20 transition-colors duration-300">
-        {isMobile ? (
-          <div className="relative p-2">
+        <div className="flex overflow-x-auto scrollbar-hide p-1 space-x-2 lg:space-x-3">
+          {BANKING_TABS.map((item) => (
             <button
-              onClick={() => setShowMobileMenu(!showMobileMenu)}
-              className="w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 rounded-2xl text-slate-900 dark:text-white font-black border border-slate-100 dark:border-slate-700 flex items-center justify-between uppercase tracking-widest text-[11px]"
+              key={item.id}
+              onClick={() => setActiveBankingTab(item.id)}
+              className={`flex-shrink-0 lg:flex-1 px-4 lg:px-6 py-4 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all duration-300 flex items-center justify-center space-x-3 whitespace-nowrap ${
+                activeBankingTab === item.id 
+                  ? 'bg-slate-900 dark:bg-gold-500 text-white dark:text-slate-900 shadow-xl' 
+                  : 'text-slate-400 dark:text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-800'
+              }`}
             >
-              <span className="flex items-center">
-                {BANKING_TABS.find(tab => tab.id === activeBankingTab)?.icon && 
-                  React.createElement(BANKING_TABS.find(tab => tab.id === activeBankingTab).icon, { className: "mr-4 text-gold-500" })}
-                {BANKING_TABS.find(tab => tab.id === activeBankingTab)?.label}
-              </span>
-              <FaBars className="text-slate-400 dark:text-slate-500" />
+              <item.icon size={12} className={activeBankingTab === item.id ? 'text-gold-500 dark:text-slate-900' : 'text-slate-300 dark:text-slate-700'} />
+              <span>{item.label}</span>
             </button>
-            
-            {showMobileMenu && (
-              <div className="absolute top-full left-0 right-0 mx-2 mt-3 bg-white dark:bg-slate-900 rounded-[2rem] border border-slate-100 dark:border-slate-800 shadow-2xl z-20 overflow-hidden ring-1 ring-slate-100 dark:ring-slate-800 max-h-[60vh] overflow-y-auto">
-                {BANKING_TABS.map((item) => (
-                  <button
-                    key={item.id}
-                    onClick={() => {
-                      setActiveBankingTab(item.id);
-                      setShowMobileMenu(false);
-                    }}
-                    className={`w-full px-8 py-5 text-left flex items-center space-x-4 transition-all ${
-                      activeBankingTab === item.id ? 'bg-slate-900 dark:bg-gold-500 text-white dark:text-slate-900 font-black' : 'text-slate-400 dark:text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
-                    }`}
-                  >
-                    <item.icon size={16} className={activeBankingTab === item.id ? 'text-gold-500 dark:text-slate-900' : 'text-slate-300 dark:text-slate-700'} />
-                    <span className="text-[11px] uppercase tracking-widest">{item.label}</span>
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-        ) : (
-          <div className="flex space-x-3 p-1">
-            {BANKING_TABS.map((item) => (
-              <button
-                key={item.id}
-                onClick={() => setActiveBankingTab(item.id)}
-                className={`flex-1 px-6 py-4 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all duration-300 flex items-center justify-center space-x-3 whitespace-nowrap ${
-                  activeBankingTab === item.id 
-                    ? 'bg-slate-900 dark:bg-gold-500 text-white dark:text-slate-900 shadow-2xl shadow-slate-900/20 dark:shadow-gold-500/10' 
-                    : 'text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'
-                }`}
-              >
-                <item.icon size={12} className={activeBankingTab === item.id ? 'text-gold-500 dark:text-slate-900' : 'text-slate-300 dark:text-slate-700'} />
-                <span>{item.label}</span>
-              </button>
-            ))}
-          </div>
-        )}
+          ))}
+        </div>
       </div>
 
       {/* Banking Content */}
@@ -555,7 +519,7 @@ const BankingTab = ({
               <div>
                 <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">Total Net Worth</p>
                 <p className="text-3xl sm:text-4xl font-black text-white italic tracking-tighter">
-                  ${walletData.mainWallet?.toLocaleString() || '0'}
+                  ${walletData.totalBalance?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}
                 </p>
               </div>
               <div className="grid grid-cols-1 xs:grid-cols-2 gap-4">

@@ -897,6 +897,7 @@ function KYCPage({ toast }) {
   const [modal, setModal] = useState(false);
   const [rejectModal, setRejectModal] = useState(null);
   const [rejectReason, setRejectReason] = useState("");
+  const [rejectNotes, setRejectNotes] = useState("");
 
   const deriveKycState = (user) => {
     const docs = user?.kycDocs || [];
@@ -953,17 +954,18 @@ function KYCPage({ toast }) {
     } catch(err) { toast("Error", "Failed to verify document", "error"); }
   };
 
-  const openReject = (doc) => { setRejectModal(doc); setRejectReason(""); };
+  const openReject = (doc) => { setRejectModal(doc); setRejectReason(""); setRejectNotes(""); };
 
   const rejectDoc = async () => {
     if (!rejectReason.trim()) return toast("Reason required", "Please enter a rejection reason", "error");
     try {
         const userId = selectedUser.id;
         const docId = rejectModal.id;
-        await adminService.processKYC(docId, "rejected", rejectReason);
-        updateSubmissionDocs(userId, (docs) => docs.map(d => d.id === docId ? { ...d, status: "rejected", rejectReason } : d));
+        const fullReason = [rejectReason, rejectNotes].filter(Boolean).join(": ");
+        await adminService.processKYC(docId, "rejected", fullReason || "Rejected by admin");
+        updateSubmissionDocs(userId, (docs) => docs.map(d => d.id === docId ? { ...d, status: "rejected", rejectReason: fullReason || "Rejected by admin" } : d));
         setRejectModal(null);
-        toast("Document Rejected", rejectReason, "error");
+        toast("Document Rejected", fullReason || "Rejected by admin", "error");
     } catch(err) { toast("Error", "Failed to reject document", "error"); }
   };
 
@@ -1178,7 +1180,7 @@ function KYCPage({ toast }) {
       <Modal open={!!rejectModal} onClose={() => setRejectModal(null)} title="Reject Document" subtitle={rejectModal?.label} width="420px">
         <Sel label="Rejection Reason" value={rejectReason} onChange={e => setRejectReason(e.target.value)}
           options={["","Document expired","Document not legible","Name does not match","Address does not match","Face not clearly visible","Tampered document","Wrong document type"].map(v => ({ value: v, label: v || "Select reason..." }))} />
-        <Textarea label="Additional Notes (optional)" value={rejectReason.startsWith("Select") ? "" : ""} onChange={() => {}} placeholder="Add any specific notes..." rows={2} />
+        <Textarea label="Additional Notes (optional)" value={rejectNotes} onChange={e => setRejectNotes(e.target.value)} placeholder="Add any specific notes..." rows={2} />
         <div style={{ display: "flex", gap: "8px", justifyContent: "flex-end" }}>
           <Btn variant="secondary" onClick={() => setRejectModal(null)}>Cancel</Btn>
           <Btn danger onClick={rejectDoc}>Reject Document</Btn>

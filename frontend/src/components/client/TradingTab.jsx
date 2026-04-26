@@ -34,7 +34,16 @@ const TradingTab = ({
   const [activeMobileView, setActiveMobileView] = useState('chart'); // 'markets', 'chart', 'trade', 'portfolio'
   const [activeOrderIntent, setActiveOrderIntent] = useState({ side: 'buy', type: 'market' });
   const [chartMode, setChartMode] = useState('advanced'); // 'advanced' | 'execution'
+  const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1200);
   const { theme } = useTheme();
+
+  React.useEffect(() => {
+    const handleResize = () => setWindowWidth(window.innerWidth);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  const isMobile = windowWidth < 1024;
   const executionChartSupported = /USDT$|BTC$|BUSD$/i.test(activeSymbol || '');
   const selectedInstrument = instruments.find((instrument) => instrument.symbol === activeSymbol);
 
@@ -185,6 +194,9 @@ const TradingTab = ({
             marketData={marketData}
             onIntentChange={useCallback((intent) => setActiveOrderIntent(intent), [])}
             maxLeverage={maxLeverage}
+            positions={positions}
+            orders={orders}
+            history={transactions}
           />
         </div>
       </div>
@@ -228,7 +240,7 @@ const TradingTab = ({
               <PositionsTable 
                 positions={positions}
                 onClose={onClosePosition}
-                compact={window.innerWidth < 1024}
+                compact={isMobile}
               />
             ) : (
               <div className="text-center py-10">
@@ -241,7 +253,7 @@ const TradingTab = ({
               <OpenOrders 
                 orders={orders}
                 onCancel={onCancelOrder}
-                compact={window.innerWidth < 1024}
+                compact={isMobile}
               />
             ) : (
               <div className="text-center py-10">

@@ -90,13 +90,13 @@ class WebSocketService {
       if (this.listeners.size === 0 || !this.canConnect()) return;
 
       this.isConnecting = true;
-      const ws = new WebSocket('wss://stream.binance.com:9443/ws/!miniTicker@arr');
+      const ws = new WebSocket('wss://stream.binance.com:9443/ws/!ticker@arr');
       this.ws = ws;
 
       ws.onopen = () => {
         if (this.ws !== ws) { ws.close(); return; } // Stale connection guard
         if (!this.hasLoggedSuccessfulConnect) {
-          console.log('[WebSocketService] Connected to Binance Live Stream');
+          console.log('[WebSocketService] Connected to Binance Full Ticker Stream');
           this.hasLoggedSuccessfulConnect = true;
         }
         this.isConnected = true;
@@ -115,6 +115,10 @@ class WebSocketService {
               if (ticker.s && ticker.c) {
                 formattedData[ticker.s] = {
                   price: parseFloat(ticker.c),
+                  bid: parseFloat(ticker.b),
+                  ask: parseFloat(ticker.a),
+                  change: parseFloat(ticker.P),
+                  volume: parseFloat(ticker.v)
                 };
               }
             });

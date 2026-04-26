@@ -110,9 +110,23 @@ const syncUserAccounts = async (userId, { leverage } = {}) => {
 
 const findAdjustableAccount = async (userId, accountId) => {
     if (accountId) {
-        const account = await Account.findById(accountId);
-        if (account && String(account.user_id) === String(userId)) {
-            return account;
+        try {
+            // Try as ID first if it's numeric
+            if (!isNaN(accountId) && !String(accountId).includes('-')) {
+                const account = await Account.findById(accountId);
+                if (account && String(account.user_id) === String(userId)) {
+                    return account;
+                }
+            }
+            
+            // Try as account number (strings like 'RL-XXXXX' or 'DM-XXXXX')
+            const accountByNum = await Account.findByAccountNumber(accountId);
+            if (accountByNum && String(accountByNum.user_id) === String(userId)) {
+                return accountByNum;
+            }
+        } catch (error) {
+            console.error('[AdminController] findAdjustableAccount error:', error.message);
+            // Continue to fallback
         }
     }
 
@@ -433,12 +447,12 @@ const adjustBalance = async (req, res) => {
         const account = await findAdjustableAccount(userId, accountId);
 
         if (!account) {
-            return res.status(404).json({ success: false, message: 'Account not found' });
+            return res.status(404).json({ success: false, message: 'Account not found for this user' });
         }
 
         const requestedAmount = toNumber(amount);
-        if (!requestedAmount) {
-            return res.status(400).json({ success: false, message: 'Amount must be greater than zero' });
+        if (!requestedAmount && requestedAmount !== 0) {
+            return res.status(400).json({ success: false, message: 'Invalid amount' });
         }
 
         const normalizedType = String(type || 'balance').toLowerCase();
@@ -458,21 +472,32 @@ const adjustBalance = async (req, res) => {
             }
 
             const updatedAccount = await Account.updateCredit(account.id, nextCredit);
-            await Transaction.create(userId, {
-                account_id: account.id,
-                type: normalizedType,
-                amount: Math.abs(signedCredit),
-                balance_before: toNumber(account.balance),
-                balance_after: toNumber(account.balance),
-                description: label
-            });
+            
+            try {
+                await Transaction.create(userId, {
+                    account_id: account.id,
+                    type: normalizedType,
+                    amount: Math.abs(signedCredit),
+                    balance_before: toNumber(account.credit),
+                    balance_after: nextCredit,
+                    description: label
+                });
+            } catch (tError) {
+                console.error('[AdminController] Transaction logging failed:', tError.message);
+                // We don't fail the whole request if only transaction logging fails, 
+                // but we should know about it.
+            }
 
-            await AdminLog.create(req.user.id, {
-                action: 'ADJUST_CREDIT',
-                target_id: userId,
-                details: `Adjusted credit by ${signedCredit} for account ${account.account_number}`,
-                ip_address: req.ip
-            });
+            try {
+                await AdminLog.create(req.user.id, {
+                    action: 'ADJUST_CREDIT',
+                    target_id: userId,
+                    details: `Adjusted credit by ${signedCredit} for account ${account.account_number}`,
+                    ip_address: req.ip
+                });
+            } catch (logError) {
+                console.error('[AdminController] AdminLog logging failed:', logError.message);
+            }
 
             await createActivityLog(
                 userId,
@@ -491,33 +516,60 @@ const adjustBalance = async (req, res) => {
             });
         }
 
+        // Balance adjustment (add/subtract)
         const signedAmount = normalizedType === 'subtract' ? -Math.abs(requestedAmount) : Math.abs(requestedAmount);
         const nextBalance = toNumber(account.balance) + signedAmount;
 
         const updatedAccount = await Account.updateBalance(account.id, nextBalance);
-        await Transaction.create(userId, {
-            account_id: account.id,
-            type: signedAmount >= 0 ? 'deposit' : 'withdrawal',
-            amount: Math.abs(signedAmount),
-            balance_before: account.balance,
-            balance_after: nextBalance,
-            description: label
-        });
+        
+        try {
+            await Transaction.create(userId, {
+                account_id: account.id,
+                type: signedAmount >= 0 ? 'deposit' : 'withdrawal',
+                amount: Math.abs(signedAmount),
+                balance_before: toNumber(account.balance),
+                balance_after: nextBalance,
+                description: label
+            });
+        } catch (tError) {
+            console.error('[AdminController] Balance transaction logging failed:', tError.message);
+        }
 
-        await AdminLog.create(req.user.id, {
-            action: 'ADJUST_BALANCE',
-            target_id: userId,
-            details: `Adjusted balance by ${signedAmount} for account ${account.account_number}`,
-            ip_address: req.ip
-        });
+        try {
+            await AdminLog.create(req.user.id, {
+                action: 'ADJUST_BALANCE',
+                target_id: userId,
+                details: `Adjusted balance by ${signedAmount} for account ${account.account_number}`,
+                ip_address: req.ip
+            });
+        } catch (logError) {
+            console.error('[AdminController] AdminLog logging failed:', logError.message);
+        }
+
+        // Also add activity log and notification for balance adjustments (was missing)
+        await createActivityLog(
+            userId,
+            'FUNDING',
+            `Balance ${signedAmount >= 0 ? 'Increased' : 'Decreased'}: $${Math.abs(signedAmount)} (${account.account_type} account)`
+        );
+        
+        await createNotification(
+            userId,
+            signedAmount >= 0 ? 'success' : 'info',
+            `Your ${account.account_type} account balance has been ${signedAmount >= 0 ? 'increased' : 'decreased'} by $${Math.abs(signedAmount)}.`
+        );
 
         res.json({
             success: true,
             data: updatedAccount
         });
     } catch (error) {
-        console.error(error);
-        res.status(500).json({ success: false, message: 'Server error' });
+        console.error('[AdminController] adjustBalance Error:', error);
+        res.status(500).json({ 
+            success: false, 
+            message: 'Internal server error', 
+            error: process.env.NODE_ENV === 'development' ? error.message : undefined 
+        });
     }
 };
 
@@ -674,12 +726,16 @@ const processKYC = async (req, res) => {
             return res.status(404).json({ success: false, message: 'KYC submission not found' });
         }
 
-        await AdminLog.create(req.user.id, {
-            action: 'PROCESS_KYC',
-            target_id: result.user_id,
-            details: `KYC ${status} for user ${result.user_id}. Reason: ${reason || 'N/A'}`,
-            ip_address: req.ip
-        });
+        try {
+            await AdminLog.create(req.user.id, {
+                action: 'PROCESS_KYC',
+                target_id: result.user_id,
+                details: `KYC ${status} for user ${result.user_id}. Reason: ${reason || 'N/A'}`,
+                ip_address: req.ip
+            });
+        } catch (logError) {
+            console.error('AdminLog Error (PROCESS_KYC):', logError);
+        }
 
         res.json({ success: true, data: result });
     } catch (error) {
@@ -825,12 +881,16 @@ const processFunding = async (req, res) => {
             }
         }
 
-        await AdminLog.create(req.user.id, {
-            action: 'PROCESS_FUNDING',
-            target_id: request.user_id,
-            details: `Funding ${request.type} ${status}. Amount: ${request.amount}`,
-            ip_address: req.ip
-        });
+        try {
+            await AdminLog.create(req.user.id, {
+                action: 'PROCESS_FUNDING',
+                target_id: request.user_id,
+                details: `Funding ${request.type} ${status}. Amount: ${request.amount}`,
+                ip_address: req.ip
+            });
+        } catch (logError) {
+            console.error('AdminLog Error (PROCESS_FUNDING):', logError);
+        }
 
         await createActivityLog(
             request.user_id,
@@ -952,12 +1012,16 @@ const cancelTrade = async (req, res) => {
 
         const cancelled = await Trade.cancel(req.params.id);
 
-        await AdminLog.create(req.user.id, {
-            action: 'CANCEL_TRADE',
-            target_id: trade.user_id,
-            details: `Cancelled trade #${trade.id} (${trade.symbol} ${trade.side})`,
-            ip_address: req.ip
-        });
+        try {
+            await AdminLog.create(req.user.id, {
+                action: 'CANCEL_TRADE',
+                target_id: trade.user_id,
+                details: `Cancelled trade #${trade.id} (${trade.symbol} ${trade.side})`,
+                ip_address: req.ip
+            });
+        } catch (logError) {
+            console.error('AdminLog Error (CANCEL_TRADE):', logError);
+        }
 
         res.json({ success: true, data: cancelled });
     } catch (error) {

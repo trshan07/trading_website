@@ -203,13 +203,9 @@ const ResourceExplorerPage = () => {
                                 </div>
 
                                 <h3 className="text-2xl font-display font-bold text-white mb-4">{feature.title}</h3>
-                                <p className="text-white/50 leading-relaxed font-medium mb-8">
+                                <p className="text-white/50 leading-relaxed font-medium">
                                     {feature.description}
                                 </p>
-
-                                <button className="flex items-center gap-3 text-xs font-bold text-gold uppercase tracking-widest group/btn">
-                                    Learn More <HiArrowRight className="group-hover/btn:translate-x-2 transition-transform" />
-                                </button>
                             </motion.div>
                         ))}
                     </div>

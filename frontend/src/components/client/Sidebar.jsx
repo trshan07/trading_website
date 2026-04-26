@@ -27,30 +27,34 @@ const Sidebar = ({ activeTab, onTabChange, onLogout, user, portfolio, showBalanc
     { id: 'settings',  label: 'Settings',  icon: FaCog },
   ];
 
+  const formatSidebarCurrency = (val) => {
+    return val < 0 ? `-$${Math.abs(val).toLocaleString()}` : `$${val.toLocaleString()}`;
+  };
+
   const metricValue = () => {
-    if (activeMetric === 'balance')  return showBalance ? `$${(portfolio?.totalBalance ?? 0).toLocaleString()}` : '••••••';
-    if (activeMetric === 'equity')   return showBalance ? `$${(portfolio?.equity ?? 0).toLocaleString()}` : '••••••';
-    if (activeMetric === 'margin')   return showBalance ? `$${(portfolio?.freeMargin ?? 0).toLocaleString()}` : '••••••';
+    if (activeMetric === 'balance')  return showBalance ? formatSidebarCurrency(portfolio?.totalBalance ?? 0) : '••••••';
+    if (activeMetric === 'equity')   return showBalance ? formatSidebarCurrency(portfolio?.equity ?? 0) : '••••••';
+    if (activeMetric === 'margin')   return showBalance ? formatSidebarCurrency(portfolio?.freeMargin ?? 0) : '••••••';
     if (activeMetric === 'pnl') {
       const pnl = portfolio?.dailyPnL ?? 0;
-      return showBalance ? `${pnl >= 0 ? '+' : ''}$${Math.abs(pnl).toLocaleString()}` : '••••••';
+      return showBalance ? `${pnl >= 0 ? '+' : ''}${formatSidebarCurrency(pnl)}` : '••••••';
     }
   };
 
   const metricSub = () => {
     if (activeMetric === 'balance') return {
       label: 'Available for Trading',
-      value: showBalance ? `$${(portfolio?.availableBalance ?? 0).toLocaleString()}` : '••••',
-      color: 'text-emerald-400',
+      value: showBalance ? formatSidebarCurrency(portfolio?.availableBalance ?? 0) : '••••',
+      color: (portfolio?.availableBalance ?? 0) >= 0 ? 'text-emerald-400' : 'text-rose-400',
     };
     if (activeMetric === 'equity') return {
       label: 'Unrealized PnL',
-      value: showBalance ? `${(portfolio?.dailyPnL ?? 0) >= 0 ? '+' : ''}${(portfolio?.dailyPnL ?? 0).toLocaleString()}` : '••••',
+      value: showBalance ? `${(portfolio?.dailyPnL ?? 0) >= 0 ? '+' : ''}${formatSidebarCurrency(portfolio?.dailyPnL ?? 0)}` : '••••',
       color: (portfolio?.dailyPnL ?? 0) >= 0 ? 'text-emerald-400' : 'text-rose-400',
     };
     if (activeMetric === 'margin') return {
       label: 'Used Margin',
-      value: showBalance ? `$${(portfolio?.margin ?? 0).toLocaleString()}` : '••••',
+      value: showBalance ? formatSidebarCurrency(portfolio?.margin ?? 0) : '••••',
       color: 'text-slate-300',
     };
     if (activeMetric === 'pnl') return {

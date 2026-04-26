@@ -62,12 +62,13 @@ const executeTrade = async (req, res) => {
             });
         }
 
-        if (String(type).toLowerCase() === 'limit') {
+        const lowerType = String(type).toLowerCase();
+        if (lowerType === 'limit' || lowerType === 'stop') {
             const order = await Order.create(userId, {
                 accountId,
                 symbol,
                 side,
-                type: 'limit',
+                type: lowerType,
                 amount: usdAmount,
                 quantity,
                 entryPrice: price,
@@ -77,12 +78,12 @@ const executeTrade = async (req, res) => {
                 status: 'pending'
             });
 
-            await createActivityLog(userId, 'EXECUTION', `Placed LIMIT ${side.toUpperCase()} ${symbol} Order`);
-            await createNotification(userId, 'info', `Pending order placed: ${side.toUpperCase()} ${symbol} at ${price}`);
+            await createActivityLog(userId, 'EXECUTION', `Placed ${lowerType.toUpperCase()} ${side.toUpperCase()} ${symbol} Order`);
+            await createNotification(userId, 'info', `Pending ${lowerType} order placed: ${side.toUpperCase()} ${symbol} at ${price}`);
 
             return res.status(201).json({
                 success: true,
-                message: 'Limit order placed successfully',
+                message: `${lowerType.charAt(0).toUpperCase() + lowerType.slice(1)} order placed successfully`,
                 data: { order }
             });
         }
@@ -116,8 +117,26 @@ const executeTrade = async (req, res) => {
             stopLoss: sl
         });
 
-        // 3. Deduct Margin from Account
-        await Account.updateBalance(accountId, accountBalance - requiredMargin);
+        // 3. Deduct Margin from Credit first, then Balance
+        //    This prevents balance going negative when client only has credits.
+        let newAccountBalance = accountBalance;
+        let newAccountCredit = accountCredit;
+        let marginRemaining = requiredMargin;
+
+        if (newAccountCredit >= marginRemaining) {
+            // Credit covers full margin
+            newAccountCredit -= marginRemaining;
+            marginRemaining = 0;
+        } else {
+            // Use all credit first, then rest from balance
+            marginRemaining -= newAccountCredit;
+            newAccountCredit = 0;
+            newAccountBalance -= marginRemaining;
+            marginRemaining = 0;
+        }
+
+        await Account.updateCredit(accountId, newAccountCredit);
+        await Account.updateBalance(accountId, newAccountBalance);
 
         // 4. Record Transaction
         await Transaction.create(userId, {
@@ -125,7 +144,7 @@ const executeTrade = async (req, res) => {
             type: 'Trade',
             amount: -requiredMargin,
             balance_before: accountBalance,
-            balance_after: accountBalance - requiredMargin,
+            balance_after: newAccountBalance,
             reference_id: order.id,
             description: `Margin for ${side.toUpperCase()} ${symbol}`
         });
@@ -212,18 +231,46 @@ const closePosition = async (req, res) => {
         // 1. Close position in DB
         const closedPosition = await Position.close(positionId, exitPriceNum, pnl);
 
-        // 2. Return margin + PNL to account balance
+        // 2. Return margin + PNL to account
+        //    Restore credit first (up to its original held amount), rest to balance
         const accountId = position.account_id;
         const currentAccount = (await Account.findByUserId(userId)).find(a => a.id == accountId);
-        const newBalance = parseFloat(currentAccount.balance) + parseFloat(position.margin) + pnl;
+        let currentBalance = parseFloat(currentAccount.balance) || 0;
+        let currentCredit = parseFloat(currentAccount.credit) || 0;
+        const margin = parseFloat(position.margin) || 0;
+
+        // Logic:
+        // 1. Restore the margin to credit first (since it was deducted from credit first in executeTrade)
+        let newCredit = currentCredit + margin;
+        let newBalance = currentBalance;
+
+        // 2. Apply PNL
+        if (pnl >= 0) {
+            // Profits always go to cash balance
+            newBalance += pnl;
+        } else {
+            // Losses (negative PNL)
+            const loss = Math.abs(pnl);
+            if (newBalance >= loss) {
+                // Balance covers the loss
+                newBalance -= loss;
+            } else {
+                // Use all balance, then rest from credit
+                const remainingLoss = loss - newBalance;
+                newBalance = 0;
+                newCredit = Math.max(0, newCredit - remainingLoss);
+            }
+        }
+
+        await Account.updateCredit(accountId, newCredit);
         await Account.updateBalance(accountId, newBalance);
 
         // 3. Record Transaction
         await Transaction.create(userId, {
             account_id: accountId,
             type: 'Trade',
-            amount: parseFloat(position.margin) + pnl,
-            balance_before: parseFloat(currentAccount.balance),
+            amount: totalReturn,
+            balance_before: currentBalance,
             balance_after: newBalance,
             reference_id: positionId,
             description: `Closed ${position.symbol} | P&L: ${pnl.toFixed(2)}`

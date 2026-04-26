@@ -1,5 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
+import { Link } from 'react-router-dom';
 import { HiCheck, HiOutlineBadgeCheck, HiShieldCheck } from 'react-icons/hi';
 import Container from '../../components/layout/Container';
 import Navbar from '../../components/layout/Navbar';
@@ -82,7 +83,7 @@ const AccountTypesPage = () => {
                         </p>
                     </motion.div>
 
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 max-w-5xl mx-auto mb-20">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-7xl mx-auto mb-20">
                         {accounts.map((acc, index) => (
                             <motion.div
                                 key={acc.name}
@@ -90,7 +91,7 @@ const AccountTypesPage = () => {
                                 whileInView={{ opacity: 1, y: 0 }}
                                 viewport={{ once: true }}
                                 transition={{ delay: index * 0.2 }}
-                                className={`group relative p-6 sm:p-8 md:p-10 rounded-[2rem] md:rounded-[2.5rem] glass-card border-white/5 transition-all duration-500 hover:shadow-gold-glow-sm flex flex-col ${
+                                className={`group relative p-6 md:p-8 rounded-[2rem] md:rounded-[2.5rem] glass-card border-white/5 transition-all duration-500 hover:shadow-gold-glow-sm flex flex-col ${
                                     acc.highlight ? 'border-gold/30 bg-white/[0.03]' : ''
                                 }`}
                             >
@@ -137,7 +138,7 @@ const AccountTypesPage = () => {
                                 </div>
 
                                 <div className="mt-auto">
-                                    <div className="relative group/btn">
+                                    <Link to="/register" className="relative group/btn block">
                                         <div className={`absolute -inset-1 rounded-2xl blur opacity-25 group-hover/btn:opacity-60 transition duration-500 ${
                                             acc.highlight ? 'bg-gold' : 'bg-white/20'
                                         }`} />
@@ -148,7 +149,7 @@ const AccountTypesPage = () => {
                                         }`}>
                                             Secure {acc.name.split(' ')[0]} Access
                                         </button>
-                                    </div>
+                                    </Link>
                                     <p className="text-center mt-5 text-[9px] text-white/20 font-bold tracking-widest uppercase">
                                         Available Platforms: {acc.platforms}
                                     </p>

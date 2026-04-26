@@ -27,7 +27,7 @@ const PromotionsSection = () => {
 
     return (
         <section className="py-24 relative overflow-hidden">
-            <div className="absolute inset-0 bg-navy/20 backdrop-blur-[2px] pointer-events-none" />
+            <div className="absolute inset-0 bg-navy/20 pointer-events-none" />
             <Container>
                 <SectionTitle
                     subtitle="Exclusive Offers"

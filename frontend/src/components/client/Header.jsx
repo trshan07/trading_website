@@ -217,10 +217,11 @@ const Header = ({
 
             <button
               onClick={onQuickTrade}
-              className="hidden lg:flex items-center space-x-3 px-6 py-3 bg-slate-900 dark:bg-gold-500 text-white dark:text-slate-900 rounded-2xl shadow-2xl shadow-slate-900/20 hover:bg-gold-600 dark:hover:bg-gold-400 hover:scale-[1.02] transition-all font-black uppercase tracking-widest text-[11px] border border-slate-800 dark:border-gold-400/50"
+              className="flex items-center space-x-0 lg:space-x-3 px-3 lg:px-6 py-3 bg-slate-900 dark:bg-gold-500 text-white dark:text-slate-900 rounded-2xl shadow-2xl shadow-slate-900/20 hover:bg-gold-600 dark:hover:bg-gold-400 hover:scale-[1.02] transition-all font-black uppercase tracking-widest text-[11px] border border-slate-800 dark:border-gold-400/50"
+              title="Quick Trade"
             >
-              <FaBolt />
-              <span>Quick Trade</span>
+              <FaBolt className={window.innerWidth < 1024 ? 'text-lg' : ''} />
+              <span className="hidden lg:inline">Quick Trade</span>
             </button>
 
             {/* Notifications */}
@@ -293,9 +294,9 @@ const Header = ({
             <div className="relative" ref={dropdownRef}>
               <div
                 onClick={() => setShowDropdown(!showDropdown)}
-                className="hidden lg:flex items-center p-1 bg-slate-100 dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 ml-4 group cursor-pointer hover:bg-white dark:hover:bg-slate-700 transition-all shadow-sm"
+                className="flex items-center p-1 bg-slate-100 dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 ml-1 lg:ml-4 group cursor-pointer hover:bg-white dark:hover:bg-slate-700 transition-all shadow-sm"
               >
-                <div className="w-10 h-10 bg-slate-900 dark:bg-gold-500 rounded-[1.1rem] flex items-center justify-center text-gold-500 dark:text-slate-900 font-black italic shadow-lg">
+                <div className="w-8 h-8 lg:w-10 lg:h-10 bg-slate-900 dark:bg-gold-500 rounded-xl lg:rounded-[1.1rem] flex items-center justify-center text-gold-500 dark:text-slate-900 font-black italic shadow-lg">
                   {user?.firstName?.charAt(0)}
                 </div>
                 <div className="px-3 hidden xl:block">
@@ -364,15 +365,15 @@ const Header = ({
             { label: 'Leverage', value: `1:${portfolio?.leverage || 100}`, highlight: false, isPercent: true }
           ].map((item, idx) => (
             <div key={idx} className="flex items-center space-x-3 whitespace-nowrap">
-              <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-600">
+              <span className="text-[8px] lg:text-[9px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-600">
                 {item.label}:
               </span>
-              <span className={`text-[11px] font-black tabular-nums italic ${
+              <span className={`text-[10px] lg:text-[11px] font-black tabular-nums italic ${
                 item.highlight 
                   ? (item.label === 'Margin Level' && (portfolio?.marginLevel || 0) < 100 ? 'text-rose-500 animate-pulse' : 'text-gold-500') 
                   : 'text-slate-900 dark:text-white'
               }`}>
-                {showBalance ? (item.isPercent ? item.value : `$${(item.value || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`) : '••••'}
+                {showBalance ? (item.isPercent ? item.value : (item.value < 0 ? `-$${Math.abs(item.value).toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}` : `$${(item.value || 0).toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}`)) : '••••'}
               </span>
               {idx < 6 && <div className="h-3 w-[1px] bg-slate-100 dark:bg-slate-800 ml-4" />}
             </div>

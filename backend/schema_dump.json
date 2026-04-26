@@ -75,6 +75,14 @@
     {
       "column_name": "updated_at",
       "data_type": "timestamp without time zone"
+    },
+    {
+      "column_name": "kyc_status",
+      "data_type": "character varying"
+    },
+    {
+      "column_name": "leverage",
+      "data_type": "integer"
     }
   ],
   "accounts": [
@@ -113,6 +121,56 @@
     {
       "column_name": "updated_at",
       "data_type": "timestamp without time zone"
+    },
+    {
+      "column_name": "credit",
+      "data_type": "numeric"
+    },
+    {
+      "column_name": "leverage",
+      "data_type": "integer"
+    }
+  ],
+  "transactions": [
+    {
+      "column_name": "id",
+      "data_type": "integer"
+    },
+    {
+      "column_name": "user_id",
+      "data_type": "integer"
+    },
+    {
+      "column_name": "type",
+      "data_type": "character varying"
+    },
+    {
+      "column_name": "amount",
+      "data_type": "numeric"
+    },
+    {
+      "column_name": "balance_before",
+      "data_type": "numeric"
+    },
+    {
+      "column_name": "balance_after",
+      "data_type": "numeric"
+    },
+    {
+      "column_name": "reference_id",
+      "data_type": "integer"
+    },
+    {
+      "column_name": "description",
+      "data_type": "text"
+    },
+    {
+      "column_name": "created_at",
+      "data_type": "timestamp without time zone"
+    },
+    {
+      "column_name": "account_id",
+      "data_type": "integer"
     }
   ]
 }

@@ -125,10 +125,6 @@ const TerminalAssetList = ({
           const isActive = activeSymbol === inst.symbol;
           const isUp = inst.change >= 0;
           const isFav = favorites.includes(inst.symbol);
-          
-          // Generate mock bid/ask based on the single price for demo purposes
-          const spread = inst.price * 0.0005; 
-          const sellPrice = (inst.price - spread).toFixed(inst.price > 100 ? 2 : 4);
 
           return (
             <div
@@ -156,7 +152,12 @@ const TerminalAssetList = ({
                 const currentChange = liveData.change !== undefined ? liveData.change : inst.change;
                 const lastDir = liveData.lastDir || 'none';
                 
-                const { bidPrice: sellPrice, askPrice: buyPrice, spreadAmt } = calculateSpreads(inst.symbol, currentPrice);
+                const { bidPrice: calcBid, askPrice: calcAsk, spreadAmt: calcSpread } = calculateSpreads(inst.symbol, currentPrice);
+                
+                const sellPrice = liveData.bid ? liveData.bid.toFixed(inst.price > 100 ? 2 : 4) : calcBid;
+                const buyPrice = liveData.ask ? liveData.ask.toFixed(inst.price > 100 ? 2 : 4) : calcAsk;
+                const spreadAmt = liveData.bid && liveData.ask ? Math.abs(liveData.ask - liveData.bid) : calcSpread;
+                
                 const spreadDisplay = spreadAmt < 0.01 ? spreadAmt.toFixed(4) : spreadAmt.toFixed(2);
                 
                 const flashClass = lastDir === 'up' ? 'flash-up' : lastDir === 'down' ? 'flash-down' : '';

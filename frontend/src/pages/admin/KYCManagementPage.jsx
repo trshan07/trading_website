@@ -15,6 +15,38 @@ import moment from 'moment';
 const { TabPane } = Tabs;
 const { TextArea } = Input;
 
+const RejectForm = ({ onConfirm, onCancel }) => {
+  const [reason, setReason] = useState('');
+
+  return (
+    <div style={{ marginBottom: 12, padding: 12, background: '#fff1f0', border: '1px solid #ffa39e', borderRadius: 6 }}>
+      <p style={{ margin: '0 0 8px', fontWeight: 700, color: '#cf1322' }}>Rejection Reason:</p>
+      <TextArea
+        rows={3} 
+        value={reason}
+        onChange={e => setReason(e.target.value)}
+        placeholder="Provide a clear reason for rejection..."
+        style={{ marginBottom: 8 }}
+        autoFocus
+      />
+      <Space>
+        <Button size="small" onClick={onCancel}>Cancel</Button>
+        <Button 
+          size="small" 
+          danger 
+          type="primary"
+          onClick={() => {
+            if (!reason.trim()) { message.error('Please enter a rejection reason'); return; }
+            onConfirm(reason);
+          }}
+        >
+          Confirm Reject
+        </Button>
+      </Space>
+    </div>
+  );
+};
+
 const KYCManagementPage = () => {
   const [submissions, setSubmissions] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -22,7 +54,6 @@ const KYCManagementPage = () => {
   const [selectedUser, setSelectedUser] = useState(null);
   const [activeTab, setActiveTab] = useState('pending');
   const [rejectDocId, setRejectDocId] = useState(null);
-  const [rejectReason, setRejectReason] = useState('');
 
   useEffect(() => { fetchKYCSubmissions(); }, [activeTab]); // eslint-disable-line
 
@@ -47,7 +78,6 @@ const KYCManagementPage = () => {
       await adminService.processKYC(docId, status, reason);
       message.success(`Document ${status} successfully`);
       setModalVisible(false);
-      setRejectReason('');
       setRejectDocId(null);
       fetchKYCSubmissions();
     } catch (err) {
@@ -100,7 +130,7 @@ const KYCManagementPage = () => {
       render: (_, r) => (
         <Button
           icon={<EyeOutlined />}
-          onClick={() => { setSelectedUser(r); setRejectDocId(null); setRejectReason(''); setModalVisible(true); }}
+          onClick={() => { setSelectedUser(r); setRejectDocId(null); setModalVisible(true); }}
         >
           Review
         </Button>
@@ -128,7 +158,7 @@ const KYCManagementPage = () => {
       <Modal
         title={`KYC Review — ${selectedUser?.name || ''}`}
         open={modalVisible}
-        onCancel={() => { setModalVisible(false); setRejectDocId(null); setRejectReason(''); }}
+        onCancel={() => { setModalVisible(false); setRejectDocId(null); }}
         footer={null}
         width={860}
         destroyOnClose
@@ -186,7 +216,7 @@ const KYCManagementPage = () => {
                             onClick={() => handleProcess(doc.id, 'approved')}
                           >Approve</Button>
                           <Button size="small" danger icon={<CloseOutlined />}
-                            onClick={() => { setRejectDocId(doc.id); setRejectReason(''); }}
+                            onClick={() => { setRejectDocId(doc.id); }}
                           >Reject</Button>
                         </>
                       )}
@@ -195,24 +225,10 @@ const KYCManagementPage = () => {
 
                   {/* Inline reject form */}
                   {rejectDocId === doc.id && (
-                    <div style={{ marginBottom: 12, padding: 12, background: '#fff1f0', border: '1px solid #ffa39e', borderRadius: 6 }}>
-                      <p style={{ margin: '0 0 8px', fontWeight: 700, color: '#cf1322' }}>Rejection Reason:</p>
-                      <TextArea
-                        rows={3} value={rejectReason}
-                        onChange={e => setRejectReason(e.target.value)}
-                        placeholder="Provide a clear reason for rejection..."
-                        style={{ marginBottom: 8 }}
-                      />
-                      <Space>
-                        <Button size="small" onClick={() => { setRejectDocId(null); setRejectReason(''); }}>Cancel</Button>
-                        <Button size="small" danger type="primary"
-                          onClick={() => {
-                            if (!rejectReason.trim()) { message.error('Please enter a rejection reason'); return; }
-                            handleProcess(doc.id, 'rejected', rejectReason);
-                          }}
-                        >Confirm Reject</Button>
-                      </Space>
-                    </div>
+                    <RejectForm 
+                      onConfirm={(reason) => handleProcess(doc.id, 'rejected', reason)}
+                      onCancel={() => setRejectDocId(null)}
+                    />
                   )}
 
                   {/* Rejection reason display */}
