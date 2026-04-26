@@ -107,7 +107,7 @@ const MarketsTab = ({
       !searchQuery.trim() ||
       inst.symbol.toLowerCase().includes(searchQuery.toLowerCase()) ||
       inst.name.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesCategory && matchesSearch;
+    return matchesSearch;
   });
 
   // Dropdown search results (top 6)
