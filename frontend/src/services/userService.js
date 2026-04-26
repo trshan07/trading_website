@@ -1,6 +1,18 @@
 // frontend/src/services/userService.js
 import api from './api';
 
+const normalizeSettings = (settings = {}) => ({
+    theme: settings.theme || 'dark',
+    chartPreferences: settings.chartPreferences || settings.chart_preferences || {},
+    notificationSettings: settings.notificationSettings || settings.notification_settings || {},
+});
+
+const serializeSettings = (settings = {}) => ({
+    theme: settings.theme || 'dark',
+    chartPreferences: settings.chartPreferences || settings.chart_preferences || {},
+    notificationSettings: settings.notificationSettings || settings.notification_settings || {},
+});
+
 const userService = {
     /**
      * Get the current user's profile
@@ -33,7 +45,10 @@ const userService = {
      */
     getSettings: async () => {
         const response = await api.get('/users/settings');
-        return response.data;
+        return {
+            ...response.data,
+            data: normalizeSettings(response.data?.data),
+        };
     },
 
     /**
@@ -41,8 +56,11 @@ const userService = {
      * @param {Object} settingsData - { theme, chartPreferences, notificationSettings }
      */
     updateSettings: async (settingsData) => {
-        const response = await api.put('/users/settings', settingsData);
-        return response.data;
+        const response = await api.put('/users/settings', serializeSettings(settingsData));
+        return {
+            ...response.data,
+            data: normalizeSettings(response.data?.data),
+        };
     }
 };
 

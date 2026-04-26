@@ -466,7 +466,10 @@ const DashboardPage = () => {
       `}</style>
       <AccountStatementModal 
         show={showStatementModal} 
-        onClose={() => setShowStatementModal(false)} 
+        onClose={() => setShowStatementModal(false)}
+        transactions={transactions}
+        accountLabel={`${(activeAccount?.account_type || activeAccount?.type || selectedAccountType || 'account').toUpperCase()} ${activeAccount?.account_number || ''}`.trim()}
+        customerName={`${user?.firstName || ''} ${user?.lastName || ''}`.trim()}
       />
     </div>
   );

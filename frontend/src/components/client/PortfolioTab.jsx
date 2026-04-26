@@ -37,7 +37,7 @@ const PortfolioTab = ({ portfolio = {}, positions = [], activityLogs = [] }) => 
                </div>
                <div>
                   <p className="text-[9px] font-black text-slate-500 dark:text-slate-500 uppercase tracking-widest mb-1.5">Used Core</p>
-                  <p className="text-xl font-black text-gold-500 italic tracking-tighter">${(portfolio?.usedMargin ?? 0).toLocaleString()}</p>
+                  <p className="text-xl font-black text-gold-500 italic tracking-tighter">${(portfolio?.margin ?? 0).toLocaleString()}</p>
                </div>
             </div>
           </div>
@@ -92,11 +92,14 @@ const PortfolioTab = ({ portfolio = {}, positions = [], activityLogs = [] }) => 
            <div className="bg-white dark:bg-slate-900 rounded-[3rem] border border-slate-100 dark:border-slate-800 p-6 sm:p-10 shadow-xl shadow-slate-200/50 dark:shadow-black/20 transition-colors duration-300">
               <h4 className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-[0.3em] mb-8 sm:mb-10 italic transition-colors">Core Holdings Hub</h4>
               <div className="space-y-4">
-                 {positions.slice(0, 3).map((pos, idx) => (
+                 {positions.slice(0, 3).map((pos, idx) => {
+                    const isBuy = (pos.type || pos.side || '').toUpperCase() === 'BUY';
+
+                    return (
                     <div key={idx} className="flex flex-col sm:flex-row items-center justify-between p-6 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 rounded-[2rem] gap-6 group hover:bg-white dark:hover:bg-slate-800 hover:shadow-2xl hover:shadow-slate-200/50 dark:hover:shadow-black/20 transition-all duration-300 transform hover:-translate-y-1">
                        <div className="flex items-center space-x-6">
-                          <div className={`p-4 rounded-2xl ${pos.type === 'LONG' ? 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-500' : 'bg-rose-50 dark:bg-rose-500/10 text-rose-500'} shadow-sm border border-transparent group-hover:border-gold-500/20 transition-all`}>
-                             {pos.type === 'LONG' ? <FaArrowUp /> : <FaArrowDown />}
+                          <div className={`p-4 rounded-2xl ${isBuy ? 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-500' : 'bg-rose-50 dark:bg-rose-500/10 text-rose-500'} shadow-sm border border-transparent group-hover:border-gold-500/20 transition-all`}>
+                             {isBuy ? <FaArrowUp /> : <FaArrowDown />}
                           </div>
                           <div>
                              <p className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-widest transition-colors">{pos.symbol}</p>
@@ -116,7 +119,8 @@ const PortfolioTab = ({ portfolio = {}, positions = [], activityLogs = [] }) => 
                           </div>
                        </div>
                     </div>
-                 ))}
+                    );
+                 })}
                  
                  {positions.length === 0 && (
                     <div className="text-center py-10 bg-slate-50/50 dark:bg-slate-800/30 rounded-[2rem] border border-dashed border-slate-200 dark:border-slate-700 transition-colors">

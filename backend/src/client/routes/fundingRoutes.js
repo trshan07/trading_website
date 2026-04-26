@@ -9,6 +9,7 @@ const {
     getCreditCards,
     addCreditCard,
     deleteCreditCard,
+    setDefaultCreditCard,
     getTransactions,
     deposit,
     withdraw,
@@ -30,6 +31,7 @@ router.patch('/bank-accounts/:id/default', setDefaultBankAccount);
 router.get('/credit-cards', getCreditCards);
 router.post('/credit-cards', addCreditCard);
 router.delete('/credit-cards/:id', deleteCreditCard);
+router.patch('/credit-cards/:id/default', setDefaultCreditCard);
 
 // Transactions
 router.get('/transactions', getTransactions);

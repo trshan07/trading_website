@@ -89,12 +89,36 @@ const deleteCreditCard = async (req, res) => {
     }
 };
 
+const setDefaultCreditCard = async (req, res) => {
+    try {
+        const card = await CreditCard.setDefault(req.user.id, req.params.id);
+        res.json({ success: true, data: card });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Failed to set default card' });
+    }
+};
+
 // --- Transaction Methods ---
 
 const getTransactions = async (req, res) => {
     try {
-        const transactions = await Transaction.findByUserId(req.user.id);
-        res.json({ success: true, data: transactions });
+        const [transactions, fundingRequests] = await Promise.all([
+            Transaction.findByUserId(req.user.id),
+            FundingRequest.findByUserId(req.user.id),
+        ]);
+
+        const history = [
+            ...transactions.map((entry) => ({
+                ...entry,
+                source_type: 'transaction',
+            })),
+            ...fundingRequests.map((entry) => ({
+                ...entry,
+                source_type: 'funding_request',
+            })),
+        ].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+        res.json({ success: true, data: history });
     } catch (error) {
         res.status(500).json({ success: false, message: 'Failed to fetch transaction history' });
     }
@@ -218,6 +242,7 @@ module.exports = {
     getCreditCards,
     addCreditCard,
     deleteCreditCard,
+    setDefaultCreditCard,
     getTransactions,
     deposit,
     withdraw,

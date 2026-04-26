@@ -49,6 +49,10 @@ const fundingService = {
     const response = await api.delete(`/funding/credit-cards/${id}`);
     return response.data;
   },
+  setDefaultCreditCard: async (id) => {
+    const response = await api.patch(`/funding/credit-cards/${id}/default`);
+    return response.data;
+  },
 
   // Transactions
   getTransactions: async () => {

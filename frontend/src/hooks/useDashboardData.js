@@ -8,6 +8,7 @@ import { AuthContext } from '../context/AuthContext';
 import { toast } from 'react-hot-toast';
 import { MARKET_INSTRUMENTS } from '../constants/marketData';
 import websocketService from '../services/websocketService';
+import { maskAccountNumber } from '../components/client/banking/utils';
 
 const normalizeInstrument = (instrument = {}) => ({
   symbol: instrument.symbol,
@@ -65,6 +66,110 @@ const buildMarketSnapshot = (instrumentList = []) => instrumentList.reduce((acc,
   return acc;
 }, {});
 
+const apiBaseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const assetBaseUrl = apiBaseUrl.replace(/\/api\/?$/, '');
+
+const toTitleCase = (value = '') => value
+  .toString()
+  .replace(/_/g, ' ')
+  .toLowerCase()
+  .replace(/\b\w/g, (char) => char.toUpperCase());
+
+const getRelativeUploadUrl = (filePath = '') => {
+  if (!filePath) return '';
+  const match = filePath.match(/[\\/]uploads[\\/]/);
+  if (match) {
+    const index = filePath.indexOf(match[0]);
+    return '/' + filePath.substring(index + 1).replace(/\\/g, '/');
+  }
+  return filePath.startsWith('/') ? filePath : `/${filePath}`;
+};
+
+const normalizeDocument = (doc = {}) => ({
+  id: doc.id,
+  name: doc.document_number || doc.name || 'Document',
+  category: doc.document_type || doc.category || 'General',
+  type: doc.file_path ? doc.file_path.split('.').pop().toUpperCase() : (doc.type || 'UNKNOWN'),
+  size: 'N/A',
+  uploadDate: doc.created_at ? new Date(doc.created_at).toLocaleDateString() : '',
+  status: toTitleCase(doc.status || 'pending'),
+  url: `${assetBaseUrl}${getRelativeUploadUrl(doc.file_path)}`,
+});
+
+const normalizeBankAccount = (account = {}) => ({
+  ...account,
+  id: account.id,
+  bankName: account.bankName || account.bank_name || '',
+  branchName: account.branchName || account.branch_name || '',
+  branchCode: account.branchCode || account.branch_code || '',
+  country: account.country || '',
+  accountHolderName: account.accountHolderName || account.account_holder_name || account.account_name || '',
+  accountName: account.accountName || account.account_name || account.account_holder_name || '',
+  accountNumber: account.accountNumber || account.account_number || '',
+  maskedAccountNumber: account.maskedAccountNumber || maskAccountNumber(account.accountNumber || account.account_number || ''),
+  accountType: account.accountType || account.account_type || '',
+  currency: account.currency || 'USD',
+  swiftCode: account.swiftCode || account.swift_code || '',
+  iban: account.iban || '',
+  beneficiaryName: account.beneficiaryName || account.beneficiary_name || '',
+  relationship: account.relationship || '',
+  proofFile: account.proofFile || account.proof_file || '',
+  isDefault: Boolean(account.isDefault ?? account.is_default),
+  isVerified: Boolean(account.isVerified ?? account.is_verified),
+});
+
+const normalizeCreditCard = (card = {}) => {
+  const expiry = card.expiry || card.expiryDate || card.expiry_date || '';
+  const [expiryMonth = '', expiryYear = ''] = expiry.split('/');
+
+  return {
+    ...card,
+    id: card.id,
+    cardType: card.cardType || card.card_type || 'Card',
+    last4: card.last4 || '0000',
+    expiry,
+    expiryDate: expiry,
+    expiryMonth,
+    expiryYear,
+    cardholderName: card.cardholderName || card.cardholder_name || '',
+    billingAddress: card.billingAddress || card.billing_address || '',
+    isDefault: Boolean(card.isDefault ?? card.is_default),
+    isVerified: Boolean(card.isVerified ?? card.is_verified),
+    availableCredit: Number.parseFloat(card.availableCredit ?? card.available_credit ?? 0) || 0,
+  };
+};
+
+const normalizeTransaction = (transaction = {}) => {
+  const rawType = (transaction.type || '').toString().toLowerCase();
+  const type = rawType === 'withdrawal'
+    ? 'Withdrawal'
+    : rawType === 'deposit'
+      ? 'Deposit'
+      : rawType === 'transfer'
+        ? 'Transfer'
+        : toTitleCase(transaction.type || 'Transaction');
+  const amount = Number.parseFloat(transaction.amount ?? 0) || 0;
+  const createdAt = transaction.created_at || transaction.createdAt || null;
+  const defaultStatus = transaction.source_type === 'funding_request' ? 'Pending' : 'Completed';
+
+  return {
+    ...transaction,
+    id: `${transaction.source_type || 'transaction'}-${transaction.id}`,
+    rawId: transaction.id,
+    sourceType: transaction.source_type || 'transaction',
+    accountId: transaction.accountId || transaction.account_id || null,
+    createdAt,
+    date: createdAt ? new Date(createdAt).toLocaleDateString() : '',
+    type,
+    amount: Math.abs(amount),
+    signedAmount: amount,
+    method: transaction.method || (type === 'Transfer' ? 'Internal Transfer' : 'Wallet'),
+    status: toTitleCase(transaction.status || defaultStatus),
+    reference: transaction.reference || transaction.bank_reference || transaction.reference_id || '-',
+    description: transaction.description || '',
+  };
+};
+
 export const useDashboardData = (accountType = 'demo') => {
   const { user, refreshUser } = useContext(AuthContext);
   const isDemo = accountType === 'demo';
@@ -117,8 +222,8 @@ export const useDashboardData = (accountType = 'demo') => {
         fundingService.getBankAccounts(),
         fundingService.getCreditCards()
       ]);
-      if (banksRes.success) setBankAccounts(banksRes.data);
-      if (cardsRes.success) setCreditCards(cardsRes.data);
+      if (banksRes.success) setBankAccounts((banksRes.data || []).map(normalizeBankAccount));
+      if (cardsRes.success) setCreditCards((cardsRes.data || []).map(normalizeCreditCard));
     } catch (error) {
       console.error('Banking Fetch Failed:', error);
     }
@@ -127,7 +232,7 @@ export const useDashboardData = (accountType = 'demo') => {
   const fetchTransactions = useCallback(async () => {
     try {
       const res = await fundingService.getTransactions();
-      if (res.success) setTransactions(res.data);
+      if (res.success) setTransactions((res.data || []).map(normalizeTransaction));
     } catch (error) {
       console.error('Transaction Fetch Failed:', error);
     }
@@ -170,27 +275,7 @@ export const useDashboardData = (accountType = 'demo') => {
     try {
       const res = await kycService.getDocuments();
       if (res.success) {
-        const getRelativeUrl = (filePath) => {
-          if (!filePath) return '';
-          const match = filePath.match(/[\\/]uploads[\\/]/);
-          if (match) {
-            const index = filePath.indexOf(match[0]);
-            return '/' + filePath.substring(index + 1).replace(/\\/g, '/');
-          }
-          return filePath.startsWith('/') ? filePath : `/${filePath}`;
-        };
-
-        const mappedDocs = res.data.map(doc => ({
-          id: doc.id,
-          name: doc.document_number, // We stored the original filename here
-          category: doc.document_type,
-          type: doc.file_path ? doc.file_path.split('.').pop().toUpperCase() : 'UNKNOWN',
-          size: 'N/A',
-          uploadDate: new Date(doc.created_at).toLocaleDateString(),
-          status: doc.status.charAt(0).toUpperCase() + doc.status.slice(1),
-          url: `${process.env.REACT_APP_API_URL || 'http://localhost:5000'}${getRelativeUrl(doc.file_path)}`
-        }));
-        setDocuments(mappedDocs);
+        setDocuments((res.data || []).map(normalizeDocument));
       }
     } catch (error) {
       console.error('KYC Fetch Failed:', error);
@@ -350,7 +435,7 @@ export const useDashboardData = (accountType = 'demo') => {
     try {
       const res = await fundingService.addBankAccount(account);
       if (res.success) {
-        setBankAccounts(prev => [...prev, res.data]);
+        setBankAccounts(prev => [...prev, normalizeBankAccount(res.data)]);
         toast.success("Bank account added");
         return res;
       }
@@ -389,7 +474,7 @@ export const useDashboardData = (accountType = 'demo') => {
     try {
       const res = await fundingService.addCreditCard(card);
       if (res.success) {
-        setCreditCards(prev => [...prev, res.data]);
+        setCreditCards(prev => [...prev, normalizeCreditCard(res.data)]);
         toast.success("Card added");
         return res;
       }
@@ -435,7 +520,7 @@ export const useDashboardData = (accountType = 'demo') => {
         proof
       });
       if (res.success) {
-        setTransactions(prev => [res.data, ...prev]);
+        setTransactions(prev => [normalizeTransaction({ ...res.data, source_type: 'funding_request' }), ...prev]);
         toast.success("Deposit request submitted");
         refreshUser();
       }
@@ -452,7 +537,7 @@ export const useDashboardData = (accountType = 'demo') => {
         accountId
       });
       if (res.success) {
-        setTransactions(prev => [res.data, ...prev]);
+        setTransactions(prev => [normalizeTransaction({ ...res.data, source_type: 'funding_request' }), ...prev]);
         toast.success("Withdrawal request submitted");
         refreshUser();
       }
@@ -555,29 +640,7 @@ export const useDashboardData = (accountType = 'demo') => {
     try {
       const res = await kycService.uploadDocument(doc);
       if (res.success) {
-        const docData = res.data;
-        
-        const getRelativeUrl = (filePath) => {
-          if (!filePath) return '';
-          const match = filePath.match(/[\\/]uploads[\\/]/);
-          if (match) {
-            const index = filePath.indexOf(match[0]);
-            return '/' + filePath.substring(index + 1).replace(/\\/g, '/');
-          }
-          return filePath.startsWith('/') ? filePath : `/${filePath}`;
-        };
-
-        const mappedDoc = {
-          id: docData.id,
-          name: docData.document_number,
-          category: docData.document_type,
-          type: docData.file_path ? docData.file_path.split('.').pop().toUpperCase() : 'UNKNOWN',
-          size: 'N/A',
-          uploadDate: new Date(docData.created_at).toLocaleDateString(),
-          status: docData.status.charAt(0).toUpperCase() + docData.status.slice(1),
-          url: `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${getRelativeUrl(docData.file_path)}`
-        };
-        setDocuments(prev => [mappedDoc, ...prev]);
+        setDocuments(prev => [normalizeDocument(res.data), ...prev]);
         toast.success("Document uploaded");
       }
     } catch (error) {
