@@ -13,6 +13,18 @@ const INTERVALS = [
   { label: '1W', value: '1w' },
 ];
 
+const formatExecutionSymbol = (symbol = '') => {
+  if (symbol.endsWith('USDT')) {
+    return `${symbol.slice(0, -4)} / USDT`;
+  }
+
+  if (symbol.endsWith('USD') && symbol.length > 6) {
+    return `${symbol.slice(0, -3)} / USD`;
+  }
+
+  return symbol;
+};
+
 const RealTimeChart = ({ 
   symbol = 'BTCUSDT',
   theme = 'dark',
@@ -458,7 +470,7 @@ const RealTimeChart = ({
           <div className="flex items-center gap-2">
             <FaChartBar size={12} className="text-gold-500" />
             <span className={`text-[11px] font-black uppercase tracking-widest ${isDark ? 'text-white' : 'text-slate-900'}`}>
-              {symbol.replace('USDT','').replace('USD','')} / USDT
+              {formatExecutionSymbol(symbol)}
             </span>
           </div>
           {lastPrice && (

@@ -35,6 +35,7 @@ const TradingTab = ({
   const [chartMode, setChartMode] = useState('advanced'); // 'advanced' | 'execution'
   const { theme } = useTheme();
   const executionChartSupported = /USDT$|BTC$|BUSD$/i.test(activeSymbol || '');
+  const selectedInstrument = instruments.find((instrument) => instrument.symbol === activeSymbol);
 
   return (
     <div className="flex flex-col h-[calc(100vh-10rem)] min-h-[500px] lg:min-h-[1050px] -mx-4 md:-mx-10 border-t border-slate-100 dark:border-slate-800 animate-in fade-in duration-500">
@@ -144,8 +145,10 @@ const TradingTab = ({
             <div className={`flex-1 ${chartMode === 'advanced' ? 'block' : 'hidden'}`}>
               <TradingViewWidget
                 symbol={activeSymbol}
+                instrument={selectedInstrument}
                 theme={theme}
                 activeIntent={activeOrderIntent}
+                positions={positions}
               />
             </div>
 

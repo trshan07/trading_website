@@ -32,8 +32,8 @@ const OpenOrders = ({ orders = [], onCancel, compact = false }) => {
             <div className="grid grid-cols-3 gap-3 mb-4 pl-3">
               {[
                 { label: 'Qty', value: order.quantity },
-                { label: 'Price', value: `$${order.price.toLocaleString()}` },
-                { label: 'Time', value: new Date(order.created).toLocaleTimeString() },
+                { label: 'Price', value: `$${Number(order.entryPrice || order.price || 0).toLocaleString()}` },
+                { label: 'Time', value: new Date(order.createdAt || order.created).toLocaleTimeString() },
               ].map(({ label, value }) => (
                 <div key={label} className="bg-white dark:bg-slate-900 p-3 rounded-2xl border border-slate-50 dark:border-slate-800">
                   <p className="text-[7px] uppercase font-black text-slate-400 dark:text-slate-500 mb-1 tracking-widest">{label}</p>
@@ -132,14 +132,14 @@ const OpenOrders = ({ orders = [], onCancel, compact = false }) => {
 
               {/* Limit Price */}
               <div className="text-right">
-                <p className="text-sm font-bold text-slate-600 dark:text-slate-300 tabular-nums">${(order.price || 0).toLocaleString()}</p>
+                <p className="text-sm font-bold text-slate-600 dark:text-slate-300 tabular-nums">${Number(order.entryPrice || order.price || 0).toLocaleString()}</p>
                 <p className="text-[8px] text-slate-400 dark:text-slate-600 font-bold tracking-widest uppercase">limit</p>
               </div>
 
               {/* Time */}
               <div className="text-right">
                 <p className="text-[11px] font-bold text-slate-500 dark:text-slate-400 tabular-nums">
-                  {new Date(order.created).toLocaleTimeString()}
+                  {new Date(order.createdAt || order.created).toLocaleTimeString()}
                 </p>
                 <div className="flex items-center justify-end space-x-1 mt-0.5">
                   <FaClock size={7} className="text-slate-300 dark:text-slate-600" />

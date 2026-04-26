@@ -9,6 +9,62 @@ import { toast } from 'react-hot-toast';
 import { MARKET_INSTRUMENTS } from '../constants/marketData';
 import websocketService from '../services/websocketService';
 
+const normalizeInstrument = (instrument = {}) => ({
+  symbol: instrument.symbol,
+  name: instrument.name || instrument.symbol,
+  category: instrument.category || 'General',
+  price: Number.parseFloat(instrument.price ?? instrument.default_price ?? 0) || 0,
+  change: Number.parseFloat(instrument.change ?? instrument.default_change ?? 0) || 0,
+  volume: instrument.volume ?? instrument.default_volume ?? null,
+});
+
+const fallbackInstruments = MARKET_INSTRUMENTS.map(normalizeInstrument);
+
+const mergeInstrumentSources = (primary = [], secondary = []) => {
+  const merged = new Map();
+
+  secondary
+    .map(normalizeInstrument)
+    .filter((instrument) => instrument.symbol)
+    .forEach((instrument) => {
+      merged.set(instrument.symbol, instrument);
+    });
+
+  primary
+    .map(normalizeInstrument)
+    .filter((instrument) => instrument.symbol)
+    .forEach((instrument) => {
+      merged.set(instrument.symbol, {
+        ...merged.get(instrument.symbol),
+        ...instrument,
+      });
+    });
+
+  return Array.from(merged.values());
+};
+
+const deriveCategories = (instrumentList = []) => Array.from(
+  new Set(
+    instrumentList
+      .map((instrument) => instrument.category)
+      .filter(Boolean)
+  )
+).sort((a, b) => a.localeCompare(b));
+
+const buildMarketSnapshot = (instrumentList = []) => instrumentList.reduce((acc, instrument) => {
+  if (!instrument?.symbol) {
+    return acc;
+  }
+
+  acc[instrument.symbol] = {
+    price: instrument.price,
+    change: instrument.change,
+    volume: instrument.volume,
+    lastDir: 'none',
+  };
+  return acc;
+}, {});
+
 export const useDashboardData = (accountType = 'demo') => {
   const { user, refreshUser } = useContext(AuthContext);
   const isDemo = accountType === 'demo';
@@ -83,13 +139,30 @@ export const useDashboardData = (accountType = 'demo') => {
         infraService.getInstruments(),
         infraService.getCategories()
       ]);
-      
-      if (instRes.success) setInstruments(instRes.data);
-      if (catRes.success) {
-        setCategories(catRes.data);
-      }
+
+      const mergedInstruments = mergeInstrumentSources(
+        instRes.success ? instRes.data : [],
+        fallbackInstruments
+      );
+
+      setInstruments(mergedInstruments);
+      setCategories(
+        catRes.success && Array.isArray(catRes.data) && catRes.data.length > 0
+          ? catRes.data
+          : deriveCategories(mergedInstruments)
+      );
+      setMarketData((prev) => ({
+        ...buildMarketSnapshot(mergedInstruments),
+        ...prev,
+      }));
     } catch (error) {
       console.error('Fetch Instruments Error:', error);
+      setInstruments(fallbackInstruments);
+      setCategories(deriveCategories(fallbackInstruments));
+      setMarketData((prev) => ({
+        ...buildMarketSnapshot(fallbackInstruments),
+        ...prev,
+      }));
     }
   }, []);
 
@@ -151,24 +224,18 @@ export const useDashboardData = (accountType = 'demo') => {
         infraService.getFavorites()
       ]);
 
-      if (instRes.success) {
-        setInstruments(instRes.data);
-        // Initialize market data from fetched instruments if not already populated
-        setMarketData(prev => {
-          const newData = { ...prev };
-          instRes.data.forEach(inst => {
-            if (!newData[inst.symbol]) {
-              newData[inst.symbol] = {
-                price: inst.price,
-                change: inst.change,
-                volume: inst.volume,
-                lastDir: 'none'
-              };
-            }
-          });
-          return newData;
-        });
-      }
+      const mergedInstruments = mergeInstrumentSources(
+        instRes.success ? instRes.data : [],
+        fallbackInstruments
+      );
+
+      setInstruments(mergedInstruments);
+      setCategories(deriveCategories(mergedInstruments));
+      setMarketData((prev) => ({
+        ...buildMarketSnapshot(mergedInstruments),
+        ...prev,
+      }));
+
       if (notifRes.success) setNotifications(notifRes.data);
       if (logRes.success) setActivityLogs(logRes.data);
       if (favRes.success) setFavorites(favRes.data);
@@ -178,6 +245,12 @@ export const useDashboardData = (accountType = 'demo') => {
       if (platRes.success) setPlatformInfo(platRes.data);
     } catch (error) {
       console.error('Infrastructure Fetch Failed:', error);
+      setInstruments(fallbackInstruments);
+      setCategories(deriveCategories(fallbackInstruments));
+      setMarketData((prev) => ({
+        ...buildMarketSnapshot(fallbackInstruments),
+        ...prev,
+      }));
     }
   }, []);
 
@@ -413,7 +486,8 @@ export const useDashboardData = (accountType = 'demo') => {
 
     try {
         const usdInvestment = parseFloat(order.amount);
-        const entryPrice = order.price || marketData[order.symbol]?.price || 43000;
+        const instrumentPrice = instruments.find((instrument) => instrument.symbol === order.symbol)?.price;
+        const entryPrice = order.price || marketData[order.symbol]?.price || instrumentPrice || 43000;
         
         const response = await tradingService.executeTrade({
             accountId,

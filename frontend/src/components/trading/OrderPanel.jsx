@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { FaPlus, FaMinus, FaChevronDown, FaCheck, FaTimes } from 'react-icons/fa';
 import { calculateSpreads } from '../../utils/spreadCalculator';
 
-const OrderPanel = ({ onSubmit, symbol = 'BTCUSD', marketData = {}, onClose, onIntentChange = () => {}, maxLeverage = 400 }) => {
+const OrderPanel = ({ onSubmit, symbol = 'BTCUSDT', marketData = {}, onClose, onIntentChange = () => {}, maxLeverage = 400 }) => {
   const [orderType, setOrderType] = useState('market'); // market or pending
   const [amount, setAmount] = useState(1);
   const [leverage, setLeverage] = useState(1);
@@ -62,6 +62,7 @@ const OrderPanel = ({ onSubmit, symbol = 'BTCUSD', marketData = {}, onClose, onI
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    const executionPrice = selectedSide === 'buy' ? askPrice : bidPrice;
     onSubmit({
       symbol,
       type: orderType === 'market' ? 'market' : 'limit',
@@ -70,7 +71,7 @@ const OrderPanel = ({ onSubmit, symbol = 'BTCUSD', marketData = {}, onClose, onI
       leverage: leverage,
       takeProfit: takeProfit ? parseFloat(tpValue) : null,
       stopLoss: stopLoss ? parseFloat(slValue) : null,
-      price: orderType === 'pending' ? parseFloat(pendingPrice) : currentPrice
+      price: orderType === 'pending' ? parseFloat(pendingPrice) : executionPrice
     });
   };
 

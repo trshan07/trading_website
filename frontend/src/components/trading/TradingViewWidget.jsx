@@ -1,11 +1,118 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { FaExpand, FaCompress } from 'react-icons/fa';
+import { FaCompress, FaExpand } from 'react-icons/fa';
 
-const TradingViewWidget = ({ 
-  symbol = 'BTCUSDT', 
+const EXPLICIT_SYMBOL_MAP = {
+  BTCUSDT: 'BINANCE:BTCUSDT',
+  ETHUSDT: 'BINANCE:ETHUSDT',
+  BNBUSDT: 'BINANCE:BNBUSDT',
+  SOLUSDT: 'BINANCE:SOLUSDT',
+  ADAUSDT: 'BINANCE:ADAUSDT',
+  EURUSD: 'FX:EURUSD',
+  GBPUSD: 'FX:GBPUSD',
+  USDJPY: 'FX:USDJPY',
+  AUDUSD: 'FX:AUDUSD',
+  USDCAD: 'FX:USDCAD',
+  USDCHF: 'FX:USDCHF',
+  NZDUSD: 'FX:NZDUSD',
+  XAUUSD: 'TVC:GOLD',
+  XAGUSD: 'TVC:SILVER',
+  BRENT: 'TVC:UKOIL',
+  US10Y: 'TVC:US10Y',
+  DXY: 'TVC:DXY',
+  VIX: 'TVC:VIX',
+  SPX: 'SP:SPX',
+  NDX: 'NASDAQ:NDX',
+  DJI: 'DJ:DJI',
+  IBOV: 'BMFBOVESPA:IBOV',
+  SPY: 'AMEX:SPY',
+  QQQ: 'NASDAQ:QQQ',
+  AAPL: 'NASDAQ:AAPL',
+  TSLA: 'NASDAQ:TSLA',
+  MSFT: 'NASDAQ:MSFT',
+  GOOGL: 'NASDAQ:GOOGL',
+  ES1!: 'CME_MINI:ES1!',
+  YM1!: 'CBOT_MINI:YM1!',
+  CL1!: 'NYMEX:CL1!',
+};
+
+const CRYPTO_QUOTES = ['USDT', 'BUSD', 'USDC', 'BTC', 'ETH'];
+const FOREX_CODES = ['USD', 'EUR', 'GBP', 'JPY', 'AUD', 'NZD', 'CAD', 'CHF'];
+
+const normalizeSymbol = (symbol = '') => symbol.toUpperCase().replace(/[^A-Z0-9!]/g, '');
+
+const isForexPair = (symbol) => {
+  if (symbol.length !== 6) {
+    return false;
+  }
+
+  const base = symbol.slice(0, 3);
+  const quote = symbol.slice(3, 6);
+  return FOREX_CODES.includes(base) && FOREX_CODES.includes(quote);
+};
+
+const resolveTradingViewSymbol = ({ symbol, instrument }) => {
+  if (!symbol) {
+    return 'BINANCE:BTCUSDT';
+  }
+
+  if (symbol.includes(':')) {
+    return symbol;
+  }
+
+  const normalizedSymbol = normalizeSymbol(symbol);
+  const category = (instrument?.category || '').toLowerCase();
+
+  if (EXPLICIT_SYMBOL_MAP[normalizedSymbol]) {
+    return EXPLICIT_SYMBOL_MAP[normalizedSymbol];
+  }
+
+  if (normalizedSymbol.endsWith('!')) {
+    return `TVC:${normalizedSymbol}`;
+  }
+
+  if (CRYPTO_QUOTES.some((quote) => normalizedSymbol.endsWith(quote))) {
+    return `BINANCE:${normalizedSymbol}`;
+  }
+
+  if (isForexPair(normalizedSymbol) || category.includes('forex')) {
+    return `FX:${normalizedSymbol}`;
+  }
+
+  if (category.includes('crypto')) {
+    return `BINANCE:${normalizedSymbol}`;
+  }
+
+  if (category.includes('stock') || category.includes('share')) {
+    return `NASDAQ:${normalizedSymbol}`;
+  }
+
+  if (category.includes('fund') || category.includes('etf')) {
+    return `AMEX:${normalizedSymbol}`;
+  }
+
+  if (category.includes('indice') || category.includes('index')) {
+    return `INDEX:${normalizedSymbol}`;
+  }
+
+  if (
+    category.includes('future') ||
+    category.includes('bond') ||
+    category.includes('economy') ||
+    category.includes('option') ||
+    category.includes('commod')
+  ) {
+    return `TVC:${normalizedSymbol}`;
+  }
+
+  return `TVC:${normalizedSymbol}`;
+};
+
+const TradingViewWidget = ({
+  symbol = 'BTCUSDT',
+  instrument = null,
   theme = 'dark',
   activeIntent = null,
-  positions = []
+  positions = [],
 }) => {
   const containerRef = useRef(null);
   const widgetRef = useRef(null);
@@ -15,7 +122,6 @@ const TradingViewWidget = ({
     typeof navigator === 'undefined' ? true : navigator.onLine
   );
 
-  // Load TradingView Script
   useEffect(() => {
     if (!isOnline) {
       setScriptLoaded(false);
@@ -37,10 +143,7 @@ const TradingViewWidget = ({
     }
 
     return () => {
-      // Cleanup widget on unmount if needed
-      if (widgetRef.current) {
-        widgetRef.current = null;
-      }
+      widgetRef.current = null;
     };
   }, [isOnline]);
 
@@ -57,82 +160,36 @@ const TradingViewWidget = ({
     };
   }, []);
 
-  // Handle Escape key for fullscreen
   useEffect(() => {
-    const handleKeyDown = (e) => {
-      if (e.key === 'Escape' && isFullscreen) {
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape' && isFullscreen) {
         setIsFullscreen(false);
       }
     };
+
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isFullscreen]);
 
-  // Lock body scroll when fullscreen
   useEffect(() => {
-    if (isFullscreen) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = 'unset';
-    }
+    document.body.style.overflow = isFullscreen ? 'hidden' : 'unset';
   }, [isFullscreen]);
 
-  // Initialize/Update Widget
   useEffect(() => {
-    // Safety check for dependencies
-    if (!isOnline || !scriptLoaded || !containerRef.current || !window.TradingView || !symbol) return;
+    if (!isOnline || !scriptLoaded || !containerRef.current || !window.TradingView || !symbol) {
+      return undefined;
+    }
 
     const widgetId = `tradingview_${Math.random().toString(36).substring(7)}`;
     containerRef.current.id = widgetId;
 
     const isDark = theme === 'dark';
-    
-    // Smart Symbol Mapping for Global Hub
-    let tvSymbol = symbol;
-    if (!symbol.includes(':')) {
-      const sym = symbol.replace(/[^A-Z0-9!]/g, ''); // Keep ! for futures
-      
-      // 1. Specific Fixes / Overrides
-      const overrides = {
-        'US10Y': 'TVC:US10Y',
-        'DXY': 'TVC:DXY',
-        'SPX': 'INDEX:SPX',
-        'NDX': 'INDEX:NDX',
-        'DJI': 'INDEX:DJI',
-        'VIX': 'TVC:VIX',
-        'BRENT': 'TVC:UKOIL',
-        'XAUUSD': 'TVC:GOLD',
-        'XAGUSD': 'TVC:SILVER',
-        'IBOV': 'BMFBOVESPA:IBOV',
-        'ES1!': 'CME_MINI:ES1!',
-        'YM1!': 'CBOT:YM1!',
-        'CL1!': 'NYMEX:CL1!',
-        'SPY': 'AMEX:SPY',
-        'QQQ': 'NASDAQ:QQQ',
-        'AAPL': 'NASDAQ:AAPL',
-        'TSLA': 'NASDAQ:TSLA',
-        'MSFT': 'NASDAQ:MSFT',
-        'GOOGL': 'NASDAQ:GOOGL'
-      };
+    const tvSymbol = resolveTradingViewSymbol({ symbol, instrument });
 
-      if (overrides[sym]) {
-        tvSymbol = overrides[sym];
-      } else if (['BTC', 'ETH', 'SOL', 'ADA', 'BNB'].some(s => sym.startsWith(s))) {
-        tvSymbol = `BINANCE:${sym}`;
-      } else if (['EURUSD', 'GBPUSD', 'USDJPY', 'AUDUSD', 'USDCAD'].includes(sym)) {
-        tvSymbol = `FX:${sym}`;
-      } else {
-        tvSymbol = `BITSTAMP:${sym}`; // General Crypto Fallback
-      }
-    }
-
-    // Clear container
-    if (containerRef.current) {
-      containerRef.current.innerHTML = '';
-    }
+    containerRef.current.innerHTML = '';
 
     try {
-      const widget = new window.TradingView.widget({
+      widgetRef.current = new window.TradingView.widget({
         autosize: true,
         symbol: tvSymbol,
         interval: 'D',
@@ -153,22 +210,22 @@ const TradingViewWidget = ({
         backgroundColor: isDark ? '#0f172a' : '#ffffff',
         gridColor: isDark ? '#1e293b' : '#f1f5f9',
         studies: [],
-        overrides: isDark ? {
-          "paneProperties.background": "#0f172a",
-          "paneProperties.vertGridProperties.color": "#1e293b",
-          "paneProperties.horzGridProperties.color": "#1e293b",
-          "mainSeriesProperties.candleStyle.upColor": "#10b981",
-          "mainSeriesProperties.candleStyle.downColor": "#f43f5e",
-          "mainSeriesProperties.candleStyle.borderUpColor": "#10b981",
-          "mainSeriesProperties.candleStyle.borderDownColor": "#f43f5e",
-          "mainSeriesProperties.candleStyle.wickUpColor": "#10b981",
-          "mainSeriesProperties.candleStyle.wickDownColor": "#f43f5e"
-        } : {}
+        overrides: isDark
+          ? {
+              'paneProperties.background': '#0f172a',
+              'paneProperties.vertGridProperties.color': '#1e293b',
+              'paneProperties.horzGridProperties.color': '#1e293b',
+              'mainSeriesProperties.candleStyle.upColor': '#10b981',
+              'mainSeriesProperties.candleStyle.downColor': '#f43f5e',
+              'mainSeriesProperties.candleStyle.borderUpColor': '#10b981',
+              'mainSeriesProperties.candleStyle.borderDownColor': '#f43f5e',
+              'mainSeriesProperties.candleStyle.wickUpColor': '#10b981',
+              'mainSeriesProperties.candleStyle.wickDownColor': '#f43f5e',
+            }
+          : {},
       });
-
-      widgetRef.current = widget;
-    } catch (err) {
-      console.error('TradingView widget initialization failed:', err);
+    } catch (error) {
+      console.error('TradingView widget initialization failed:', error);
     }
 
     return () => {
@@ -177,27 +234,34 @@ const TradingViewWidget = ({
       }
       widgetRef.current = null;
     };
-  }, [isOnline, scriptLoaded, symbol, theme]); // Added explicit cleanup logic
+  }, [instrument, isOnline, scriptLoaded, symbol, theme]);
 
   const isDark = theme === 'dark';
+  const normalizedSymbol = normalizeSymbol(symbol);
+  const symbolPositions = positions.filter(
+    (position) => position?.symbol && normalizeSymbol(position.symbol) === normalizedSymbol
+  );
 
   return (
-    <div className={`flex flex-col h-full w-full transition-all duration-300 ${
-      isFullscreen 
-        ? 'fixed inset-0 z-[100] bg-slate-900' 
-        : `relative ${isDark ? 'bg-slate-900' : 'bg-white'}`
-    }`}>
-      <div className="flex-1 relative min-h-[500px]">
+    <div
+      className={`flex h-full w-full flex-col transition-all duration-300 ${
+        isFullscreen
+          ? 'fixed inset-0 z-[100] bg-slate-900'
+          : `relative ${isDark ? 'bg-slate-900' : 'bg-white'}`
+      }`}
+    >
+      <div className="relative flex-1 min-h-[500px]">
         {isOnline ? (
-          <div 
-            ref={containerRef} 
-            className="absolute inset-0 w-full h-full"
-          />
+          <div ref={containerRef} className="absolute inset-0 h-full w-full" />
         ) : (
           <div className="absolute inset-0 flex items-center justify-center px-6">
-            <div className={`max-w-md rounded-2xl border px-6 py-5 text-center ${
-              isDark ? 'border-slate-700 bg-slate-900 text-slate-300' : 'border-slate-200 bg-white text-slate-600'
-            }`}>
+            <div
+              className={`max-w-md rounded-2xl border px-6 py-5 text-center ${
+                isDark
+                  ? 'border-slate-700 bg-slate-900 text-slate-300'
+                  : 'border-slate-200 bg-white text-slate-600'
+              }`}
+            >
               <div className="text-sm font-black uppercase tracking-widest">Advanced Chart Offline</div>
               <div className="mt-3 text-sm leading-6">
                 TradingView needs an internet connection. Reconnect to load the advanced chart.
@@ -206,107 +270,114 @@ const TradingViewWidget = ({
           </div>
         )}
 
-        {/* Trade Execution Markers Overlay */}
-        {positions && positions.length > 0 && (() => {
-          const symbolPositions = positions.filter(p => 
-            p?.symbol && p.symbol.replace(/[^A-Z0-9]/g, '') === symbol.replace(/[^A-Z0-9]/g, '')
-          );
-          if (symbolPositions.length === 0) return null;
-          return (
-            <div className="absolute left-0 top-0 bottom-0 z-10 pointer-events-none flex flex-col justify-center pl-2 space-y-1.5">
-              {symbolPositions.map((pos, idx) => {
-                const isBuy = (pos.side || pos.type || '').toUpperCase() === 'BUY';
-                return (
-                  <div
-                    key={pos.id || idx}
-                    className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border backdrop-blur-sm shadow-lg ${
-                      isBuy
-                        ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-400'
-                        : 'bg-rose-500/20 border-rose-500/50 text-rose-400'
-                    }`}
-                  >
-                    {/* Direction arrow */}
-                    <span className={`text-[14px] font-black leading-none ${isBuy ? 'text-emerald-400' : 'text-rose-400'}`}>
-                      {isBuy ? '▲' : '▼'}
-                    </span>
-                    <div className="flex flex-col">
-                      <span className={`text-[8px] font-black uppercase tracking-widest ${
-                        isBuy ? 'text-emerald-400' : 'text-rose-400'
-                      }`}>
-                        {isBuy ? 'BUY' : 'SELL'}
-                      </span>
-                      <span className="text-[9px] font-black text-white tabular-nums">
-                        @ ${Number(pos.entryPrice || pos.entry_price || 0).toLocaleString()}
-                      </span>
-                      {pos.quantity && (
-                        <span className="text-[7px] text-slate-400 font-bold">
-                          {pos.quantity} units
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          );
-        })()}
+        {symbolPositions.length > 0 && (
+          <div className="pointer-events-none absolute bottom-0 left-0 top-0 z-10 flex flex-col justify-center space-y-1.5 pl-2">
+            {symbolPositions.map((position, index) => {
+              const isBuy = (position.side || position.type || '').toUpperCase() === 'BUY';
 
-        {/* Execution Mode Overlay - pending order intent */}
+              return (
+                <div
+                  key={position.id || index}
+                  className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 shadow-lg backdrop-blur-sm ${
+                    isBuy
+                      ? 'border-emerald-500/50 bg-emerald-500/20 text-emerald-400'
+                      : 'border-rose-500/50 bg-rose-500/20 text-rose-400'
+                  }`}
+                >
+                  <span className={`text-[14px] font-black leading-none ${isBuy ? 'text-emerald-400' : 'text-rose-400'}`}>
+                    {isBuy ? '^' : 'v'}
+                  </span>
+                  <div className="flex flex-col">
+                    <span
+                      className={`text-[8px] font-black uppercase tracking-widest ${
+                        isBuy ? 'text-emerald-400' : 'text-rose-400'
+                      }`}
+                    >
+                      {isBuy ? 'BUY' : 'SELL'}
+                    </span>
+                    <span className="text-[9px] font-black tabular-nums text-white">
+                      @ ${Number(position.entryPrice || position.entry_price || 0).toLocaleString()}
+                    </span>
+                    {position.quantity && (
+                      <span className="text-[7px] font-bold text-slate-400">{position.quantity} units</span>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
         {activeIntent && (
-          <div className="absolute top-8 right-8 z-10 pointer-events-none animate-in fade-in zoom-in duration-300">
-            <div className={`flex items-center space-x-3 px-6 py-3 rounded-2xl border backdrop-blur-md shadow-2xl ${
-              activeIntent.side === 'buy' 
-                ? 'bg-emerald-500/10 border-emerald-500/30' 
-                : 'bg-rose-500/10 border-rose-500/30'
-            }`}>
-              <div className={`w-2 h-2 rounded-full animate-ping ${
-                activeIntent.side === 'buy' ? 'bg-emerald-500' : 'bg-rose-500'
-              }`} />
+          <div className="pointer-events-none absolute right-8 top-8 z-10 animate-in fade-in zoom-in duration-300">
+            <div
+              className={`flex items-center space-x-3 rounded-2xl border px-6 py-3 shadow-2xl backdrop-blur-md ${
+                activeIntent.side === 'buy'
+                  ? 'border-emerald-500/30 bg-emerald-500/10'
+                  : 'border-rose-500/30 bg-rose-500/10'
+              }`}
+            >
+              <div
+                className={`h-2 w-2 rounded-full animate-ping ${
+                  activeIntent.side === 'buy' ? 'bg-emerald-500' : 'bg-rose-500'
+                }`}
+              />
               <div className="flex flex-col">
-                <span className={`text-[10px] font-black uppercase tracking-[0.2em] ${
-                  activeIntent.side === 'buy' ? 'text-emerald-500' : 'text-rose-500'
-                }`}>
+                <span
+                  className={`text-[10px] font-black uppercase tracking-[0.2em] ${
+                    activeIntent.side === 'buy' ? 'text-emerald-500' : 'text-rose-500'
+                  }`}
+                >
                   New {activeIntent.side} Order
                 </span>
-                <span className="text-[8px] font-bold text-slate-500 uppercase tracking-widest mt-0.5">
-                  {activeIntent.type === 'market' ? 'Market Execution' : `Pending @ ${activeIntent.price || '...'}`}
+                <span className="mt-0.5 text-[8px] font-bold uppercase tracking-widest text-slate-500">
+                  {activeIntent.type === 'market'
+                    ? 'Market Execution'
+                    : `Pending @ ${activeIntent.price || '...'}`}
                 </span>
               </div>
             </div>
           </div>
         )}
       </div>
-      
-      {/* Footer Info */}
-      <div className={`px-4 py-2 border-t flex items-center justify-between text-xs font-medium ${
-        isDark ? 'bg-slate-900 border-slate-800 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500'
-      }`}>
+
+      <div
+        className={`flex items-center justify-between border-t px-4 py-2 text-xs font-medium ${
+          isDark
+            ? 'border-slate-800 bg-slate-900 text-slate-400'
+            : 'border-slate-200 bg-slate-50 text-slate-500'
+        }`}
+      >
         <div className="flex items-center gap-4">
           <span className="flex items-center gap-1.5">
-            <span className={`w-2 h-2 rounded-full ${isOnline ? 'bg-emerald-500 animate-pulse' : 'bg-slate-500'}`} />
+            <span className={`h-2 w-2 rounded-full ${isOnline ? 'bg-emerald-500 animate-pulse' : 'bg-slate-500'}`} />
             {isOnline ? 'LIVE MARKET DATA' : 'OFFLINE MODE'}
           </span>
           <span className="opacity-40">|</span>
           <span>POWERED BY TRADINGVIEW</span>
         </div>
         <div className="flex items-center gap-3">
-          <button 
+          <button
             onClick={() => setIsFullscreen(!isFullscreen)}
-            className={`flex items-center gap-2 px-3 py-1 rounded border transition-all hover:scale-105 active:scale-95 ${
-              isDark 
-                ? 'bg-slate-800 border-slate-700 text-gold-500 hover:bg-slate-700' 
-                : 'bg-white border-slate-200 text-gold-600 hover:bg-slate-50'
+            className={`flex items-center gap-2 rounded border px-3 py-1 transition-all hover:scale-105 active:scale-95 ${
+              isDark
+                ? 'border-slate-700 bg-slate-800 text-gold-500 hover:bg-slate-700'
+                : 'border-slate-200 bg-white text-gold-600 hover:bg-slate-50'
             }`}
-            title={isFullscreen ? "Exit Fullscreen (Esc)" : "Expand to Fullscreen"}
+            title={isFullscreen ? 'Exit Fullscreen (Esc)' : 'Expand to Fullscreen'}
           >
             {isFullscreen ? <FaCompress size={12} /> : <FaExpand size={12} />}
             <span className="text-[10px] font-black uppercase tracking-widest">
-              {isFullscreen ? "Close" : "Expand"}
+              {isFullscreen ? 'Close' : 'Expand'}
             </span>
           </button>
-          <div className={`px-2 py-0.5 rounded border ${
-            isDark ? 'bg-slate-800 border-slate-700 text-gold-500' : 'bg-white border-slate-200 text-gold-600'
-          }`}>
+          <div
+            className={`rounded border px-2 py-0.5 ${
+              isDark
+                ? 'border-slate-700 bg-slate-800 text-gold-500'
+                : 'border-slate-200 bg-white text-gold-600'
+            }`}
+          >
             ADVANCED ANALYSIS MODE
           </div>
         </div>
