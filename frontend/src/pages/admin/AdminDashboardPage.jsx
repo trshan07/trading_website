@@ -626,6 +626,7 @@ function UsersPage({ users, setUsers, toast }) {
           status: form.status,
           is_active: form.status === "active",
           initialBalance: form.balance,
+          leverage: form.leverage,
         };
 
         const res = await adminService.createUser(payload);
@@ -663,11 +664,12 @@ function UsersPage({ users, setUsers, toast }) {
             lastName: lastName || form.lastName,
             country: form.country,
             phone: form.phone,
-            is_active: form.status === "active"
+            is_active: form.status === "active",
+            leverage: form.leverage,
         };
         const res = await adminService.updateUser(form.id, payload);
         if (res.data?.success) {
-            setUsers(p => p.map(u => (u.id === form.id ? normalizeUserAccounts({ ...u, ...form }) : u)));
+            setUsers(p => p.map(u => (u.id === form.id ? normalizeUserAccounts(res.data.data) : u)));
             toast("User Updated", form.email);
         } else {
             toast("Update Failed", res.data?.message || "Unknown error", "error");
@@ -1880,7 +1882,7 @@ function SettingsPage({ toast }) {
     };
 
     loadSettings();
-  }, [toast]);
+  }, []);
 
   const saveSettings = async (message) => {
     try {

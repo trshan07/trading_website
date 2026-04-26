@@ -2,7 +2,18 @@
 const db = require('../config/database');
 
 class PlatformSettings {
+    static async ensureTable() {
+        await db.query(`
+            CREATE TABLE IF NOT EXISTS platform_settings (
+                key VARCHAR(100) PRIMARY KEY,
+                value JSONB NOT NULL,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        `);
+    }
+
     static async getAll() {
+        await this.ensureTable();
         const query = 'SELECT key, value FROM platform_settings';
         const { rows } = await db.query(query);
         
@@ -22,6 +33,7 @@ class PlatformSettings {
     }
 
     static async update(key, value) {
+        await this.ensureTable();
         const query = `
             INSERT INTO platform_settings (key, value)
             VALUES ($1, $2)
@@ -35,6 +47,7 @@ class PlatformSettings {
     }
 
     static async updateBatch(settings) {
+        await this.ensureTable();
         const client = await db.pool.connect();
         try {
             await client.query('BEGIN');

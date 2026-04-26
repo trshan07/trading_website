@@ -96,6 +96,18 @@ const attachAccountsAndHistory = async (user) => {
     };
 };
 
+const syncUserAccounts = async (userId, { leverage } = {}) => {
+    const accounts = await Account.findByUserId(userId);
+
+    if (leverage != null) {
+        await Promise.all(
+            accounts.map((account) => Account.updateLeverage(account.id, leverage))
+        );
+    }
+
+    return Account.findByUserId(userId);
+};
+
 const findAdjustableAccount = async (userId, accountId) => {
     if (accountId) {
         const account = await Account.findById(accountId);
@@ -201,7 +213,8 @@ const createUser = async (req, res) => {
             role,
             status,
             is_active,
-            initialBalance
+            initialBalance,
+            leverage
         } = req.body;
 
         if (!email || !password) {
@@ -228,6 +241,9 @@ const createUser = async (req, res) => {
 
         const user = await User.create(payload);
         await Account.ensureAccounts(user.id);
+        if (toNumber(leverage) > 0) {
+            await syncUserAccounts(user.id, { leverage: toNumber(leverage) });
+        }
 
         const balanceAmount = toNumber(initialBalance, 0);
         if (balanceAmount > 0) {
@@ -316,6 +332,7 @@ const updateUser = async (req, res) => {
                 ? body.status !== 'suspended'
                 : undefined;
         const role = body.role;
+        const leverage = body.leverage != null ? toNumber(body.leverage) : null;
 
         let user = await User.update(req.params.id, {
             firstName,
@@ -340,6 +357,10 @@ const updateUser = async (req, res) => {
             return res.status(404).json({ success: false, message: 'User not found' });
         }
 
+        if (user.role === 'client' && leverage) {
+            await syncUserAccounts(user.id, { leverage });
+        }
+
         await AdminLog.create(req.user.id, {
             action: 'UPDATE_USER',
             target_id: user.id,
@@ -347,9 +368,13 @@ const updateUser = async (req, res) => {
             ip_address: req.ip
         });
 
+        const payload = user.role === 'client'
+            ? await attachAccountsAndHistory(user)
+            : user;
+
         res.json({
             success: true,
-            data: user
+            data: payload
         });
     } catch (error) {
         console.error(error);
