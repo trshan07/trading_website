@@ -222,6 +222,32 @@ export const useDashboardData = (accountType = 'demo') => {
     }
   }, [accountId, marketData]);
 
+  const fetchOrders = useCallback(async () => {
+    if (!accountId) return;
+    const token = localStorage.getItem('token');
+    if (!token) return;
+
+    try {
+      const response = await tradingService.getOpenOrders(accountId);
+      if (response.success) {
+        const mappedOrders = (response.data || []).map((order) => ({
+          id: order.id,
+          symbol: order.symbol,
+          type: (order.type || 'limit').toUpperCase(),
+          side: (order.side || 'buy').toUpperCase(),
+          amount: parseFloat(order.amount) || 0,
+          quantity: parseFloat(order.quantity) || 0,
+          entryPrice: parseFloat(order.entry_price) || 0,
+          createdAt: order.created_at,
+          status: order.status,
+        }));
+        setOrders(mappedOrders);
+      }
+    } catch (error) {
+      console.error('Failed to fetch orders:', error);
+    }
+  }, [accountId]);
+
   // --- Initial Data loading Lifecycle ---
   useEffect(() => {
     if (user) {
@@ -236,10 +262,14 @@ export const useDashboardData = (accountType = 'demo') => {
 
   useEffect(() => {
     if (!accountId) return; // Don't start polling at all without an account
+    fetchOrders();
     fetchPositions();
-    const pollInterval = setInterval(fetchPositions, 10000);
+    const pollInterval = setInterval(() => {
+      fetchPositions();
+      fetchOrders();
+    }, 10000);
     return () => clearInterval(pollInterval);
-  }, [fetchPositions, accountId]);
+  }, [fetchPositions, fetchOrders, accountId]);
 
   // --- Handlers (Sync with Backend) ---
 
@@ -395,8 +425,13 @@ export const useDashboardData = (accountType = 'demo') => {
         });
 
         if (response.success) {
-            await fetchPositions();
-            toast.success(`${order.side} Order Executed!`);
+            if (order.type.toLowerCase() === 'limit') {
+              await fetchOrders();
+              toast.success(`${order.side} Limit Order Placed!`);
+            } else {
+              await fetchPositions();
+              toast.success(`${order.side} Order Executed!`);
+            }
             refreshUser();
             return true;
         }
@@ -408,6 +443,10 @@ export const useDashboardData = (accountType = 'demo') => {
 
   const handleCancelOrder = async (id) => {
     try {
+      const res = await tradingService.cancelOrder(id);
+      if (!res.success) {
+        throw new Error('Cancel failed');
+      }
       setOrders(prev => prev.filter(o => o.id !== id));
       toast.success("Order Cancelled");
       return true;

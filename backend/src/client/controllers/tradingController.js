@@ -46,6 +46,28 @@ const executeTrade = async (req, res) => {
             });
         }
 
+        if (String(type).toLowerCase() === 'limit') {
+            const order = await Order.create(userId, {
+                accountId,
+                symbol,
+                side,
+                type: 'limit',
+                amount: usdAmount,
+                quantity,
+                entryPrice: price,
+                status: 'pending'
+            });
+
+            await createActivityLog(userId, 'EXECUTION', `Placed LIMIT ${side.toUpperCase()} ${symbol} Order`);
+            await createNotification(userId, 'info', `Pending order placed: ${side.toUpperCase()} ${symbol} at ${price}`);
+
+            return res.status(201).json({
+                success: true,
+                message: 'Limit order placed successfully',
+                data: { order }
+            });
+        }
+
         // 1. Create Order (executed)
         const order = await Order.create(userId, {
             accountId,
@@ -108,6 +130,34 @@ const getOpenPositions = async (req, res) => {
             return res.json({ success: true, data: [] });
         }
         res.status(500).json({ success: false, message: 'Failed to fetch positions' });
+    }
+};
+
+const getOpenOrders = async (req, res) => {
+    try {
+        const { accountId } = req.query;
+        const orders = await Order.findByAccountId(accountId, 'pending');
+        res.json({ success: true, data: orders });
+    } catch (error) {
+        if (isMissingRelationError(error)) {
+            return res.json({ success: true, data: [] });
+        }
+        res.status(500).json({ success: false, message: 'Failed to fetch orders' });
+    }
+};
+
+const cancelOrder = async (req, res) => {
+    try {
+        const order = await Order.delete(req.params.orderId, req.user.id);
+        if (!order) {
+            return res.status(404).json({ success: false, message: 'Order not found' });
+        }
+        res.json({ success: true, message: 'Order cancelled' });
+    } catch (error) {
+        if (isMissingRelationError(error)) {
+            return res.status(503).json({ success: false, message: 'Orders are unavailable until database migrations are applied' });
+        }
+        res.status(500).json({ success: false, message: 'Failed to cancel order' });
     }
 };
 
@@ -199,8 +249,10 @@ const deleteAlert = async (req, res) => {
 
 module.exports = {
     executeTrade,
+    getOpenOrders,
     getOpenPositions,
     closePosition,
+    cancelOrder,
     getAlerts,
     createAlert,
     deleteAlert

@@ -34,6 +34,7 @@ const TradingTab = ({
   const [activeOrderIntent, setActiveOrderIntent] = useState({ side: 'buy', type: 'market' });
   const [chartMode, setChartMode] = useState('advanced'); // 'advanced' | 'execution'
   const { theme } = useTheme();
+  const executionChartSupported = /USDT$|BTC$|BUSD$/i.test(activeSymbol || '');
 
   return (
     <div className="flex flex-col h-[calc(100vh-10rem)] min-h-[500px] lg:min-h-[1050px] -mx-4 md:-mx-10 border-t border-slate-100 dark:border-slate-800 animate-in fade-in duration-500">
@@ -123,11 +124,13 @@ const TradingTab = ({
               </button>
               <button
                 onClick={() => setChartMode('execution')}
+                disabled={!executionChartSupported}
+                title={!executionChartSupported ? 'Execution candles are live only for Binance-supported crypto symbols. Use Advanced mode for live TradingView data.' : 'Execution chart'}
                 className={`px-3 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest transition-all ${
                   chartMode === 'execution'
                     ? 'bg-emerald-500 text-white shadow-md'
                     : theme === 'dark' ? 'bg-slate-800 text-slate-400 hover:text-white' : 'bg-slate-200 text-slate-500 hover:text-slate-900'
-                }`}
+                } ${!executionChartSupported ? 'opacity-40 cursor-not-allowed hover:text-slate-400' : ''}`}
               >
                 🎯 Execution {positions.filter(p => p?.symbol?.replace(/[^A-Z]/g,'') === activeSymbol.replace(/[^A-Z]/g,'')).length > 0 && (
                   <span className="ml-1 bg-white text-emerald-600 text-[7px] px-1 rounded-full font-black">
@@ -148,6 +151,15 @@ const TradingTab = ({
 
             {/* Chart: Execution (RealTimeChart with position markers) */}
             <div className={`flex-1 ${chartMode === 'execution' ? 'block' : 'hidden'}`}>
+              {!executionChartSupported && (
+                <div className={`px-4 py-2 text-[10px] font-black uppercase tracking-widest border-b ${
+                  theme === 'dark'
+                    ? 'bg-amber-500/10 text-amber-300 border-amber-500/20'
+                    : 'bg-amber-50 text-amber-700 border-amber-200'
+                }`}>
+                  Advanced TradingView mode is the live chart for this instrument. Execution candles are only live for Binance-supported crypto pairs.
+                </div>
+              )}
               <RealTimeChart
                 symbol={activeSymbol}
                 theme={theme}

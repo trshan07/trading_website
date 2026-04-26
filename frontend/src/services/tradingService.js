@@ -9,8 +9,18 @@ const tradingService = {
   },
 
   // Get active positions for a specific account
+  getOpenOrders: async (accountId) => {
+    const response = await api.get(`/trading/orders?accountId=${accountId}`);
+    return response.data;
+  },
+
   getOpenPositions: async (accountId) => {
     const response = await api.get(`/trading/positions?accountId=${accountId}`);
+    return response.data;
+  },
+
+  cancelOrder: async (orderId) => {
+    const response = await api.delete(`/trading/orders/${orderId}`);
     return response.data;
   },
 
