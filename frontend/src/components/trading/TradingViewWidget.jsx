@@ -30,9 +30,9 @@ const EXPLICIT_SYMBOL_MAP = {
   TSLA: 'NASDAQ:TSLA',
   MSFT: 'NASDAQ:MSFT',
   GOOGL: 'NASDAQ:GOOGL',
-  ES1!: 'CME_MINI:ES1!',
-  YM1!: 'CBOT_MINI:YM1!',
-  CL1!: 'NYMEX:CL1!',
+  'ES1!': 'CME_MINI:ES1!',
+  'YM1!': 'CBOT_MINI:YM1!',
+  'CL1!': 'NYMEX:CL1!',
 };
 
 const CRYPTO_QUOTES = ['USDT', 'BUSD', 'USDC', 'BTC', 'ETH'];
