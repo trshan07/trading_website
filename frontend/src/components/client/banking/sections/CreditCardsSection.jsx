@@ -1,7 +1,13 @@
 import React from 'react';
-import { FaPlus, FaCreditCard } from 'react-icons/fa';
+import { FaPlus, FaCreditCard, FaCheck, FaTrash } from 'react-icons/fa';
 
-const CreditCardsSection = ({ creditCards = [], setShowAddCard, getCardIcon }) => (
+const CreditCardsSection = ({
+  creditCards = [],
+  setShowAddCard,
+  getCardIcon,
+  handleDeleteCard,
+  handleSetDefaultCard,
+}) => (
   <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 p-5 sm:p-8 shadow-2xl shadow-slate-200/50 dark:shadow-black/20 transition-colors duration-300 mt-8">
     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 sm:gap-6 mb-8 sm:mb-10">
       <div>
@@ -32,12 +38,30 @@ const CreditCardsSection = ({ creditCards = [], setShowAddCard, getCardIcon }) =
           <div className="flex justify-between items-end mt-8 relative pt-6 border-t border-white/5">
             <div>
               <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest">Valid Thru</p>
-              <p className="text-xs font-black text-white italic">{card.expiryMonth}/{card.expiryYear}</p>
+              <p className="text-xs font-black text-white italic">{card.expiry || `${card.expiryMonth}/${card.expiryYear}`}</p>
             </div>
             <div className="text-right">
               <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest">Limit</p>
               <p className="text-xs font-black text-emerald-400 italic">${card.availableCredit?.toLocaleString()}</p>
             </div>
+          </div>
+          <div className="mt-6 flex items-center justify-end gap-2 relative">
+            {!card.isDefault && creditCards.length > 1 && (
+              <button
+                onClick={() => handleSetDefaultCard?.(card.id)}
+                className="p-2 bg-white/10 text-slate-300 hover:text-emerald-400 rounded-lg border border-white/10 hover:border-emerald-500/30 transition-all"
+                title="Set as default"
+              >
+                <FaCheck size={12} />
+              </button>
+            )}
+            <button
+              onClick={() => handleDeleteCard?.(card.id)}
+              className="p-2 bg-white/10 text-slate-300 hover:text-rose-400 rounded-lg border border-white/10 hover:border-rose-500/30 transition-all"
+              title="Delete card"
+            >
+              <FaTrash size={12} />
+            </button>
           </div>
         </div>
       ))}

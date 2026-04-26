@@ -523,9 +523,12 @@ export const useDashboardData = (accountType = 'demo') => {
         setTransactions(prev => [normalizeTransaction({ ...res.data, source_type: 'funding_request' }), ...prev]);
         toast.success("Deposit request submitted");
         refreshUser();
+        return true;
       }
+      return false;
     } catch (error) {
       toast.error("Deposit submission failed");
+      return false;
     }
   };
 
@@ -540,9 +543,12 @@ export const useDashboardData = (accountType = 'demo') => {
         setTransactions(prev => [normalizeTransaction({ ...res.data, source_type: 'funding_request' }), ...prev]);
         toast.success("Withdrawal request submitted");
         refreshUser();
+        return true;
       }
+      return false;
     } catch (error) {
       toast.error(error.response?.data?.message || "Withdrawal failed");
+      return false;
     }
   };
 

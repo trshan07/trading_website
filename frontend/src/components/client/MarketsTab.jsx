@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import AdvancedRealTimeChart from '../trading/TradingViewWidget';
 import TerminalAssetList from '../trading/TerminalAssetList';
-import { FaGlobe, FaSearch, FaChartBar, FaLayerGroup, FaTimes, FaArrowUp, FaArrowDown, FaStar, FaRegStar } from 'react-icons/fa';
+import { FaGlobe, FaSearch, FaChartBar, FaLayerGroup, FaTimes } from 'react-icons/fa';
 import { useTheme } from '../../context/ThemeContext';
 
 const MarketsTab = ({ 
@@ -23,12 +23,40 @@ const MarketsTab = ({
   const [showSearchDropdown, setShowSearchDropdown] = useState(false);
   const searchRef = useRef(null);
 
+  const getCategoryMatches = (category) => {
+    if (category === 'Watchlist') {
+      return instruments.filter((inst) => favorites.includes(inst.symbol));
+    }
+
+    if (category === 'Popular') {
+      const popularSymbols = ['BTCUSDT', 'ETHUSDT', 'AAPL', 'TSLA', 'SPX', 'EURUSD', 'XAUUSD'];
+      return instruments.filter((inst) => popularSymbols.includes(inst.symbol));
+    }
+
+    if (category === 'Shares') {
+      return instruments.filter((inst) => inst.category === 'Stocks');
+    }
+
+    if (category === 'All') {
+      return instruments;
+    }
+
+    return instruments.filter((inst) => inst.category === category);
+  };
+
   // Sync with initialCategory if it changes from outside
   useEffect(() => {
     if (initialCategory) {
       setActiveCategory(initialCategory);
+
+      if (initialCategory !== 'All') {
+        const matches = getCategoryMatches(initialCategory);
+        if (matches.length > 0 && !matches.some((inst) => inst.symbol === activeSymbol)) {
+          handleSelectSymbol(matches[0].symbol);
+        }
+      }
     }
-  }, [initialCategory]);
+  }, [initialCategory, instruments, favorites]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -55,22 +83,26 @@ const MarketsTab = ({
     if (onToggleFavorite) onToggleFavorite(sym);
   };
 
-  // Filter by search query + category
-  const filtered = instruments.filter(inst => {
-    let matchesCategory = activeCategory === 'All' || inst.category === activeCategory;
+  const handleCategorySelect = (category) => {
+    setActiveCategory(category);
 
-    // Special categories
-    if (activeCategory === 'Watchlist') {
-      matchesCategory = favorites.includes(inst.symbol);
-    } else if (activeCategory === 'Popular') {
-      const popularSymbols = ['BTCUSDT', 'ETHUSDT', 'AAPL', 'TSLA', 'SPX', 'EURUSD', 'XAUUSD'];
-      matchesCategory = popularSymbols.includes(inst.symbol);
-    } else if (activeCategory === 'Shares') {
-      matchesCategory = inst.category === 'Stocks';
-    } else if (activeCategory === 'Futures') {
-      matchesCategory = inst.category === 'Futures';
+    if (category === 'All') {
+      return;
     }
 
+    const matches = getCategoryMatches(category);
+    if (matches.length === 0) {
+      return;
+    }
+
+    const currentStillVisible = matches.some((inst) => inst.symbol === activeSymbol);
+    if (!currentStillVisible) {
+      handleSelectSymbol(matches[0].symbol);
+    }
+  };
+
+  // Filter by search query + category
+  const filtered = getCategoryMatches(activeCategory).filter(inst => {
     const matchesSearch =
       !searchQuery.trim() ||
       inst.symbol.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -111,7 +143,7 @@ const MarketsTab = ({
             {['All', 'Watchlist', 'Popular', ...categories].map((cat) => (
               <button
                 key={cat}
-                onClick={() => setActiveCategory(cat)}
+                onClick={() => handleCategorySelect(cat)}
                 className={`px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${
                   activeCategory === cat
                     ? 'bg-slate-900 dark:bg-gold-500 text-white dark:text-slate-900 shadow-lg'
@@ -183,7 +215,6 @@ const MarketsTab = ({
                         </span>
                       </div>
                       {dropdownResults.map((inst) => {
-                        const cc = CATEGORY_COLORS[inst.category] || CATEGORY_COLORS['Crypto'];
                         const isUp = inst.change >= 0;
                         return (
                           <button

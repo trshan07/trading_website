@@ -301,15 +301,26 @@ const BankingTab = ({
     }
   };
 
-  const handleDeposit = () => {
+  const handleDeposit = async () => {
     if (!depositAmount || parseFloat(depositAmount) <= 0) {
       setShowErrorMessage('Please enter a valid amount');
       setTimeout(() => setShowErrorMessage(''), 3000);
       return;
     }
+
+    if (selectedMethod === 'bank' && !depositReference.trim()) {
+      setShowErrorMessage('Transfer reference is required');
+      setTimeout(() => setShowErrorMessage(''), 3000);
+      return;
+    }
     
     if (onDeposit) {
-      onDeposit(depositAmount, selectedMethod, depositReference, depositProof);
+      const success = await onDeposit(depositAmount, selectedMethod, depositReference, depositProof);
+      if (!success) {
+        setShowErrorMessage('Deposit request failed. Please try again.');
+        setTimeout(() => setShowErrorMessage(''), 3000);
+        return;
+      }
     }
     
     setShowSuccessMessage('Deposit initiated successfully!');
@@ -321,7 +332,7 @@ const BankingTab = ({
     setDepositProofName('');
   };
 
-  const handleWithdraw = () => {
+  const handleWithdraw = async () => {
     if (!withdrawAmount || parseFloat(withdrawAmount) <= 0) {
       setShowErrorMessage('Please enter a valid amount');
       setTimeout(() => setShowErrorMessage(''), 3000);
@@ -335,7 +346,12 @@ const BankingTab = ({
     }
     
     if (onWithdraw) {
-      onWithdraw(withdrawAmount, selectedMethod);
+      const success = await onWithdraw(withdrawAmount, selectedMethod);
+      if (!success) {
+        setShowErrorMessage('Withdrawal request failed. Please try again.');
+        setTimeout(() => setShowErrorMessage(''), 3000);
+        return;
+      }
     }
     
     setShowSuccessMessage('Withdrawal initiated successfully!');
@@ -358,6 +374,24 @@ const BankingTab = ({
     if (onSetDefaultBankAccount) {
       onSetDefaultBankAccount(id);
       setShowSuccessMessage('Default bank account updated!');
+      setTimeout(() => setShowSuccessMessage(''), 3000);
+    }
+  };
+
+  const handleDeleteCard = (id) => {
+    if (window.confirm('Are you sure you want to delete this card?')) {
+      if (onDeleteCreditCard) {
+        onDeleteCreditCard(id);
+      }
+      setShowSuccessMessage('Card removed successfully!');
+      setTimeout(() => setShowSuccessMessage(''), 3000);
+    }
+  };
+
+  const handleSetDefaultCard = (id) => {
+    if (onSetDefaultCreditCard) {
+      onSetDefaultCreditCard(id);
+      setShowSuccessMessage('Default card updated!');
       setTimeout(() => setShowSuccessMessage(''), 3000);
     }
   };
@@ -556,6 +590,7 @@ const BankingTab = ({
             <h3 className="text-[10px] font-black text-gold-500 uppercase tracking-[0.3em] mb-6 sm:mb-8 italic">Rapid Protocols</h3>
             <div className="space-y-3">
               {[
+                { label: 'Deposit Funds', icon: FaArrowDown, action: () => setShowDeposit(true) },
                 { label: 'Internal Transfer', icon: FaExchangeAlt, action: openTransferFlow },
                 { label: 'Add Repository', icon: FaBuilding, action: () => setShowAddAccount(true) },
                 { label: 'Link interface', icon: FaCreditCard, action: () => setShowAddCard(true) },
@@ -653,6 +688,8 @@ const BankingTab = ({
               creditCards={creditCards}
               setShowAddCard={setShowAddCard}
               getCardIcon={getCardIcon}
+              handleDeleteCard={handleDeleteCard}
+              handleSetDefaultCard={handleSetDefaultCard}
             />
           )}
           {activeBankingTab === 'payment' && <PaymentMethodsSection paymentMethods={paymentMethods} />}

@@ -27,8 +27,10 @@ const addBankAccount = async (req, res) => {
         };
         const account = await BankAccount.create(req.user.id, accountData);
         
-        await createActivityLog(req.user.id, 'SECURITY', `Linked Bank Account: ${req.body.bank_name}`);
-        await createNotification(req.user.id, 'success', `Bank account ${req.body.bank_name} linked successfully.`);
+        const bankName = account.bank_name || req.body.bankName || req.body.bank_name || 'bank account';
+
+        await createActivityLog(req.user.id, 'SECURITY', `Linked Bank Account: ${bankName}`);
+        await createNotification(req.user.id, 'success', `Bank account ${bankName} linked successfully.`);
         
         res.status(201).json({ success: true, data: account });
     } catch (error) {
@@ -69,9 +71,10 @@ const getCreditCards = async (req, res) => {
 const addCreditCard = async (req, res) => {
     try {
         const card = await CreditCard.create(req.user.id, req.body);
+        const cardTail = card.last4 || req.body.cardNumber?.replace(/\s/g, '').slice(-4) || '0000';
         
-        await createActivityLog(req.user.id, 'SECURITY', `Linked Credit Card: ****${req.body.last4}`);
-        await createNotification(req.user.id, 'success', `Credit card ending in ${req.body.last4} linked.`);
+        await createActivityLog(req.user.id, 'SECURITY', `Linked Credit Card: ****${cardTail}`);
+        await createNotification(req.user.id, 'success', `Credit card ending in ${cardTail} linked.`);
         
         res.status(201).json({ success: true, data: card });
     } catch (error) {
