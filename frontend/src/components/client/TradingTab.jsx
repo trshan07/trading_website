@@ -26,7 +26,8 @@ const TradingTab = ({
   onDeleteAlert = () => {},
   transactions = [],
   instruments = [],
-  categories = []
+  categories = [],
+  maxLeverage = 100
 }) => {
   const [activeSubTab, setActiveSubTab] = useState('positions');
   const [showSidebar, setShowSidebar] = useState(true);
@@ -183,6 +184,7 @@ const TradingTab = ({
             symbol={activeSymbol}
             marketData={marketData}
             onIntentChange={useCallback((intent) => setActiveOrderIntent(intent), [])}
+            maxLeverage={maxLeverage}
           />
         </div>
       </div>

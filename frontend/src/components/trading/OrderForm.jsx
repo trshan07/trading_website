@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { FaBolt, FaChartLine, FaShieldAlt } from 'react-icons/fa';
 
 const SideButton = ({ side, targetSide, label, onClick }) => (
@@ -40,7 +40,7 @@ const InputField = ({ label, value, onChange, placeholder, type = 'text', inputM
   </div>
 );
 
-const OrderForm = ({ onSubmit, symbol = 'BTCUSD', compact = false }) => {
+const OrderForm = ({ onSubmit, symbol = 'BTCUSD', compact = false, maxLeverage = 100 }) => {
   const [orderType, setOrderType] = useState('market');
   const [side, setSide] = useState('buy');
   const [amount, setAmount] = useState('');
@@ -48,6 +48,11 @@ const OrderForm = ({ onSubmit, symbol = 'BTCUSD', compact = false }) => {
   const [stopPrice, setStopPrice] = useState('');
   const [leverage, setLeverage] = useState(1);
   const [amountError, setAmountError] = useState('');
+  const safeMaxLeverage = Math.max(parseInt(maxLeverage, 10) || 1, 1);
+
+  useEffect(() => {
+    setLeverage((prev) => Math.min(Math.max(prev || 1, 1), safeMaxLeverage));
+  }, [safeMaxLeverage]);
 
   const sanitizeCurrencyInput = (value) => value.replace(/[^\d.]/g, '').replace(/(\..*)\./g, '$1');
 
@@ -169,7 +174,7 @@ const OrderForm = ({ onSubmit, symbol = 'BTCUSD', compact = false }) => {
             <input
               type="range"
               min="1"
-              max="100"
+              max={safeMaxLeverage}
               value={leverage}
               onChange={(e) => setLeverage(parseInt(e.target.value))}
               className="w-full h-1.5 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-gold-500"

@@ -14,6 +14,11 @@ const OrderPanel = ({ onSubmit, symbol = 'BTCUSDT', marketData = {}, onClose, on
   const [selectedSide, setSelectedSide] = useState('buy'); // 'buy' or 'sell'
   
   const prevIntentRef = useRef({});
+  const safeMaxLeverage = Math.max(parseInt(maxLeverage, 10) || 1, 1);
+
+  useEffect(() => {
+    setLeverage((prev) => Math.min(Math.max(prev || 1, 1), safeMaxLeverage));
+  }, [safeMaxLeverage]);
   
   // Sync intent with parent for chart labels
   useEffect(() => {
@@ -210,14 +215,14 @@ const OrderPanel = ({ onSubmit, symbol = 'BTCUSDT', marketData = {}, onClose, on
               <div className="flex justify-between items-center mb-4">
                 <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">Leverage Factor</label>
                 <div className="flex items-center space-x-2">
-                  <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest">Max 1:{maxLeverage}</span>
+                  <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest">Max 1:{safeMaxLeverage}</span>
                   <span className="text-[10px] font-black text-slate-900 dark:text-white bg-gold-500 px-3 py-1 rounded-lg italic shadow-lg shadow-gold-500/10">1:{leverage}</span>
                 </div>
               </div>
               <input
                 type="range"
                 min="1"
-                max={maxLeverage}
+                max={safeMaxLeverage}
                 value={leverage}
                 onChange={(e) => setLeverage(parseInt(e.target.value))}
                 className="w-full h-1 bg-slate-100 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer accent-gold-500"

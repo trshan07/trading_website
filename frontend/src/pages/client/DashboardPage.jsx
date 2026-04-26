@@ -361,6 +361,7 @@ const DashboardPage = () => {
                   transactions={transactions}
                   instruments={instruments}
                   categories={categories}
+                  maxLeverage={parseInt(activeAccount?.leverage, 10) || 100}
                 />
               )}
 
