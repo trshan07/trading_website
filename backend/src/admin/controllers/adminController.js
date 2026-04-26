@@ -662,12 +662,17 @@ const getKyCSubmissions = async (req, res) => {
 // @access  Private/Admin
 const processKYC = async (req, res) => {
     try {
-        const { status, reason } = req.body;
+        const { reason } = req.body;
+        const status = req.body?.status === 'approved' ? 'verified' : req.body?.status;
         const result = await KyCSubmission.updateStatus(req.params.id, {
             status,
             rejection_reason: reason,
             reviewed_by: req.user.id
         });
+
+        if (!result) {
+            return res.status(404).json({ success: false, message: 'KYC submission not found' });
+        }
 
         await AdminLog.create(req.user.id, {
             action: 'PROCESS_KYC',

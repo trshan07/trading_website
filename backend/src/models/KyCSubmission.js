@@ -54,7 +54,8 @@ class KyCSubmission {
     }
 
     static async updateStatus(id, statusData) {
-        const { status, reviewed_by, rejection_reason } = statusData;
+        const { reviewed_by, rejection_reason } = statusData;
+        const status = statusData.status === 'approved' ? 'verified' : statusData.status;
         
         const query = `
             UPDATE kyc_submissions 
@@ -67,8 +68,22 @@ class KyCSubmission {
             RETURNING *
         `;
         const values = [status, reviewed_by, rejection_reason, id];
-        const { rows } = await db.query(query, values);
-        return rows[0];
+
+        try {
+            const { rows } = await db.query(query, values);
+            return rows[0];
+        } catch (error) {
+            // Older/live schemas may still enforce reviewed_by -> users(id),
+            // while admin reviews use admins.id. Retry without reviewed_by so
+            // the KYC status update can still succeed.
+            if (reviewed_by != null && error.code === '23503') {
+                const fallbackValues = [status, null, rejection_reason, id];
+                const { rows } = await db.query(query, fallbackValues);
+                return rows[0];
+            }
+
+            throw error;
+        }
     }
 }
 
