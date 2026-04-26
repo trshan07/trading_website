@@ -28,6 +28,21 @@ ADD COLUMN IF NOT EXISTS is_default BOOLEAN DEFAULT FALSE;
 ALTER TABLE credit_cards
 ADD COLUMN IF NOT EXISTS billing_address TEXT;
 
+CREATE TABLE IF NOT EXISTS orders (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+    account_id INTEGER REFERENCES accounts(id) ON DELETE CASCADE,
+    symbol VARCHAR(20) NOT NULL,
+    side VARCHAR(10) NOT NULL,
+    type VARCHAR(20) NOT NULL,
+    amount NUMERIC(18, 8),
+    quantity NUMERIC(18, 8),
+    entry_price NUMERIC(18, 8),
+    status VARCHAR(20) DEFAULT 'pending',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 ALTER TABLE admins
 ADD COLUMN IF NOT EXISTS first_name VARCHAR(100);
 
