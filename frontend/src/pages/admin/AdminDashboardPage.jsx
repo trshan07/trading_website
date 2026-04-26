@@ -32,14 +32,14 @@ const fmtDate = (d) => d ? new Date(d).toLocaleDateString("en-US", { year: "nume
 const fmtDateTime = (d) => d ? new Date(d).toLocaleString("en-US", { year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }) : "—";
 
 // Build a full URL from a server-relative file path (e.g. uploads\kyc\file.jpg)
-const API_BASE = (import.meta.env.VITE_API_URL || 'http://localhost:5000/api').replace('/api', '');
+const API_URL = (import.meta.env.VITE_API_URL || 'http://localhost:5000/api').replace(/\/$/, '');
 const getFileUrl = (filePath) => {
   if (!filePath) return null;
   if (filePath.startsWith('http://') || filePath.startsWith('https://')) return filePath;
   const normalized = filePath.replace(/\\/g, '/');
   const uploadsIdx = normalized.indexOf('/uploads/');
-  if (uploadsIdx !== -1) return `${API_BASE}${normalized.substring(uploadsIdx)}`;
-  return `${API_BASE}${normalized.startsWith('/') ? normalized : '/' + normalized}`;
+  if (uploadsIdx !== -1) return `${API_URL}${normalized.substring(uploadsIdx)}`;
+  return `${API_URL}${normalized.startsWith('/') ? normalized : '/' + normalized}`;
 };
 const isFilePdf = (filePath) => filePath?.toLowerCase().endsWith('.pdf');
 
