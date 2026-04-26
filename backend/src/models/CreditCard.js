@@ -1,6 +1,6 @@
 // backend/src/models/CreditCard.js
 const db = require('../config/database');
-const { isMissingColumnError, isMissingRelationError } = require('../utils/dbCompat');
+const { isMissingColumnError, isMissingRelationError, getMissingColumnName } = require('../utils/dbCompat');
 
 class CreditCard {
     static async findByUserId(userId) {
@@ -60,6 +60,28 @@ class CreditCard {
             return rows[0];
         } catch (error) {
             if (isMissingColumnError(error)) {
+                const missingColumn = getMissingColumnName(error);
+
+                if (missingColumn === 'billing_address') {
+                    const noBillingQuery = `
+                        INSERT INTO credit_cards (user_id, card_type, last4, expiry_date, cardholder_name, is_default)
+                        VALUES ($1, $2, $3, $4, $5, $6)
+                        RETURNING *
+                    `;
+                    const { rows } = await db.query(noBillingQuery, [userId, cardType || 'Visa', last4, finalExpiry, cardholderName, setAsDefault]);
+                    return { ...rows[0], billing_address: billingAddress };
+                }
+
+                if (missingColumn === 'last4') {
+                    const noLast4Query = `
+                        INSERT INTO credit_cards (user_id, card_type, expiry_date, cardholder_name, is_verified)
+                        VALUES ($1, $2, $3, $4, FALSE)
+                        RETURNING *
+                    `;
+                    const { rows } = await db.query(noLast4Query, [userId, cardType || 'Visa', finalExpiry, cardholderName]);
+                    return { ...rows[0], last4, billing_address: billingAddress, is_default: setAsDefault };
+                }
+
                 const legacyQuery = `
                     INSERT INTO credit_cards (user_id, card_type, last4, expiry_date, cardholder_name, is_verified)
                     VALUES ($1, $2, $3, $4, $5, FALSE)

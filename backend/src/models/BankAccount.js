@@ -1,6 +1,6 @@
 // backend/src/models/BankAccount.js
 const db = require('../config/database');
-const { isMissingColumnError, isMissingRelationError } = require('../utils/dbCompat');
+const { isMissingColumnError, isMissingRelationError, getMissingColumnName } = require('../utils/dbCompat');
 
 class BankAccount {
     static async findByUserId(userId) {
@@ -74,6 +74,29 @@ class BankAccount {
             return rows[0];
         } catch (error) {
             if (isMissingColumnError(error)) {
+                const missingColumn = getMissingColumnName(error);
+
+                if (missingColumn === 'branch_name') {
+                    const noBranchQuery = `
+                        INSERT INTO bank_accounts (
+                            user_id, bank_name, account_number, account_name, 
+                            currency, swift_code, is_verified
+                        )
+                        VALUES ($1, $2, $3, $4, $5, $6, FALSE)
+                        RETURNING *
+                    `;
+                    const noBranchValues = [
+                        userId,
+                        bankName,
+                        accountNumber,
+                        finalAccountName,
+                        currency || 'USD',
+                        swiftCode,
+                    ];
+                    const { rows } = await db.query(noBranchQuery, noBranchValues);
+                    return { ...rows[0], branch_name: branchName, is_default: setAsDefault };
+                }
+
                 const legacyQuery = `
                     INSERT INTO bank_accounts (
                         user_id, bank_name, branch_name, account_number, account_name, 

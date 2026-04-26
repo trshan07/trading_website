@@ -1,15 +1,43 @@
 const pool = require('../../config/database');
-const { isMissingRelationError } = require('../../utils/dbCompat');
+const { isMissingRelationError, isMissingColumnError, getMissingColumnName } = require('../../utils/dbCompat');
 
 // Activity Controller Logic
 exports.getActivityLogs = async (req, res) => {
     try {
-        const result = await pool.query(
-            'SELECT * FROM activity_logs WHERE user_id = $1 ORDER BY created_at DESC LIMIT 20',
-            [req.user.id]
-        );
-        res.json({ success: true, data: result.rows });
+        let result;
+
+        try {
+            result = await pool.query(
+                'SELECT id, user_id, action, label, created_at FROM activity_logs WHERE user_id = $1 ORDER BY created_at DESC LIMIT 20',
+                [req.user.id]
+            );
+        } catch (error) {
+            if (!isMissingColumnError(error)) {
+                throw error;
+            }
+
+            const missingColumn = getMissingColumnName(error);
+            if (missingColumn === 'label') {
+                result = await pool.query(
+                    'SELECT id, user_id, action, details AS label, created_at FROM activity_logs WHERE user_id = $1 ORDER BY created_at DESC LIMIT 20',
+                    [req.user.id]
+                );
+            } else {
+                throw error;
+            }
+        }
+
+        const data = result.rows.map((row) => ({
+            ...row,
+            type: row.action,
+            message: row.label || row.details || '',
+        }));
+
+        res.json({ success: true, data });
     } catch (error) {
+        if (isMissingRelationError(error)) {
+            return res.json({ success: true, data: [] });
+        }
         console.error('Fetch Activity Error:', error);
         res.status(500).json({ success: false, message: 'Server error' });
     }
@@ -18,10 +46,31 @@ exports.getActivityLogs = async (req, res) => {
 // Internal utility to create log
 exports.createActivityLog = async (userId, action, label) => {
     try {
-        await pool.query(
-            'INSERT INTO activity_logs (user_id, action, label) VALUES ($1, $2, $3)',
-            [userId, action, label]
-        );
+        try {
+            await pool.query(
+                'INSERT INTO activity_logs (user_id, action, label) VALUES ($1, $2, $3)',
+                [userId, action, label]
+            );
+        } catch (error) {
+            if (isMissingRelationError(error)) {
+                return;
+            }
+
+            if (!isMissingColumnError(error)) {
+                throw error;
+            }
+
+            const missingColumn = getMissingColumnName(error);
+            if (missingColumn === 'label') {
+                await pool.query(
+                    'INSERT INTO activity_logs (user_id, action, details) VALUES ($1, $2, $3)',
+                    [userId, action, label]
+                );
+                return;
+            }
+
+            throw error;
+        }
     } catch (error) {
         console.error('Create Activity Log Error:', error);
     }
