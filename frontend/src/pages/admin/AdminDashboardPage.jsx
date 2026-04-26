@@ -1139,12 +1139,13 @@ function CreditsPage({ users, setUsers, toast }) {
   const [modal, setModal] = useState(null);
   const [form, setForm] = useState({ amount: "", type: "credit", target: "real", note: "", expiry: "" });
   const [errors, setErrors] = useState({});
+  const [submitting, setSubmitting] = useState(false);
 
   const filtered = users.filter(u => u.name.toLowerCase().includes(search.toLowerCase()) || u.email.toLowerCase().includes(search.toLowerCase()));
 
   const openCredit = (u) => { setModal(u); setForm({ amount: "", type: "credit", target: "real", note: "", expiry: "" }); setErrors({}); };
 
-  const applyCredit = () => {
+  const applyCredit = async () => {
     const errs = {};
     if (!form.amount || isNaN(form.amount) || parseFloat(form.amount) <= 0) errs.amount = "Enter a valid amount";
     if (!form.note.trim()) errs.note = "Reason is required";
@@ -1154,7 +1155,7 @@ function CreditsPage({ users, setUsers, toast }) {
     const amt = parseFloat(form.amount);
     const accountTarget = form.target === "demo" ? "demo" : "real";
     const creditKey = accountTarget === "demo" ? "demoCredit" : "realCredit";
-    const balanceKey = accountTarget === "demo" ? "demoBalance" : "realBalance";
+    const accountIdKey = accountTarget === "demo" ? "demoAccountId" : "realAccountId";
 
     const selectedUser = users.find(u => u.id === modal.id);
     const availableCredit = toNum(selectedUser?.[creditKey]);
@@ -1162,15 +1163,32 @@ function CreditsPage({ users, setUsers, toast }) {
       return setErrors({ ...errs, amount: `Amount exceeds ${accountTarget} credit (${fmt(availableCredit)})` });
     }
 
-    setUsers(p => p.map(u => {
-      if (u.id !== modal.id) return u;
-      const nextAccountCredit = form.type === "credit" ? toNum(u[creditKey]) + amt : Math.max(0, toNum(u[creditKey]) - amt);
-      const nextAccountBalance = form.type === "credit" ? toNum(u[balanceKey]) + amt : Math.max(0, toNum(u[balanceKey]) - amt);
-      const newEntry = { id: Date.now(), amount: amt, type: form.type, account: accountTarget, note: form.note, date: new Date().toISOString() };
-      return normalizeUserAccounts({ ...u, [creditKey]: nextAccountCredit, [balanceKey]: nextAccountBalance, creditHistory: [newEntry, ...u.creditHistory] });
-    }));
-    toast(form.type === "credit" ? "Credit Applied" : "Debit Applied", `${form.type === "credit" ? "+" : "-"}${fmt(amt)} to ${accountTarget} account for ${modal.name}`);
-    setModal(null);
+    try {
+      setSubmitting(true);
+      await adminService.adjustUserBalance(modal.id, {
+        accountId: selectedUser?.[accountIdKey],
+        type: form.type,
+        amount: amt,
+        reason: form.note,
+        description: form.note,
+      });
+
+      const usersRes = await adminService.getUsers();
+      if (usersRes.data?.success) {
+        setUsers(usersRes.data.data.map(normalizeUserAccounts));
+      }
+
+      toast(
+        form.type === "credit" ? "Credit Applied" : "Debit Applied",
+        `${form.type === "credit" ? "+" : "-"}${fmt(amt)} to ${accountTarget} account for ${modal.name}`
+      );
+      setModal(null);
+    } catch (error) {
+      const message = error?.response?.data?.message || "Failed to update credit";
+      toast("Update Failed", message, "error");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const totalCredit = users.reduce((s, u) => s + u.credit, 0);
@@ -1297,8 +1315,8 @@ function CreditsPage({ users, setUsers, toast }) {
             )}
 
             <div style={{ display: "flex", gap: "8px", justifyContent: "flex-end" }}>
-              <Btn variant="secondary" onClick={() => setModal(null)}>Cancel</Btn>
-              <Btn onClick={applyCredit}>{form.type === "credit" ? "Apply Credit" : "Apply Debit"}</Btn>
+              <Btn variant="secondary" onClick={() => setModal(null)} disabled={submitting}>Cancel</Btn>
+              <Btn onClick={applyCredit} disabled={submitting}>{submitting ? "Saving..." : (form.type === "credit" ? "Apply Credit" : "Apply Debit")}</Btn>
             </div>
 
             {/* History */}

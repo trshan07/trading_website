@@ -407,14 +407,25 @@ const adjustBalance = async (req, res) => {
         const normalizedType = String(type || 'balance').toLowerCase();
         const label = description || reason || 'Admin balance adjustment';
 
-        if (normalizedType === 'credit') {
-            const nextCredit = toNumber(account.credit) + requestedAmount;
+        if (normalizedType === 'credit' || normalizedType === 'debit') {
+            const signedCredit = normalizedType === 'debit'
+                ? -Math.abs(requestedAmount)
+                : Math.abs(requestedAmount);
+            const nextCredit = toNumber(account.credit) + signedCredit;
+
+            if (nextCredit < 0) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Insufficient credit available for this adjustment'
+                });
+            }
+
             const updatedAccount = await Account.updateCredit(account.id, nextCredit);
 
             await AdminLog.create(req.user.id, {
                 action: 'ADJUST_CREDIT',
                 target_id: userId,
-                details: `Adjusted credit by ${requestedAmount} for account ${account.account_number}`,
+                details: `Adjusted credit by ${signedCredit} for account ${account.account_number}`,
                 ip_address: req.ip
             });
 
