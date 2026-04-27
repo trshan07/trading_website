@@ -1,4 +1,4 @@
-import marketSymbolMap from '../../../shared/marketSymbolMap.json';
+import marketSymbolMap from '../config/marketSymbolMap.json';
 
 const EXPLICIT_SYMBOL_MAP = Object.fromEntries(
   Object.entries(marketSymbolMap).map(([symbol, mapping]) => [symbol, mapping.tradingView])

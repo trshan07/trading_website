@@ -1,5 +1,5 @@
 const axios = require('axios');
-const marketSymbolMap = require('../../../../shared/marketSymbolMap.json');
+const marketSymbolMap = require('../../config/marketSymbolMap.json');
 
 const BINANCE_QUOTES = ['USDT', 'BUSD', 'USDC', 'BTC', 'ETH'];
 const FOREX_CODES = ['USD', 'EUR', 'GBP', 'JPY', 'AUD', 'NZD', 'CAD', 'CHF'];
