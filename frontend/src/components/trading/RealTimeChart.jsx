@@ -29,6 +29,7 @@ const RealTimeChart = ({
   symbol = 'BTCUSDT',
   theme = 'dark',
   positions = [],
+  livePrice = 0,
   initialPrice = 100
 }) => {
   const containerRef = useRef(null);
@@ -480,6 +481,41 @@ const RealTimeChart = ({
       candleDataRef.current = [];
     };
   }, [symbol, interval, isDark, fetchData, isBinanceWsCandidate, applyIndicatorSeries]); // initialPrice removed from dependencies
+
+  useEffect(() => {
+    const nextPrice = Number.parseFloat(livePrice) || 0;
+    if (!nextPrice || !seriesRef.current || candleDataRef.current.length === 0) {
+      return;
+    }
+
+    const lastCandle = candleDataRef.current[candleDataRef.current.length - 1];
+    if (!lastCandle || lastCandle.close === nextPrice) {
+      return;
+    }
+
+    const syncedCandle = {
+      ...lastCandle,
+      high: Math.max(lastCandle.high, nextPrice),
+      low: Math.min(lastCandle.low, nextPrice),
+      close: nextPrice,
+    };
+
+    candleDataRef.current = [
+      ...candleDataRef.current.slice(0, -1),
+      syncedCandle,
+    ];
+
+    try {
+      seriesRef.current.update(syncedCandle);
+      applyIndicatorSeries(candleDataRef.current);
+      setLastPrice(nextPrice);
+      window.dispatchEvent(new CustomEvent('active_price_update', {
+        detail: { symbol, price: nextPrice }
+      }));
+    } catch (error) {
+      console.error('[RealTimeChart] Live price sync error:', error);
+    }
+  }, [applyIndicatorSeries, livePrice, symbol]);
 
   // --- Plot Buy/Sell markers when positions change ---
   useEffect(() => {

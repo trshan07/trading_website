@@ -174,6 +174,7 @@ const TradingTab = ({
                 symbol={activeSymbol}
                 theme={theme}
                 positions={positions}
+                livePrice={marketData[activeSymbol]?.price || selectedInstrument?.price || 0}
                 initialPrice={instruments.find(i => i.symbol === activeSymbol)?.price || 100}
               />
             </div>
