@@ -95,7 +95,9 @@ const TradingViewWidget = ({
         toolbar_bg: isDark ? '#0f172a' : '#f8fafc',
         enable_publishing: false,
         hide_side_toolbar: false,
-        allow_symbol_change: true,
+        // Keep the embedded chart locked to the dashboard-selected instrument
+        // so the order panel, ticker, and displayed rates never drift from the chart.
+        allow_symbol_change: false,
         container_id: widgetId,
         library_path: 'https://s3.tradingview.com/tv.js',
         width: '100%',
@@ -205,7 +207,7 @@ const TradingViewWidget = ({
                 : 'border-slate-200 bg-white text-gold-600'
             }`}
           >
-            ADVANCED ANALYSIS MODE
+            ADVANCED ANALYSIS MODE · SYMBOL SYNC LOCKED
           </div>
         </div>
       </div>
