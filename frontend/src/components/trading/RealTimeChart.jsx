@@ -29,6 +29,7 @@ const RealTimeChart = ({
   symbol = 'BTCUSDT',
   theme = 'dark',
   positions = [],
+  activeIntent = null,
   livePrice = 0,
   initialPrice = 100
 }) => {
@@ -560,14 +561,27 @@ const RealTimeChart = ({
         position: isBuy ? 'belowBar' : 'aboveBar',
         color: isBuy ? '#10b981' : '#ef4444',
         shape: isBuy ? 'arrowUp' : 'arrowDown',
-        size: 2,
+        size: 3,
         text: `${isBuy ? 'BUY' : 'SELL'} @ ${Number(pos.entryPrice || pos.entry_price || 0).toLocaleString()}`,
       };
     });
 
+    if (activeIntent?.side && candleDataRef.current.length > 0) {
+      const latestCandle = candleDataRef.current[candleDataRef.current.length - 1];
+      const previewIsBuy = String(activeIntent.side).toLowerCase() === 'buy';
+      markers.push({
+        time: latestCandle.time,
+        position: previewIsBuy ? 'belowBar' : 'aboveBar',
+        color: previewIsBuy ? '#22c55e' : '#f43f5e',
+        shape: previewIsBuy ? 'arrowUp' : 'arrowDown',
+        size: 3,
+        text: `${previewIsBuy ? 'BUY' : 'SELL'} READY`,
+      });
+    }
+
     markers.sort((a, b) => a.time - b.time);
     try { seriesRef.current.setMarkers(markers); } catch (e) {}
-  }, [positions, symbol, interval]);
+  }, [activeIntent, positions, symbol, interval]);
 // Fullscreen Escape key
   useEffect(() => {
     const onKey = (e) => { if (e.key === 'Escape' && isFullscreen) setIsFullscreen(false); };
