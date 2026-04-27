@@ -8,6 +8,18 @@ CREATE TABLE IF NOT EXISTS instrument_categories (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+ALTER TABLE instrument_categories
+ADD COLUMN IF NOT EXISTS text_color VARCHAR(50);
+
+ALTER TABLE instrument_categories
+ADD COLUMN IF NOT EXISTS bg_color VARCHAR(50);
+
+ALTER TABLE instrument_categories
+ADD COLUMN IF NOT EXISTS border_color VARCHAR(50);
+
+ALTER TABLE instrument_categories
+ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
+
 -- 2. Instruments
 CREATE TABLE IF NOT EXISTS instruments (
     id SERIAL PRIMARY KEY,
@@ -30,6 +42,54 @@ CREATE TABLE IF NOT EXISTS instruments (
     is_active BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+ALTER TABLE instruments
+ADD COLUMN IF NOT EXISTS category_name VARCHAR(50);
+
+ALTER TABLE instruments
+ADD COLUMN IF NOT EXISTS default_price NUMERIC(18, 8);
+
+ALTER TABLE instruments
+ADD COLUMN IF NOT EXISTS default_change NUMERIC(18, 2);
+
+ALTER TABLE instruments
+ADD COLUMN IF NOT EXISTS default_volume VARCHAR(50);
+
+ALTER TABLE instruments
+ADD COLUMN IF NOT EXISTS provider VARCHAR(20);
+
+ALTER TABLE instruments
+ADD COLUMN IF NOT EXISTS quote_symbol VARCHAR(50);
+
+ALTER TABLE instruments
+ADD COLUMN IF NOT EXISTS trading_view_symbol VARCHAR(50);
+
+ALTER TABLE instruments
+ADD COLUMN IF NOT EXISTS use_bid_ask BOOLEAN;
+
+ALTER TABLE instruments
+ADD COLUMN IF NOT EXISTS price_precision INTEGER;
+
+ALTER TABLE instruments
+ADD COLUMN IF NOT EXISTS spread NUMERIC(18, 8);
+
+ALTER TABLE instruments
+ADD COLUMN IF NOT EXISTS contract_size NUMERIC(18, 8);
+
+ALTER TABLE instruments
+ADD COLUMN IF NOT EXISTS lot_step NUMERIC(18, 8);
+
+ALTER TABLE instruments
+ADD COLUMN IF NOT EXISTS min_lot NUMERIC(18, 8);
+
+ALTER TABLE instruments
+ADD COLUMN IF NOT EXISTS quantity_label VARCHAR(50);
+
+ALTER TABLE instruments
+ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT TRUE;
+
+ALTER TABLE instruments
+ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
 
 -- 3. Notifications History
 CREATE TABLE IF NOT EXISTS notifications (
