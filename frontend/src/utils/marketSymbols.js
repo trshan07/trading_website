@@ -1,36 +1,8 @@
-const EXPLICIT_SYMBOL_MAP = {
-  BTCUSDT: 'BINANCE:BTCUSDT',
-  ETHUSDT: 'BINANCE:ETHUSDT',
-  BNBUSDT: 'BINANCE:BNBUSDT',
-  SOLUSDT: 'BINANCE:SOLUSDT',
-  ADAUSDT: 'BINANCE:ADAUSDT',
-  EURUSD: 'FX:EURUSD',
-  GBPUSD: 'FX:GBPUSD',
-  USDJPY: 'FX:USDJPY',
-  AUDUSD: 'FX:AUDUSD',
-  USDCAD: 'FX:USDCAD',
-  USDCHF: 'FX:USDCHF',
-  NZDUSD: 'FX:NZDUSD',
-  XAUUSD: 'TVC:GOLD',
-  XAGUSD: 'TVC:SILVER',
-  BRENT: 'TVC:UKOIL',
-  US10Y: 'TVC:US10Y',
-  DXY: 'TVC:DXY',
-  VIX: 'TVC:VIX',
-  SPX: 'SP:SPX',
-  NDX: 'NASDAQ:NDX',
-  DJI: 'DJ:DJI',
-  IBOV: 'BMFBOVESPA:IBOV',
-  SPY: 'AMEX:SPY',
-  QQQ: 'NASDAQ:QQQ',
-  AAPL: 'NASDAQ:AAPL',
-  TSLA: 'NASDAQ:TSLA',
-  MSFT: 'NASDAQ:MSFT',
-  GOOGL: 'NASDAQ:GOOGL',
-  'ES1!': 'CME_MINI:ES1!',
-  'YM1!': 'CBOT_MINI:YM1!',
-  'CL1!': 'NYMEX:CL1!',
-};
+import marketSymbolMap from '../../../shared/marketSymbolMap.json';
+
+const EXPLICIT_SYMBOL_MAP = Object.fromEntries(
+  Object.entries(marketSymbolMap).map(([symbol, mapping]) => [symbol, mapping.tradingView])
+);
 
 const CRYPTO_QUOTES = ['USDT', 'BUSD', 'USDC', 'BTC', 'ETH'];
 const FOREX_CODES = ['USD', 'EUR', 'GBP', 'JPY', 'AUD', 'NZD', 'CAD', 'CHF'];

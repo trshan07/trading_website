@@ -1,0 +1,157 @@
+{
+  "BTCUSDT": {
+    "tradingView": "BINANCE:BTCUSDT",
+    "quote": "BTCUSDT",
+    "provider": "binance"
+  },
+  "ETHUSDT": {
+    "tradingView": "BINANCE:ETHUSDT",
+    "quote": "ETHUSDT",
+    "provider": "binance"
+  },
+  "BNBUSDT": {
+    "tradingView": "BINANCE:BNBUSDT",
+    "quote": "BNBUSDT",
+    "provider": "binance"
+  },
+  "SOLUSDT": {
+    "tradingView": "BINANCE:SOLUSDT",
+    "quote": "SOLUSDT",
+    "provider": "binance"
+  },
+  "ADAUSDT": {
+    "tradingView": "BINANCE:ADAUSDT",
+    "quote": "ADAUSDT",
+    "provider": "binance"
+  },
+  "EURUSD": {
+    "tradingView": "FX:EURUSD",
+    "quote": "EURUSD=X",
+    "provider": "yahoo"
+  },
+  "GBPUSD": {
+    "tradingView": "FX:GBPUSD",
+    "quote": "GBPUSD=X",
+    "provider": "yahoo"
+  },
+  "USDJPY": {
+    "tradingView": "FX:USDJPY",
+    "quote": "USDJPY=X",
+    "provider": "yahoo"
+  },
+  "AUDUSD": {
+    "tradingView": "FX:AUDUSD",
+    "quote": "AUDUSD=X",
+    "provider": "yahoo"
+  },
+  "USDCAD": {
+    "tradingView": "FX:USDCAD",
+    "quote": "USDCAD=X",
+    "provider": "yahoo"
+  },
+  "USDCHF": {
+    "tradingView": "FX:USDCHF",
+    "quote": "USDCHF=X",
+    "provider": "yahoo"
+  },
+  "NZDUSD": {
+    "tradingView": "FX:NZDUSD",
+    "quote": "NZDUSD=X",
+    "provider": "yahoo"
+  },
+  "XAUUSD": {
+    "tradingView": "OANDA:XAUUSD",
+    "quote": "XAUUSD=X",
+    "provider": "yahoo"
+  },
+  "XAGUSD": {
+    "tradingView": "OANDA:XAGUSD",
+    "quote": "XAGUSD=X",
+    "provider": "yahoo"
+  },
+  "BRENT": {
+    "tradingView": "ICEEUR:BRN1!",
+    "quote": "BZ=F",
+    "provider": "yahoo"
+  },
+  "US10Y": {
+    "tradingView": "TVC:US10Y",
+    "quote": "^TNX",
+    "provider": "yahoo"
+  },
+  "DXY": {
+    "tradingView": "TVC:DXY",
+    "quote": "DX-Y.NYB",
+    "provider": "yahoo"
+  },
+  "VIX": {
+    "tradingView": "CBOE:VIX",
+    "quote": "^VIX",
+    "provider": "yahoo"
+  },
+  "SPX": {
+    "tradingView": "SP:SPX",
+    "quote": "^GSPC",
+    "provider": "yahoo"
+  },
+  "NDX": {
+    "tradingView": "NASDAQ:NDX",
+    "quote": "^NDX",
+    "provider": "yahoo"
+  },
+  "DJI": {
+    "tradingView": "DJ:DJI",
+    "quote": "^DJI",
+    "provider": "yahoo"
+  },
+  "IBOV": {
+    "tradingView": "BMFBOVESPA:IBOV",
+    "quote": "^BVSP",
+    "provider": "yahoo"
+  },
+  "SPY": {
+    "tradingView": "AMEX:SPY",
+    "quote": "SPY",
+    "provider": "yahoo"
+  },
+  "QQQ": {
+    "tradingView": "NASDAQ:QQQ",
+    "quote": "QQQ",
+    "provider": "yahoo"
+  },
+  "AAPL": {
+    "tradingView": "NASDAQ:AAPL",
+    "quote": "AAPL",
+    "provider": "yahoo"
+  },
+  "TSLA": {
+    "tradingView": "NASDAQ:TSLA",
+    "quote": "TSLA",
+    "provider": "yahoo"
+  },
+  "MSFT": {
+    "tradingView": "NASDAQ:MSFT",
+    "quote": "MSFT",
+    "provider": "yahoo"
+  },
+  "GOOGL": {
+    "tradingView": "NASDAQ:GOOGL",
+    "quote": "GOOGL",
+    "provider": "yahoo"
+  },
+  "ES1!": {
+    "tradingView": "CME_MINI:ES1!",
+    "quote": "ES=F",
+    "provider": "yahoo"
+  },
+  "YM1!": {
+    "tradingView": "CBOT_MINI:YM1!",
+    "quote": "YM=F",
+    "provider": "yahoo"
+  },
+  "CL1!": {
+    "tradingView": "NYMEX:CL1!",
+    "quote": "CL=F",
+    "provider": "yahoo"
+  }
+}

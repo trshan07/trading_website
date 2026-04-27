@@ -1,28 +1,8 @@
 const axios = require('axios');
+const marketSymbolMap = require('../../../../shared/marketSymbolMap.json');
 
 const BINANCE_QUOTES = ['USDT', 'BUSD', 'USDC', 'BTC', 'ETH'];
 const FOREX_CODES = ['USD', 'EUR', 'GBP', 'JPY', 'AUD', 'NZD', 'CAD', 'CHF'];
-const YAHOO_SYMBOL_MAP = {
-  SPX: '^GSPC',
-  NDX: '^NDX',
-  DJI: '^DJI',
-  IBOV: '^BVSP',
-  DXY: 'DX-Y.NYB',
-  VIX: '^VIX',
-  US10Y: '^TNX',
-  XAUUSD: 'GC=F',
-  XAGUSD: 'SI=F',
-  BRENT: 'BZ=F',
-  'ES1!': 'ES=F',
-  'YM1!': 'YM=F',
-  'CL1!': 'CL=F',
-  SPY: 'SPY',
-  QQQ: 'QQQ',
-  AAPL: 'AAPL',
-  MSFT: 'MSFT',
-  TSLA: 'TSLA',
-  GOOGL: 'GOOGL',
-};
 
 const normalizeSymbol = (symbol = '') => symbol.toUpperCase().replace(/[^A-Z0-9!]/g, '');
 
@@ -40,9 +20,10 @@ const isBinanceSymbol = (symbol = '') => BINANCE_QUOTES.some((quote) => symbol.e
 
 const resolveYahooSymbol = (symbol = '') => {
   const normalized = normalizeSymbol(symbol);
+  const sharedMapping = marketSymbolMap[normalized];
 
-  if (YAHOO_SYMBOL_MAP[normalized]) {
-    return YAHOO_SYMBOL_MAP[normalized];
+  if (sharedMapping?.provider === 'yahoo' && sharedMapping.quote) {
+    return sharedMapping.quote;
   }
 
   if (isForexPair(normalized)) {
