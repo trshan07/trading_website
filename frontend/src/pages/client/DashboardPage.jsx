@@ -417,6 +417,7 @@ const DashboardPage = () => {
                   onToggleFavorite={handleToggleFavorite}
                   instruments={instruments}
                   categories={categories}
+                  marketData={marketData}
                 />
               )}
 

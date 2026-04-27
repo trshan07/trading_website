@@ -3,15 +3,17 @@ import AdvancedRealTimeChart from '../trading/TradingViewWidget';
 import TerminalAssetList from '../trading/TerminalAssetList';
 import { FaGlobe, FaSearch, FaChartBar, FaLayerGroup, FaTimes } from 'react-icons/fa';
 import { useTheme } from '../../context/ThemeContext';
+import { buildInstrumentSnapshot } from '../../utils/marketSymbols';
 
-const MarketsTab = ({ 
-  symbol, 
-  onSymbolChange, 
-  initialCategory = 'All', 
-  favorites = [], 
+const MarketsTab = ({
+  symbol,
+  onSymbolChange,
+  initialCategory = 'All',
+  favorites = [],
   onToggleFavorite,
   instruments = [],
-  categories = []
+  categories = [],
+  marketData = {},
 }) => {
   const { theme } = useTheme();
   const hasExternalSymbol = typeof symbol === 'string' && symbol.trim().length > 0;
@@ -44,7 +46,6 @@ const MarketsTab = ({
     return instruments.filter((inst) => inst.category === category);
   };
 
-  // Sync with initialCategory if it changes from outside
   useEffect(() => {
     if (initialCategory) {
       setActiveCategory(initialCategory);
@@ -58,7 +59,6 @@ const MarketsTab = ({
     }
   }, [initialCategory, instruments, favorites]);
 
-  // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (searchRef.current && !searchRef.current.contains(e.target)) {
@@ -76,11 +76,6 @@ const MarketsTab = ({
     setSearchQuery('');
     setShowSearchDropdown(false);
     if (onSymbolChange) onSymbolChange(sym);
-  };
-
-  const toggleFavorite = (sym, e) => {
-    e.stopPropagation();
-    if (onToggleFavorite) onToggleFavorite(sym);
   };
 
   const handleCategorySelect = (category) => {
@@ -101,44 +96,48 @@ const MarketsTab = ({
     }
   };
 
-  // Filter by search query + category
-  const filtered = getCategoryMatches(activeCategory).filter(inst => {
-    const matchesSearch =
+  const filtered = getCategoryMatches(activeCategory).filter((inst) => {
+    const query = searchQuery.toLowerCase();
+    return (
       !searchQuery.trim() ||
-      inst.symbol.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      inst.name.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesSearch;
+      inst.symbol.toLowerCase().includes(query) ||
+      inst.name.toLowerCase().includes(query)
+    );
   });
 
-  // Dropdown search results (top 6)
-  const dropdownResults = instruments.filter(inst =>
-    searchQuery.trim() &&
-    (inst.symbol.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      inst.name.toLowerCase().includes(searchQuery.toLowerCase()))
-  ).slice(0, 6);
+  const dropdownResults = instruments.filter((inst) => {
+    const query = searchQuery.toLowerCase();
+    return (
+      searchQuery.trim() &&
+      (inst.symbol.toLowerCase().includes(query) || inst.name.toLowerCase().includes(query))
+    );
+  }).slice(0, 6);
 
-  const activeInstrument = instruments.find(i => i.symbol === activeSymbol);
+  const baseActiveInstrument = instruments.find((inst) => inst.symbol === activeSymbol);
+  const activeInstrument = baseActiveInstrument
+    ? buildInstrumentSnapshot({
+        symbol: activeSymbol,
+        instrument: baseActiveInstrument,
+        marketData,
+      })
+    : null;
 
   return (
     <div className="flex flex-col h-[calc(100vh-10rem)] min-h-[500px] lg:min-h-[1050px] -mx-4 md:-mx-10 border-t border-slate-100 dark:border-slate-800 animate-in fade-in slide-in-from-bottom-4 duration-700">
       <div className="flex-1 flex flex-col lg:flex-row overflow-x-hidden overflow-y-auto lg:overflow-hidden gap-6">
-
-        {/* Left Sidebar: Asset List */}
         <div className="block w-full lg:w-72 xl:w-80 flex-shrink-0 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-3xl md:rounded-[2rem] shadow-2xl overflow-hidden transition-all duration-300 relative z-10 mx-auto lg:mx-0 max-w-full">
-          <TerminalAssetList 
+          <TerminalAssetList
             activeSymbol={activeSymbol}
             onSelectSymbol={handleSelectSymbol}
             favorites={favorites}
             onToggleFavorite={onToggleFavorite}
+            marketData={marketData}
             instruments={instruments}
             categories={categories}
           />
         </div>
 
-        {/* Right Area: Chart and Stats */}
         <div className="flex-1 flex flex-col min-w-0 relative overflow-y-auto custom-scrollbar space-y-6">
-          
-          {/* Category Selection Bar */}
           <div className="bg-white dark:bg-slate-900 p-2 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-xl overflow-hidden flex items-center space-x-2 scrollbar-hide overflow-x-auto whitespace-nowrap">
             {['All', 'Watchlist', 'Popular', ...categories].map((cat) => (
               <button
@@ -155,10 +154,7 @@ const MarketsTab = ({
             ))}
           </div>
 
-          {/* Main Terminal (Chart) */}
           <div className="bg-white dark:bg-slate-900 rounded-[3rem] border border-slate-100 dark:border-slate-800 overflow-hidden shadow-2xl shadow-slate-200/50">
-            
-            {/* Header Bar */}
             <div className="p-6 border-b border-slate-50 dark:border-slate-800 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-slate-50/50 dark:bg-slate-800/10 transition-colors">
               <div className="flex items-center space-x-4">
                 <div className="w-11 h-11 bg-slate-900 dark:bg-gold-500 rounded-2xl flex items-center justify-center shadow-lg transition-colors">
@@ -177,12 +173,16 @@ const MarketsTab = ({
                   </div>
                   <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.3em] mt-1.5 flex items-center transition-colors">
                     <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full mr-2 animate-pulse"></span>
-                    {activeInstrument ? `${activeInstrument.name} · $${activeInstrument.price.toLocaleString()}` : 'Multi-Asset Liquidity Sync'}
+                    {activeInstrument
+                      ? `${activeInstrument.name} · $${activeInstrument.price.toLocaleString(undefined, {
+                          minimumFractionDigits: activeInstrument.precision,
+                          maximumFractionDigits: activeInstrument.precision,
+                        })}`
+                      : 'Multi-Asset Liquidity Sync'}
                   </p>
                 </div>
               </div>
 
-              {/* Functional Search Bar */}
               <div className="flex items-center space-x-3 w-full md:w-auto" ref={searchRef}>
                 <div className="relative flex-1 md:w-72">
                   <FaSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 dark:text-slate-600 z-10" size={12} />
@@ -194,19 +194,21 @@ const MarketsTab = ({
                       setShowSearchDropdown(true);
                     }}
                     onFocus={() => setShowSearchDropdown(true)}
-                    placeholder="Scan assets — BTC, AAPL, EUR..."
+                    placeholder="Scan assets - BTC, AAPL, EUR..."
                     className="w-full pl-10 pr-10 py-3 bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-xl text-[10px] font-black uppercase tracking-widest text-slate-900 dark:text-white focus:outline-none focus:ring-4 focus:ring-slate-900/5 dark:focus:ring-gold-500/10 focus:border-gold-500/30 transition-all shadow-sm placeholder-slate-300 dark:placeholder-slate-600"
                   />
                   {searchQuery && (
                     <button
-                      onClick={() => { setSearchQuery(''); setShowSearchDropdown(false); }}
+                      onClick={() => {
+                        setSearchQuery('');
+                        setShowSearchDropdown(false);
+                      }}
                       className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 dark:hover:text-white transition-colors"
                     >
                       <FaTimes size={10} />
                     </button>
                   )}
 
-                  {/* Search Dropdown */}
                   {showSearchDropdown && searchQuery && dropdownResults.length > 0 && (
                     <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-2xl shadow-slate-200/50 dark:shadow-black/40 overflow-hidden z-50">
                       <div className="px-4 py-2.5 border-b border-slate-50 dark:border-slate-800">
@@ -215,7 +217,13 @@ const MarketsTab = ({
                         </span>
                       </div>
                       {dropdownResults.map((inst) => {
-                        const isUp = inst.change >= 0;
+                        const liveInstrument = buildInstrumentSnapshot({
+                          symbol: inst.symbol,
+                          instrument: inst,
+                          marketData,
+                        });
+                        const isUp = liveInstrument.change >= 0;
+
                         return (
                           <button
                             key={inst.symbol}
@@ -223,8 +231,8 @@ const MarketsTab = ({
                             className="w-full flex items-center justify-between px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all border-b border-slate-50/50 dark:border-slate-800/50 last:border-0"
                           >
                             <div className="flex items-center space-x-3">
-                            <span className={`text-[7px] font-black px-2 py-0.5 rounded-md uppercase tracking-widest border ${inst.colors?.text || 'text-slate-500'} ${inst.colors?.bg || 'bg-slate-50'} ${inst.colors?.border || 'border-slate-100'}`}>
-                                {inst.category}
+                              <span className={`text-[7px] font-black px-2 py-0.5 rounded-md uppercase tracking-widest border ${inst.colors?.text || 'text-slate-500'} ${inst.colors?.bg || 'bg-slate-50'} ${inst.colors?.border || 'border-slate-100'}`}>
+                                {liveInstrument.category}
                               </span>
                               <div className="text-left">
                                 <p className="text-xs font-black text-slate-900 dark:text-white italic uppercase tracking-tight leading-none">{inst.symbol}</p>
@@ -232,9 +240,14 @@ const MarketsTab = ({
                               </div>
                             </div>
                             <div className="text-right">
-                              <p className="text-xs font-black text-slate-700 dark:text-slate-300 tabular-nums italic">${inst.price.toLocaleString()}</p>
+                              <p className="text-xs font-black text-slate-700 dark:text-slate-300 tabular-nums italic">
+                                ${liveInstrument.price.toLocaleString(undefined, {
+                                  minimumFractionDigits: liveInstrument.precision,
+                                  maximumFractionDigits: liveInstrument.precision,
+                                })}
+                              </p>
                               <p className={`text-[9px] font-black ${isUp ? 'text-emerald-500' : 'text-rose-500'}`}>
-                                {isUp ? '+' : ''}{inst.change}%
+                                {isUp ? '+' : ''}{liveInstrument.change}%
                               </p>
                             </div>
                           </button>
@@ -249,14 +262,12 @@ const MarketsTab = ({
               </div>
             </div>
 
-            {/* Chart */}
             <div className="p-1 min-h-[500px] relative group">
               <div className="min-h-[500px] h-full w-full rounded-[2rem] overflow-hidden border border-slate-50 dark:border-slate-800 shadow-inner bg-slate-50 dark:bg-slate-950 transition-colors">
-                <AdvancedRealTimeChart symbol={activeSymbol} theme={theme} />
+                <AdvancedRealTimeChart symbol={activeSymbol} instrument={baseActiveInstrument} theme={theme} />
               </div>
             </div>
 
-            {/* Footer */}
             <div className="p-6 border-t border-slate-50 dark:border-slate-800 flex flex-col md:flex-row justify-between items-center gap-4 bg-slate-50/20 dark:bg-slate-800/10 transition-colors">
               <div className="flex items-center space-x-6">
                 {[
@@ -271,7 +282,7 @@ const MarketsTab = ({
                 ))}
               </div>
               <div className="flex space-x-3">
-                {['Heatmaps', 'Volume Triggers', 'Alert Hub'].map(label => (
+                {['Heatmaps', 'Volume Triggers', 'Alert Hub'].map((label) => (
                   <button key={label} className="px-4 py-2 text-[8px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-600 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl hover:bg-slate-900 dark:hover:bg-gold-500 hover:text-white dark:hover:text-slate-900 hover:border-slate-900 dark:hover:border-gold-500 transition-all shadow-sm">
                     {label}
                   </button>
@@ -280,13 +291,12 @@ const MarketsTab = ({
             </div>
           </div>
 
-          {/* Market Stats Row */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {[
               { label: 'Market Cap', value: '$2.4T', change: '+2.4%', icon: FaChartBar, up: true },
               { label: 'Total Volume', value: '$84.2B', change: '-1.1%', icon: FaLayerGroup, up: false },
               { label: 'BTC Dominance', value: '48.2%', change: '+0.5%', icon: FaGlobe, up: true },
-              { label: 'Fear/Greed Index', value: '72 — Greed', change: 'Bullish', icon: FaSearch, up: true },
+              { label: 'Fear/Greed Index', value: '72 - Greed', change: 'Bullish', icon: FaSearch, up: true },
             ].map((stat) => (
               <div key={stat.label} className="bg-white dark:bg-slate-900 p-6 rounded-[2rem] border border-slate-100 dark:border-slate-800 shadow-xl shadow-slate-200/50 dark:shadow-black/20 group hover:-translate-y-1 transition-all overflow-hidden relative">
                 <div className="absolute top-0 right-0 w-16 h-16 bg-slate-50 dark:bg-slate-800 rounded-full translate-x-8 -translate-y-8 group-hover:bg-gold-50 dark:group-hover:bg-gold-500/10 transition-colors" />
@@ -297,7 +307,6 @@ const MarketsTab = ({
               </div>
             ))}
           </div>
-
         </div>
       </div>
     </div>

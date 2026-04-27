@@ -192,6 +192,7 @@ const TradingTab = ({
             onSubmit={onPlaceOrder} 
             symbol={activeSymbol}
             marketData={marketData}
+            instrument={selectedInstrument}
             onIntentChange={useCallback((intent) => setActiveOrderIntent(intent), [])}
             maxLeverage={maxLeverage}
             positions={positions}

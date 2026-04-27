@@ -1,15 +1,17 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { FaArrowUp, FaArrowDown, FaTimes, FaExchangeAlt, FaHistory, FaListUl, FaChartLine, FaShieldAlt, FaCaretUp, FaCaretDown } from 'react-icons/fa';
+import { FaTimes, FaExchangeAlt, FaListUl, FaChartLine, FaShieldAlt, FaCaretUp, FaCaretDown } from 'react-icons/fa';
 import { motion, AnimatePresence } from 'framer-motion';
 import { calculateSpreads } from '../../utils/spreadCalculator';
-import { calculateUsdFromLots, calculateLotsFromUsd, getLotStep, getLotUnits, calculatePips } from '../../utils/tradingUtils';
+import { calculateUsdFromLots, calculateLotsFromUsd, getLotStep, calculatePips } from '../../utils/tradingUtils';
 import { MARKET_INSTRUMENTS } from '../../constants/marketData';
+import { buildInstrumentSnapshot } from '../../utils/marketSymbols';
 
 const OrderPanel = ({ 
   onSubmit, 
   symbol = 'BTCUSDT', 
   onClose, 
   marketData = {}, 
+  instrument: selectedInstrument,
   onIntentChange,
   maxLeverage = 500,
   positions = [],
@@ -31,19 +33,23 @@ const OrderPanel = ({
   const [pendingPrice, setPendingPrice] = useState('');
   const [activeTab, setActiveTab] = useState('trade'); // trade, positions, orders
 
-  const instrument = useMemo(() => MARKET_INSTRUMENTS.find(i => i.symbol === symbol) || {}, [symbol]);
+  const fallbackInstrument = useMemo(() => MARKET_INSTRUMENTS.find((item) => item.symbol === symbol) || {}, [symbol]);
+  const instrument = useMemo(
+    () => buildInstrumentSnapshot({
+      symbol,
+      instrument: selectedInstrument?.symbol === symbol ? selectedInstrument : fallbackInstrument,
+      marketData,
+    }),
+    [fallbackInstrument, marketData, selectedInstrument, symbol]
+  );
   const category = instrument.category || 'Crypto';
-
-  // Get current prices from marketData
-  const liveInfo = marketData[symbol] || {};
-  const currentPrice = liveInfo.price || instrument.price || 0;
-  const lastDir = liveInfo.lastDir || 'none';
-  const flashClass = lastDir === 'up' ? 'flash-up' : lastDir === 'down' ? 'flash-down' : '';
+  const currentPrice = instrument.price || 0;
+  const lastDir = instrument.lastDir || 'none';
   
   const { bidPrice: calcBid, askPrice: calcAsk, spreadAmt: calcSpread } = calculateSpreads(symbol, currentPrice);
-  const bidPrice = liveInfo.bid ? liveInfo.bid.toFixed(category.includes('Forex') ? 5 : 2) : calcBid;
-  const askPrice = liveInfo.ask ? liveInfo.ask.toFixed(category.includes('Forex') ? 5 : 2) : calcAsk;
-  const spreadAmt = liveInfo.bid && liveInfo.ask ? Math.abs(liveInfo.ask - liveInfo.bid) : calcSpread;
+  const bidPrice = instrument.bid ? instrument.bid.toFixed(instrument.precision) : calcBid;
+  const askPrice = instrument.ask ? instrument.ask.toFixed(instrument.precision) : calcAsk;
+  const spreadAmt = instrument.bid && instrument.ask ? Math.abs(instrument.ask - instrument.bid) : calcSpread;
   const executionPrice = selectedSide === 'buy' ? parseFloat(askPrice) : parseFloat(bidPrice);
 
   // Sync Lots/USD
