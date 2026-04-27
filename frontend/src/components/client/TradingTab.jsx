@@ -1,5 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import RealTimeChart from '../trading/RealTimeChart';
+import TradingViewWidget from '../trading/TradingViewWidget';
 import OrderPanel from '../trading/OrderPanel';
 import PositionsTable from '../trading/PositionsTable';
 import OpenOrders from '../trading/OpenOrders';
@@ -37,7 +38,7 @@ const TradingTab = ({
   const [showSidebar, setShowSidebar] = useState(true);
   const [activeMobileView, setActiveMobileView] = useState('chart');
   const [activeOrderIntent, setActiveOrderIntent] = useState({ side: 'buy', type: 'market' });
-  const [chartMode, setChartMode] = useState('advanced');
+  const [chartMode, setChartMode] = useState('execution');
   const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1200);
   const { theme } = useTheme();
 
@@ -170,17 +171,15 @@ const TradingTab = ({
                     ? 'bg-gold-500/10 text-gold-300 border-gold-500/20'
                     : 'bg-gold-50 text-gold-700 border-gold-200'
                 }`}>
-                  Advanced mode now uses the same backend Yahoo/Binance feed as the order panel and instrument list for exact sync.
+                  Advanced mode is TradingView for analysis. Use execution mode when you need the chart, markets list, and order panel locked to the same live platform price.
                 </div>
-                <RealTimeChart
+                <TradingViewWidget
                   key={`advanced-${activeSymbol}-${theme}`}
                   symbol={activeSymbol}
-                  theme={theme}
                   instrument={selectedInstrument}
-                  positions={positions}
+                  theme={theme}
                   activeIntent={activeOrderIntent}
-                  livePrice={marketData[activeSymbol]?.price || selectedInstrument?.price || 0}
-                  initialPrice={instruments.find((instrument) => instrument.symbol === activeSymbol)?.price || 100}
+                  positions={positions}
                 />
               </div>
             ) : (
@@ -190,7 +189,7 @@ const TradingTab = ({
                     ? 'bg-emerald-500/10 text-emerald-300 border-emerald-500/20'
                     : 'bg-emerald-50 text-emerald-700 border-emerald-200'
                 }`}>
-                  Execution mode drives order-side sync from the platform Yahoo/Binance feed. Advanced mode uses TradingView for analysis only.
+                  Execution mode is the live trading chart. It uses the same Yahoo/Binance platform feed as the markets list and order panel for the tightest sync available in the app.
                 </div>
                 <RealTimeChart
                   key={`execution-${activeSymbol}-${theme}`}

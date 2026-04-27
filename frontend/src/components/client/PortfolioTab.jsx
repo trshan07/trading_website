@@ -1,6 +1,6 @@
 // frontend/src/components/client/PortfolioTab.jsx
 import React from 'react';
-import RealTimeChart from '../trading/RealTimeChart';
+import TradingViewWidget from '../trading/TradingViewWidget';
 import { FaChartPie, FaWallet, FaArrowUp, FaArrowDown, FaCube, FaHistory, FaCheckCircle } from 'react-icons/fa';
 import { useTheme } from '../../context/ThemeContext';
 
@@ -85,19 +85,19 @@ const PortfolioTab = ({ portfolio = {}, positions = [], activityLogs = [] }) => 
               <div className="p-6 md:p-8 border-b border-slate-50 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-slate-800/50 transition-colors">
                  <div className="flex items-center space-x-3">
                     <FaChartPie className="text-gold-500" />
-                    <h3 className="text-xs font-black uppercase text-slate-900 dark:text-white tracking-[0.2em] italic transition-colors">Portfolio Market Sync</h3>
+                    <h3 className="text-xs font-black uppercase text-slate-900 dark:text-white tracking-[0.2em] italic transition-colors">Portfolio Market View</h3>
                  </div>
                  <div className="hidden sm:flex items-center space-x-3 bg-white dark:bg-slate-800 px-4 py-2 rounded-xl border border-slate-100 dark:border-slate-700 transition-colors">
                     <div className="w-2 h-2 bg-gold-400 rounded-full animate-pulse"></div>
-                    <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Tracking Global Indexes</span>
+                    <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Analysis View</span>
                  </div>
               </div>
               <div className={`${isMobile ? 'h-[350px]' : 'h-[500px]'} w-full bg-slate-50 dark:bg-slate-900 transition-colors`}>
-                <RealTimeChart
-                  symbol="BTCUSDT"
+                <TradingViewWidget
+                  symbol={positions[0]?.symbol || 'BTCUSDT'}
                   theme={theme}
+                  instrument={null}
                   positions={positions}
-                  initialPrice={43000}
                 />
               </div>
            </div>
