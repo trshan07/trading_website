@@ -151,6 +151,38 @@ const fetchYahooQuotes = async (symbols = []) => {
   }, {});
 };
 
+const fetchYahooChartLastPrices = async (symbols = []) => {
+  if (symbols.length === 0) {
+    return {};
+  }
+
+  const results = await Promise.all(symbols.map(async (symbol) => {
+    const yahooSymbol = resolveYahooSymbol(symbol);
+
+    try {
+      const response = await axios.get(`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(yahooSymbol)}`, {
+        params: {
+          interval: '1m',
+          range: '1d',
+          includePrePost: false,
+        },
+        timeout: 5000,
+      });
+
+      const chart = response.data?.chart?.result?.[0];
+      const closes = chart?.indicators?.quote?.[0]?.close || [];
+      const validCloses = closes.filter((value) => Number.isFinite(Number.parseFloat(value)));
+      const latestClose = validCloses.length > 0 ? Number.parseFloat(validCloses[validCloses.length - 1]) : null;
+
+      return [symbol, latestClose];
+    } catch (error) {
+      return [symbol, null];
+    }
+  }));
+
+  return Object.fromEntries(results);
+};
+
 const INTERVAL_MAP = {
   '1m': { interval: '1m', range: '1d' },
   '5m': { interval: '5m', range: '5d' },
@@ -226,6 +258,23 @@ exports.getMarketQuotes = async (req, res) => {
       fetchBinanceQuotes(binanceSymbols).catch(() => ({})),
       fetchYahooQuotes(yahooSymbols).catch(() => ({})),
     ]);
+
+    const chartAlignedSymbols = yahooSymbols.filter((symbol) => marketSymbolMap[symbol]?.useBidAsk === false);
+    const chartLastPrices = await fetchYahooChartLastPrices(chartAlignedSymbols).catch(() => ({}));
+
+    chartAlignedSymbols.forEach((symbol) => {
+      const chartPrice = chartLastPrices[symbol];
+      if (!Number.isFinite(chartPrice) || !yahooData[symbol]) {
+        return;
+      }
+
+      yahooData[symbol] = {
+        ...yahooData[symbol],
+        price: chartPrice,
+        bid: null,
+        ask: null,
+      };
+    });
 
     return res.status(200).json({
       success: true,
