@@ -298,7 +298,7 @@ const normalizeTransaction = (transaction = {}) => {
   };
 };
 
-export const useDashboardData = (accountType = 'demo') => {
+export const useDashboardData = (accountType = 'demo', activeSymbol = null) => {
   const { user, refreshUser } = useContext(AuthContext);
   const isDemo = accountType === 'demo';
 
@@ -615,6 +615,27 @@ export const useDashboardData = (accountType = 'demo') => {
 
     return () => clearInterval(quoteInterval);
   }, [fetchLiveQuotes, instruments, user]);
+
+  useEffect(() => {
+    if (!user || !activeSymbol) {
+      return undefined;
+    }
+
+    const normalizedActiveSymbol = String(activeSymbol).trim().toUpperCase();
+    if (!normalizedActiveSymbol) {
+      return undefined;
+    }
+
+    fetchLiveQuotes([normalizedActiveSymbol]);
+
+    // Keep the selected symbol tightly synced so the order panel and instrument
+    // list continue moving with the chart even in advanced analysis mode.
+    const activeSymbolInterval = setInterval(() => {
+      fetchLiveQuotes([normalizedActiveSymbol]);
+    }, 2500);
+
+    return () => clearInterval(activeSymbolInterval);
+  }, [activeSymbol, fetchLiveQuotes, user]);
 
   useEffect(() => {
     if (!accountId) return; // Don't start polling at all without an account

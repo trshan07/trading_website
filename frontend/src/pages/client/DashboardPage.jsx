@@ -176,7 +176,7 @@ const DashboardPage = () => {
     portfolioHistory,
     platformInfo,
     unreadNotifications: hookUnreadCount
-  } = useDashboardData(selectedAccountType);
+  } = useDashboardData(selectedAccountType, marketSymbol);
 
   const isDemo = selectedAccountType === 'demo';
 
