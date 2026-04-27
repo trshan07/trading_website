@@ -1,5 +1,4 @@
 import React, { useState, useCallback } from 'react';
-import TradingViewWidget from '../trading/TradingViewWidget';
 import RealTimeChart from '../trading/RealTimeChart';
 import OrderPanel from '../trading/OrderPanel';
 import PositionsTable from '../trading/PositionsTable';
@@ -152,18 +151,17 @@ const TradingTab = ({
               </button>
             </div>
 
-            {/* Chart: Advanced (TradingView) */}
+            {/* Chart: Advanced (Unified live feed for chart + side panels) */}
             <div className={`flex-1 ${chartMode === 'advanced' ? 'block' : 'hidden'}`}>
-              <TradingViewWidget
+              <RealTimeChart
                 symbol={activeSymbol}
-                instrument={selectedInstrument}
                 theme={theme}
-                activeIntent={activeOrderIntent}
                 positions={positions}
+                initialPrice={instruments.find(i => i.symbol === activeSymbol)?.price || 100}
               />
             </div>
 
-            {/* Chart: Execution (RealTimeChart with position markers) */}
+            {/* Chart: Execution (secondary view kept for crypto execution focus) */}
             <div className={`flex-1 ${chartMode === 'execution' ? 'block' : 'hidden'}`}>
               {!executionChartSupported && (
                 <div className={`px-4 py-2 text-[10px] font-black uppercase tracking-widest border-b ${
@@ -171,7 +169,7 @@ const TradingTab = ({
                     ? 'bg-amber-500/10 text-amber-300 border-amber-500/20'
                     : 'bg-amber-50 text-amber-700 border-amber-200'
                 }`}>
-                  Advanced TradingView mode is the live chart for this instrument. Execution candles are only live for Binance-supported crypto pairs.
+                  Unified live chart mode is the accurate trading chart for this instrument. Execution mode is only live for Binance-supported crypto pairs.
                 </div>
               )}
               <RealTimeChart

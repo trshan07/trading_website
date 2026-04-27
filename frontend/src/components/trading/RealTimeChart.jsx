@@ -226,6 +226,9 @@ const RealTimeChart = ({
           const first = data[0];
           setLastPrice(last.close);
           setPriceChange(((last.close - first.open) / first.open * 100).toFixed(2));
+          window.dispatchEvent(new CustomEvent('active_price_update', {
+            detail: { symbol, price: last.close }
+          }));
         }
 
         // Don't open Binance WS for fallback/mock data or unsupported symbols.
