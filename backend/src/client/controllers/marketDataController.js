@@ -38,6 +38,35 @@ const parseQuoteNumber = (value) => {
   return Number.isFinite(parsed) ? parsed : null;
 };
 
+const createFlatData = (basePrice, interval = '15m', count = 300) => {
+  const anchor = parseFloat(basePrice) || 100;
+  const intervalMsMap = {
+    '1m': 60 * 1000,
+    '5m': 5 * 60 * 1000,
+    '15m': 15 * 60 * 1000,
+    '1h': 60 * 60 * 1000,
+    '4h': 4 * 60 * 60 * 1000,
+    '1d': 24 * 60 * 60 * 1000,
+    '1w': 7 * 24 * 60 * 60 * 1000,
+  };
+  const candleMs = intervalMsMap[interval] || intervalMsMap['15m'];
+  const now = Date.now();
+
+  return Array.from({ length: count }, (_, index) => {
+    const openTime = now - ((count - index) * candleMs);
+    return [
+      openTime,
+      anchor.toString(),
+      anchor.toString(),
+      anchor.toString(),
+      anchor.toString(),
+      '0',
+      openTime + candleMs,
+      '0', '0', '0', '0', '0',
+    ];
+  });
+};
+
 /**
  * Helper to generate mock data for failover or non-Binance symbols
  */
@@ -97,12 +126,69 @@ const fetchBinanceQuotes = async (symbols = []) => {
   }, {});
 };
 
+const fetchYahooBatchQuotes = async (symbols = []) => {
+  if (symbols.length === 0) {
+    return {};
+  }
+
+  const yahooSymbols = symbols.map(resolveYahooSymbol);
+  const response = await axios.get('https://query1.finance.yahoo.com/v7/finance/quote', {
+    params: {
+      symbols: yahooSymbols.join(','),
+    },
+    timeout: 5000,
+  });
+
+  const rawResults = response.data?.quoteResponse?.result || [];
+  const symbolByYahoo = Object.fromEntries(
+    symbols.map((symbol) => [resolveYahooSymbol(symbol), symbol])
+  );
+
+  return rawResults.reduce((acc, item) => {
+    const originalSymbol = symbolByYahoo[item?.symbol];
+    if (!originalSymbol) {
+      return acc;
+    }
+
+    const price = parseQuoteNumber(
+      item.regularMarketPrice
+      ?? item.postMarketPrice
+      ?? item.preMarketPrice
+      ?? item.ask
+      ?? item.bid
+    );
+
+    if (price === null) {
+      return acc;
+    }
+
+    const mapping = marketSymbolMap[originalSymbol] || {};
+    const allowBidAsk = mapping.useBidAsk !== false;
+
+    acc[originalSymbol] = {
+      price,
+      bid: allowBidAsk ? parseQuoteNumber(item.bid) : null,
+      ask: allowBidAsk ? parseQuoteNumber(item.ask) : null,
+      change: parseQuoteNumber(item.regularMarketChangePercent) ?? 0,
+      volume: parseQuoteNumber(item.regularMarketVolume),
+      source: 'yahoo-quote',
+    };
+    return acc;
+  }, {});
+};
+
 const fetchYahooQuotes = async (symbols = []) => {
   if (symbols.length === 0) {
     return {};
   }
 
-  const results = await Promise.all(symbols.map(async (symbol) => {
+  const batchQuotes = await fetchYahooBatchQuotes(symbols).catch(() => ({}));
+  const unresolved = symbols.filter((symbol) => !batchQuotes[symbol]?.price);
+  if (unresolved.length === 0) {
+    return batchQuotes;
+  }
+
+  const results = await Promise.all(unresolved.map(async (symbol) => {
     const yahooSymbol = resolveYahooSymbol(symbol);
 
     try {
@@ -147,7 +233,10 @@ const fetchYahooQuotes = async (symbols = []) => {
     }
   }));
 
-  return Object.fromEntries(results);
+  return {
+    ...Object.fromEntries(results),
+    ...batchQuotes,
+  };
 };
 
 const INTERVAL_MAP = {
@@ -272,13 +361,18 @@ exports.getMarketHistory = async (req, res) => {
       source: 'binance',
     });
   } catch (error) {
-    // Failover to mock data silently to keep frontend clean and functional
-    console.log(`[MarketProxy] Falling back to mock data for ${sym} due to: ${error.message}`);
-    const mockData = generateMockData(req.query.initialPrice || 100);
+    console.log(`[MarketProxy] History fallback for ${sym} due to: ${error.message}`);
+    const liveQuote = await fetchYahooQuotes([sym]).catch(() => ({}));
+    const quotePrice = parseQuoteNumber(liveQuote?.[sym]?.price);
+    const fallbackData = quotePrice
+      ? createFlatData(quotePrice, iv)
+      : generateMockData(req.query.initialPrice || 100);
     return res.status(200).json({
       success: true,
-      data: mockData,
-      isMock: true
+      data: fallbackData,
+      isMock: !quotePrice,
+      isSynthetic: Boolean(quotePrice),
+      source: quotePrice ? 'quote-fallback' : 'mock',
     });
   }
 };
