@@ -116,7 +116,7 @@
   },
   "XAUUSD": {
     "tradingView": "OANDA:XAUUSD",
-    "quote": "XAUUSD=X",
+    "quote": "GC=F",
     "provider": "yahoo",
     "useBidAsk": false,
     "precision": 2,
@@ -128,7 +128,7 @@
   },
   "XAGUSD": {
     "tradingView": "OANDA:XAGUSD",
-    "quote": "XAGUSD=X",
+    "quote": "SI=F",
     "provider": "yahoo",
     "useBidAsk": false,
     "precision": 3,
