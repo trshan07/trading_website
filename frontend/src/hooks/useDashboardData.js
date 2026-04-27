@@ -14,6 +14,9 @@ import { buildInstrumentSnapshot } from '../utils/marketSymbols';
 import { calculateProjectedPnL } from '../utils/tradingUtils';
 import { calculateSpreads } from '../utils/spreadCalculator';
 
+const GLOBAL_QUOTES_REFRESH_MS = 2500;
+const ACTIVE_SYMBOL_REFRESH_MS = 1000;
+
 const normalizeInstrument = (instrument = {}) => ({
   symbol: instrument.symbol,
   name: instrument.name || instrument.symbol,
@@ -89,6 +92,19 @@ const buildMarketSnapshot = (instrumentList = []) => instrumentList.reduce((acc,
   return acc;
 }, {});
 
+const toUpdateStamp = (value) => {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return value;
+  }
+
+  if (typeof value === 'string' && value.trim()) {
+    const parsed = Date.parse(value);
+    return Number.isFinite(parsed) ? parsed : 0;
+  }
+
+  return 0;
+};
+
 const mergeQuoteSnapshot = (current = {}, incoming = {}) => {
   const next = { ...current };
 
@@ -98,6 +114,13 @@ const mergeQuoteSnapshot = (current = {}, incoming = {}) => {
     }
 
     const previous = current[symbol] || {};
+    const previousUpdatedAt = toUpdateStamp(previous.updatedAt ?? previous.updated_at);
+    const incomingUpdatedAt = toUpdateStamp(quote.updatedAt ?? quote.updated_at);
+
+    if (previousUpdatedAt && incomingUpdatedAt && incomingUpdatedAt < previousUpdatedAt) {
+      return;
+    }
+
     const nextPrice = Number.parseFloat(quote.price ?? previous.price ?? 0) || 0;
     const prevPrice = Number.parseFloat(previous.price ?? nextPrice) || nextPrice;
 
@@ -105,6 +128,7 @@ const mergeQuoteSnapshot = (current = {}, incoming = {}) => {
       ...previous,
       ...quote,
       price: nextPrice,
+      updatedAt: incomingUpdatedAt || previousUpdatedAt || Date.now(),
       lastDir: nextPrice > prevPrice ? 'up' : nextPrice < prevPrice ? 'down' : (previous.lastDir || 'none'),
     };
   });
@@ -118,6 +142,12 @@ const syncInstrumentsWithQuotes = (current = [], incoming = {}) => current.map((
     return instrument;
   }
 
+  const previousUpdatedAt = toUpdateStamp(instrument.updatedAt ?? instrument.updated_at);
+  const incomingUpdatedAt = toUpdateStamp(quote.updatedAt ?? quote.updated_at);
+  if (previousUpdatedAt && incomingUpdatedAt && incomingUpdatedAt < previousUpdatedAt) {
+    return instrument;
+  }
+
   const nextPrice = Number.parseFloat(quote.price ?? instrument.price ?? instrument.default_price ?? 0) || 0;
   const prevPrice = Number.parseFloat(instrument.price ?? instrument.default_price ?? nextPrice) || nextPrice;
 
@@ -128,6 +158,7 @@ const syncInstrumentsWithQuotes = (current = [], incoming = {}) => current.map((
     volume: quote.volume ?? instrument.volume ?? instrument.default_volume ?? null,
     bid: Number.parseFloat(quote.bid ?? instrument.bid ?? 0) || null,
     ask: Number.parseFloat(quote.ask ?? instrument.ask ?? 0) || null,
+    updatedAt: incomingUpdatedAt || previousUpdatedAt || Date.now(),
     lastDir: nextPrice > prevPrice ? 'up' : nextPrice < prevPrice ? 'down' : (instrument.lastDir || 'none'),
   };
 });
@@ -475,8 +506,19 @@ export const useDashboardData = (accountType = 'demo', activeSymbol = null) => {
     try {
       const response = await infraService.getMarketQuotes(filteredSymbols);
       if (response.success && response.data) {
-        setMarketData((prev) => mergeQuoteSnapshot(prev, response.data));
-        setInstruments((prev) => syncInstrumentsWithQuotes(prev, response.data));
+        const responseStamp = response.asOf || Date.now();
+        const stampedQuotes = Object.fromEntries(
+          Object.entries(response.data).map(([symbol, quote]) => [
+            symbol,
+            {
+              ...quote,
+              updatedAt: quote?.updatedAt || quote?.updated_at || responseStamp,
+            },
+          ])
+        );
+
+        setMarketData((prev) => mergeQuoteSnapshot(prev, stampedQuotes));
+        setInstruments((prev) => syncInstrumentsWithQuotes(prev, stampedQuotes));
       }
     } catch (error) {
       console.error('Live Quotes Fetch Failed:', error);
@@ -607,11 +649,24 @@ export const useDashboardData = (accountType = 'demo', activeSymbol = null) => {
     }
 
     const instrumentSymbols = instruments.map((instrument) => instrument.symbol).filter(Boolean);
-    fetchLiveQuotes(instrumentSymbols);
+    let inFlight = false;
 
-    const quoteInterval = setInterval(() => {
-      fetchLiveQuotes(instrumentSymbols);
-    }, 15000);
+    const pollQuotes = async () => {
+      if (inFlight) {
+        return;
+      }
+
+      inFlight = true;
+      try {
+        await fetchLiveQuotes(instrumentSymbols);
+      } finally {
+        inFlight = false;
+      }
+    };
+
+    pollQuotes();
+
+    const quoteInterval = setInterval(pollQuotes, GLOBAL_QUOTES_REFRESH_MS);
 
     return () => clearInterval(quoteInterval);
   }, [fetchLiveQuotes, instruments, user]);
@@ -626,13 +681,26 @@ export const useDashboardData = (accountType = 'demo', activeSymbol = null) => {
       return undefined;
     }
 
-    fetchLiveQuotes([normalizedActiveSymbol]);
+    let inFlight = false;
+
+    const pollActiveSymbol = async () => {
+      if (inFlight) {
+        return;
+      }
+
+      inFlight = true;
+      try {
+        await fetchLiveQuotes([normalizedActiveSymbol]);
+      } finally {
+        inFlight = false;
+      }
+    };
+
+    pollActiveSymbol();
 
     // Keep the selected symbol tightly synced so the order panel and instrument
     // list continue moving with the chart even in advanced analysis mode.
-    const activeSymbolInterval = setInterval(() => {
-      fetchLiveQuotes([normalizedActiveSymbol]);
-    }, 2500);
+    const activeSymbolInterval = setInterval(pollActiveSymbol, ACTIVE_SYMBOL_REFRESH_MS);
 
     return () => clearInterval(activeSymbolInterval);
   }, [activeSymbol, fetchLiveQuotes, user]);
@@ -1009,23 +1077,16 @@ export const useDashboardData = (accountType = 'demo', activeSymbol = null) => {
         return;
       }
 
-      setMarketData(prev => {
-        const previousSnapshot = prev[symbol] || {};
-        if (previousSnapshot.price === price) return prev;
+      const chartQuote = {
+        [symbol]: {
+          price,
+          source: source || 'platform-feed',
+          updatedAt: Date.now(),
+        },
+      };
 
-        return {
-          ...prev,
-          [symbol]: {
-            ...previousSnapshot,
-            price,
-            lastDir: price > (previousSnapshot.price ?? price) ? 'up' : price < (previousSnapshot.price ?? price) ? 'down' : (previousSnapshot.lastDir || 'none')
-          }
-        };
-      });
-
-      setInstruments((prev) => syncInstrumentsWithQuotes(prev, {
-        [symbol]: { price },
-      }));
+      setMarketData((prev) => mergeQuoteSnapshot(prev, chartQuote));
+      setInstruments((prev) => syncInstrumentsWithQuotes(prev, chartQuote));
     };
 
     window.addEventListener('active_price_update', handleChartUpdate);
@@ -1036,39 +1097,13 @@ export const useDashboardData = (accountType = 'demo', activeSymbol = null) => {
   useEffect(() => {
     const handleLiveData = (liveTickers) => {
       setInstruments((prev) => syncInstrumentsWithQuotes(prev, liveTickers));
-      setMarketData(prev => {
-        const newData = { ...prev };
-        let updated = false;
-
-        Object.keys(liveTickers).forEach(symbol => {
-          if (newData[symbol]) {
-            const oldPrice = newData[symbol].price;
-            const newPrice = liveTickers[symbol].price;
-            if (oldPrice !== newPrice) {
-              newData[symbol] = {
-                ...newData[symbol],
-                price: newPrice,
-                bid: liveTickers[symbol].bid,
-                ask: liveTickers[symbol].ask,
-                change: liveTickers[symbol].change,
-                volume: liveTickers[symbol].volume,
-                lastDir: newPrice > oldPrice ? 'up' : newPrice < oldPrice ? 'down' : 'none',
-              };
-              updated = true;
-            }
-          }
-        });
-
-        return updated ? newData : prev;
-      });
+      setMarketData((prev) => mergeQuoteSnapshot(prev, liveTickers));
     };
 
     const unsubscribe = websocketService.subscribe(handleLiveData);
-    const mockInterval = setInterval(() => handleLiveData({}), 1500);
 
     return () => {
       unsubscribe();
-      clearInterval(mockInterval);
     };
   }, []);
 

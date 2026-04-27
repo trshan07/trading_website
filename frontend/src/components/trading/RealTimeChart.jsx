@@ -14,6 +14,8 @@ const INTERVALS = [
   { label: '1W', value: '1w' },
 ];
 
+const NON_STREAM_REFRESH_MS = 2500;
+
 const formatExecutionSymbol = (symbol = '') => {
   if (symbol.endsWith('USDT')) {
     return `${symbol.slice(0, -4)} / USDT`;
@@ -332,7 +334,7 @@ const RealTimeChart = ({
                 detail: { symbol, price: latest.close, source: 'platform-feed' }
               }));
               setLiveStatus('live');
-            }, 15000);
+            }, NON_STREAM_REFRESH_MS);
           }
 
           setLiveStatus(isMock ? 'fallback' : 'live');

@@ -111,6 +111,7 @@ class WebSocketService {
           const data = JSON.parse(event.data);
           if (Array.isArray(data)) {
             const formattedData = {};
+            const updatedAt = Date.now();
             data.forEach(ticker => {
               if (ticker.s && ticker.c) {
                 formattedData[ticker.s] = {
@@ -118,7 +119,8 @@ class WebSocketService {
                   bid: parseFloat(ticker.b),
                   ask: parseFloat(ticker.a),
                   change: parseFloat(ticker.P),
-                  volume: parseFloat(ticker.v)
+                  volume: parseFloat(ticker.v),
+                  updatedAt,
                 };
               }
             });
