@@ -11,6 +11,7 @@ import HistoryTab from './HistoryTab';
 import PriceAlertsTab from '../trading/PriceAlertsTab';
 
 const TradingTab = ({ 
+  portfolio = {},
   positions = [],
   orders = [],
   marketData = {},
@@ -193,11 +194,11 @@ const TradingTab = ({
             symbol={activeSymbol}
             marketData={marketData}
             instrument={selectedInstrument}
+            portfolio={portfolio}
             onIntentChange={useCallback((intent) => setActiveOrderIntent(intent), [])}
             maxLeverage={maxLeverage}
             positions={positions}
             orders={orders}
-            history={transactions}
           />
         </div>
       </div>

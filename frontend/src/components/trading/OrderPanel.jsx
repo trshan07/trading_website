@@ -12,11 +12,11 @@ const OrderPanel = ({
   onClose, 
   marketData = {}, 
   instrument: selectedInstrument,
+  portfolio = {},
   onIntentChange,
   maxLeverage = 500,
   positions = [],
-  orders = [],
-  history = []
+  orders = []
 }) => {
   const [orderType, setOrderType] = useState('market'); // market, limit, stop
   const [selectedSide, setSelectedSide] = useState('buy');
@@ -45,6 +45,15 @@ const OrderPanel = ({
   const category = instrument.category || 'Crypto';
   const currentPrice = instrument.price || 0;
   const lastDir = instrument.lastDir || 'none';
+  const symbolPositions = useMemo(
+    () => positions.filter((position) => position?.symbol === symbol),
+    [positions, symbol]
+  );
+  const symbolOrders = useMemo(
+    () => orders.filter((order) => order?.symbol === symbol),
+    [orders, symbol]
+  );
+  const activePnl = symbolPositions.reduce((acc, position) => acc + (Number(position?.pnl) || 0), 0);
   
   const { bidPrice: calcBid, askPrice: calcAsk, spreadAmt: calcSpread } = calculateSpreads(symbol, currentPrice, {
     category,
@@ -375,15 +384,15 @@ const OrderPanel = ({
               className="p-4 space-y-3"
             >
               <div className="text-[10px] font-black uppercase tracking-widest text-slate-900 dark:text-white px-2 mb-4">
-                Active Positions ({positions.length})
+                Active Positions ({symbolPositions.length})
               </div>
-              {positions.length === 0 ? (
+              {symbolPositions.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-20 text-slate-400">
                   <FaChartLine size={40} className="opacity-10 mb-4" />
-                  <p className="text-[10px] font-black uppercase tracking-widest">No Open Positions</p>
+                  <p className="text-[10px] font-black uppercase tracking-widest">No Open Positions For {symbol}</p>
                 </div>
               ) : (
-                positions.map(pos => (
+                symbolPositions.map(pos => (
                   <div key={pos.id} className="bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700/50 rounded-xl p-3 space-y-2">
                     <div className="flex justify-between items-center">
                       <div className="flex items-center space-x-2">
@@ -418,15 +427,15 @@ const OrderPanel = ({
               className="p-4 space-y-3"
             >
               <div className="text-[10px] font-black uppercase tracking-widest text-slate-900 dark:text-white px-2 mb-4">
-                Pending Orders ({orders.length})
+                Pending Orders ({symbolOrders.length})
               </div>
-              {orders.length === 0 ? (
+              {symbolOrders.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-20 text-slate-400">
                   <FaListUl size={40} className="opacity-10 mb-4" />
-                  <p className="text-[10px] font-black uppercase tracking-widest">No Pending Orders</p>
+                  <p className="text-[10px] font-black uppercase tracking-widest">No Pending Orders For {symbol}</p>
                 </div>
               ) : (
-                orders.map(order => (
+                symbolOrders.map(order => (
                   <div key={order.id} className="bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700/50 rounded-xl p-3 space-y-2">
                     <div className="flex justify-between items-center">
                       <div className="flex items-center space-x-2">
@@ -455,14 +464,14 @@ const OrderPanel = ({
       <div className="p-4 border-t border-slate-50 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/80 grid grid-cols-2 gap-4">
         <div className="flex flex-col">
           <span className="text-[7px] font-black uppercase tracking-widest text-slate-400 mb-0.5">Active P&L</span>
-          <span className={`text-xs font-black tabular-nums ${positions.reduce((acc, p) => acc + p.pnl, 0) >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
-            ${positions.reduce((acc, p) => acc + p.pnl, 0).toFixed(2)}
+          <span className={`text-xs font-black tabular-nums ${activePnl >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
+            ${activePnl.toFixed(2)}
           </span>
         </div>
         <div className="flex flex-col text-right">
           <span className="text-[7px] font-black uppercase tracking-widest text-slate-400 mb-0.5">Account Equity</span>
           <span className="text-xs font-black text-slate-900 dark:text-white tabular-nums">
-            $94,250.00
+            ${(Number(portfolio?.equity) || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </span>
         </div>
       </div>

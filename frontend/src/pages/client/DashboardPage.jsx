@@ -372,10 +372,12 @@ const DashboardPage = () => {
                   onSymbolChange={(sym) => setMarketSymbol(sym)}
                   favorites={favorites}
                   onToggleFavorite={handleToggleFavorite}
-                  onDeleteAlert={handleDeleteAlert}
                   transactions={transactions}
                   instruments={instruments}
                   categories={categories}
+                  priceAlerts={priceAlerts}
+                  onCreateAlert={handleCreateAlert}
+                  onDeleteAlert={handleDeleteAlert}
                   maxLeverage={parseInt(activeAccount?.leverage, 10) || 100}
                 />
               )}

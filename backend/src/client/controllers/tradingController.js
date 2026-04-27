@@ -238,6 +238,7 @@ const closePosition = async (req, res) => {
         let currentBalance = parseFloat(currentAccount.balance) || 0;
         let currentCredit = parseFloat(currentAccount.credit) || 0;
         const margin = parseFloat(position.margin) || 0;
+        const totalReturn = margin + pnl;
 
         // Logic:
         // 1. Restore the margin to credit first (since it was deducted from credit first in executeTrade)

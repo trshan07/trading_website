@@ -67,6 +67,81 @@ const buildMarketSnapshot = (instrumentList = []) => instrumentList.reduce((acc,
   return acc;
 }, {});
 
+const buildPortfolioHistory = ({ activeAccount, positions = [], transactions = [], marketData = {} }) => {
+  const now = new Date();
+  const currentBalance = (Number.parseFloat(activeAccount?.balance) || 0) + (Number.parseFloat(activeAccount?.credit) || 0);
+  const unrealizedPnl = positions.reduce((acc, position) => {
+    const currentPrice = Number.parseFloat(marketData[position.symbol]?.price ?? position.currentPrice ?? position.entryPrice) || 0;
+    const entryPrice = Number.parseFloat(position.entryPrice) || 0;
+    const quantity = Number.parseFloat(position.quantity) || 0;
+    const side = String(position.type || position.side || 'buy').toUpperCase();
+
+    if (!entryPrice || !quantity) {
+      return acc;
+    }
+
+    return acc + (side === 'BUY'
+      ? (currentPrice - entryPrice) * quantity
+      : (entryPrice - currentPrice) * quantity);
+  }, 0);
+
+  const currentEquity = currentBalance + unrealizedPnl;
+  const relevantTransactions = [...transactions]
+    .filter((transaction) => {
+      if (!activeAccount?.id) {
+        return true;
+      }
+      return !transaction.accountId || transaction.accountId === activeAccount.id;
+    })
+    .sort((a, b) => new Date(a.createdAt || 0) - new Date(b.createdAt || 0));
+
+  if (relevantTransactions.length === 0) {
+    return Array.from({ length: 7 }, (_, index) => {
+      const pointDate = new Date(now);
+      pointDate.setDate(now.getDate() - (6 - index));
+      return {
+        date: pointDate.toISOString().split('T')[0],
+        balance: Number(currentEquity.toFixed(2)),
+      };
+    });
+  }
+
+  const history = [];
+
+  relevantTransactions.forEach((transaction) => {
+    const txDate = new Date(transaction.createdAt || transaction.created_at || now);
+    const balanceAfter = Number.parseFloat(
+      transaction.balance_after
+      ?? transaction.balanceAfter
+      ?? transaction.balance_after_trade
+    );
+    const signedAmount = Number.parseFloat(transaction.signedAmount ?? transaction.amount ?? 0) || 0;
+    const fallbackBalance = history.length > 0 ? history[history.length - 1].balance + signedAmount : currentBalance + signedAmount;
+
+    history.push({
+      date: txDate.toISOString().split('T')[0],
+      balance: Number((Number.isFinite(balanceAfter) ? balanceAfter : fallbackBalance).toFixed(2)),
+    });
+  });
+
+  history.push({
+    date: now.toISOString().split('T')[0],
+    balance: Number(currentEquity.toFixed(2)),
+  });
+
+  const compacted = history.reduce((acc, point) => {
+    const last = acc[acc.length - 1];
+    if (last?.date === point.date) {
+      last.balance = point.balance;
+      return acc;
+    }
+    acc.push(point);
+    return acc;
+  }, []);
+
+  return compacted.slice(-30);
+};
+
 const toTitleCase = (value = '') => value
   .toString()
   .replace(/_/g, ' ')
@@ -190,15 +265,7 @@ export const useDashboardData = (accountType = 'demo') => {
   const [categories, setCategories] = useState([]);
   const [platformInfo, setPlatformInfo] = useState(null);
   
-  const [portfolioHistory, setPortfolioHistory] = useState([
-    { date: '2024-03-01', balance: 0 },
-    { date: '2024-03-05', balance: 250 },
-    { date: '2024-03-10', balance: 180 },
-    { date: '2024-03-15', balance: 450 },
-    { date: '2024-03-20', balance: 390 },
-    { date: '2024-03-25', balance: 850 },
-    { date: '2024-03-30', balance: 1000 }
-  ]);
+  const [portfolioHistory, setPortfolioHistory] = useState([]);
   
   const [marketData, setMarketData] = useState({});
 
@@ -290,8 +357,9 @@ export const useDashboardData = (accountType = 'demo') => {
 
   const fetchInfrastructure = useCallback(async () => {
     try {
-      const [instRes, notifRes, logRes, favRes] = await Promise.all([
+      const [instRes, catRes, notifRes, logRes, favRes] = await Promise.all([
         infraService.getInstruments(),
+        infraService.getCategories(),
         infraService.getNotifications(),
         infraService.getActivityLogs(),
         infraService.getFavorites()
@@ -303,7 +371,11 @@ export const useDashboardData = (accountType = 'demo') => {
       );
 
       setInstruments(mergedInstruments);
-      setCategories(deriveCategories(mergedInstruments));
+      setCategories(
+        catRes.success && Array.isArray(catRes.data) && catRes.data.length > 0
+          ? catRes.data
+          : deriveCategories(mergedInstruments)
+      );
       setMarketData((prev) => ({
         ...buildMarketSnapshot(mergedInstruments),
         ...prev,
@@ -424,6 +496,15 @@ export const useDashboardData = (accountType = 'demo') => {
     }, 10000);
     return () => clearInterval(pollInterval);
   }, [fetchPositions, fetchOrders, accountId]);
+
+  useEffect(() => {
+    setPortfolioHistory(buildPortfolioHistory({
+      activeAccount,
+      positions,
+      transactions,
+      marketData,
+    }));
+  }, [activeAccount, marketData, positions, transactions]);
 
   // --- Handlers (Sync with Backend) ---
 
@@ -827,6 +908,6 @@ export const useDashboardData = (accountType = 'demo') => {
     instruments,
     categories,
     portfolioHistory,
-    unreadNotifications: notifications.filter(n => !n.is_read).length
+    unreadNotifications: notifications.filter((n) => !(n.is_read || n.read)).length
   };
 };
