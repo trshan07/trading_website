@@ -25,8 +25,7 @@ const QuickTradeModal = ({ show, onClose, onPlaceOrder }) => {
               symbol: 'BTCUSDT',
               type: 'market',
               side: 'buy',
-              amount: 500,
-              price: 43250
+              amount: 500
             })} 
             className="w-full py-5 bg-slate-900 dark:bg-gold-500 text-white dark:text-slate-900 rounded-[1.5rem] font-black uppercase tracking-widest text-[11px] hover:bg-gold-600 dark:hover:bg-gold-400 transition-all shadow-2xl shadow-slate-900/20 dark:shadow-gold-500/20 transform hover:-translate-y-1"
           >

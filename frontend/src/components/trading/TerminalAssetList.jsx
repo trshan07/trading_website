@@ -24,6 +24,7 @@ const TerminalAssetList = ({
 
   let filtered = instruments.filter(inst => {
     let matchesPrimary = primaryCategory === 'All' || inst.category === primaryCategory;
+    const liveChange = marketData[inst.symbol]?.change !== undefined ? marketData[inst.symbol].change : inst.change;
     
     let matchesSecondary = true;
     if (secondaryFilter === 'Watchlist') {
@@ -32,9 +33,9 @@ const TerminalAssetList = ({
       const popularSymbols = ['BTCUSDT', 'ETHUSDT', 'AAPL', 'TSLA', 'SPX', 'EURUSD', 'XAUUSD'];
       matchesSecondary = popularSymbols.includes(inst.symbol);
     } else if (secondaryFilter === 'Top Gainers') {
-      matchesSecondary = inst.change > 0;
+      matchesSecondary = liveChange > 0;
     } else if (secondaryFilter === 'Top Losers') {
-      matchesSecondary = inst.change < 0;
+      matchesSecondary = liveChange < 0;
     }
 
     const matchesSearch = 
@@ -47,9 +48,9 @@ const TerminalAssetList = ({
 
   // Apply sorting based on secondary filter if required
   if (secondaryFilter === 'Top Gainers') {
-    filtered.sort((a, b) => b.change - a.change);
+    filtered.sort((a, b) => (marketData[b.symbol]?.change ?? b.change) - (marketData[a.symbol]?.change ?? a.change));
   } else if (secondaryFilter === 'Top Losers') {
-    filtered.sort((a, b) => a.change - b.change);
+    filtered.sort((a, b) => (marketData[a.symbol]?.change ?? a.change) - (marketData[b.symbol]?.change ?? b.change));
   }
 
   return (
@@ -124,7 +125,6 @@ const TerminalAssetList = ({
       <div className="flex-1 overflow-y-auto custom-scrollbar bg-white dark:bg-slate-900">
         {filtered.map(inst => {
           const isActive = activeSymbol === inst.symbol;
-          const isUp = inst.change >= 0;
           const isFav = favorites.includes(inst.symbol);
 
           return (

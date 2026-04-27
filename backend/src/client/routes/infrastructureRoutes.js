@@ -10,6 +10,7 @@ const marketDataController = require('../controllers/marketDataController');
 router.use(protect);
 
 // --- Market Data Proxy ---
+router.get('/market-data/quotes', marketDataController.getMarketQuotes);
 router.get('/market-data/history', marketDataController.getMarketHistory);
 
 // --- Instruments ---

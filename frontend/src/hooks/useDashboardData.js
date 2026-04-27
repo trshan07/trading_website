@@ -67,6 +67,29 @@ const buildMarketSnapshot = (instrumentList = []) => instrumentList.reduce((acc,
   return acc;
 }, {});
 
+const mergeQuoteSnapshot = (current = {}, incoming = {}) => {
+  const next = { ...current };
+
+  Object.entries(incoming).forEach(([symbol, quote]) => {
+    if (!quote) {
+      return;
+    }
+
+    const previous = current[symbol] || {};
+    const nextPrice = Number.parseFloat(quote.price ?? previous.price ?? 0) || 0;
+    const prevPrice = Number.parseFloat(previous.price ?? nextPrice) || nextPrice;
+
+    next[symbol] = {
+      ...previous,
+      ...quote,
+      price: nextPrice,
+      lastDir: nextPrice > prevPrice ? 'up' : nextPrice < prevPrice ? 'down' : (previous.lastDir || 'none'),
+    };
+  });
+
+  return next;
+};
+
 const buildPortfolioHistory = ({ activeAccount, positions = [], transactions = [], marketData = {} }) => {
   const now = new Date();
   const currentBalance = (Number.parseFloat(activeAccount?.balance) || 0) + (Number.parseFloat(activeAccount?.credit) || 0);
@@ -399,6 +422,22 @@ export const useDashboardData = (accountType = 'demo') => {
     }
   }, []);
 
+  const fetchLiveQuotes = useCallback(async (symbols = []) => {
+    const filteredSymbols = Array.from(new Set(symbols.filter(Boolean)));
+    if (filteredSymbols.length === 0) {
+      return;
+    }
+
+    try {
+      const response = await infraService.getMarketQuotes(filteredSymbols);
+      if (response.success && response.data) {
+        setMarketData((prev) => mergeQuoteSnapshot(prev, response.data));
+      }
+    } catch (error) {
+      console.error('Live Quotes Fetch Failed:', error);
+    }
+  }, []);
+
   const fetchPositions = useCallback(async () => {
     if (!accountId) return; // No account = nothing to fetch
     const token = localStorage.getItem('token');
@@ -485,6 +524,21 @@ export const useDashboardData = (accountType = 'demo') => {
       fetchInfrastructure();
     }
   }, [user, fetchBanking, fetchTransactions, fetchDocuments, fetchAlerts, fetchSettings, fetchInfrastructure]);
+
+  useEffect(() => {
+    if (!user || instruments.length === 0) {
+      return undefined;
+    }
+
+    const instrumentSymbols = instruments.map((instrument) => instrument.symbol).filter(Boolean);
+    fetchLiveQuotes(instrumentSymbols);
+
+    const quoteInterval = setInterval(() => {
+      fetchLiveQuotes(instrumentSymbols);
+    }, 15000);
+
+    return () => clearInterval(quoteInterval);
+  }, [fetchLiveQuotes, instruments, user]);
 
   useEffect(() => {
     if (!accountId) return; // Don't start polling at all without an account

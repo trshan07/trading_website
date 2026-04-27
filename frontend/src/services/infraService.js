@@ -19,6 +19,13 @@ const infraService = {
     return response.data;
   },
 
+  getMarketQuotes: async (symbols = []) => {
+    const response = await api.get('/infra/market-data/quotes', {
+      params: { symbols: symbols.join(',') }
+    });
+    return response.data;
+  },
+
   // Notifications
   getNotifications: async () => {
     const response = await api.get('/infra/notifications');
