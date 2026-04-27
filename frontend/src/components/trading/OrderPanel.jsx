@@ -70,7 +70,6 @@ const OrderPanel = ({
 
   const { bidPrice: calcBid, askPrice: calcAsk, spreadAmt: calcSpread } = calculateSpreads(symbol, currentPrice, {
     category,
-    instrument,
     precision: instrument.precision,
   });
 

@@ -14,10 +14,10 @@ const resolveCategory = (symbol, explicitCategory) => {
   return instrument?.category || 'Unknown';
 };
 
-const getSpreadAmount = ({ symbol, category, currentPrice, instrument = {} }) => {
+const getSpreadAmount = ({ symbol, category, currentPrice }) => {
   const normalizedCategory = (category || '').toLowerCase();
   const upperSymbol = (symbol || '').toUpperCase();
-  const explicitSpread = Number.parseFloat(instrument.spread ?? marketSymbolMap[upperSymbol]?.spread);
+  const explicitSpread = Number.parseFloat(marketSymbolMap[upperSymbol]?.spread);
 
   if (Number.isFinite(explicitSpread) && explicitSpread > 0) {
     return explicitSpread;
@@ -55,12 +55,12 @@ export const calculateSpreads = (symbol, currentPrice, options = {}) => {
     return { bidPrice: 0, askPrice: 0, spreadAmt: 0 };
   }
 
-  const category = resolveCategory(symbol, options.category || options.instrument?.category);
+  const category = resolveCategory(symbol, options.category);
   const precision = Number.isInteger(options.precision)
     ? options.precision
     : getSymbolPrecision({ symbol, category, price: currentPrice });
 
-  const spreadAmt = getSpreadAmount({ symbol, category, currentPrice, instrument: options.instrument || {} });
+  const spreadAmt = getSpreadAmount({ symbol, category, currentPrice });
   const bidPrice = Number(currentPrice - (spreadAmt / 2));
   const askPrice = Number(currentPrice + (spreadAmt / 2));
 

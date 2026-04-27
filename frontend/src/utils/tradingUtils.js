@@ -50,10 +50,10 @@ export const getInstrumentTradingMeta = ({ symbol = '', category = '', instrumen
   const categoryKey = resolveCategoryKey(instrument.category || category);
 
   return {
-    contractSize: Number.parseFloat(instrument.contractSize ?? instrument.contract_size ?? mapping.contractSize ?? DEFAULT_CONTRACT_SIZES[categoryKey]) || 1,
-    quantityLabel: instrument.quantityLabel || instrument.quantity_label || mapping.quantityLabel || DEFAULT_QUANTITY_LABELS[categoryKey],
-    lotStep: Number.parseFloat(instrument.lotStep ?? instrument.lot_step ?? mapping.lotStep) || (categoryKey === 'crypto' ? 0.001 : 0.01),
-    minLot: Number.parseFloat(instrument.minLot ?? instrument.min_lot ?? mapping.minLot) || (categoryKey === 'crypto' ? 0.001 : 0.01),
+    contractSize: Number.parseFloat(instrument.contractSize ?? mapping.contractSize ?? DEFAULT_CONTRACT_SIZES[categoryKey]) || 1,
+    quantityLabel: instrument.quantityLabel || mapping.quantityLabel || DEFAULT_QUANTITY_LABELS[categoryKey],
+    lotStep: Number.parseFloat(instrument.lotStep ?? mapping.lotStep) || (categoryKey === 'crypto' ? 0.001 : 0.01),
+    minLot: Number.parseFloat(instrument.minLot ?? mapping.minLot) || (categoryKey === 'crypto' ? 0.001 : 0.01),
   };
 };
 

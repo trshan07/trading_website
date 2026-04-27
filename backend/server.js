@@ -25,23 +25,35 @@ const infrastructureRoutes = require('./src/client/routes/infrastructureRoutes')
 const publicRoutes = require('./src/public/routes/publicRoutes');
 const { protect, admin } = require('./src/middleware/authMiddleware');
 const { startTradingEngine } = require('./src/services/tradingEngine');
+const { corsOptions, allowedOrigins } = require('./src/config/cors');
+
+app.use(cors(corsOptions));
+app.options(/.*/, cors(corsOptions));
 
 app.use(
     helmet({
         contentSecurityPolicy: false,
+        crossOriginResourcePolicy: { policy: 'cross-origin' },
     })
 );
 
-const corsOptions = {
-    origin: '*',
-    credentials: false,
-    methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
-    optionsSuccessStatus: 200,
-};
+app.use((req, res, next) => {
+    const requestOrigin = req.headers.origin;
+    if (requestOrigin && allowedOrigins.includes(requestOrigin)) {
+        res.header('Access-Control-Allow-Origin', requestOrigin);
+        res.header('Vary', 'Origin');
+    }
 
-app.use(cors(corsOptions));
-app.options(/.*/, cors(corsOptions));
+    res.header('Access-Control-Allow-Credentials', 'true');
+    res.header('Access-Control-Allow-Methods', 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+
+    if (req.method === 'OPTIONS') {
+        return res.sendStatus(204);
+    }
+
+    return next();
+});
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -204,6 +216,7 @@ const startServer = async () => {
         console.log(`Auth URL: http://localhost:${PORT}/api/auth`);
         console.log(`Admin URL: http://localhost:${PORT}/api/admin`);
         console.log(`Client URL: ${process.env.CLIENT_URL || 'http://localhost:3000'}`);
+        console.log(`Allowed CORS origins: ${allowedOrigins.join(', ')}`);
     });
 
     startTradingEngine();

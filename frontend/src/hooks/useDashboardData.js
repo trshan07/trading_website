@@ -483,7 +483,6 @@ export const useDashboardData = (accountType = 'demo') => {
             const side = pos.side.toUpperCase();
             const { bidPrice: syntheticBid, askPrice: syntheticAsk } = calculateSpreads(pos.symbol, snapshot.price || entryPrice, {
               category: snapshot.category,
-              instrument: snapshot,
               precision: snapshot.precision,
             });
             const markPrice = side === 'BUY'
