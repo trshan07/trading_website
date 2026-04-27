@@ -183,6 +183,7 @@ const TradingTab = ({
                   key={`execution-${activeSymbol}-${theme}`}
                   symbol={activeSymbol}
                   theme={theme}
+                  instrument={selectedInstrument}
                   positions={positions}
                   activeIntent={activeOrderIntent}
                   livePrice={marketData[activeSymbol]?.price || selectedInstrument?.price || 0}

@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { createChart } from 'lightweight-charts';
 import { FaExpand, FaCompress, FaChartBar } from 'react-icons/fa';
 import infraService from '../../services/infraService';
+import { buildInstrumentSnapshot, getSymbolPrecision, isForexPair } from '../../utils/marketSymbols';
 
 const INTERVALS = [
   { label: '1m', value: '1m' },
@@ -18,7 +19,7 @@ const formatExecutionSymbol = (symbol = '') => {
     return `${symbol.slice(0, -4)} / USDT`;
   }
 
-  if (symbol.endsWith('USD') && symbol.length > 6) {
+  if (symbol.endsWith('USD') && symbol.length >= 6) {
     return `${symbol.slice(0, -3)} / USD`;
   }
 
@@ -28,6 +29,7 @@ const formatExecutionSymbol = (symbol = '') => {
 const RealTimeChart = ({ 
   symbol = 'BTCUSDT',
   theme = 'dark',
+  instrument = null,
   positions = [],
   activeIntent = null,
   livePrice = 0,
@@ -50,6 +52,23 @@ const RealTimeChart = ({
   const [liveStatus, setLiveStatus] = useState('connecting');
 
   const isDark = theme === 'dark';
+  const instrumentSnapshot = buildInstrumentSnapshot({
+    symbol,
+    instrument: instrument || { symbol, price: livePrice || initialPrice },
+    marketData: {
+      [symbol]: {
+        price: livePrice || initialPrice,
+      },
+    },
+  });
+  const pricePrecision = Number.isInteger(instrumentSnapshot.precision)
+    ? instrumentSnapshot.precision
+    : getSymbolPrecision({
+        symbol,
+        category: instrumentSnapshot.category || '',
+        price: livePrice || initialPrice || 0,
+      });
+  const priceMinMove = pricePrecision <= 0 ? 1 : Number((1 / (10 ** pricePrecision)).toFixed(pricePrecision));
 
   const applyIndicatorSeries = useCallback((data = []) => {
     if (!chartRef.current || data.length === 0) {
@@ -259,8 +278,8 @@ const RealTimeChart = ({
       wickDownColor: '#ef4444',
       priceFormat: {
         type: 'price',
-        precision: binanceSymbol.includes('USDT') ? 2 : 5,
-        minMove: binanceSymbol.includes('USDT') ? 0.01 : 0.00001,
+        precision: pricePrecision,
+        minMove: priceMinMove,
       },
     });
     seriesRef.current = candles;
@@ -481,7 +500,7 @@ const RealTimeChart = ({
       candleTimesRef.current = [];
       candleDataRef.current = [];
     };
-  }, [symbol, interval, isDark, fetchData, isBinanceWsCandidate, applyIndicatorSeries]); // initialPrice removed from dependencies
+  }, [symbol, interval, isDark, fetchData, isBinanceWsCandidate, applyIndicatorSeries, priceMinMove, pricePrecision]); // initialPrice removed from dependencies
 
   useEffect(() => {
     const nextPrice = Number.parseFloat(livePrice) || 0;
@@ -625,7 +644,7 @@ const RealTimeChart = ({
           {lastPrice && (
             <div className="flex items-center gap-2">
               <span className={`text-sm font-black tabular-nums ${isDark ? 'text-white' : 'text-slate-900'}`}>
-                {Number(lastPrice).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                {Number(lastPrice).toLocaleString(undefined, { minimumFractionDigits: pricePrecision, maximumFractionDigits: pricePrecision })}
               </span>
               {priceChange && (
                 <span className={`text-[9px] font-black px-2 py-0.5 rounded-full ${isUp ? 'bg-emerald-500/20 text-emerald-400' : 'bg-rose-500/20 text-rose-400'}`}>
