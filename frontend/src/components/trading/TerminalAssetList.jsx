@@ -166,9 +166,9 @@ const TerminalAssetList = ({
                 const hasRealBidAsk = instrumentSnapshot.useBidAsk !== false
                   && Number.isFinite(liveData.bid)
                   && Number.isFinite(liveData.ask);
-                const sellPrice = hasRealBidAsk ? liveData.bid.toFixed(precision) : Number(currentPrice || calcBid).toFixed(precision);
-                const buyPrice = hasRealBidAsk ? liveData.ask.toFixed(precision) : Number(currentPrice || calcAsk).toFixed(precision);
-                const spreadAmt = hasRealBidAsk ? Math.abs(liveData.ask - liveData.bid) : 0;
+                const sellPrice = hasRealBidAsk ? liveData.bid.toFixed(precision) : Number(calcBid || currentPrice).toFixed(precision);
+                const buyPrice = hasRealBidAsk ? liveData.ask.toFixed(precision) : Number(calcAsk || currentPrice).toFixed(precision);
+                const spreadAmt = hasRealBidAsk ? Math.abs(liveData.ask - liveData.bid) : Number(calcSpread) || 0;
                 
                 const spreadDisplay = spreadAmt < 0.01 ? spreadAmt.toFixed(4) : spreadAmt.toFixed(2);
                 

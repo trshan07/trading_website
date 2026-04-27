@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { FaTimes, FaExchangeAlt, FaListUl, FaChartLine, FaShieldAlt, FaCaretUp, FaCaretDown } from 'react-icons/fa';
 import { motion, AnimatePresence } from 'framer-motion';
 import { calculateSpreads } from '../../utils/spreadCalculator';
-import { calculateUsdFromLots, calculateLotsFromUsd, getLotStep, calculatePips } from '../../utils/tradingUtils';
+import { calculateUsdFromLots, calculateLotsFromUsd, getLotStep, calculatePips, calculateProjectedPnL, calculateQuantityFromLots, getInstrumentTradingMeta, getMinLot } from '../../utils/tradingUtils';
 import { MARKET_INSTRUMENTS } from '../../constants/marketData';
 import { buildInstrumentSnapshot } from '../../utils/marketSymbols';
 
@@ -22,7 +22,6 @@ const OrderPanel = ({
   const [selectedSide, setSelectedSide] = useState('buy');
   const [lots, setLots] = useState(0.01);
   const [amount, setAmount] = useState(100); // USD
-  const [leverage, setLeverage] = useState(100);
   const [useLots, setUseLots] = useState(true);
   
   const [tpEnabled, setTpEnabled] = useState(false);
@@ -54,6 +53,10 @@ const OrderPanel = ({
     [orders, symbol]
   );
   const activePnl = symbolPositions.reduce((acc, position) => acc + (Number(position?.pnl) || 0), 0);
+  const tradingMeta = useMemo(
+    () => getInstrumentTradingMeta({ symbol, category, instrument }),
+    [category, instrument, symbol]
+  );
   
   const { bidPrice: calcBid, askPrice: calcAsk, spreadAmt: calcSpread } = calculateSpreads(symbol, currentPrice, {
     category,
@@ -64,23 +67,40 @@ const OrderPanel = ({
     && Number.isFinite(instrument.ask);
   const bidPrice = hasRealBidAsk
     ? instrument.bid.toFixed(instrument.precision)
-    : Number(currentPrice || calcBid).toFixed(instrument.precision);
+    : Number(calcBid || currentPrice).toFixed(instrument.precision);
   const askPrice = hasRealBidAsk
     ? instrument.ask.toFixed(instrument.precision)
-    : Number(currentPrice || calcAsk).toFixed(instrument.precision);
-  const spreadAmt = hasRealBidAsk ? Math.abs(instrument.ask - instrument.bid) : 0;
+    : Number(calcAsk || currentPrice).toFixed(instrument.precision);
+  const spreadAmt = hasRealBidAsk ? Math.abs(instrument.ask - instrument.bid) : Number(calcSpread) || 0;
   const executionPrice = selectedSide === 'buy' ? parseFloat(askPrice) : parseFloat(bidPrice);
+  const lotStep = getLotStep(category, symbol, instrument);
+  const minLot = getMinLot(category, symbol, instrument);
+  const quantity = calculateQuantityFromLots(lots, symbol, category, instrument);
+  const tpPrice = tpEnabled ? parseFloat(tpValue) : null;
+  const slPrice = slEnabled ? parseFloat(slValue) : null;
+  const projectedTakeProfit = tpPrice ? calculateProjectedPnL({
+    side: selectedSide,
+    entryPrice: executionPrice,
+    exitPrice: tpPrice,
+    quantity,
+  }) : null;
+  const projectedStopLoss = slPrice ? calculateProjectedPnL({
+    side: selectedSide,
+    entryPrice: executionPrice,
+    exitPrice: slPrice,
+    quantity,
+  }) : null;
 
   // Sync Lots/USD
   useEffect(() => {
     if (useLots) {
-      const usd = calculateUsdFromLots(lots, currentPrice, category);
+      const usd = calculateUsdFromLots(lots, currentPrice, category, symbol, instrument);
       setAmount(usd.toFixed(2));
     } else {
-      const l = calculateLotsFromUsd(amount, currentPrice, category);
+      const l = calculateLotsFromUsd(amount, currentPrice, category, symbol, instrument);
       setLots(parseFloat(l.toFixed(3)));
     }
-  }, [lots, amount, useLots, currentPrice, category]);
+  }, [lots, amount, useLots, currentPrice, category, symbol, instrument]);
 
   // Handle Intent Change for Chart Visuals
   useEffect(() => {
@@ -104,14 +124,12 @@ const OrderPanel = ({
       type: orderType,
       side: selectedSide,
       amount: parseFloat(amount),
-      leverage: leverage,
+      leverage: maxLeverage,
       takeProfit: tpEnabled ? parseFloat(tpValue) : null,
       stopLoss: slEnabled ? parseFloat(slValue) : null,
       price: finalPrice
     });
   };
-
-  const lotStep = getLotStep(category);
 
   return (
     <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[2rem] shadow-2xl overflow-hidden flex flex-col h-full transition-all duration-300">
@@ -131,7 +149,7 @@ const OrderPanel = ({
         </div>
         <div className="flex items-center space-x-2">
           <span className="text-[9px] font-black uppercase text-slate-400 tracking-widest bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded-md border border-slate-200 dark:border-slate-700">
-            Spread: <span className="text-gold-500">{spreadAmt.toFixed(category.includes('Forex') ? 5 : 2)}</span>
+            Spread: <span className="text-gold-500">{spreadAmt.toFixed(instrument.precision)}</span>
           </span>
           {!hasRealBidAsk && (
             <span className="text-[9px] font-black uppercase text-amber-500 tracking-widest bg-amber-500/10 px-2 py-1 rounded-md border border-amber-500/20">
@@ -242,7 +260,7 @@ const OrderPanel = ({
                     type="number"
                     step={lotStep}
                     value={useLots ? lots : amount}
-                    onChange={(e) => useLots ? setLots(parseFloat(e.target.value)) : setAmount(parseFloat(e.target.value))}
+                    onChange={(e) => useLots ? setLots(parseFloat(e.target.value) || 0) : setAmount(parseFloat(e.target.value) || 0)}
                     className="w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl py-4 pl-12 pr-4 text-sm font-black text-slate-900 dark:text-white focus:outline-none focus:border-gold-500 transition-all"
                   />
                   <div className="absolute inset-y-0 right-2 flex flex-col justify-center space-y-1">
@@ -253,7 +271,7 @@ const OrderPanel = ({
                       <FaCaretUp size={10} />
                     </button>
                     <button 
-                      onClick={() => useLots ? setLots(prev => Math.max(0.01, +(prev - lotStep).toFixed(3))) : setAmount(prev => Math.max(0, prev - 100))}
+                      onClick={() => useLots ? setLots(prev => Math.max(minLot, +(prev - lotStep).toFixed(3))) : setAmount(prev => Math.max(0, prev - 100))}
                       className="p-1 hover:bg-slate-200 dark:hover:bg-slate-700 rounded text-slate-400"
                     >
                       <FaCaretDown size={10} />
@@ -262,7 +280,7 @@ const OrderPanel = ({
                 </div>
                 <div className="flex justify-between text-[8px] font-bold text-slate-400 uppercase tracking-tighter">
                   <span>≈ {useLots ? `$${amount}` : `${lots} Lots`}</span>
-                  <span>Margin Required: <span className="text-white dark:text-gold-500">${(amount / leverage).toFixed(2)}</span></span>
+                  <span>{quantity.toLocaleString(undefined, { maximumFractionDigits: 4 })} {tradingMeta.quantityLabel}</span>
                 </div>
               </div>
 
@@ -311,6 +329,11 @@ const OrderPanel = ({
                         <div className="text-[7px] text-emerald-500/70 font-bold uppercase text-right">
                           +{calculatePips(symbol, currentPrice, parseFloat(tpValue) || currentPrice).toFixed(1)} Pips
                         </div>
+                        {projectedTakeProfit !== null && (
+                          <div className="text-[7px] text-emerald-500/70 font-bold uppercase text-right">
+                            P/L {projectedTakeProfit >= 0 ? '+' : ''}${projectedTakeProfit.toFixed(2)}
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
@@ -338,32 +361,14 @@ const OrderPanel = ({
                         <div className="text-[7px] text-rose-500/70 font-bold uppercase text-right">
                           -{calculatePips(symbol, currentPrice, parseFloat(slValue) || currentPrice).toFixed(1)} Pips
                         </div>
+                        {projectedStopLoss !== null && (
+                          <div className="text-[7px] text-rose-500/70 font-bold uppercase text-right">
+                            P/L {projectedStopLoss >= 0 ? '+' : ''}${projectedStopLoss.toFixed(2)}
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
-                </div>
-              </div>
-
-              {/* Leverage Selector */}
-              <div className="space-y-3">
-                <div className="flex justify-between text-[9px] font-black uppercase tracking-widest text-slate-400 italic">
-                  <span>Leverage</span>
-                  <span className="text-gold-500">1:{leverage}</span>
-                </div>
-                <input
-                  type="range"
-                  min="1"
-                  max={maxLeverage}
-                  step="1"
-                  value={leverage}
-                  onChange={(e) => setLeverage(parseInt(e.target.value))}
-                  className="w-full h-1.5 bg-slate-100 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer accent-gold-500"
-                />
-                <div className="flex justify-between text-[7px] font-bold text-slate-400 uppercase">
-                  <span>1x</span>
-                  <span>100x</span>
-                  <span>250x</span>
-                  <span>{maxLeverage}x</span>
                 </div>
               </div>
 
@@ -381,7 +386,7 @@ const OrderPanel = ({
                   {orderType === 'market' ? `Execute ${selectedSide}` : `Place ${orderType}`}
                 </span>
                 <span className="text-[9px] font-bold text-white/70 mt-1 relative z-10">
-                  {lots} Lots @ {orderType === 'market' ? executionPrice : pendingPrice || '...'}
+                  {lots} Lots · {quantity.toLocaleString(undefined, { maximumFractionDigits: 4 })} {tradingMeta.quantityLabel} @ {orderType === 'market' ? executionPrice : pendingPrice || '...'}
                 </span>
               </button>
             </motion.div>
@@ -418,7 +423,7 @@ const OrderPanel = ({
                       </div>
                     </div>
                     <div className="flex justify-between text-[8px] font-bold text-slate-400 uppercase">
-                      <span>{pos.quantity} Lots @ {pos.entryPrice}</span>
+                      <span>Qty {Number(pos.quantity || 0).toLocaleString(undefined, { maximumFractionDigits: 4 })} @ {pos.entryPrice}</span>
                       <span>Now: {marketData[pos.symbol]?.price || pos.currentPrice}</span>
                     </div>
                     <div className="w-full bg-slate-200 dark:bg-slate-700 h-1 rounded-full overflow-hidden">
@@ -461,7 +466,7 @@ const OrderPanel = ({
                       </span>
                     </div>
                     <div className="flex justify-between text-[8px] font-bold text-slate-400 uppercase">
-                      <span>{order.quantity} Lots @ {order.entryPrice}</span>
+                      <span>Qty {Number(order.quantity || 0).toLocaleString(undefined, { maximumFractionDigits: 4 })} @ {order.entryPrice}</span>
                       <span className="text-gold-500 italic">WAITING</span>
                     </div>
                   </div>

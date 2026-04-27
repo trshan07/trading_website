@@ -10,6 +10,9 @@ import { MARKET_INSTRUMENTS } from '../constants/marketData';
 import websocketService from '../services/websocketService';
 import { maskAccountNumber } from '../components/client/banking/utils';
 import { getUploadUrl } from '../utils/uploadUrl';
+import { buildInstrumentSnapshot } from '../utils/marketSymbols';
+import { calculateProjectedPnL } from '../utils/tradingUtils';
+import { calculateSpreads } from '../utils/spreadCalculator';
 
 const normalizeInstrument = (instrument = {}) => ({
   symbol: instrument.symbol,
@@ -446,15 +449,29 @@ export const useDashboardData = (accountType = 'demo') => {
         const response = await tradingService.getOpenPositions(accountId);
       if (response.success) {
         const mappedPositions = response.data.map(pos => {
-            const currentPrice = marketData[pos.symbol]?.price || parseFloat(pos.entry_price);
+            const instrument = instruments.find((item) => item.symbol === pos.symbol);
+            const snapshot = buildInstrumentSnapshot({
+              symbol: pos.symbol,
+              instrument,
+              marketData,
+            });
             const qty = parseFloat(pos.quantity);
             const entryPrice = parseFloat(pos.entry_price);
             const totalPositionValue = parseFloat(pos.amount) || (qty * entryPrice);
             const side = pos.side.toUpperCase();
-            
-            const pnl = side === 'BUY' 
-              ? (currentPrice - entryPrice) * qty
-              : (entryPrice - currentPrice) * qty;
+            const { bidPrice: syntheticBid, askPrice: syntheticAsk } = calculateSpreads(pos.symbol, snapshot.price || entryPrice, {
+              category: snapshot.category,
+              precision: snapshot.precision,
+            });
+            const markPrice = side === 'BUY'
+              ? (Number.isFinite(snapshot.bid) ? snapshot.bid : parseFloat(syntheticBid))
+              : (Number.isFinite(snapshot.ask) ? snapshot.ask : parseFloat(syntheticAsk));
+            const pnl = calculateProjectedPnL({
+              side: side.toLowerCase(),
+              entryPrice,
+              exitPrice: markPrice,
+              quantity: qty,
+            });
 
             return {
               id: pos.id,
@@ -464,7 +481,7 @@ export const useDashboardData = (accountType = 'demo') => {
               amount: totalPositionValue,
               quantity: qty,
               entryPrice: entryPrice,
-              currentPrice: currentPrice,
+              currentPrice: markPrice,
               pnl: pnl,
               pnlPercent: totalPositionValue > 0 ? (pnl / totalPositionValue) * 100 : 0,
               margin: parseFloat(pos.margin),
@@ -482,7 +499,7 @@ export const useDashboardData = (accountType = 'demo') => {
     } catch (error) {
       console.error('Failed to fetch positions:', error);
     }
-  }, [accountId, marketData]);
+  }, [accountId, instruments, marketData]);
 
   const fetchOrders = useCallback(async () => {
     if (!accountId) return;

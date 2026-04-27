@@ -1,6 +1,7 @@
 // frontend/src/utils/spreadCalculator.js
 import { MARKET_INSTRUMENTS } from '../constants/marketData';
 import { getSymbolPrecision } from './marketSymbols';
+import marketSymbolMap from '../config/marketSymbolMap.json';
 
 const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
 
@@ -16,6 +17,11 @@ const resolveCategory = (symbol, explicitCategory) => {
 const getSpreadAmount = ({ symbol, category, currentPrice }) => {
   const normalizedCategory = (category || '').toLowerCase();
   const upperSymbol = (symbol || '').toUpperCase();
+  const explicitSpread = Number.parseFloat(marketSymbolMap[upperSymbol]?.spread);
+
+  if (Number.isFinite(explicitSpread) && explicitSpread > 0) {
+    return explicitSpread;
+  }
 
   if (normalizedCategory.includes('crypto')) {
     return clamp(currentPrice * 0.00015, 0.01, currentPrice * 0.002);

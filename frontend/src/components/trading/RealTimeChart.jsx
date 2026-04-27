@@ -38,6 +38,7 @@ const RealTimeChart = ({
   const wsConnectTimerRef = useRef(null);
   const wsClosingRef = useRef(false);
   const candleTimesRef = useRef([]);
+  const candleDataRef = useRef([]);
   const shouldUseLiveWsRef = useRef(true);
   const [interval, setInterval] = useState('15m');
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -47,6 +48,59 @@ const RealTimeChart = ({
   const [liveStatus, setLiveStatus] = useState('connecting');
 
   const isDark = theme === 'dark';
+
+  const applyIndicatorSeries = useCallback((data = []) => {
+    if (!chartRef.current || data.length === 0) {
+      return;
+    }
+
+    if (!chartRef.current.__sma20Series) {
+      chartRef.current.__sma20Series = chartRef.current.addLineSeries({
+        color: '#f59e0b',
+        lineWidth: 2,
+        priceLineVisible: false,
+        lastValueVisible: false,
+      });
+    }
+
+    if (!chartRef.current.__ema50Series) {
+      chartRef.current.__ema50Series = chartRef.current.addLineSeries({
+        color: '#38bdf8',
+        lineWidth: 2,
+        priceLineVisible: false,
+        lastValueVisible: false,
+      });
+    }
+
+    let rollingSum = 0;
+    let ema = null;
+    const multiplier = 2 / 51;
+    const smaData = [];
+    const emaData = [];
+
+    data.forEach((candle, index) => {
+      rollingSum += candle.close;
+      if (index >= 20) {
+        rollingSum -= data[index - 20].close;
+      }
+
+      if (index >= 19) {
+        smaData.push({
+          time: candle.time,
+          value: rollingSum / 20,
+        });
+      }
+
+      ema = ema == null ? candle.close : ((candle.close - ema) * multiplier) + ema;
+      emaData.push({
+        time: candle.time,
+        value: ema,
+      });
+    });
+
+    chartRef.current.__sma20Series.setData(smaData);
+    chartRef.current.__ema50Series.setData(emaData);
+  }, []);
 
   // Format symbol cleanly for Binance API
   const binanceSymbol = symbol.replace(/[^A-Z0-9]/g, '');
@@ -118,6 +172,7 @@ const RealTimeChart = ({
   // --- Build / Rebuild chart ---
   useEffect(() => {
     if (!containerRef.current) return;
+    let historyPollTimer = null;
 
     // Guards against the async fetchData or ResizeObserver resolver after this effect has cleaned up.
     let active = true;
@@ -220,6 +275,8 @@ const RealTimeChart = ({
         if (data.length > 0) {
           seriesRef.current.setData(data);
           candleTimesRef.current = data.map(c => c.time);
+          candleDataRef.current = data;
+          applyIndicatorSeries(data);
           chartRef.current.timeScale().fitContent();
           
           const last = data[data.length - 1];
@@ -233,7 +290,31 @@ const RealTimeChart = ({
 
         // Don't open Binance WS for fallback/mock data or unsupported symbols.
         if (isMock || !isBinanceWsCandidate(binanceSymbol)) {
-          setLiveStatus(isMock ? 'fallback' : 'idle');
+          if (!isMock) {
+            historyPollTimer = setInterval(async () => {
+              const refresh = await fetchData(binanceSymbol, interval, initialPrice);
+              if (!active || !seriesRef.current || !chartRef.current || !refresh?.candles?.length) {
+                return;
+              }
+
+              const refreshedData = refresh.candles;
+              seriesRef.current.setData(refreshedData);
+              candleTimesRef.current = refreshedData.map((candle) => candle.time);
+              candleDataRef.current = refreshedData;
+              applyIndicatorSeries(refreshedData);
+
+              const latest = refreshedData[refreshedData.length - 1];
+              const first = refreshedData[0];
+              setLastPrice(latest.close);
+              setPriceChange(((latest.close - first.open) / first.open * 100).toFixed(2));
+              window.dispatchEvent(new CustomEvent('active_price_update', {
+                detail: { symbol, price: latest.close }
+              }));
+              setLiveStatus('live');
+            }, 15000);
+          }
+
+          setLiveStatus(isMock ? 'fallback' : 'live');
           return;
         }
         if (!canUseLiveConnections()) {
@@ -281,6 +362,13 @@ const RealTimeChart = ({
                 close: parseFloat(k.c),
               };
               seriesRef.current.update(tick);
+              const existingIndex = candleDataRef.current.findIndex((candle) => candle.time === tick.time);
+              if (existingIndex >= 0) {
+                candleDataRef.current[existingIndex] = tick;
+              } else {
+                candleDataRef.current = [...candleDataRef.current, tick].slice(-500);
+              }
+              applyIndicatorSeries(candleDataRef.current);
               if (
                 candleTimesRef.current.length === 0 ||
                 candleTimesRef.current[candleTimesRef.current.length - 1] !== tick.time
@@ -360,6 +448,10 @@ const RealTimeChart = ({
         clearTimeout(wsConnectTimerRef.current);
         wsConnectTimerRef.current = null;
       }
+      if (historyPollTimer) {
+        clearInterval(historyPollTimer);
+        historyPollTimer = null;
+      }
       if (wsRef.current) {
         try {
           wsClosingRef.current = true;
@@ -385,8 +477,9 @@ const RealTimeChart = ({
         } catch (e) {}
       }
       candleTimesRef.current = [];
+      candleDataRef.current = [];
     };
-  }, [symbol, interval, isDark, fetchData, isBinanceWsCandidate]); // initialPrice removed from dependencies
+  }, [symbol, interval, isDark, fetchData, isBinanceWsCandidate, applyIndicatorSeries]); // initialPrice removed from dependencies
 
   // --- Plot Buy/Sell markers when positions change ---
   useEffect(() => {
@@ -510,6 +603,12 @@ const RealTimeChart = ({
               {iv.label}
             </button>
           ))}
+        </div>
+
+        <div className="hidden md:flex items-center gap-2">
+          <span className={`text-[8px] font-black uppercase tracking-widest ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>Indicators</span>
+          <span className="px-2 py-1 rounded-full bg-amber-500/15 text-[8px] font-black uppercase tracking-widest text-amber-400">SMA 20</span>
+          <span className="px-2 py-1 rounded-full bg-sky-500/15 text-[8px] font-black uppercase tracking-widest text-sky-400">EMA 50</span>
         </div>
 
         {/* Right: Controls */}
