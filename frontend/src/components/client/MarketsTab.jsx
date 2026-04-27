@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import AdvancedRealTimeChart from '../trading/TradingViewWidget';
+import RealTimeChart from '../trading/RealTimeChart';
 import TerminalAssetList from '../trading/TerminalAssetList';
 import { FaGlobe, FaSearch, FaChartBar, FaLayerGroup, FaTimes } from 'react-icons/fa';
 import { useTheme } from '../../context/ThemeContext';
@@ -264,7 +264,13 @@ const MarketsTab = ({
 
             <div className="p-1 min-h-[500px] relative group">
               <div className="min-h-[500px] h-full w-full rounded-[2rem] overflow-hidden border border-slate-50 dark:border-slate-800 shadow-inner bg-slate-50 dark:bg-slate-950 transition-colors">
-                <AdvancedRealTimeChart symbol={activeSymbol} instrument={baseActiveInstrument} theme={theme} />
+                <RealTimeChart
+                  symbol={activeSymbol}
+                  instrument={baseActiveInstrument}
+                  theme={theme}
+                  livePrice={marketData[activeSymbol]?.price || baseActiveInstrument?.price || 0}
+                  initialPrice={baseActiveInstrument?.price || 100}
+                />
               </div>
             </div>
 

@@ -1,6 +1,6 @@
 // frontend/src/components/client/PortfolioTab.jsx
 import React from 'react';
-import AdvancedRealTimeChart from '../trading/TradingViewWidget';
+import RealTimeChart from '../trading/RealTimeChart';
 import { FaChartPie, FaWallet, FaArrowUp, FaArrowDown, FaCube, FaHistory, FaCheckCircle } from 'react-icons/fa';
 import { useTheme } from '../../context/ThemeContext';
 
@@ -93,7 +93,12 @@ const PortfolioTab = ({ portfolio = {}, positions = [], activityLogs = [] }) => 
                  </div>
               </div>
               <div className={`${isMobile ? 'h-[350px]' : 'h-[500px]'} w-full bg-slate-50 dark:bg-slate-900 transition-colors`}>
-                <AdvancedRealTimeChart symbol="BTCUSDT" theme={theme} />
+                <RealTimeChart
+                  symbol="BTCUSDT"
+                  theme={theme}
+                  positions={positions}
+                  initialPrice={43000}
+                />
               </div>
            </div>
            

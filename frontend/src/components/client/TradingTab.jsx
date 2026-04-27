@@ -1,6 +1,5 @@
 import React, { useState, useCallback } from 'react';
 import RealTimeChart from '../trading/RealTimeChart';
-import TradingViewWidget from '../trading/TradingViewWidget';
 import OrderPanel from '../trading/OrderPanel';
 import PositionsTable from '../trading/PositionsTable';
 import OpenOrders from '../trading/OpenOrders';
@@ -165,14 +164,23 @@ const TradingTab = ({
             </div>
 
             {chartMode === 'advanced' ? (
-              <div className="flex-1">
-                <TradingViewWidget
+              <div className="flex-1 flex flex-col">
+                <div className={`px-4 py-2 text-[10px] font-black uppercase tracking-widest border-b ${
+                  theme === 'dark'
+                    ? 'bg-gold-500/10 text-gold-300 border-gold-500/20'
+                    : 'bg-gold-50 text-gold-700 border-gold-200'
+                }`}>
+                  Advanced mode now uses the same backend Yahoo/Binance feed as the order panel and instrument list for exact sync.
+                </div>
+                <RealTimeChart
                   key={`advanced-${activeSymbol}-${theme}`}
                   symbol={activeSymbol}
-                  instrument={selectedInstrument}
                   theme={theme}
-                  activeIntent={activeOrderIntent}
+                  instrument={selectedInstrument}
                   positions={positions}
+                  activeIntent={activeOrderIntent}
+                  livePrice={marketData[activeSymbol]?.price || selectedInstrument?.price || 0}
+                  initialPrice={instruments.find((instrument) => instrument.symbol === activeSymbol)?.price || 100}
                 />
               </div>
             ) : (
