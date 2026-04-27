@@ -26,6 +26,13 @@ const infraService = {
     return response.data;
   },
 
+  getOrderBook: async (symbol, levels = 15) => {
+    const response = await api.get('/infra/market-data/order-book', {
+      params: { symbol, levels }
+    });
+    return response.data;
+  },
+
   // Notifications
   getNotifications: async () => {
     const response = await api.get('/infra/notifications');

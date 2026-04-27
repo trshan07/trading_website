@@ -282,6 +282,8 @@ export const useDashboardData = (accountType = 'demo') => {
   const [documents, setDocuments] = useState([]);
   const [positions, setPositions] = useState([]);
   const [orders, setOrders] = useState([]);
+  const [closedTrades, setClosedTrades] = useState([]);
+  const [accountRisk, setAccountRisk] = useState(null);
   const [priceAlerts, setPriceAlerts] = useState([]);
   const [settings, setSettings] = useState({});
   const [notifications, setNotifications] = useState([]);
@@ -448,6 +450,7 @@ export const useDashboardData = (accountType = 'demo') => {
     try {
         const response = await tradingService.getOpenPositions(accountId);
       if (response.success) {
+        setAccountRisk(response.risk || null);
         const mappedPositions = response.data.map(pos => {
             const instrument = instruments.find((item) => item.symbol === pos.symbol);
             const snapshot = buildInstrumentSnapshot({
@@ -512,7 +515,8 @@ export const useDashboardData = (accountType = 'demo') => {
         const mappedOrders = (response.data || []).map((order) => ({
           id: order.id,
           symbol: order.symbol,
-          type: (order.type || 'limit').toUpperCase(),
+          type: formatOrderTypeLabel(order.type || 'limit'),
+          rawType: String(order.type || 'limit').toLowerCase(),
           side: (order.side || 'buy').toUpperCase(),
           amount: parseFloat(order.amount) || 0,
           quantity: parseFloat(order.quantity) || 0,
@@ -527,6 +531,21 @@ export const useDashboardData = (accountType = 'demo') => {
       }
     } catch (error) {
       console.error('Failed to fetch orders:', error);
+    }
+  }, [accountId]);
+
+  const fetchClosedTrades = useCallback(async () => {
+    if (!accountId) return;
+    const token = localStorage.getItem('token');
+    if (!token) return;
+
+    try {
+      const response = await tradingService.getClosedPositions(accountId);
+      if (response.success) {
+        setClosedTrades((response.data || []).map(normalizeClosedTrade));
+      }
+    } catch (error) {
+      console.error('Failed to fetch closed trades:', error);
     }
   }, [accountId]);
 
@@ -559,14 +578,16 @@ export const useDashboardData = (accountType = 'demo') => {
 
   useEffect(() => {
     if (!accountId) return; // Don't start polling at all without an account
+    fetchClosedTrades();
     fetchOrders();
     fetchPositions();
     const pollInterval = setInterval(() => {
       fetchPositions();
       fetchOrders();
+      fetchClosedTrades();
     }, 10000);
     return () => clearInterval(pollInterval);
-  }, [fetchPositions, fetchOrders, accountId]);
+  }, [fetchPositions, fetchOrders, fetchClosedTrades, accountId]);
 
   useEffect(() => {
     setPortfolioHistory(buildPortfolioHistory({
@@ -733,6 +754,7 @@ export const useDashboardData = (accountType = 'demo') => {
             symbol: order.symbol || 'BTCUSDT',
             side: order.side.toLowerCase(),
             amount: usdInvestment,
+            quantity: order.quantity,
             entryPrice: entryPrice,
             type: order.type.toLowerCase(),
             leverage: order.leverage,
@@ -741,12 +763,14 @@ export const useDashboardData = (accountType = 'demo') => {
         });
 
         if (response.success) {
-            if (order.type.toLowerCase() === 'limit') {
+            const normalizedType = order.type.toLowerCase();
+            if (normalizedType.includes('limit') || normalizedType.includes('stop')) {
               await fetchOrders();
-              toast.success(`${order.side} Limit Order Placed!`);
+              toast.success(`${order.side} ${order.type.replace(/_/g, ' ')} order placed`);
             } else {
               await fetchPositions();
-              toast.success(`${order.side} Order Executed!`);
+              await fetchClosedTrades();
+              toast.success(`${order.side} order executed`);
             }
             refreshUser();
             return true;
@@ -772,18 +796,47 @@ export const useDashboardData = (accountType = 'demo') => {
     }
   };
 
-  const handleClosePosition = async (id) => {
+  const handleModifyPosition = async (id, updates) => {
+    try {
+      const response = await tradingService.updatePosition(id, updates);
+      if (response.success) {
+        await fetchPositions();
+        toast.success("Position updated");
+        return true;
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Failed to update position");
+    }
+    return false;
+  };
+
+  const handleModifyOrder = async (id, updates) => {
+    try {
+      const response = await tradingService.updateOrder(id, updates);
+      if (response.success) {
+        await fetchOrders();
+        toast.success("Pending order updated");
+        return true;
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Failed to update order");
+    }
+    return false;
+  };
+
+  const handleClosePosition = async (id, closeQuantity = null) => {
       const position = positions.find(p => p.id === id);
       if (!position) return false;
 
       const exitPrice = marketData[position.symbol]?.price || position.currentPrice;
 
       try {
-          const response = await tradingService.closePosition(id, exitPrice);
+          const response = await tradingService.closePosition(id, exitPrice, closeQuantity);
           if (response.success) {
               await fetchPositions();
+              await fetchClosedTrades();
               fetchTransactions();
-              toast.success("Position Closed Successfully");
+              toast.success(closeQuantity ? "Position partially closed" : "Position closed successfully");
               refreshUser();
               return true;
           }
@@ -950,7 +1003,9 @@ export const useDashboardData = (accountType = 'demo') => {
     documents,
     positions,
     orders,
+    closedTrades,
     marketData,
+    accountRisk,
     notifications,
     priceAlerts,
     settings,
@@ -968,6 +1023,8 @@ export const useDashboardData = (accountType = 'demo') => {
     handleCancelOrder,
     handleUploadDocument,
     handleClosePosition,
+    handleModifyPosition,
+    handleModifyOrder,
     handleCreateAlert,
     handleDeleteAlert,
     handleUpdateSettings,
@@ -980,5 +1037,33 @@ export const useDashboardData = (accountType = 'demo') => {
     categories,
     portfolioHistory,
     unreadNotifications: notifications.filter((n) => !(n.is_read || n.read)).length
+  };
+};
+
+const formatOrderTypeLabel = (type = '') => type
+  .toString()
+  .replace(/_/g, ' ')
+  .trim()
+  .toUpperCase();
+
+const normalizeClosedTrade = (trade = {}) => {
+  const entryPrice = Number.parseFloat(trade.entry_price ?? trade.entryPrice ?? 0) || 0;
+  const exitPrice = Number.parseFloat(trade.close_price ?? trade.exit_price ?? trade.exitPrice ?? 0) || 0;
+  const quantity = Number.parseFloat(trade.quantity ?? 0) || 0;
+  const pnl = Number.parseFloat(trade.pnl ?? 0) || 0;
+  const amount = Number.parseFloat(trade.amount ?? (entryPrice * quantity) ?? 0) || 0;
+
+  return {
+    id: trade.id,
+    symbol: trade.symbol,
+    side: String(trade.side || 'buy').toUpperCase(),
+    type: 'Closed Trade',
+    quantity,
+    entryPrice,
+    exitPrice,
+    pnl,
+    amount,
+    status: String(trade.status || 'closed').toUpperCase(),
+    closedAt: trade.closed_at || trade.closedAt || trade.updated_at || trade.updatedAt || trade.created_at || trade.createdAt,
   };
 };

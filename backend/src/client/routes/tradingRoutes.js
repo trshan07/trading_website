@@ -5,8 +5,12 @@ const {
     executeTrade, 
     getOpenOrders,
     getOpenPositions, 
+    getClosedTradeHistory,
     closePosition,
     cancelOrder,
+    modifyOrder,
+    modifyPosition,
+    getRiskSnapshot,
     getAlerts,
     createAlert,
     deleteAlert
@@ -19,7 +23,11 @@ router.use(protect);
 router.post('/execute', executeTrade);
 router.get('/orders', getOpenOrders);
 router.delete('/orders/:orderId', cancelOrder);
+router.patch('/orders/:orderId', modifyOrder);
 router.get('/positions', getOpenPositions);
+router.get('/positions/history', getClosedTradeHistory);
+router.get('/risk', getRiskSnapshot);
+router.patch('/positions/:positionId', modifyPosition);
 router.post('/positions/:positionId/close', closePosition);
 
 // Price Alerts

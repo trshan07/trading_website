@@ -2,8 +2,36 @@
 import React, { useState } from 'react';
 import { FaTimes, FaArrowUp, FaArrowDown, FaChartLine, FaBolt, FaShieldAlt } from 'react-icons/fa';
 
-const PositionsTable = ({ positions = [], onClose, compact = false }) => {
+const PositionsTable = ({ positions = [], onClose, onModify = () => {}, compact = false }) => {
   const [hoveredRow, setHoveredRow] = useState(null);
+
+  const handleProtectionEdit = async (position) => {
+    const nextTp = window.prompt('Update Take Profit price (leave blank to remove):', position.takeProfit ?? '');
+    if (nextTp === null) return;
+    const nextSl = window.prompt('Update Stop Loss price (leave blank to remove):', position.stopLoss ?? '');
+    if (nextSl === null) return;
+
+    await onModify(position.id, {
+      takeProfit: nextTp.trim() === '' ? null : Number(nextTp),
+      stopLoss: nextSl.trim() === '' ? null : Number(nextSl),
+    });
+  };
+
+  const handlePartialClose = async (position) => {
+    const suggested = Math.max(0.0001, Number(position.quantity || 0) / 2);
+    const nextQuantity = window.prompt(
+      `Enter quantity to partially close from ${Number(position.quantity || 0).toFixed(4)}:`,
+      suggested.toFixed(4)
+    );
+    if (nextQuantity === null) return;
+
+    const parsedQuantity = Number(nextQuantity);
+    if (!Number.isFinite(parsedQuantity) || parsedQuantity <= 0) {
+      return;
+    }
+
+    await onClose(position.id, parsedQuantity);
+  };
 
   if (compact) {
     return (
@@ -69,13 +97,27 @@ const PositionsTable = ({ positions = [], onClose, compact = false }) => {
                   <span className="text-rose-500">${(position.commission || 0).toFixed(2)}</span>
                 </div>
               </div>
-              <button
-                onClick={() => onClose(position.id)}
-                className="w-full py-3 bg-slate-900 dark:bg-slate-700 text-white font-black rounded-2xl text-[9px] uppercase tracking-[0.2em] hover:bg-rose-600 dark:hover:bg-rose-500 transition-all flex items-center justify-center group/btn"
-              >
-                <FaTimes className="mr-2 text-gold-500 group-hover/btn:text-white transition-colors" />
-                Terminate Position
-              </button>
+              <div className="grid grid-cols-3 gap-2">
+                <button
+                  onClick={() => handleProtectionEdit(position)}
+                  className="py-3 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 font-black rounded-2xl text-[9px] uppercase tracking-[0.15em] border border-slate-200 dark:border-slate-700 hover:border-gold-500 transition-all"
+                >
+                  Edit
+                </button>
+                <button
+                  onClick={() => handlePartialClose(position)}
+                  className="py-3 bg-slate-200 dark:bg-slate-700 text-slate-900 dark:text-white font-black rounded-2xl text-[9px] uppercase tracking-[0.15em] hover:bg-gold-500 hover:text-slate-900 transition-all"
+                >
+                  Partial
+                </button>
+                <button
+                  onClick={() => onClose(position.id)}
+                  className="py-3 bg-slate-900 dark:bg-slate-700 text-white font-black rounded-2xl text-[9px] uppercase tracking-[0.15em] hover:bg-rose-600 dark:hover:bg-rose-500 transition-all flex items-center justify-center group/btn"
+                >
+                  <FaTimes className="mr-2 text-gold-500 group-hover/btn:text-white transition-colors" />
+                  Close
+                </button>
+              </div>
             </div>
           );
         })}
@@ -229,13 +271,27 @@ const PositionsTable = ({ positions = [], onClose, compact = false }) => {
 
               {/* Close Button */}
               <div className="flex justify-end">
-                <button
-                  onClick={() => onClose(position.id)}
-                  className="group/btn flex items-center space-x-1.5 px-4 py-2 bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 rounded-xl text-[9px] font-black uppercase tracking-widest border border-slate-200 dark:border-slate-600 hover:bg-rose-500 hover:text-white hover:border-rose-500 dark:hover:bg-rose-500 dark:hover:text-white dark:hover:border-rose-500 transition-all duration-200 active:scale-95"
-                >
-                  <FaTimes size={8} />
-                  <span>Close</span>
-                </button>
+                <div className="flex justify-end gap-2">
+                  <button
+                    onClick={() => handleProtectionEdit(position)}
+                    className="px-3 py-2 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-xl text-[8px] font-black uppercase tracking-widest border border-slate-200 dark:border-slate-700 hover:border-gold-500 transition-all duration-200"
+                  >
+                    Edit
+                  </button>
+                  <button
+                    onClick={() => handlePartialClose(position)}
+                    className="px-3 py-2 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-xl text-[8px] font-black uppercase tracking-widest border border-slate-200 dark:border-slate-600 hover:bg-gold-500 hover:text-slate-900 hover:border-gold-500 transition-all duration-200"
+                  >
+                    Partial
+                  </button>
+                  <button
+                    onClick={() => onClose(position.id)}
+                    className="group/btn flex items-center space-x-1.5 px-4 py-2 bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 rounded-xl text-[9px] font-black uppercase tracking-widest border border-slate-200 dark:border-slate-600 hover:bg-rose-500 hover:text-white hover:border-rose-500 dark:hover:bg-rose-500 dark:hover:text-white dark:hover:border-rose-500 transition-all duration-200 active:scale-95"
+                  >
+                    <FaTimes size={8} />
+                    <span>Close</span>
+                  </button>
+                </div>
               </div>
             </div>
           );

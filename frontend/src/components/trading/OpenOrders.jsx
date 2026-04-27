@@ -2,8 +2,23 @@
 import React, { useState } from 'react';
 import { FaTimes, FaClock, FaExchangeAlt, FaArrowUp, FaArrowDown, FaChartBar, FaHourglass } from 'react-icons/fa';
 
-const OpenOrders = ({ orders = [], onCancel, compact = false }) => {
+const OpenOrders = ({ orders = [], onCancel, onModify = () => {}, compact = false }) => {
   const [hoveredRow, setHoveredRow] = useState(null);
+
+  const handleProtectionEdit = async (order) => {
+    const nextEntry = window.prompt('Update trigger price:', order.entryPrice ?? '');
+    if (nextEntry === null) return;
+    const nextTp = window.prompt('Update Take Profit price (leave blank to remove):', order.takeProfit ?? '');
+    if (nextTp === null) return;
+    const nextSl = window.prompt('Update Stop Loss price (leave blank to remove):', order.stopLoss ?? '');
+    if (nextSl === null) return;
+
+    await onModify(order.id, {
+      entryPrice: Number(nextEntry),
+      takeProfit: nextTp.trim() === '' ? null : Number(nextTp),
+      stopLoss: nextSl.trim() === '' ? null : Number(nextSl),
+    });
+  };
 
   if (compact) {
     return (
@@ -55,13 +70,21 @@ const OpenOrders = ({ orders = [], onCancel, compact = false }) => {
                 <span className="text-rose-500">{order.stopLoss ? `$${order.stopLoss.toLocaleString()}` : 'Off'}</span>
               </div>
             </div>
-            <button
-              onClick={() => onCancel(order.id)}
-              className="w-full py-3 bg-slate-900 dark:bg-slate-700 text-white font-black rounded-2xl text-[9px] uppercase tracking-[0.2em] hover:bg-rose-600 dark:hover:bg-rose-500 transition-all flex items-center justify-center space-x-2 group/btn"
-            >
-              <FaTimes className="text-gold-500 group-hover/btn:text-white transition-colors" />
-              <span>Cancel Execution</span>
-            </button>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                onClick={() => handleProtectionEdit(order)}
+                className="py-3 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 font-black rounded-2xl text-[9px] uppercase tracking-[0.15em] border border-slate-200 dark:border-slate-700 hover:border-gold-500 transition-all"
+              >
+                Edit
+              </button>
+              <button
+                onClick={() => onCancel(order.id)}
+                className="py-3 bg-slate-900 dark:bg-slate-700 text-white font-black rounded-2xl text-[9px] uppercase tracking-[0.15em] hover:bg-rose-600 dark:hover:bg-rose-500 transition-all flex items-center justify-center space-x-2 group/btn"
+              >
+                <FaTimes className="text-gold-500 group-hover/btn:text-white transition-colors" />
+                <span>Cancel</span>
+              </button>
+            </div>
           </div>
         ))}
       </div>
@@ -189,13 +212,21 @@ const OpenOrders = ({ orders = [], onCancel, compact = false }) => {
 
               {/* Cancel */}
               <div className="flex justify-end">
-                <button
-                  onClick={() => onCancel(order.id)}
-                  className="group/btn flex items-center space-x-1.5 px-4 py-2 bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 rounded-xl text-[9px] font-black uppercase tracking-widest border border-slate-200 dark:border-slate-600 hover:bg-rose-500 hover:text-white hover:border-rose-500 dark:hover:bg-rose-500 dark:hover:border-rose-500 transition-all duration-200 active:scale-95"
-                >
-                  <FaTimes size={8} />
-                  <span>Cancel</span>
-                </button>
+                <div className="flex justify-end gap-2">
+                  <button
+                    onClick={() => handleProtectionEdit(order)}
+                    className="px-3 py-2 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-xl text-[8px] font-black uppercase tracking-widest border border-slate-200 dark:border-slate-700 hover:border-gold-500 transition-all duration-200"
+                  >
+                    Edit
+                  </button>
+                  <button
+                    onClick={() => onCancel(order.id)}
+                    className="group/btn flex items-center space-x-1.5 px-4 py-2 bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 rounded-xl text-[9px] font-black uppercase tracking-widest border border-slate-200 dark:border-slate-600 hover:bg-rose-500 hover:text-white hover:border-rose-500 dark:hover:bg-rose-500 dark:hover:border-rose-500 transition-all duration-200 active:scale-95"
+                  >
+                    <FaTimes size={8} />
+                    <span>Cancel</span>
+                  </button>
+                </div>
               </div>
             </div>
           );

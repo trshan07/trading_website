@@ -19,14 +19,34 @@ const tradingService = {
     return response.data;
   },
 
+  getClosedPositions: async (accountId) => {
+    const response = await api.get(`/trading/positions/history?accountId=${accountId}`);
+    return response.data;
+  },
+
+  getRiskSnapshot: async (accountId) => {
+    const response = await api.get(`/trading/risk?accountId=${accountId}`);
+    return response.data;
+  },
+
   cancelOrder: async (orderId) => {
     const response = await api.delete(`/trading/orders/${orderId}`);
     return response.data;
   },
 
+  updateOrder: async (orderId, orderData) => {
+    const response = await api.patch(`/trading/orders/${orderId}`, orderData);
+    return response.data;
+  },
+
+  updatePosition: async (positionId, positionData) => {
+    const response = await api.patch(`/trading/positions/${positionId}`, positionData);
+    return response.data;
+  },
+
   // Close an active position
-  closePosition: async (positionId, exitPrice) => {
-    const response = await api.post(`/trading/positions/${positionId}/close`, { exitPrice });
+  closePosition: async (positionId, exitPrice, quantity = null) => {
+    const response = await api.post(`/trading/positions/${positionId}/close`, { exitPrice, quantity });
     return response.data;
   },
 

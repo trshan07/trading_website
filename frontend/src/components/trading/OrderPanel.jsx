@@ -1,16 +1,35 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { FaTimes, FaExchangeAlt, FaListUl, FaChartLine, FaShieldAlt, FaCaretUp, FaCaretDown } from 'react-icons/fa';
+import React, { useEffect, useMemo, useState } from 'react';
+import { FaTimes, FaExchangeAlt, FaListUl, FaChartLine, FaShieldAlt, FaCaretUp, FaCaretDown, FaCheckCircle } from 'react-icons/fa';
 import { motion, AnimatePresence } from 'framer-motion';
 import { calculateSpreads } from '../../utils/spreadCalculator';
-import { calculateUsdFromLots, calculateLotsFromUsd, getLotStep, calculatePips, calculateProjectedPnL, calculateQuantityFromLots, getInstrumentTradingMeta, getMinLot } from '../../utils/tradingUtils';
+import {
+  calculateUsdFromLots,
+  calculateLotsFromUsd,
+  getLotStep,
+  calculatePips,
+  calculateProjectedPnL,
+  calculateQuantityFromLots,
+  getInstrumentTradingMeta,
+  getMinLot
+} from '../../utils/tradingUtils';
 import { MARKET_INSTRUMENTS } from '../../constants/marketData';
 import { buildInstrumentSnapshot } from '../../utils/marketSymbols';
 
-const OrderPanel = ({ 
-  onSubmit, 
-  symbol = 'BTCUSDT', 
-  onClose, 
-  marketData = {}, 
+const ORDER_TYPE_OPTIONS = [
+  { id: 'market', label: 'Market', side: null },
+  { id: 'buy_limit', label: 'Buy Limit', side: 'buy' },
+  { id: 'sell_limit', label: 'Sell Limit', side: 'sell' },
+  { id: 'buy_stop', label: 'Buy Stop', side: 'buy' },
+  { id: 'sell_stop', label: 'Sell Stop', side: 'sell' },
+];
+
+const formatOrderType = (value = '') => value.replace(/_/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase());
+
+const OrderPanel = ({
+  onSubmit,
+  symbol = 'BTCUSDT',
+  onClose,
+  marketData = {},
   instrument: selectedInstrument,
   portfolio = {},
   onIntentChange,
@@ -18,19 +37,18 @@ const OrderPanel = ({
   positions = [],
   orders = []
 }) => {
-  const [orderType, setOrderType] = useState('market'); // market, limit, stop
+  const [orderType, setOrderType] = useState('market');
   const [selectedSide, setSelectedSide] = useState('buy');
   const [lots, setLots] = useState(0.01);
-  const [amount, setAmount] = useState(100); // USD
+  const [amount, setAmount] = useState(100);
   const [useLots, setUseLots] = useState(true);
-  
+  const [pendingPrice, setPendingPrice] = useState('');
   const [tpEnabled, setTpEnabled] = useState(false);
   const [slEnabled, setSlEnabled] = useState(false);
   const [tpValue, setTpValue] = useState('');
   const [slValue, setSlValue] = useState('');
-  
-  const [pendingPrice, setPendingPrice] = useState('');
-  const [activeTab, setActiveTab] = useState('trade'); // trade, positions, orders
+  const [activeTab, setActiveTab] = useState('trade');
+  const [showConfirmation, setShowConfirmation] = useState(false);
 
   const fallbackInstrument = useMemo(() => MARKET_INSTRUMENTS.find((item) => item.symbol === symbol) || {}, [symbol]);
   const instrument = useMemo(
@@ -41,30 +59,24 @@ const OrderPanel = ({
     }),
     [fallbackInstrument, marketData, selectedInstrument, symbol]
   );
+
   const category = instrument.category || 'Crypto';
   const currentPrice = instrument.price || 0;
   const lastDir = instrument.lastDir || 'none';
-  const symbolPositions = useMemo(
-    () => positions.filter((position) => position?.symbol === symbol),
-    [positions, symbol]
-  );
-  const symbolOrders = useMemo(
-    () => orders.filter((order) => order?.symbol === symbol),
-    [orders, symbol]
-  );
-  const activePnl = symbolPositions.reduce((acc, position) => acc + (Number(position?.pnl) || 0), 0);
-  const tradingMeta = useMemo(
-    () => getInstrumentTradingMeta({ symbol, category, instrument }),
-    [category, instrument, symbol]
-  );
-  
+  const tradingMeta = useMemo(() => getInstrumentTradingMeta({ symbol, category, instrument }), [category, instrument, symbol]);
+  const symbolPositions = useMemo(() => positions.filter((position) => position?.symbol === symbol), [positions, symbol]);
+  const symbolOrders = useMemo(() => orders.filter((order) => order?.symbol === symbol), [orders, symbol]);
+  const activePnl = symbolPositions.reduce((sum, position) => sum + (Number(position?.pnl) || 0), 0);
+
   const { bidPrice: calcBid, askPrice: calcAsk, spreadAmt: calcSpread } = calculateSpreads(symbol, currentPrice, {
     category,
     precision: instrument.precision,
   });
+
   const hasRealBidAsk = instrument.useBidAsk !== false
     && Number.isFinite(instrument.bid)
     && Number.isFinite(instrument.ask);
+
   const bidPrice = hasRealBidAsk
     ? instrument.bid.toFixed(instrument.precision)
     : Number(currentPrice || calcBid).toFixed(instrument.precision);
@@ -72,72 +84,125 @@ const OrderPanel = ({
     ? instrument.ask.toFixed(instrument.precision)
     : Number(currentPrice || calcAsk).toFixed(instrument.precision);
   const spreadAmt = hasRealBidAsk ? Math.abs(instrument.ask - instrument.bid) : Number(calcSpread) || 0;
+
   const executionPrice = selectedSide === 'buy' ? parseFloat(askPrice) : parseFloat(bidPrice);
   const lotStep = getLotStep(category, symbol, instrument);
   const minLot = getMinLot(category, symbol, instrument);
   const quantity = calculateQuantityFromLots(lots, symbol, category, instrument);
+  const finalPrice = orderType === 'market' ? executionPrice : parseFloat(pendingPrice);
+  const requiredMargin = (Number(amount) || 0) / (Number(maxLeverage) || 1);
+  const freeMargin = Number(portfolio?.freeMargin ?? 0);
+  const marginLoaded = portfolio?.freeMargin != null;
+  const hasMarginLevel = Number(portfolio?.margin || 0) > 0;
+  const marginLevelLabel = hasMarginLevel ? `${Number(portfolio?.marginLevel || 0).toFixed(2)}%` : 'N/A';
+
   const tpPrice = tpEnabled ? parseFloat(tpValue) : null;
   const slPrice = slEnabled ? parseFloat(slValue) : null;
+  const isPendingOrder = orderType !== 'market';
+  const hasValidSize = Number.isFinite(lots) && lots >= minLot && Number.isFinite(amount) && amount > 0 && Number.isFinite(quantity) && quantity > 0;
+  const hasValidPendingPrice = !isPendingOrder || (Number.isFinite(finalPrice) && finalPrice > 0);
+  const hasValidTp = !tpEnabled || Number.isFinite(tpPrice);
+  const hasValidSl = !slEnabled || Number.isFinite(slPrice);
+  const hasEnoughMargin = !marginLoaded || requiredMargin <= freeMargin;
+  const canReview = hasValidSize && hasValidPendingPrice && hasValidTp && hasValidSl && requiredMargin > 0 && hasEnoughMargin;
+
   const projectedTakeProfit = tpPrice ? calculateProjectedPnL({
     side: selectedSide,
-    entryPrice: executionPrice,
+    entryPrice: finalPrice || executionPrice,
     exitPrice: tpPrice,
     quantity,
   }) : null;
+
   const projectedStopLoss = slPrice ? calculateProjectedPnL({
     side: selectedSide,
-    entryPrice: executionPrice,
+    entryPrice: finalPrice || executionPrice,
     exitPrice: slPrice,
     quantity,
   }) : null;
 
-  // Sync Lots/USD
   useEffect(() => {
     if (useLots) {
       const usd = calculateUsdFromLots(lots, currentPrice, category, symbol, instrument);
-      setAmount(usd.toFixed(2));
-    } else {
-      const l = calculateLotsFromUsd(amount, currentPrice, category, symbol, instrument);
-      setLots(parseFloat(l.toFixed(3)));
+      setAmount(Number.isFinite(usd) ? Number(usd.toFixed(2)) : 0);
     }
-  }, [lots, amount, useLots, currentPrice, category, symbol, instrument]);
+  }, [lots, useLots, currentPrice, category, symbol, instrument]);
 
-  // Handle Intent Change for Chart Visuals
+  useEffect(() => {
+    if (!useLots) {
+      const derivedLots = calculateLotsFromUsd(amount, currentPrice, category, symbol, instrument);
+      setLots(Number.isFinite(derivedLots) ? parseFloat(derivedLots.toFixed(3)) : minLot);
+    }
+  }, [amount, useLots, currentPrice, category, symbol, instrument, minLot]);
+
   useEffect(() => {
     if (onIntentChange) {
       onIntentChange({
         side: selectedSide,
         type: orderType,
-        price: orderType === 'market' ? null : parseFloat(pendingPrice) || currentPrice,
+        price: orderType === 'market' ? null : (parseFloat(pendingPrice) || currentPrice),
         tp: tpEnabled ? parseFloat(tpValue) : null,
-        sl: slEnabled ? parseFloat(slValue) : null
+        sl: slEnabled ? parseFloat(slValue) : null,
       });
     }
   }, [selectedSide, orderType, pendingPrice, tpEnabled, tpValue, slEnabled, slValue, onIntentChange, currentPrice]);
 
-  const handleExecute = () => {
-    const finalPrice = orderType === 'market' ? executionPrice : parseFloat(pendingPrice);
-    if (!finalPrice && orderType !== 'market') return;
+  const handleSideSelect = (side) => {
+    setSelectedSide(side);
+    if (orderType === 'buy_limit' || orderType === 'sell_limit') {
+      setOrderType(side === 'buy' ? 'buy_limit' : 'sell_limit');
+    }
+    if (orderType === 'buy_stop' || orderType === 'sell_stop') {
+      setOrderType(side === 'buy' ? 'buy_stop' : 'sell_stop');
+    }
+    setShowConfirmation(false);
+  };
 
-    onSubmit({
+  const handleOrderTypeSelect = (type) => {
+    setOrderType(type);
+    if (type.startsWith('buy_')) {
+      setSelectedSide('buy');
+    }
+    if (type.startsWith('sell_')) {
+      setSelectedSide('sell');
+    }
+    setShowConfirmation(false);
+  };
+
+  const handleReview = () => {
+    if (!canReview) {
+      return;
+    }
+    setShowConfirmation(true);
+  };
+
+  const handleExecute = async () => {
+    if (!canReview) {
+      return;
+    }
+
+    const submissionResult = await Promise.resolve(onSubmit({
       symbol,
       type: orderType,
       side: selectedSide,
       amount: parseFloat(amount),
+      quantity,
       leverage: maxLeverage,
       takeProfit: tpEnabled ? parseFloat(tpValue) : null,
       stopLoss: slEnabled ? parseFloat(slValue) : null,
-      price: finalPrice
-    });
+      price: finalPrice,
+    }));
+
+    if (submissionResult !== false) {
+      setShowConfirmation(false);
+    }
   };
 
   return (
     <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[2rem] shadow-2xl overflow-hidden flex flex-col h-full transition-all duration-300">
-      {/* Header */}
       <div className="p-5 border-b border-slate-50 dark:border-slate-800 flex justify-between items-center bg-slate-50/30 dark:bg-slate-800/30 backdrop-blur-md">
         <div className="flex items-center space-x-3">
           <div className="w-10 h-10 bg-slate-900 dark:bg-gold-500 rounded-xl flex items-center justify-center shadow-lg transform rotate-3">
-             <span className="text-[11px] font-black text-white dark:text-slate-900 uppercase tracking-tighter">{symbol.slice(0,3)}</span>
+            <span className="text-[11px] font-black text-white dark:text-slate-900 uppercase tracking-tighter">{symbol.slice(0, 3)}</span>
           </div>
           <div>
             <h3 className="text-xs font-black uppercase text-slate-900 dark:text-white tracking-widest italic leading-none">{symbol}</h3>
@@ -164,13 +229,12 @@ const OrderPanel = ({
         </div>
       </div>
 
-      {/* Main View Selection (Trade / Account) */}
       <div className="flex border-b border-slate-50 dark:border-slate-800 bg-slate-50/20 dark:bg-slate-900/50">
         {[
           { id: 'trade', icon: FaExchangeAlt, label: 'Trade' },
           { id: 'positions', icon: FaChartLine, label: 'Active' },
           { id: 'orders', icon: FaListUl, label: 'Pending' }
-        ].map(tab => (
+        ].map((tab) => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
@@ -189,17 +253,16 @@ const OrderPanel = ({
       <div className="flex-1 overflow-y-auto custom-scrollbar relative">
         <AnimatePresence mode="wait">
           {activeTab === 'trade' && (
-            <motion.div 
+            <motion.div
               key="trade"
               initial={{ opacity: 0, x: -10 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: 10 }}
               className="p-6 space-y-6"
             >
-              {/* Buy/Sell Large Selector */}
               <div className="grid grid-cols-2 gap-3 p-1.5 bg-slate-100 dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700">
                 <button
-                  onClick={() => setSelectedSide('buy')}
+                  onClick={() => handleSideSelect('buy')}
                   className={`py-4 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all flex flex-col items-center ${
                     selectedSide === 'buy'
                       ? 'bg-emerald-500 text-white shadow-xl shadow-emerald-500/30'
@@ -210,7 +273,7 @@ const OrderPanel = ({
                   <span className="text-[8px] opacity-70 mt-1">ASK: {askPrice}</span>
                 </button>
                 <button
-                  onClick={() => setSelectedSide('sell')}
+                  onClick={() => handleSideSelect('sell')}
                   className={`py-4 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all flex flex-col items-center ${
                     selectedSide === 'sell'
                       ? 'bg-rose-500 text-white shadow-xl shadow-rose-500/30'
@@ -222,28 +285,26 @@ const OrderPanel = ({
                 </button>
               </div>
 
-              {/* Order Type Tabs */}
-              <div className="flex bg-slate-50 dark:bg-slate-800/50 p-1 rounded-xl border border-slate-100 dark:border-slate-700/50">
-                {['market', 'limit', 'stop'].map(type => (
+              <div className="grid grid-cols-2 gap-2">
+                {ORDER_TYPE_OPTIONS.map((option) => (
                   <button
-                    key={type}
-                    onClick={() => setOrderType(type)}
-                    className={`flex-1 py-2 text-[8px] font-black uppercase tracking-widest rounded-lg transition-all ${
-                      orderType === type
-                        ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-md border border-slate-100 dark:border-slate-700'
-                        : 'text-slate-400 hover:text-slate-600'
+                    key={option.id}
+                    onClick={() => handleOrderTypeSelect(option.id)}
+                    className={`px-3 py-3 rounded-xl border text-[8px] font-black uppercase tracking-widest transition-all ${
+                      orderType === option.id
+                        ? 'bg-slate-900 dark:bg-gold-500 text-white dark:text-slate-900 border-slate-900 dark:border-gold-500 shadow-md'
+                        : 'bg-slate-50 dark:bg-slate-800/50 text-slate-500 border-slate-100 dark:border-slate-700 hover:text-slate-900 dark:hover:text-white'
                     }`}
                   >
-                    {type}
+                    {option.label}
                   </button>
                 ))}
               </div>
 
-              {/* Lot / Quantity Input */}
               <div className="space-y-3">
                 <div className="flex justify-between items-end">
                   <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 italic">Volume (Lots)</label>
-                  <button 
+                  <button
                     onClick={() => setUseLots(!useLots)}
                     className="text-[8px] font-black uppercase text-gold-500 hover:underline flex items-center space-x-1"
                   >
@@ -251,27 +312,36 @@ const OrderPanel = ({
                     <span>Switch to {useLots ? 'USD' : 'Lots'}</span>
                   </button>
                 </div>
-                
+
                 <div className="relative group">
                   <div className="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none text-slate-300">
                     {useLots ? 'LOT' : '$'}
                   </div>
                   <input
                     type="number"
-                    step={lotStep}
+                    step={useLots ? lotStep : 100}
+                    min={useLots ? minLot : 0}
                     value={useLots ? lots : amount}
-                    onChange={(e) => useLots ? setLots(parseFloat(e.target.value) || 0) : setAmount(parseFloat(e.target.value) || 0)}
+                    onChange={(event) => {
+                      const nextValue = parseFloat(event.target.value) || 0;
+                      if (useLots) {
+                        setLots(nextValue);
+                      } else {
+                        setAmount(nextValue);
+                      }
+                      setShowConfirmation(false);
+                    }}
                     className="w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl py-4 pl-12 pr-4 text-sm font-black text-slate-900 dark:text-white focus:outline-none focus:border-gold-500 transition-all"
                   />
                   <div className="absolute inset-y-0 right-2 flex flex-col justify-center space-y-1">
-                    <button 
-                      onClick={() => useLots ? setLots(prev => +(prev + lotStep).toFixed(3)) : setAmount(prev => prev + 100)}
+                    <button
+                      onClick={() => useLots ? setLots((prev) => +(prev + lotStep).toFixed(3)) : setAmount((prev) => prev + 100)}
                       className="p-1 hover:bg-slate-200 dark:hover:bg-slate-700 rounded text-slate-400"
                     >
                       <FaCaretUp size={10} />
                     </button>
-                    <button 
-                      onClick={() => useLots ? setLots(prev => Math.max(minLot, +(prev - lotStep).toFixed(3))) : setAmount(prev => Math.max(0, prev - 100))}
+                    <button
+                      onClick={() => useLots ? setLots((prev) => Math.max(minLot, +(prev - lotStep).toFixed(3))) : setAmount((prev) => Math.max(0, prev - 100))}
                       className="p-1 hover:bg-slate-200 dark:hover:bg-slate-700 rounded text-slate-400"
                     >
                       <FaCaretDown size={10} />
@@ -279,26 +349,27 @@ const OrderPanel = ({
                   </div>
                 </div>
                 <div className="flex justify-between text-[8px] font-bold text-slate-400 uppercase tracking-tighter">
-                  <span>≈ {useLots ? `$${amount}` : `${lots} Lots`}</span>
+                  <span>~ {useLots ? `$${Number(amount || 0).toFixed(2)}` : `${lots} Lots`}</span>
                   <span>{quantity.toLocaleString(undefined, { maximumFractionDigits: 4 })} {tradingMeta.quantityLabel}</span>
                 </div>
               </div>
 
-              {/* Pending Price Input */}
               {orderType !== 'market' && (
-                <div className="space-y-2 animate-in fade-in slide-in-from-top-2">
+                <div className="space-y-2">
                   <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 italic">Trigger Price</label>
                   <input
                     type="number"
-                    placeholder={`Enter ${orderType} price...`}
+                    placeholder={`Enter ${formatOrderType(orderType)} price`}
                     value={pendingPrice}
-                    onChange={(e) => setPendingPrice(e.target.value)}
+                    onChange={(event) => {
+                      setPendingPrice(event.target.value);
+                      setShowConfirmation(false);
+                    }}
                     className="w-full bg-amber-500/5 border border-amber-500/20 rounded-xl py-4 px-4 text-sm font-black text-amber-500 focus:outline-none focus:border-amber-500 transition-all"
                   />
                 </div>
               )}
 
-              {/* Risk Management (TP/SL) */}
               <div className="space-y-4 pt-2">
                 <div className="flex items-center space-x-2 text-[9px] font-black uppercase tracking-widest text-slate-900 dark:text-white">
                   <FaShieldAlt className="text-gold-500" />
@@ -306,10 +377,9 @@ const OrderPanel = ({
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
-                  {/* Take Profit */}
                   <div className="space-y-2">
-                    <button 
-                      onClick={() => setTpEnabled(!tpEnabled)}
+                    <button
+                      onClick={() => { setTpEnabled(!tpEnabled); setShowConfirmation(false); }}
                       className={`w-full flex items-center justify-between px-3 py-2 rounded-lg border text-[8px] font-black uppercase transition-all ${
                         tpEnabled ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-500' : 'bg-slate-100 dark:bg-slate-800 border-transparent text-slate-400'
                       }`}
@@ -323,11 +393,11 @@ const OrderPanel = ({
                           type="number"
                           placeholder="Price"
                           value={tpValue}
-                          onChange={(e) => setTpValue(e.target.value)}
+                          onChange={(event) => { setTpValue(event.target.value); setShowConfirmation(false); }}
                           className="w-full bg-emerald-500/5 border border-emerald-500/20 rounded-lg py-2 px-3 text-xs font-black text-emerald-500 focus:outline-none"
                         />
                         <div className="text-[7px] text-emerald-500/70 font-bold uppercase text-right">
-                          +{calculatePips(symbol, currentPrice, parseFloat(tpValue) || currentPrice).toFixed(1)} Pips
+                          +{calculatePips(symbol, finalPrice || currentPrice, parseFloat(tpValue) || (finalPrice || currentPrice)).toFixed(1)} Pips
                         </div>
                         {projectedTakeProfit !== null && (
                           <div className="text-[7px] text-emerald-500/70 font-bold uppercase text-right">
@@ -338,10 +408,9 @@ const OrderPanel = ({
                     )}
                   </div>
 
-                  {/* Stop Loss */}
                   <div className="space-y-2">
-                    <button 
-                      onClick={() => setSlEnabled(!slEnabled)}
+                    <button
+                      onClick={() => { setSlEnabled(!slEnabled); setShowConfirmation(false); }}
                       className={`w-full flex items-center justify-between px-3 py-2 rounded-lg border text-[8px] font-black uppercase transition-all ${
                         slEnabled ? 'bg-rose-500/10 border-rose-500/30 text-rose-500' : 'bg-slate-100 dark:bg-slate-800 border-transparent text-slate-400'
                       }`}
@@ -355,11 +424,11 @@ const OrderPanel = ({
                           type="number"
                           placeholder="Price"
                           value={slValue}
-                          onChange={(e) => setSlValue(e.target.value)}
+                          onChange={(event) => { setSlValue(event.target.value); setShowConfirmation(false); }}
                           className="w-full bg-rose-500/5 border border-rose-500/20 rounded-lg py-2 px-3 text-xs font-black text-rose-500 focus:outline-none"
                         />
                         <div className="text-[7px] text-rose-500/70 font-bold uppercase text-right">
-                          -{calculatePips(symbol, currentPrice, parseFloat(slValue) || currentPrice).toFixed(1)} Pips
+                          -{calculatePips(symbol, finalPrice || currentPrice, parseFloat(slValue) || (finalPrice || currentPrice)).toFixed(1)} Pips
                         </div>
                         {projectedStopLoss !== null && (
                           <div className="text-[7px] text-rose-500/70 font-bold uppercase text-right">
@@ -372,28 +441,112 @@ const OrderPanel = ({
                 </div>
               </div>
 
-              {/* Execute Button */}
+              <div className="grid grid-cols-2 gap-3">
+                {[
+                  { label: 'Required Margin', value: `$${requiredMargin.toFixed(2)}`, tone: freeMargin >= requiredMargin ? 'text-emerald-500' : 'text-rose-500' },
+                  { label: 'Free Margin', value: `$${freeMargin.toFixed(2)}`, tone: 'text-slate-900 dark:text-white' },
+                  { label: 'Leverage', value: `1:${maxLeverage}`, tone: 'text-slate-900 dark:text-white' },
+                  { label: 'Margin Level', value: marginLevelLabel, tone: hasMarginLevel && Number(portfolio?.marginLevel || 0) < 100 ? 'text-rose-500' : 'text-gold-500' },
+                ].map((item) => (
+                  <div key={item.label} className="bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700/50 rounded-xl p-3">
+                    <p className="text-[8px] font-black uppercase tracking-widest text-slate-400 mb-1">{item.label}</p>
+                    <p className={`text-sm font-black ${item.tone}`}>{item.value}</p>
+                  </div>
+                ))}
+              </div>
+
+              {!hasValidSize && (
+                <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 px-4 py-3 text-[9px] font-black uppercase tracking-widest text-amber-500">
+                  Minimum size is {minLot.toFixed(2)} lots and the order quantity must be greater than zero.
+                </div>
+              )}
+
+              {!hasValidPendingPrice && (
+                <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 px-4 py-3 text-[9px] font-black uppercase tracking-widest text-amber-500">
+                  Enter a valid trigger price for this pending order.
+                </div>
+              )}
+
+              {(!hasValidTp || !hasValidSl) && (
+                <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 px-4 py-3 text-[9px] font-black uppercase tracking-widest text-amber-500">
+                  Enter valid numeric values for take profit and stop loss.
+                </div>
+              )}
+
+              {!hasEnoughMargin && (
+                <div className="rounded-xl border border-rose-500/20 bg-rose-500/5 px-4 py-3 text-[9px] font-black uppercase tracking-widest text-rose-500">
+                  Required margin exceeds available free margin.
+                </div>
+              )}
+
               <button
-                onClick={handleExecute}
+                onClick={handleReview}
+                disabled={!canReview}
                 className={`w-full py-5 rounded-2xl shadow-2xl transition-all active:scale-95 flex flex-col items-center group overflow-hidden relative ${
                   selectedSide === 'buy'
                     ? 'bg-emerald-500 hover:bg-emerald-600 shadow-emerald-500/30'
                     : 'bg-rose-500 hover:bg-rose-600 shadow-rose-500/30'
-                }`}
+                } ${!canReview ? 'cursor-not-allowed opacity-50 shadow-none' : ''}`}
               >
                 <div className="absolute inset-0 bg-white/10 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
                 <span className="text-xs font-black uppercase tracking-[0.3em] text-white relative z-10">
-                  {orderType === 'market' ? `Execute ${selectedSide}` : `Place ${orderType}`}
+                  Review Order
                 </span>
                 <span className="text-[9px] font-bold text-white/70 mt-1 relative z-10">
-                  {lots} Lots · {quantity.toLocaleString(undefined, { maximumFractionDigits: 4 })} {tradingMeta.quantityLabel} @ {orderType === 'market' ? executionPrice : pendingPrice || '...'}
+                  {lots} Lots | {quantity.toLocaleString(undefined, { maximumFractionDigits: 4 })} {tradingMeta.quantityLabel} @ {orderType === 'market' ? executionPrice : pendingPrice || '...'}
                 </span>
               </button>
+
+              {showConfirmation && (
+                <div className="bg-slate-50 dark:bg-slate-800/50 border border-gold-500/20 rounded-2xl p-4 space-y-3">
+                  <div className="flex items-center space-x-2 text-[10px] font-black uppercase tracking-widest text-gold-500">
+                    <FaCheckCircle />
+                    <span>Order Confirmation</span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3 text-[10px]">
+                    {[
+                      { label: 'Instrument', value: symbol },
+                      { label: 'Type', value: formatOrderType(orderType) },
+                      { label: 'Side', value: selectedSide.toUpperCase() },
+                      { label: 'Lots', value: lots.toFixed(2) },
+                      { label: 'Quantity', value: quantity.toLocaleString(undefined, { maximumFractionDigits: 4 }) },
+                      { label: 'Entry Price', value: finalPrice ? finalPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 8 }) : '--' },
+                      { label: 'Stop Loss', value: slEnabled && slValue ? slValue : 'Off' },
+                      { label: 'Take Profit', value: tpEnabled && tpValue ? tpValue : 'Off' },
+                      { label: 'Required Margin', value: `$${requiredMargin.toFixed(2)}` },
+                      { label: 'Free Margin', value: `$${freeMargin.toFixed(2)}` },
+                    ].map((item) => (
+                      <div key={item.label}>
+                        <p className="text-[8px] font-black uppercase tracking-widest text-slate-400 mb-1">{item.label}</p>
+                        <p className="font-black text-slate-900 dark:text-white">{item.value}</p>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 pt-2">
+                    <button
+                      onClick={() => setShowConfirmation(false)}
+                      className="py-3 rounded-xl border border-slate-200 dark:border-slate-700 text-[9px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-300"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleExecute}
+                      className={`py-3 rounded-xl text-[9px] font-black uppercase tracking-widest ${
+                        selectedSide === 'buy'
+                          ? 'bg-emerald-500 text-white'
+                          : 'bg-rose-500 text-white'
+                      }`}
+                    >
+                      Confirm Order
+                    </button>
+                  </div>
+                </div>
+              )}
             </motion.div>
           )}
 
           {activeTab === 'positions' && (
-            <motion.div 
+            <motion.div
               key="positions"
               initial={{ opacity: 0, x: 10 }}
               animate={{ opacity: 1, x: 0 }}
@@ -409,25 +562,22 @@ const OrderPanel = ({
                   <p className="text-[10px] font-black uppercase tracking-widest">No Open Positions For {symbol}</p>
                 </div>
               ) : (
-                symbolPositions.map(pos => (
-                  <div key={pos.id} className="bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700/50 rounded-xl p-3 space-y-2">
+                symbolPositions.map((position) => (
+                  <div key={position.id} className="bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700/50 rounded-xl p-3 space-y-2">
                     <div className="flex justify-between items-center">
                       <div className="flex items-center space-x-2">
-                        <span className={`text-[8px] font-black px-1.5 py-0.5 rounded ${pos.type === 'BUY' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-rose-500/10 text-rose-500'}`}>
-                          {pos.type}
+                        <span className={`text-[8px] font-black px-1.5 py-0.5 rounded ${position.type === 'BUY' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-rose-500/10 text-rose-500'}`}>
+                          {position.type}
                         </span>
-                        <span className="text-[10px] font-black text-slate-900 dark:text-white">{pos.symbol}</span>
+                        <span className="text-[10px] font-black text-slate-900 dark:text-white">{position.symbol}</span>
                       </div>
-                      <div className={`text-xs font-black tabular-nums ${pos.pnl >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
-                        {pos.pnl >= 0 ? '+' : ''}{pos.pnl.toFixed(2)}
+                      <div className={`text-xs font-black tabular-nums ${position.pnl >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
+                        {position.pnl >= 0 ? '+' : ''}{position.pnl.toFixed(2)}
                       </div>
                     </div>
                     <div className="flex justify-between text-[8px] font-bold text-slate-400 uppercase">
-                      <span>Qty {Number(pos.quantity || 0).toLocaleString(undefined, { maximumFractionDigits: 4 })} @ {pos.entryPrice}</span>
-                      <span>Now: {marketData[pos.symbol]?.price || pos.currentPrice}</span>
-                    </div>
-                    <div className="w-full bg-slate-200 dark:bg-slate-700 h-1 rounded-full overflow-hidden">
-                      <div className={`h-full ${pos.pnl >= 0 ? 'bg-emerald-500' : 'bg-rose-500'}`} style={{ width: '60%' }} />
+                      <span>Qty {Number(position.quantity || 0).toLocaleString(undefined, { maximumFractionDigits: 4 })} @ {position.entryPrice}</span>
+                      <span>SL: {position.stopLoss ?? 'Off'} / TP: {position.takeProfit ?? 'Off'}</span>
                     </div>
                   </div>
                 ))
@@ -436,7 +586,7 @@ const OrderPanel = ({
           )}
 
           {activeTab === 'orders' && (
-            <motion.div 
+            <motion.div
               key="orders"
               initial={{ opacity: 0, x: 10 }}
               animate={{ opacity: 1, x: 0 }}
@@ -452,7 +602,7 @@ const OrderPanel = ({
                   <p className="text-[10px] font-black uppercase tracking-widest">No Pending Orders For {symbol}</p>
                 </div>
               ) : (
-                symbolOrders.map(order => (
+                symbolOrders.map((order) => (
                   <div key={order.id} className="bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700/50 rounded-xl p-3 space-y-2">
                     <div className="flex justify-between items-center">
                       <div className="flex items-center space-x-2">
@@ -477,7 +627,6 @@ const OrderPanel = ({
         </AnimatePresence>
       </div>
 
-      {/* Mini Footer Stats */}
       <div className="p-4 border-t border-slate-50 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/80 grid grid-cols-2 gap-4">
         <div className="flex flex-col">
           <span className="text-[7px] font-black uppercase tracking-widest text-slate-400 mb-0.5">Active P&L</span>

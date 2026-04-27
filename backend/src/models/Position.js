@@ -114,6 +114,41 @@ class Position {
         return rows[0];
     }
 
+    static async updateProtection(id, takeProfit, stopLoss) {
+        const query = `
+            UPDATE positions
+            SET take_profit = $1,
+                stop_loss = $2,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE id = $3 AND status = 'open'
+            RETURNING *
+        `;
+        const { rows } = await db.query(query, [takeProfit, stopLoss, id]);
+        return rows[0];
+    }
+
+    static async reduce(id, updates = {}) {
+        const {
+            quantity,
+            amount,
+            margin,
+            currentPrice,
+        } = updates;
+
+        const query = `
+            UPDATE positions
+            SET quantity = $1,
+                amount = $2,
+                margin = $3,
+                current_price = COALESCE($4, current_price),
+                updated_at = CURRENT_TIMESTAMP
+            WHERE id = $5 AND status = 'open'
+            RETURNING *
+        `;
+        const { rows } = await db.query(query, [quantity, amount, margin, currentPrice, id]);
+        return rows[0];
+    }
+
     static async updatePrices(updates) {
         // updates = [{id, current_price, pnl}]
         // This could be a bulk update in a real system, for now we'll do it individually if needed

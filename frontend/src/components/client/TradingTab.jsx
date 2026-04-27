@@ -4,20 +4,24 @@ import TradingViewWidget from '../trading/TradingViewWidget';
 import OrderPanel from '../trading/OrderPanel';
 import PositionsTable from '../trading/PositionsTable';
 import OpenOrders from '../trading/OpenOrders';
+import OrderBook from '../trading/OrderBook';
 import TerminalAssetList from '../trading/TerminalAssetList';
 import { useTheme } from '../../context/ThemeContext';
 import { FaChartLine, FaHistory, FaListUl, FaBell, FaBolt } from 'react-icons/fa';
-import HistoryTab from './HistoryTab';
+import TradeHistory from '../trading/TradeHistory';
 import PriceAlertsTab from '../trading/PriceAlertsTab';
 
 const TradingTab = ({
   portfolio = {},
   positions = [],
   orders = [],
+  closedTrades = [],
   marketData = {},
   onPlaceOrder = () => {},
   onClosePosition = () => {},
+  onModifyPosition = () => {},
   onCancelOrder = () => {},
+  onModifyOrder = () => {},
   activeSymbol = 'BTCUSDT',
   onSymbolChange = () => {},
   favorites = [],
@@ -46,6 +50,7 @@ const TradingTab = ({
 
   const isMobile = windowWidth < 1024;
   const selectedInstrument = instruments.find((instrument) => instrument.symbol === activeSymbol);
+  const handleIntentChange = useCallback((intent) => setActiveOrderIntent(intent), []);
   const matchingPositionCount = positions.filter(
     (position) => position?.symbol?.replace(/[^A-Z]/g, '') === activeSymbol.replace(/[^A-Z]/g, '')
   ).length;
@@ -204,7 +209,7 @@ const TradingTab = ({
             marketData={marketData}
             instrument={selectedInstrument}
             portfolio={portfolio}
-            onIntentChange={useCallback((intent) => setActiveOrderIntent(intent), [])}
+            onIntentChange={handleIntentChange}
             maxLeverage={maxLeverage}
             positions={positions}
             orders={orders}
@@ -221,7 +226,8 @@ const TradingTab = ({
           {[
             { id: 'positions', label: 'Positions', count: positions.length, icon: FaChartLine },
             { id: 'orders', label: 'Pending', count: orders.length, icon: FaListUl },
-            { id: 'history', label: 'History', count: transactions?.length || 0, icon: FaHistory },
+            { id: 'book', label: 'Order Book', count: 0, icon: FaBolt },
+            { id: 'history', label: 'History', count: closedTrades?.length || 0, icon: FaHistory },
             { id: 'alerts', label: 'Alerts', count: priceAlerts.length, icon: FaBell }
           ].map((tab) => (
             <button
@@ -250,6 +256,7 @@ const TradingTab = ({
               <PositionsTable
                 positions={positions}
                 onClose={onClosePosition}
+                onModify={onModifyPosition}
                 compact={isMobile}
               />
             ) : (
@@ -263,6 +270,7 @@ const TradingTab = ({
               <OpenOrders
                 orders={orders}
                 onCancel={onCancelOrder}
+                onModify={onModifyOrder}
                 compact={isMobile}
               />
             ) : (
@@ -271,8 +279,11 @@ const TradingTab = ({
               </div>
             )
           )}
+          {activeSubTab === 'book' && (
+            <OrderBook symbol={activeSymbol} />
+          )}
           {activeSubTab === 'history' && (
-            <HistoryTab transactions={transactions} />
+            <TradeHistory trades={closedTrades} />
           )}
           {activeSubTab === 'alerts' && (
             <PriceAlertsTab

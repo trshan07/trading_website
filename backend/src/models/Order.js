@@ -3,6 +3,19 @@ const db = require('../config/database');
 const { isMissingRelationError, isMissingColumnError } = require('../utils/dbCompat');
 
 class Order {
+    static async findById(id) {
+        try {
+            const query = 'SELECT * FROM orders WHERE id = $1';
+            const { rows } = await db.query(query, [id]);
+            return rows[0];
+        } catch (error) {
+            if (isMissingRelationError(error)) {
+                return null;
+            }
+            throw error;
+        }
+    }
+
     static async findByUserId(userId, limit = 50) {
         try {
             const query = 'SELECT * FROM orders WHERE user_id = $1 ORDER BY created_at DESC LIMIT $2';
@@ -88,6 +101,62 @@ class Order {
         try {
             const query = 'UPDATE orders SET status = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2 RETURNING *';
             const { rows } = await db.query(query, [status, id]);
+            return rows[0];
+        } catch (error) {
+            if (isMissingRelationError(error)) {
+                return null;
+            }
+            throw error;
+        }
+    }
+
+    static async updatePending(id, updates = {}) {
+        const {
+            entryPrice = null,
+            takeProfit = null,
+            stopLoss = null,
+        } = updates;
+
+        try {
+            const query = `
+                UPDATE orders
+                SET entry_price = COALESCE($1, entry_price),
+                    take_profit = $2,
+                    stop_loss = $3,
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE id = $4 AND status = 'pending'
+                RETURNING *
+            `;
+            const { rows } = await db.query(query, [entryPrice, takeProfit, stopLoss, id]);
+            return rows[0];
+        } catch (error) {
+            if (isMissingRelationError(error)) {
+                return null;
+            }
+            throw error;
+        }
+    }
+
+    static async updateExecution(id, updates = {}) {
+        const {
+            entryPrice = null,
+            amount = null,
+            quantity = null,
+            status = 'executed',
+        } = updates;
+
+        try {
+            const query = `
+                UPDATE orders
+                SET entry_price = COALESCE($1, entry_price),
+                    amount = COALESCE($2, amount),
+                    quantity = COALESCE($3, quantity),
+                    status = $4,
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE id = $5
+                RETURNING *
+            `;
+            const { rows } = await db.query(query, [entryPrice, amount, quantity, status, id]);
             return rows[0];
         } catch (error) {
             if (isMissingRelationError(error)) {

@@ -33,8 +33,12 @@ const DashboardPage = () => {
 
   // Find the selected account based on the session
   const activeAccount = user?.accounts?.find(acc => {
-    const type = acc.account_type || acc.type || '';
-    return type.toLowerCase() === (selectedAccountType || 'demo').toLowerCase();
+    const type = (acc.account_type || acc.type || '').toLowerCase();
+    const targetType = (selectedAccountType || 'demo').toLowerCase();
+    if (targetType === 'real' || targetType === 'live') {
+      return type === 'real' || type === 'live';
+    }
+    return type === targetType;
   }) || {
     id: user?.accounts?.[0]?.id || 'dummy', // Try to get an ID if possible
     balance: 0,
@@ -138,6 +142,8 @@ const DashboardPage = () => {
     documents,
     positions,
     orders,
+    closedTrades,
+    accountRisk,
     marketData,
     notifications,
     priceAlerts,
@@ -153,7 +159,9 @@ const DashboardPage = () => {
     handlePlaceOrder,
     handleUploadDocument,
     handleClosePosition,
+    handleModifyPosition,
     handleCancelOrder,
+    handleModifyOrder,
     handleCreateAlert,
     handleDeleteAlert,
     handleUpdateSettings,
@@ -171,11 +179,6 @@ const DashboardPage = () => {
   } = useDashboardData(selectedAccountType);
 
   const isDemo = selectedAccountType === 'demo';
-
-  const accountBalance = parseFloat(activeAccount?.balance) || 0;
-  const accountCredit = parseFloat(activeAccount?.credit) || 0;
-  const accountTotalFunds = accountBalance + accountCredit;
-
 
   // Dynamic Portfolio Data
   const [portfolio, setPortfolio] = useState({
@@ -218,29 +221,30 @@ const DashboardPage = () => {
     const totalFunds = balance + credit;
     const equity = totalFunds + totalUnrealizedPnL;
     const marginLevel = totalMargin > 0 ? (equity / totalMargin) * 100 : 0;
+    const backendRisk = accountRisk?.risk || null;
     
     return {
       ...portfolio,
       totalBalance: totalFunds,       // Balance = cash + credit (what admin gave)
       cashBalance: balance,           // raw cash only (for withdrawal checks)
-      availableBalance: equity - totalMargin,
-      freeMargin: equity - totalMargin,
-      equity: equity,
-      margin: totalMargin,
-      marginLevel: marginLevel,
+      availableBalance: backendRisk?.freeMargin ?? (equity - totalMargin),
+      freeMargin: backendRisk?.freeMargin ?? (equity - totalMargin),
+      equity: backendRisk?.equity ?? equity,
+      margin: backendRisk?.usedMargin ?? totalMargin,
+      marginLevel: backendRisk?.marginLevel ?? marginLevel,
       dailyPnL: totalUnrealizedPnL,
       positionsCount: positions.length,
       credit,
       leverage: activeAccount.leverage || 100
     };
-  }, [user, activeAccount, positions, marketData, portfolio]);
+  }, [user, activeAccount, positions, marketData, portfolio, accountRisk]);
 
   const walletData = useMemo(() => ({
-    mainWallet: livePortfolio.cashBalance,       // cash only — for withdrawal limit checks
-    tradingWallet: livePortfolio.margin,         // show used margin as trading wallet
-    totalBalance: livePortfolio.totalBalance,    // total funds including credit
+    mainWallet: livePortfolio.cashBalance,
+    tradingWallet: livePortfolio.margin,
+    totalBalance: livePortfolio.totalBalance,
     equity: livePortfolio.equity,
-    bonusWallet: livePortfolio.credit,           // show credit as bonus wallet
+    bonusWallet: livePortfolio.credit,
     pendingWithdrawals: 0,
     pendingDeposits: 0,
   }), [livePortfolio]);
@@ -363,11 +367,14 @@ const DashboardPage = () => {
                   onToggleBalance={() => setShowBalance(!showBalance)}
                   positions={positions}
                   orders={orders}
+                  closedTrades={closedTrades}
                   marketData={marketData}
                   portfolioHistory={portfolioHistory}
                   onPlaceOrder={handlePlaceOrder}
                   onClosePosition={handleClosePosition}
+                  onModifyPosition={handleModifyPosition}
                   onCancelOrder={handleCancelOrder}
+                  onModifyOrder={handleModifyOrder}
                   activeSymbol={marketSymbol}
                   onSymbolChange={(sym) => setMarketSymbol(sym)}
                   favorites={favorites}

@@ -1,5 +1,6 @@
 const axios = require('axios');
 const marketSymbolMap = require('../../config/marketSymbolMap.json');
+const { fetchOrderBook } = require('../../services/marketDataService');
 
 const BINANCE_QUOTES = ['USDT', 'BUSD', 'USDC', 'BTC', 'ETH'];
 const FOREX_CODES = ['USD', 'EUR', 'GBP', 'JPY', 'AUD', 'NZD', 'CAD', 'CHF'];
@@ -373,6 +374,25 @@ exports.getMarketHistory = async (req, res) => {
       isMock: !quotePrice,
       isSynthetic: Boolean(quotePrice),
       source: quotePrice ? 'quote-fallback' : 'mock',
+    });
+  }
+};
+
+exports.getOrderBook = async (req, res) => {
+  const symbol = normalizeSymbol(req.query.symbol || 'BTCUSDT');
+  const levels = Number.parseInt(req.query.levels || '15', 10) || 15;
+
+  try {
+    const data = await fetchOrderBook(symbol, levels);
+    return res.status(200).json({
+      success: true,
+      data,
+      asOf: new Date().toISOString(),
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to fetch order book',
     });
   }
 };

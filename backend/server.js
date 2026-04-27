@@ -24,6 +24,7 @@ const kycRoutes = require('./src/client/routes/kycRoutes');
 const infrastructureRoutes = require('./src/client/routes/infrastructureRoutes');
 const publicRoutes = require('./src/public/routes/publicRoutes');
 const { protect, admin } = require('./src/middleware/authMiddleware');
+const { startTradingEngine } = require('./src/services/tradingEngine');
 
 app.use(
     helmet({
@@ -204,6 +205,8 @@ const startServer = async () => {
         console.log(`Admin URL: http://localhost:${PORT}/api/admin`);
         console.log(`Client URL: ${process.env.CLIENT_URL || 'http://localhost:3000'}`);
     });
+
+    startTradingEngine();
 };
 
 startServer();
