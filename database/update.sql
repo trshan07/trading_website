@@ -65,6 +65,41 @@ EXCEPTION
     WHEN duplicate_object THEN null;
 END $$;
 
+CREATE TABLE IF NOT EXISTS activity_logs (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    action VARCHAR(255) NOT NULL,
+    label VARCHAR(255) NOT NULL,
+    details TEXT,
+    ip_address VARCHAR(45),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+ALTER TABLE activity_logs
+ADD COLUMN IF NOT EXISTS label VARCHAR(255);
+
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT 1
+        FROM information_schema.columns
+        WHERE table_schema = 'public'
+          AND table_name = 'activity_logs'
+          AND column_name = 'details'
+    ) THEN
+        UPDATE activity_logs
+        SET label = LEFT(COALESCE(label, details, action, 'Activity'), 255)
+        WHERE label IS NULL;
+    ELSE
+        UPDATE activity_logs
+        SET label = LEFT(COALESCE(label, action, 'Activity'), 255)
+        WHERE label IS NULL;
+    END IF;
+END $$;
+
+ALTER TABLE activity_logs
+ALTER COLUMN label SET NOT NULL;
+
 -- Create transactions table (account ledger)
 -- We need to check if table exists and drop or we rely on IF NOT EXISTS
 -- But if transactions exists without account_id, we should alter it

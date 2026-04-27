@@ -1,14 +1,40 @@
 const pool = require('../../config/database');
 const { isMissingRelationError, isMissingColumnError, getMissingColumnName } = require('../../utils/dbCompat');
 
+const getActivityLogMessageColumn = async () => {
+    const result = await pool.query(`
+        SELECT column_name
+        FROM information_schema.columns
+        WHERE table_schema = 'public'
+          AND table_name = 'activity_logs'
+          AND column_name IN ('label', 'details')
+    `);
+
+    const columns = new Set(result.rows.map((row) => row.column_name));
+    if (columns.has('label')) {
+        return 'label';
+    }
+
+    if (columns.has('details')) {
+        return 'details';
+    }
+
+    return null;
+};
+
 // Activity Controller Logic
 exports.getActivityLogs = async (req, res) => {
     try {
         let result;
+        const messageColumn = await getActivityLogMessageColumn();
+
+        if (!messageColumn) {
+            return res.json({ success: true, data: [] });
+        }
 
         try {
             result = await pool.query(
-                'SELECT id, user_id, action, label, created_at FROM activity_logs WHERE user_id = $1 ORDER BY created_at DESC LIMIT 20',
+                `SELECT id, user_id, action, ${messageColumn} AS label, created_at FROM activity_logs WHERE user_id = $1 ORDER BY created_at DESC LIMIT 20`,
                 [req.user.id]
             );
         } catch (error) {
@@ -46,9 +72,14 @@ exports.getActivityLogs = async (req, res) => {
 // Internal utility to create log
 exports.createActivityLog = async (userId, action, label) => {
     try {
+        const messageColumn = await getActivityLogMessageColumn();
+        if (!messageColumn) {
+            return;
+        }
+
         try {
             await pool.query(
-                'INSERT INTO activity_logs (user_id, action, label) VALUES ($1, $2, $3)',
+                `INSERT INTO activity_logs (user_id, action, ${messageColumn}) VALUES ($1, $2, $3)`,
                 [userId, action, label]
             );
         } catch (error) {

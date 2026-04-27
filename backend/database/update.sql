@@ -324,6 +324,31 @@ CREATE TABLE IF NOT EXISTS activity_logs (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+ALTER TABLE activity_logs
+ADD COLUMN IF NOT EXISTS label VARCHAR(255);
+
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT 1
+        FROM information_schema.columns
+        WHERE table_schema = 'public'
+          AND table_name = 'activity_logs'
+          AND column_name = 'details'
+    ) THEN
+        UPDATE activity_logs
+        SET label = LEFT(COALESCE(label, details, action, 'Activity'), 255)
+        WHERE label IS NULL;
+    ELSE
+        UPDATE activity_logs
+        SET label = LEFT(COALESCE(label, action, 'Activity'), 255)
+        WHERE label IS NULL;
+    END IF;
+END $$;
+
+ALTER TABLE activity_logs
+ALTER COLUMN label SET NOT NULL;
+
 CREATE TABLE IF NOT EXISTS notifications (
     id SERIAL PRIMARY KEY,
     user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
