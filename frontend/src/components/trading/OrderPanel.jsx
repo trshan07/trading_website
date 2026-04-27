@@ -59,9 +59,14 @@ const OrderPanel = ({
     category,
     precision: instrument.precision,
   });
-  const bidPrice = instrument.bid ? instrument.bid.toFixed(instrument.precision) : calcBid;
-  const askPrice = instrument.ask ? instrument.ask.toFixed(instrument.precision) : calcAsk;
-  const spreadAmt = instrument.bid && instrument.ask ? Math.abs(instrument.ask - instrument.bid) : calcSpread;
+  const hasRealBidAsk = Number.isFinite(instrument.bid) && Number.isFinite(instrument.ask);
+  const bidPrice = hasRealBidAsk
+    ? instrument.bid.toFixed(instrument.precision)
+    : Number(currentPrice || calcBid).toFixed(instrument.precision);
+  const askPrice = hasRealBidAsk
+    ? instrument.ask.toFixed(instrument.precision)
+    : Number(currentPrice || calcAsk).toFixed(instrument.precision);
+  const spreadAmt = hasRealBidAsk ? Math.abs(instrument.ask - instrument.bid) : 0;
   const executionPrice = selectedSide === 'buy' ? parseFloat(askPrice) : parseFloat(bidPrice);
 
   // Sync Lots/USD
@@ -126,6 +131,11 @@ const OrderPanel = ({
           <span className="text-[9px] font-black uppercase text-slate-400 tracking-widest bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded-md border border-slate-200 dark:border-slate-700">
             Spread: <span className="text-gold-500">{spreadAmt.toFixed(category.includes('Forex') ? 5 : 2)}</span>
           </span>
+          {!hasRealBidAsk && (
+            <span className="text-[9px] font-black uppercase text-amber-500 tracking-widest bg-amber-500/10 px-2 py-1 rounded-md border border-amber-500/20">
+              Last Price Sync
+            </span>
+          )}
           {onClose && (
             <button onClick={onClose} className="p-2 hover:bg-rose-50 dark:hover:bg-rose-500/10 text-slate-300 hover:text-rose-500 rounded-lg transition-all">
               <FaTimes size={14} />
