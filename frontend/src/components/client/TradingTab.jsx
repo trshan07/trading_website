@@ -1,5 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import RealTimeChart from '../trading/RealTimeChart';
+import TradingViewWidget from '../trading/TradingViewWidget';
 import OrderPanel from '../trading/OrderPanel';
 import PositionsTable from '../trading/PositionsTable';
 import OpenOrders from '../trading/OpenOrders';
@@ -136,7 +137,7 @@ const TradingTab = ({
               <button
                 onClick={() => setChartMode('execution')}
                 disabled={!executionChartSupported}
-                title={!executionChartSupported ? 'Execution candles are live only for Binance-supported crypto symbols. Use Advanced mode for live TradingView data.' : 'Execution chart'}
+                title={!executionChartSupported ? 'Execution candles use the platform feed for all instruments. Advanced mode is TradingView analysis.' : 'Execution chart'}
                 className={`px-3 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest transition-all ${
                   chartMode === 'execution'
                     ? 'bg-emerald-500 text-white shadow-md'
@@ -151,17 +152,18 @@ const TradingTab = ({
               </button>
             </div>
 
-            {/* Chart: Advanced (Unified live feed for chart + side panels) */}
+            {/* Chart: Advanced (TradingView analysis mode with built-in indicators) */}
             <div className={`flex-1 ${chartMode === 'advanced' ? 'block' : 'hidden'}`}>
-              <RealTimeChart
+              <TradingViewWidget
                 symbol={activeSymbol}
+                instrument={selectedInstrument}
                 theme={theme}
+                activeIntent={activeOrderIntent}
                 positions={positions}
-                initialPrice={instruments.find(i => i.symbol === activeSymbol)?.price || 100}
               />
             </div>
 
-            {/* Chart: Execution (secondary view kept for crypto execution focus) */}
+            {/* Chart: Execution (unified rates/feed for execution-side pricing) */}
             <div className={`flex-1 ${chartMode === 'execution' ? 'block' : 'hidden'}`}>
               {!executionChartSupported && (
                 <div className={`px-4 py-2 text-[10px] font-black uppercase tracking-widest border-b ${
@@ -169,7 +171,7 @@ const TradingTab = ({
                     ? 'bg-amber-500/10 text-amber-300 border-amber-500/20'
                     : 'bg-amber-50 text-amber-700 border-amber-200'
                 }`}>
-                  Unified live chart mode is the accurate trading chart for this instrument. Execution mode is only live for Binance-supported crypto pairs.
+                  Execution mode uses the platform price feed for order-side sync. Advanced mode is the TradingView analysis chart with built-in indicators.
                 </div>
               )}
               <RealTimeChart

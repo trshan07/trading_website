@@ -106,7 +106,12 @@ const TradingViewWidget = ({
         save_image: false,
         backgroundColor: isDark ? '#0f172a' : '#ffffff',
         gridColor: isDark ? '#1e293b' : '#f1f5f9',
-        studies: [],
+        studies: [
+          'MASimple@tv-basicstudies',
+          'MAExp@tv-basicstudies',
+          'RSI@tv-basicstudies',
+          'MACD@tv-basicstudies'
+        ],
         overrides: isDark
           ? {
               'paneProperties.background': '#0f172a',
@@ -207,7 +212,7 @@ const TradingViewWidget = ({
                 : 'border-slate-200 bg-white text-gold-600'
             }`}
           >
-            ADVANCED ANALYSIS MODE · SYMBOL SYNC LOCKED
+            ADVANCED ANALYSIS MODE | SYMBOL SYNC LOCKED
           </div>
         </div>
       </div>
