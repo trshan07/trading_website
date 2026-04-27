@@ -1,12 +1,12 @@
 
 import React from 'react';
-import { FaChartLine, FaChartBar, FaChartPie, FaWallet } from 'react-icons/fa';
+import { FaChartLine, FaChartBar, FaDatabase, FaWallet } from 'react-icons/fa';
 
 const MobileBottomNav = ({ activeTab, onTabChange }) => {
   const navItems = [
     { id: 'trading', label: 'Trade', icon: FaChartLine },
     { id: 'markets', label: 'Markets', icon: FaChartBar },
-    { id: 'portfolio', label: 'Portfolio', icon: FaChartPie },
+    { id: 'portfolio', label: 'Portfolio', icon: FaDatabase },
     { id: 'banking', label: 'Banking', icon: FaWallet },
   ];
 
