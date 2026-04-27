@@ -21,6 +21,25 @@ const normalizeInstrument = (instrument = {}) => ({
   price: Number.parseFloat(instrument.price ?? instrument.default_price ?? 0) || 0,
   change: Number.parseFloat(instrument.change ?? instrument.default_change ?? 0) || 0,
   volume: instrument.volume ?? instrument.default_volume ?? null,
+  provider: instrument.provider || null,
+  quoteSymbol: instrument.quoteSymbol || instrument.quote_symbol || null,
+  tradingViewSymbol: instrument.tradingViewSymbol || instrument.trading_view_symbol || null,
+  useBidAsk: typeof instrument.useBidAsk === 'boolean'
+    ? instrument.useBidAsk
+    : (typeof instrument.use_bid_ask === 'boolean' ? instrument.use_bid_ask : null),
+  precision: Number.isInteger(instrument.precision)
+    ? instrument.precision
+    : (Number.isInteger(instrument.price_precision) ? instrument.price_precision : null),
+  spread: Number.parseFloat(instrument.spread ?? 0) || null,
+  contractSize: Number.parseFloat(instrument.contractSize ?? instrument.contract_size ?? 0) || null,
+  lotStep: Number.parseFloat(instrument.lotStep ?? instrument.lot_step ?? 0) || null,
+  minLot: Number.parseFloat(instrument.minLot ?? instrument.min_lot ?? 0) || null,
+  quantityLabel: instrument.quantityLabel || instrument.quantity_label || null,
+  colors: instrument.colors || {
+    text: instrument.text_color,
+    bg: instrument.bg_color,
+    border: instrument.border_color,
+  },
 });
 
 const fallbackInstruments = MARKET_INSTRUMENTS.map(normalizeInstrument);
@@ -464,6 +483,7 @@ export const useDashboardData = (accountType = 'demo') => {
             const side = pos.side.toUpperCase();
             const { bidPrice: syntheticBid, askPrice: syntheticAsk } = calculateSpreads(pos.symbol, snapshot.price || entryPrice, {
               category: snapshot.category,
+              instrument: snapshot,
               precision: snapshot.precision,
             });
             const markPrice = side === 'BUY'

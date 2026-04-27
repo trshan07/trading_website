@@ -116,7 +116,19 @@ export const buildInstrumentSnapshot = ({ symbol, instrument = {}, marketData = 
     bid: Number.parseFloat(liveInfo.bid ?? 0) || null,
     ask: Number.parseFloat(liveInfo.ask ?? 0) || null,
     lastDir: liveInfo.lastDir || 'none',
-    useBidAsk: mapping.useBidAsk ?? (mapping.provider === 'binance'),
+    provider: instrument.provider || mapping.provider || null,
+    quoteSymbol: instrument.quoteSymbol || instrument.quote_symbol || mapping.quote || null,
+    tradingViewSymbol: instrument.tradingViewSymbol || instrument.trading_view_symbol || mapping.tradingView || null,
+    useBidAsk: typeof instrument.useBidAsk === 'boolean'
+      ? instrument.useBidAsk
+      : (typeof instrument.use_bid_ask === 'boolean'
+        ? instrument.use_bid_ask
+        : (mapping.useBidAsk ?? (mapping.provider === 'binance'))),
+    spread: Number.parseFloat(instrument.spread ?? mapping.spread ?? 0) || null,
+    contractSize: Number.parseFloat(instrument.contractSize ?? instrument.contract_size ?? mapping.contractSize ?? 0) || null,
+    lotStep: Number.parseFloat(instrument.lotStep ?? instrument.lot_step ?? mapping.lotStep ?? 0) || null,
+    minLot: Number.parseFloat(instrument.minLot ?? instrument.min_lot ?? mapping.minLot ?? 0) || null,
+    quantityLabel: instrument.quantityLabel || instrument.quantity_label || mapping.quantityLabel || null,
     precision,
   };
 };

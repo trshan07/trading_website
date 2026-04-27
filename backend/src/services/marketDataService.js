@@ -1,9 +1,17 @@
 const axios = require('axios');
+const db = require('../config/database');
 const marketSymbolMap = require('../config/marketSymbolMap.json');
+const { isMissingColumnError, isMissingRelationError } = require('../utils/dbCompat');
 
 const BINANCE_QUOTES = ['USDT', 'BUSD', 'USDC', 'BTC', 'ETH'];
 const FOREX_CODES = ['USD', 'EUR', 'GBP', 'JPY', 'AUD', 'NZD', 'CAD', 'CHF'];
 const DEFAULT_DEPTH_LEVELS = 15;
+const INSTRUMENT_CONFIG_CACHE_MS = 60 * 1000;
+
+let instrumentConfigCache = {
+    expiresAt: 0,
+    data: new Map(),
+};
 
 const normalizeSymbol = (symbol = '') => symbol.toUpperCase().replace(/[^A-Z0-9!]/g, '');
 
@@ -24,12 +32,113 @@ const isForexPair = (symbol = '') => {
 
 const isBinanceSymbol = (symbol = '') => BINANCE_QUOTES.some((quote) => symbol.endsWith(quote));
 
-const resolveYahooSymbol = (symbol = '') => {
-    const normalized = normalizeSymbol(symbol);
-    const sharedMapping = marketSymbolMap[normalized];
+const toNullableNumber = (value) => {
+    const parsed = Number.parseFloat(value);
+    return Number.isFinite(parsed) ? parsed : null;
+};
 
-    if (sharedMapping?.provider === 'yahoo' && sharedMapping.quote) {
-        return sharedMapping.quote;
+const mapInstrumentConfigRow = (row = {}) => ({
+    symbol: normalizeSymbol(row.symbol),
+    provider: row.provider || null,
+    quoteSymbol: row.quote_symbol || null,
+    tradingViewSymbol: row.trading_view_symbol || null,
+    useBidAsk: typeof row.use_bid_ask === 'boolean' ? row.use_bid_ask : null,
+    precision: Number.isInteger(row.price_precision) ? row.price_precision : null,
+    spread: toNullableNumber(row.spread),
+    contractSize: toNullableNumber(row.contract_size),
+    lotStep: toNullableNumber(row.lot_step),
+    minLot: toNullableNumber(row.min_lot),
+    quantityLabel: row.quantity_label || null,
+    category: row.category_name || row.category || null,
+    defaultPrice: toNullableNumber(row.default_price),
+    defaultChange: toNullableNumber(row.default_change),
+    defaultVolume: row.default_volume || null,
+});
+
+const getCachedInstrumentConfigs = async () => {
+    const now = Date.now();
+    if (instrumentConfigCache.expiresAt > now && instrumentConfigCache.data.size > 0) {
+        return instrumentConfigCache.data;
+    }
+
+    try {
+        const { rows } = await db.query(`
+            SELECT
+                symbol,
+                provider,
+                quote_symbol,
+                trading_view_symbol,
+                use_bid_ask,
+                price_precision,
+                spread,
+                contract_size,
+                lot_step,
+                min_lot,
+                quantity_label,
+                category_name,
+                default_price,
+                default_change,
+                default_volume
+            FROM instruments
+            WHERE is_active = TRUE
+        `);
+
+        instrumentConfigCache = {
+            expiresAt: now + INSTRUMENT_CONFIG_CACHE_MS,
+            data: new Map(rows.map((row) => {
+                const mapped = mapInstrumentConfigRow(row);
+                return [mapped.symbol, mapped];
+            })),
+        };
+    } catch (error) {
+        if (!isMissingRelationError(error) && !isMissingColumnError(error)) {
+            throw error;
+        }
+
+        instrumentConfigCache = {
+            expiresAt: now + INSTRUMENT_CONFIG_CACHE_MS,
+            data: new Map(),
+        };
+    }
+
+    return instrumentConfigCache.data;
+};
+
+const getMergedInstrumentConfig = async (symbol = '') => {
+    const normalized = normalizeSymbol(symbol);
+    const staticConfig = marketSymbolMap[normalized] || {};
+    const cachedConfigs = await getCachedInstrumentConfigs();
+    const dbConfig = cachedConfigs.get(normalized) || {};
+
+    return {
+        symbol: normalized,
+        provider: dbConfig.provider || staticConfig.provider || null,
+        quoteSymbol: dbConfig.quoteSymbol || staticConfig.quote || null,
+        tradingViewSymbol: dbConfig.tradingViewSymbol || staticConfig.tradingView || null,
+        useBidAsk: typeof dbConfig.useBidAsk === 'boolean'
+            ? dbConfig.useBidAsk
+            : (typeof staticConfig.useBidAsk === 'boolean' ? staticConfig.useBidAsk : null),
+        precision: Number.isInteger(dbConfig.precision)
+            ? dbConfig.precision
+            : (Number.isInteger(staticConfig.precision) ? staticConfig.precision : null),
+        spread: dbConfig.spread ?? toNullableNumber(staticConfig.spread),
+        contractSize: dbConfig.contractSize ?? toNullableNumber(staticConfig.contractSize),
+        lotStep: dbConfig.lotStep ?? toNullableNumber(staticConfig.lotStep),
+        minLot: dbConfig.minLot ?? toNullableNumber(staticConfig.minLot),
+        quantityLabel: dbConfig.quantityLabel || staticConfig.quantityLabel || null,
+        category: dbConfig.category || null,
+        defaultPrice: dbConfig.defaultPrice ?? null,
+        defaultChange: dbConfig.defaultChange ?? null,
+        defaultVolume: dbConfig.defaultVolume ?? null,
+    };
+};
+
+const resolveYahooSymbol = (symbol = '', config = {}) => {
+    const normalized = normalizeSymbol(symbol);
+    const explicitQuote = normalizeSymbol(config.quoteSymbol || '');
+
+    if ((config.provider === 'yahoo' || explicitQuote) && config.quoteSymbol) {
+        return config.quoteSymbol;
     }
 
     if (isForexPair(normalized)) {
@@ -71,24 +180,30 @@ const createSyntheticDepth = ({ bid, ask, price, levels = DEFAULT_DEPTH_LEVELS }
     };
 };
 
-const fetchBinanceQuotes = async (symbols = []) => {
-    if (symbols.length === 0) {
+const fetchBinanceQuotes = async (requests = []) => {
+    if (requests.length === 0) {
         return {};
     }
 
+    const symbolMap = Object.fromEntries(
+        requests.map((request) => [normalizeSymbol(request.quoteSymbol || request.symbol), normalizeSymbol(request.symbol)])
+    );
+    const providerSymbols = Object.keys(symbolMap);
+
     const response = await axios.get('https://api.binance.com/api/v3/ticker/24hr', {
         params: {
-            symbols: JSON.stringify(symbols),
+            symbols: JSON.stringify(providerSymbols),
         },
         timeout: 5000,
     });
 
     return (response.data || []).reduce((acc, ticker) => {
-        if (!ticker?.symbol) {
+        const originalSymbol = symbolMap[normalizeSymbol(ticker?.symbol)];
+        if (!originalSymbol) {
             return acc;
         }
 
-        acc[ticker.symbol] = {
+        acc[originalSymbol] = {
             price: parseQuoteNumber(ticker.lastPrice),
             bid: parseQuoteNumber(ticker.bidPrice),
             ask: parseQuoteNumber(ticker.askPrice),
@@ -100,12 +215,12 @@ const fetchBinanceQuotes = async (symbols = []) => {
     }, {});
 };
 
-const fetchYahooBatchQuotes = async (symbols = []) => {
-    if (symbols.length === 0) {
+const fetchYahooBatchQuotes = async (requests = []) => {
+    if (requests.length === 0) {
         return {};
     }
 
-    const yahooSymbols = symbols.map(resolveYahooSymbol);
+    const yahooSymbols = requests.map((request) => resolveYahooSymbol(request.symbol, request.config));
     const response = await axios.get('https://query1.finance.yahoo.com/v7/finance/quote', {
         params: {
             symbols: yahooSymbols.join(','),
@@ -115,7 +230,7 @@ const fetchYahooBatchQuotes = async (symbols = []) => {
 
     const rawResults = response.data?.quoteResponse?.result || [];
     const symbolByYahoo = Object.fromEntries(
-        symbols.map((symbol) => [resolveYahooSymbol(symbol), symbol])
+        requests.map((request) => [resolveYahooSymbol(request.symbol, request.config), normalizeSymbol(request.symbol)])
     );
 
     return rawResults.reduce((acc, item) => {
@@ -136,8 +251,8 @@ const fetchYahooBatchQuotes = async (symbols = []) => {
             return acc;
         }
 
-        const mapping = marketSymbolMap[originalSymbol] || {};
-        const allowBidAsk = mapping.useBidAsk !== false;
+        const matchingRequest = requests.find((request) => normalizeSymbol(request.symbol) === originalSymbol);
+        const allowBidAsk = matchingRequest?.config?.useBidAsk !== false;
 
         acc[originalSymbol] = {
             price,
@@ -151,20 +266,21 @@ const fetchYahooBatchQuotes = async (symbols = []) => {
     }, {});
 };
 
-const fetchYahooQuotes = async (symbols = []) => {
-    if (symbols.length === 0) {
+const fetchYahooQuotes = async (requests = []) => {
+    if (requests.length === 0) {
         return {};
     }
 
-    const batchQuotes = await fetchYahooBatchQuotes(symbols).catch(() => ({}));
-    const unresolved = symbols.filter((symbol) => !batchQuotes[symbol]?.price);
+    const batchQuotes = await fetchYahooBatchQuotes(requests).catch(() => ({}));
+    const unresolved = requests.filter((request) => !batchQuotes[normalizeSymbol(request.symbol)]?.price);
 
     if (unresolved.length === 0) {
         return batchQuotes;
     }
 
-    const results = await Promise.all(unresolved.map(async (symbol) => {
-        const yahooSymbol = resolveYahooSymbol(symbol);
+    const results = await Promise.all(unresolved.map(async (request) => {
+        const normalizedSymbol = normalizeSymbol(request.symbol);
+        const yahooSymbol = resolveYahooSymbol(normalizedSymbol, request.config);
 
         try {
             const response = await axios.get(`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(yahooSymbol)}`, {
@@ -184,7 +300,7 @@ const fetchYahooQuotes = async (symbols = []) => {
                 .filter((value) => Number.isFinite(value));
 
             if (validCloses.length === 0) {
-                return [symbol, null];
+                return [normalizedSymbol, null];
             }
 
             const latestClose = validCloses[validCloses.length - 1];
@@ -195,7 +311,7 @@ const fetchYahooQuotes = async (symbols = []) => {
                 ? ((latestClose - previousClose) / previousClose) * 100
                 : 0;
 
-            return [symbol, {
+            return [normalizedSymbol, {
                 price: latestClose,
                 bid: null,
                 ask: null,
@@ -204,7 +320,7 @@ const fetchYahooQuotes = async (symbols = []) => {
                 source: 'yahoo-chart',
             }];
         } catch (error) {
-            return [symbol, null];
+            return [normalizedSymbol, null];
         }
     }));
 
@@ -220,12 +336,28 @@ const fetchMarketQuotes = async (symbols = []) => {
         return {};
     }
 
-    const binanceSymbols = requestedSymbols.filter(isBinanceSymbol);
-    const yahooSymbols = requestedSymbols.filter((symbol) => !isBinanceSymbol(symbol));
+    const instrumentConfigs = await Promise.all(
+        requestedSymbols.map(async (symbol) => ({
+            symbol,
+            config: await getMergedInstrumentConfig(symbol),
+        }))
+    );
+    const binanceRequests = instrumentConfigs.filter(({ symbol, config }) => {
+        if (config.provider) {
+            return config.provider === 'binance';
+        }
+        return isBinanceSymbol(normalizeSymbol(config.quoteSymbol || symbol));
+    });
+    const yahooRequests = instrumentConfigs.filter(({ symbol, config }) => {
+        if (config.provider) {
+            return config.provider !== 'binance';
+        }
+        return !isBinanceSymbol(normalizeSymbol(config.quoteSymbol || symbol));
+    });
 
     const [binanceData, yahooData] = await Promise.all([
-        fetchBinanceQuotes(binanceSymbols).catch(() => ({})),
-        fetchYahooQuotes(yahooSymbols).catch(() => ({})),
+        fetchBinanceQuotes(binanceRequests).catch(() => ({})),
+        fetchYahooQuotes(yahooRequests).catch(() => ({})),
     ]);
 
     return {
@@ -240,11 +372,15 @@ const fetchOrderBook = async (symbol, levels = DEFAULT_DEPTH_LEVELS) => {
         return { symbol: normalized, bids: [], asks: [], synthetic: true };
     }
 
-    if (isBinanceSymbol(normalized)) {
+    const config = await getMergedInstrumentConfig(normalized);
+    const quoteSymbol = normalizeSymbol(config.quoteSymbol || normalized);
+    const provider = config.provider || (isBinanceSymbol(quoteSymbol) ? 'binance' : 'yahoo');
+
+    if (provider === 'binance' && isBinanceSymbol(quoteSymbol)) {
         try {
             const response = await axios.get('https://api.binance.com/api/v3/depth', {
                 params: {
-                    symbol: normalized,
+                    symbol: quoteSymbol,
                     limit: Math.min(Math.max(levels, 5), 100),
                 },
                 timeout: 5000,
@@ -316,4 +452,5 @@ module.exports = {
     getMarkPriceForSide,
     getExecutionPriceForSide,
     createSyntheticDepth,
+    getMergedInstrumentConfig,
 };

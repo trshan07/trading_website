@@ -1,5 +1,6 @@
 const pool = require('../../config/database');
 const { isMissingRelationError, isMissingColumnError, getMissingColumnName } = require('../../utils/dbCompat');
+const marketSymbolMap = require('../../config/marketSymbolMap.json');
 
 const mapInstrumentRow = (row) => ({
     symbol: row.symbol,
@@ -8,6 +9,20 @@ const mapInstrumentRow = (row) => ({
     price: parseFloat(row.default_price ?? row.price ?? 0),
     change: parseFloat(row.default_change ?? row.change ?? 0),
     volume: row.default_volume ?? row.volume ?? null,
+    provider: row.provider || marketSymbolMap[row.symbol]?.provider || null,
+    quoteSymbol: row.quote_symbol || marketSymbolMap[row.symbol]?.quote || null,
+    tradingViewSymbol: row.trading_view_symbol || marketSymbolMap[row.symbol]?.tradingView || null,
+    useBidAsk: typeof row.use_bid_ask === 'boolean'
+        ? row.use_bid_ask
+        : (typeof marketSymbolMap[row.symbol]?.useBidAsk === 'boolean' ? marketSymbolMap[row.symbol].useBidAsk : null),
+    precision: Number.isInteger(row.price_precision)
+        ? row.price_precision
+        : (Number.isInteger(marketSymbolMap[row.symbol]?.precision) ? marketSymbolMap[row.symbol].precision : null),
+    spread: Number.parseFloat(row.spread ?? marketSymbolMap[row.symbol]?.spread ?? 0) || null,
+    contractSize: Number.parseFloat(row.contract_size ?? marketSymbolMap[row.symbol]?.contractSize ?? 0) || null,
+    lotStep: Number.parseFloat(row.lot_step ?? marketSymbolMap[row.symbol]?.lotStep ?? 0) || null,
+    minLot: Number.parseFloat(row.min_lot ?? marketSymbolMap[row.symbol]?.minLot ?? 0) || null,
+    quantityLabel: row.quantity_label || marketSymbolMap[row.symbol]?.quantityLabel || null,
     colors: {
         text: row.text_color,
         bg: row.bg_color,

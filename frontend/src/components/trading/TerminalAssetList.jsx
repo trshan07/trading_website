@@ -160,6 +160,7 @@ const TerminalAssetList = ({
                 const precision = instrumentSnapshot.precision;
                 const { bidPrice: calcBid, askPrice: calcAsk, spreadAmt: calcSpread } = calculateSpreads(inst.symbol, currentPrice, {
                   category: inst.category,
+                  instrument: instrumentSnapshot,
                   precision,
                 });
 
