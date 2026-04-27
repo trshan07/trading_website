@@ -59,7 +59,9 @@ const OrderPanel = ({
     category,
     precision: instrument.precision,
   });
-  const hasRealBidAsk = Number.isFinite(instrument.bid) && Number.isFinite(instrument.ask);
+  const hasRealBidAsk = instrument.useBidAsk !== false
+    && Number.isFinite(instrument.bid)
+    && Number.isFinite(instrument.ask);
   const bidPrice = hasRealBidAsk
     ? instrument.bid.toFixed(instrument.precision)
     : Number(currentPrice || calcBid).toFixed(instrument.precision);

@@ -93,12 +93,18 @@ export const getSymbolPrecision = ({ symbol = '', category = '', price = 0 }) =>
 };
 
 export const buildInstrumentSnapshot = ({ symbol, instrument = {}, marketData = {} }) => {
+  const normalizedSymbol = normalizeSymbol(symbol || instrument.symbol);
+  const mapping = marketSymbolMap[normalizedSymbol] || {};
   const liveInfo = marketData[symbol] || {};
   const price = Number.parseFloat(liveInfo.price ?? instrument.price ?? instrument.default_price ?? 0) || 0;
   const change = Number.parseFloat(liveInfo.change ?? instrument.change ?? instrument.default_change ?? 0) || 0;
   const category = instrument.category || 'General';
+  const precision = Number.isInteger(mapping.precision)
+    ? mapping.precision
+    : getSymbolPrecision({ symbol: symbol || instrument.symbol, category, price });
 
   return {
+    ...mapping,
     ...instrument,
     symbol: symbol || instrument.symbol,
     name: instrument.name || symbol,
@@ -109,6 +115,6 @@ export const buildInstrumentSnapshot = ({ symbol, instrument = {}, marketData = 
     bid: Number.parseFloat(liveInfo.bid ?? 0) || null,
     ask: Number.parseFloat(liveInfo.ask ?? 0) || null,
     lastDir: liveInfo.lastDir || 'none',
-    precision: getSymbolPrecision({ symbol: symbol || instrument.symbol, category, price }),
+    precision,
   };
 };

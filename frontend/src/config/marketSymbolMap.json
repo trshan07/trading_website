@@ -62,42 +62,58 @@
   "XAUUSD": {
     "tradingView": "OANDA:XAUUSD",
     "quote": "XAUUSD=X",
-    "provider": "yahoo"
+    "provider": "yahoo",
+    "useBidAsk": false,
+    "precision": 3
   },
   "XAGUSD": {
     "tradingView": "OANDA:XAGUSD",
     "quote": "XAGUSD=X",
-    "provider": "yahoo"
+    "provider": "yahoo",
+    "useBidAsk": false,
+    "precision": 3
   },
   "BRENT": {
     "tradingView": "ICEEUR:BRN1!",
     "quote": "BZ=F",
-    "provider": "yahoo"
+    "provider": "yahoo",
+    "useBidAsk": false,
+    "precision": 3
   },
   "US10Y": {
     "tradingView": "TVC:US10Y",
     "quote": "^TNX",
-    "provider": "yahoo"
+    "provider": "yahoo",
+    "useBidAsk": false,
+    "precision": 3
   },
   "DXY": {
     "tradingView": "TVC:DXY",
     "quote": "DX-Y.NYB",
-    "provider": "yahoo"
+    "provider": "yahoo",
+    "useBidAsk": false,
+    "precision": 3
   },
   "VIX": {
     "tradingView": "CBOE:VIX",
     "quote": "^VIX",
-    "provider": "yahoo"
+    "provider": "yahoo",
+    "useBidAsk": false,
+    "precision": 2
   },
   "SPX": {
     "tradingView": "SP:SPX",
     "quote": "^GSPC",
-    "provider": "yahoo"
+    "provider": "yahoo",
+    "useBidAsk": false,
+    "precision": 2
   },
   "NDX": {
     "tradingView": "NASDAQ:NDX",
     "quote": "^NDX",
-    "provider": "yahoo"
+    "provider": "yahoo",
+    "useBidAsk": false,
+    "precision": 2
   },
   "DJI": {
     "tradingView": "DJ:DJI",

@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { FaSearch, FaStar, FaRegStar, FaChevronDown, FaTimes } from 'react-icons/fa';
 import { calculateSpreads } from '../../utils/spreadCalculator';
-import { getSymbolPrecision } from '../../utils/marketSymbols';
+import { buildInstrumentSnapshot } from '../../utils/marketSymbols';
 
 const TerminalAssetList = ({ 
   activeSymbol, 
@@ -148,22 +148,24 @@ const TerminalAssetList = ({
 
               {/* Price Calculation (Live) */}
               {(() => {
-                const liveData = marketData[inst.symbol] || {};
-                const currentPrice = liveData.price || inst.price;
-                const currentChange = liveData.change !== undefined ? liveData.change : inst.change;
-                const lastDir = liveData.lastDir || 'none';
-
-                const precision = getSymbolPrecision({
+                const instrumentSnapshot = buildInstrumentSnapshot({
                   symbol: inst.symbol,
-                  category: inst.category,
-                  price: currentPrice,
+                  instrument: inst,
+                  marketData,
                 });
+                const liveData = marketData[inst.symbol] || {};
+                const currentPrice = instrumentSnapshot.price;
+                const currentChange = instrumentSnapshot.change;
+                const lastDir = instrumentSnapshot.lastDir || 'none';
+                const precision = instrumentSnapshot.precision;
                 const { bidPrice: calcBid, askPrice: calcAsk, spreadAmt: calcSpread } = calculateSpreads(inst.symbol, currentPrice, {
                   category: inst.category,
                   precision,
                 });
 
-                const hasRealBidAsk = Number.isFinite(liveData.bid) && Number.isFinite(liveData.ask);
+                const hasRealBidAsk = instrumentSnapshot.useBidAsk !== false
+                  && Number.isFinite(liveData.bid)
+                  && Number.isFinite(liveData.ask);
                 const sellPrice = hasRealBidAsk ? liveData.bid.toFixed(precision) : Number(currentPrice || calcBid).toFixed(precision);
                 const buyPrice = hasRealBidAsk ? liveData.ask.toFixed(precision) : Number(currentPrice || calcAsk).toFixed(precision);
                 const spreadAmt = hasRealBidAsk ? Math.abs(liveData.ask - liveData.bid) : 0;
