@@ -46,7 +46,10 @@ const OrderPanel = ({
   const currentPrice = instrument.price || 0;
   const lastDir = instrument.lastDir || 'none';
   
-  const { bidPrice: calcBid, askPrice: calcAsk, spreadAmt: calcSpread } = calculateSpreads(symbol, currentPrice);
+  const { bidPrice: calcBid, askPrice: calcAsk, spreadAmt: calcSpread } = calculateSpreads(symbol, currentPrice, {
+    category,
+    precision: instrument.precision,
+  });
   const bidPrice = instrument.bid ? instrument.bid.toFixed(instrument.precision) : calcBid;
   const askPrice = instrument.ask ? instrument.ask.toFixed(instrument.precision) : calcAsk;
   const spreadAmt = instrument.bid && instrument.ask ? Math.abs(instrument.ask - instrument.bid) : calcSpread;

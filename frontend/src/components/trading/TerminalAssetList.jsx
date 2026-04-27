@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { FaSearch, FaStar, FaRegStar, FaChevronDown, FaTimes } from 'react-icons/fa';
 import { calculateSpreads } from '../../utils/spreadCalculator';
+import { getSymbolPrecision } from '../../utils/marketSymbols';
 
 const TerminalAssetList = ({ 
   activeSymbol, 
@@ -151,11 +152,19 @@ const TerminalAssetList = ({
                 const currentPrice = liveData.price || inst.price;
                 const currentChange = liveData.change !== undefined ? liveData.change : inst.change;
                 const lastDir = liveData.lastDir || 'none';
-                
-                const { bidPrice: calcBid, askPrice: calcAsk, spreadAmt: calcSpread } = calculateSpreads(inst.symbol, currentPrice);
-                
-                const sellPrice = liveData.bid ? liveData.bid.toFixed(inst.price > 100 ? 2 : 4) : calcBid;
-                const buyPrice = liveData.ask ? liveData.ask.toFixed(inst.price > 100 ? 2 : 4) : calcAsk;
+
+                const precision = getSymbolPrecision({
+                  symbol: inst.symbol,
+                  category: inst.category,
+                  price: currentPrice,
+                });
+                const { bidPrice: calcBid, askPrice: calcAsk, spreadAmt: calcSpread } = calculateSpreads(inst.symbol, currentPrice, {
+                  category: inst.category,
+                  precision,
+                });
+
+                const sellPrice = liveData.bid ? liveData.bid.toFixed(precision) : calcBid;
+                const buyPrice = liveData.ask ? liveData.ask.toFixed(precision) : calcAsk;
                 const spreadAmt = liveData.bid && liveData.ask ? Math.abs(liveData.ask - liveData.bid) : calcSpread;
                 
                 const spreadDisplay = spreadAmt < 0.01 ? spreadAmt.toFixed(4) : spreadAmt.toFixed(2);
