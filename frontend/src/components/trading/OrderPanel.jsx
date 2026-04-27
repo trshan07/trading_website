@@ -67,10 +67,10 @@ const OrderPanel = ({
     && Number.isFinite(instrument.ask);
   const bidPrice = hasRealBidAsk
     ? instrument.bid.toFixed(instrument.precision)
-    : Number(calcBid || currentPrice).toFixed(instrument.precision);
+    : Number(currentPrice || calcBid).toFixed(instrument.precision);
   const askPrice = hasRealBidAsk
     ? instrument.ask.toFixed(instrument.precision)
-    : Number(calcAsk || currentPrice).toFixed(instrument.precision);
+    : Number(currentPrice || calcAsk).toFixed(instrument.precision);
   const spreadAmt = hasRealBidAsk ? Math.abs(instrument.ask - instrument.bid) : Number(calcSpread) || 0;
   const executionPrice = selectedSide === 'buy' ? parseFloat(askPrice) : parseFloat(bidPrice);
   const lotStep = getLotStep(category, symbol, instrument);

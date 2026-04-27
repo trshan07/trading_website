@@ -116,6 +116,7 @@ export const buildInstrumentSnapshot = ({ symbol, instrument = {}, marketData = 
     bid: Number.parseFloat(liveInfo.bid ?? 0) || null,
     ask: Number.parseFloat(liveInfo.ask ?? 0) || null,
     lastDir: liveInfo.lastDir || 'none',
+    useBidAsk: mapping.useBidAsk ?? (mapping.provider === 'binance'),
     precision,
   };
 };
