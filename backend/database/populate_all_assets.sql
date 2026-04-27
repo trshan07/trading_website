@@ -53,8 +53,8 @@ INSERT INTO instruments (
 -- Options
 ('VIX', 'Volatility Index', 'Options', 13.5, -2.5, 'N/A', 'yahoo', '^VIX', 'CBOE:VIX', FALSE, 2, 0.01, 100, 0.01, 0.01, 'contracts'),
 -- Commodities
-('XAUUSD', 'Gold', 'Commodities', 2340.5, 0.85, '42.1B', 'yahoo', 'GC=F', 'OANDA:XAUUSD', FALSE, 3, 0.1, 100, 0.01, 0.01, 'units'),
-('XAGUSD', 'Silver', 'Commodities', 28.45, 1.2, '8.4B', 'yahoo', 'SI=F', 'OANDA:XAGUSD', FALSE, 3, 0.05, 100, 0.01, 0.01, 'units'),
+('XAUUSD', 'Gold', 'Commodities', 2340.5, 0.85, '42.1B', 'yahoo', 'XAUUSD=X', 'OANDA:XAUUSD', FALSE, 3, 0.1, 100, 0.01, 0.01, 'units'),
+('XAGUSD', 'Silver', 'Commodities', 28.45, 1.2, '8.4B', 'yahoo', 'XAGUSD=X', 'OANDA:XAGUSD', FALSE, 3, 0.05, 100, 0.01, 0.01, 'units'),
 ('BRENT', 'Brent Oil', 'Commodities', 82.4, -0.6, '12.1B', 'yahoo', 'BZ=F', 'ICEEUR:BRN1!', FALSE, 3, 0.05, 100, 0.01, 0.01, 'units'),
 -- Brazilian Index
 ('IBOV', 'BOVESPA', 'Brazilian Index', 128500, 0.45, '24.1B', 'yahoo', '^BVSP', 'BMFBOVESPA:IBOV', FALSE, 2, 5, 1, 0.01, 0.01, 'index units'),

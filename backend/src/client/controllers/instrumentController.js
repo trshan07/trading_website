@@ -9,9 +9,9 @@ const mapInstrumentRow = (row) => ({
     price: parseFloat(row.default_price ?? row.price ?? 0),
     change: parseFloat(row.default_change ?? row.change ?? 0),
     volume: row.default_volume ?? row.volume ?? null,
-    provider: row.provider || marketSymbolMap[row.symbol]?.provider || null,
-    quoteSymbol: row.quote_symbol || marketSymbolMap[row.symbol]?.quote || null,
-    tradingViewSymbol: row.trading_view_symbol || marketSymbolMap[row.symbol]?.tradingView || null,
+    provider: marketSymbolMap[row.symbol]?.provider || row.provider || null,
+    quoteSymbol: marketSymbolMap[row.symbol]?.quote || row.quote_symbol || null,
+    tradingViewSymbol: marketSymbolMap[row.symbol]?.tradingView || row.trading_view_symbol || null,
     useBidAsk: typeof row.use_bid_ask === 'boolean'
         ? row.use_bid_ask
         : (typeof marketSymbolMap[row.symbol]?.useBidAsk === 'boolean' ? marketSymbolMap[row.symbol].useBidAsk : null),

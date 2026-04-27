@@ -112,6 +112,26 @@ const mergeQuoteSnapshot = (current = {}, incoming = {}) => {
   return next;
 };
 
+const syncInstrumentsWithQuotes = (current = [], incoming = {}) => current.map((instrument) => {
+  const quote = incoming[instrument.symbol];
+  if (!quote) {
+    return instrument;
+  }
+
+  const nextPrice = Number.parseFloat(quote.price ?? instrument.price ?? instrument.default_price ?? 0) || 0;
+  const prevPrice = Number.parseFloat(instrument.price ?? instrument.default_price ?? nextPrice) || nextPrice;
+
+  return {
+    ...instrument,
+    price: nextPrice,
+    change: Number.parseFloat(quote.change ?? instrument.change ?? instrument.default_change ?? 0) || 0,
+    volume: quote.volume ?? instrument.volume ?? instrument.default_volume ?? null,
+    bid: Number.parseFloat(quote.bid ?? instrument.bid ?? 0) || null,
+    ask: Number.parseFloat(quote.ask ?? instrument.ask ?? 0) || null,
+    lastDir: nextPrice > prevPrice ? 'up' : nextPrice < prevPrice ? 'down' : (instrument.lastDir || 'none'),
+  };
+});
+
 const buildPortfolioHistory = ({ activeAccount, positions = [], transactions = [], marketData = {} }) => {
   const now = new Date();
   const currentBalance = (Number.parseFloat(activeAccount?.balance) || 0) + (Number.parseFloat(activeAccount?.credit) || 0);
@@ -456,6 +476,7 @@ export const useDashboardData = (accountType = 'demo') => {
       const response = await infraService.getMarketQuotes(filteredSymbols);
       if (response.success && response.data) {
         setMarketData((prev) => mergeQuoteSnapshot(prev, response.data));
+        setInstruments((prev) => syncInstrumentsWithQuotes(prev, response.data));
       }
     } catch (error) {
       console.error('Live Quotes Fetch Failed:', error);
@@ -956,20 +977,29 @@ export const useDashboardData = (accountType = 'demo') => {
   // --- Chart Sync Integration ---
   useEffect(() => {
     const handleChartUpdate = (e) => {
-      const { symbol, price } = e.detail;
+      const symbol = e.detail?.symbol;
+      const price = Number.parseFloat(e.detail?.price);
+      if (!symbol || !Number.isFinite(price)) {
+        return;
+      }
+
       setMarketData(prev => {
-        if (!prev[symbol]) return prev;
-        if (prev[symbol].price === price) return prev;
+        const previousSnapshot = prev[symbol] || {};
+        if (previousSnapshot.price === price) return prev;
 
         return {
           ...prev,
           [symbol]: {
-            ...prev[symbol],
-            price: price,
-            lastDir: price > prev[symbol].price ? 'up' : price < prev[symbol].price ? 'down' : 'none'
+            ...previousSnapshot,
+            price,
+            lastDir: price > (previousSnapshot.price ?? price) ? 'up' : price < (previousSnapshot.price ?? price) ? 'down' : (previousSnapshot.lastDir || 'none')
           }
         };
       });
+
+      setInstruments((prev) => syncInstrumentsWithQuotes(prev, {
+        [symbol]: { price },
+      }));
     };
 
     window.addEventListener('active_price_update', handleChartUpdate);
@@ -979,6 +1009,7 @@ export const useDashboardData = (accountType = 'demo') => {
   // --- WebSocket Price Integration (Kept as is for UX) ---
   useEffect(() => {
     const handleLiveData = (liveTickers) => {
+      setInstruments((prev) => syncInstrumentsWithQuotes(prev, liveTickers));
       setMarketData(prev => {
         const newData = { ...prev };
         let updated = false;

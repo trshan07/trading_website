@@ -148,6 +148,6 @@ INSERT INTO instruments (
 ('AAPL', 'Apple Inc.', 'Stocks', 185.2, 1.2, '$4.5B', 'yahoo', 'AAPL', 'NASDAQ:AAPL', FALSE, 2, 0.02, 1, 0.01, 0.01, 'shares'),
 ('TSLA', 'Tesla', 'Stocks', 195.3, 3.5, '$6.1B', 'yahoo', 'TSLA', 'NASDAQ:TSLA', FALSE, 2, 0.02, 1, 0.01, 0.01, 'shares'),
 ('SPX', 'S&P 500', 'Indices', 4850, 0.32, 'N/A', 'yahoo', '^GSPC', 'SP:SPX', FALSE, 2, 1, 1, 0.01, 0.01, 'index units'),
-('XAUUSD', 'Gold', 'Commodities', 2340.5, 0.85, '$42.1B', 'yahoo', 'GC=F', 'OANDA:XAUUSD', FALSE, 3, 0.1, 100, 0.01, 0.01, 'units'),
+('XAUUSD', 'Gold', 'Commodities', 2340.5, 0.85, '$42.1B', 'yahoo', 'XAUUSD=X', 'OANDA:XAUUSD', FALSE, 3, 0.1, 100, 0.01, 0.01, 'units'),
 ('BRENT', 'Brent Oil', 'Commodities', 82.4, -0.6, '$12.1B', 'yahoo', 'BZ=F', 'ICEEUR:BRN1!', FALSE, 3, 0.05, 100, 0.01, 0.01, 'units')
 ON CONFLICT (symbol) DO NOTHING;

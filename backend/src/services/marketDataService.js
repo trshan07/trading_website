@@ -112,9 +112,9 @@ const getMergedInstrumentConfig = async (symbol = '') => {
 
     return {
         symbol: normalized,
-        provider: dbConfig.provider || staticConfig.provider || null,
-        quoteSymbol: dbConfig.quoteSymbol || staticConfig.quote || null,
-        tradingViewSymbol: dbConfig.tradingViewSymbol || staticConfig.tradingView || null,
+        provider: staticConfig.provider || dbConfig.provider || null,
+        quoteSymbol: staticConfig.quote || dbConfig.quoteSymbol || null,
+        tradingViewSymbol: staticConfig.tradingView || dbConfig.tradingViewSymbol || null,
         useBidAsk: typeof dbConfig.useBidAsk === 'boolean'
             ? dbConfig.useBidAsk
             : (typeof staticConfig.useBidAsk === 'boolean' ? staticConfig.useBidAsk : null),
