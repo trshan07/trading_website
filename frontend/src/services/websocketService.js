@@ -1,5 +1,28 @@
 // frontend/src/services/websocketService.js
 
+const deriveBackendWebSocketUrl = () => {
+  let wsUrl = import.meta.env.VITE_WEBSOCKET_URL
+    || import.meta.env.REACT_APP_WEBSOCKET_URL
+    || import.meta.env.VITE_API_URL
+    || 'http://localhost:5000/api';
+
+  if (wsUrl.endsWith('/api')) {
+    wsUrl = wsUrl.slice(0, -4);
+  }
+
+  wsUrl = wsUrl.replace(/^http:/i, 'ws:').replace(/^https:/i, 'wss:');
+
+  if (
+    wsUrl.includes('localhost') &&
+    typeof window !== 'undefined' &&
+    window.location.hostname !== 'localhost'
+  ) {
+    wsUrl = wsUrl.replace('localhost', window.location.hostname);
+  }
+
+  return wsUrl;
+};
+
 class WebSocketService {
   constructor() {
     this.ws = null;
@@ -11,6 +34,7 @@ class WebSocketService {
     this.connectTimerId = null; // Holds the setTimeout ID so we can cancel it
     this.waitingForOnline = false;
     this.hasLoggedSuccessfulConnect = false;
+    this.pingTimerId = null;
 
     if (typeof window !== 'undefined') {
       window.addEventListener('online', this.handleOnline);
@@ -53,6 +77,11 @@ class WebSocketService {
       this.connectTimerId = null;
     }
 
+    if (this.pingTimerId) {
+      clearInterval(this.pingTimerId);
+      this.pingTimerId = null;
+    }
+
     if (this.ws) {
       this.ws.onopen = null;
       this.ws.onmessage = null;
@@ -90,41 +119,41 @@ class WebSocketService {
       if (this.listeners.size === 0 || !this.canConnect()) return;
 
       this.isConnecting = true;
-      const ws = new WebSocket('wss://stream.binance.com:9443/ws/!ticker@arr');
+      const ws = new WebSocket(deriveBackendWebSocketUrl());
       this.ws = ws;
 
       ws.onopen = () => {
         if (this.ws !== ws) { ws.close(); return; } // Stale connection guard
         if (!this.hasLoggedSuccessfulConnect) {
-          console.log('[WebSocketService] Connected to Binance Full Ticker Stream');
+          console.log('[WebSocketService] Connected to backend market stream');
           this.hasLoggedSuccessfulConnect = true;
         }
         this.isConnected = true;
         this.isConnecting = false;
         this.waitingForOnline = false;
         this.reconnectAttempts = 0;
+
+        if (this.pingTimerId) {
+          clearInterval(this.pingTimerId);
+        }
+
+        this.pingTimerId = setInterval(() => {
+          if (this.ws !== ws || ws.readyState !== WebSocket.OPEN) {
+            return;
+          }
+
+          try {
+            ws.send(JSON.stringify({ type: 'ping' }));
+          } catch (err) {}
+        }, 15000);
       };
 
       ws.onmessage = (event) => {
         if (this.ws !== ws) return; // Ignore messages from stale connections
         try {
-          const data = JSON.parse(event.data);
-          if (Array.isArray(data)) {
-            const formattedData = {};
-            const updatedAt = Date.now();
-            data.forEach(ticker => {
-              if (ticker.s && ticker.c) {
-                formattedData[ticker.s] = {
-                  price: parseFloat(ticker.c),
-                  bid: parseFloat(ticker.b),
-                  ask: parseFloat(ticker.a),
-                  change: parseFloat(ticker.P),
-                  volume: parseFloat(ticker.v),
-                  updatedAt,
-                };
-              }
-            });
-            this.notifyListeners(formattedData);
+          const payload = JSON.parse(event.data);
+          if (payload?.type === 'market-quotes' && payload.data && typeof payload.data === 'object') {
+            this.notifyListeners(payload.data);
           }
         } catch (err) {
           console.error('[WebSocketService] Message parse error:', err);
@@ -137,6 +166,10 @@ class WebSocketService {
         this.isConnecting = false;
         this.ws = null;
         this.connectTimerId = null;
+        if (this.pingTimerId) {
+          clearInterval(this.pingTimerId);
+          this.pingTimerId = null;
+        }
         if (!this.canConnect()) {
           this.waitingForOnline = true;
           return;

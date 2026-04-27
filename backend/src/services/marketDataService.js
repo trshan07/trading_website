@@ -7,6 +7,16 @@ const BINANCE_QUOTES = ['USDT', 'BUSD', 'USDC', 'BTC', 'ETH'];
 const FOREX_CODES = ['USD', 'EUR', 'GBP', 'JPY', 'AUD', 'NZD', 'CAD', 'CHF'];
 const DEFAULT_DEPTH_LEVELS = 15;
 const INSTRUMENT_CONFIG_CACHE_MS = 60 * 1000;
+const TWELVE_DATA_API_BASE = 'https://api.twelvedata.com';
+const TWELVE_DATA_INTERVAL_MAP = {
+    '1m': '1min',
+    '5m': '5min',
+    '15m': '15min',
+    '1h': '1h',
+    '4h': '4h',
+    '1d': '1day',
+    '1w': '1week',
+};
 
 let instrumentConfigCache = {
     expiresAt: 0,
@@ -41,6 +51,7 @@ const mapInstrumentConfigRow = (row = {}) => ({
     symbol: normalizeSymbol(row.symbol),
     provider: row.provider || null,
     quoteSymbol: row.quote_symbol || null,
+    dataSymbol: row.data_symbol || null,
     tradingViewSymbol: row.trading_view_symbol || null,
     useBidAsk: typeof row.use_bid_ask === 'boolean' ? row.use_bid_ask : null,
     precision: Number.isInteger(row.price_precision) ? row.price_precision : null,
@@ -67,6 +78,7 @@ const getCachedInstrumentConfigs = async () => {
                 symbol,
                 provider,
                 quote_symbol,
+                NULL::text AS data_symbol,
                 trading_view_symbol,
                 use_bid_ask,
                 price_precision,
@@ -114,6 +126,7 @@ const getMergedInstrumentConfig = async (symbol = '') => {
         symbol: normalized,
         provider: staticConfig.provider || dbConfig.provider || null,
         quoteSymbol: staticConfig.quote || dbConfig.quoteSymbol || null,
+        dataSymbol: staticConfig.dataSymbol || dbConfig.dataSymbol || null,
         tradingViewSymbol: staticConfig.tradingView || dbConfig.tradingViewSymbol || null,
         useBidAsk: typeof dbConfig.useBidAsk === 'boolean'
             ? dbConfig.useBidAsk
@@ -143,6 +156,35 @@ const resolveYahooSymbol = (symbol = '', config = {}) => {
 
     if (isForexPair(normalized)) {
         return `${normalized}=X`;
+    }
+
+    return normalized;
+};
+
+const hasTwelveDataApiKey = () => Boolean(process.env.TWELVEDATA_API_KEY);
+
+const resolveTwelveDataSymbol = (symbol = '', config = {}) => {
+    const explicitSymbol = String(
+        config.dataSymbol
+        || config.marketDataSymbol
+        || config.streamSymbol
+        || ''
+    ).trim();
+    if (explicitSymbol) {
+        return explicitSymbol;
+    }
+
+    const normalized = normalizeSymbol(symbol);
+    if (isForexPair(normalized)) {
+        return `${normalized.slice(0, 3)}/${normalized.slice(3, 6)}`;
+    }
+
+    if (normalized === 'XAUUSD') {
+        return 'XAU/USD';
+    }
+
+    if (normalized === 'XAGUSD') {
+        return 'XAG/USD';
     }
 
     return normalized;
@@ -330,6 +372,143 @@ const fetchYahooQuotes = async (requests = []) => {
     };
 };
 
+const normalizeTwelveDataQuotePayload = (payload) => {
+    if (!payload || typeof payload !== 'object') {
+        return [];
+    }
+
+    if (Array.isArray(payload)) {
+        return payload.filter((item) => item && typeof item === 'object');
+    }
+
+    if (payload.symbol || payload.price || payload.close) {
+        return [payload];
+    }
+
+    if (Array.isArray(payload.data)) {
+        return payload.data.filter((item) => item && typeof item === 'object');
+    }
+
+    return Object.entries(payload).reduce((acc, [key, value]) => {
+        if (!value || typeof value !== 'object') {
+            return acc;
+        }
+
+        if (['status', 'code', 'message', 'meta'].includes(key)) {
+            return acc;
+        }
+
+        acc.push({
+            symbol: value.symbol || key,
+            ...value,
+        });
+        return acc;
+    }, []);
+};
+
+const fetchTwelveDataQuotes = async (requests = []) => {
+    if (requests.length === 0 || !hasTwelveDataApiKey()) {
+        return {};
+    }
+
+    const params = {
+        symbol: requests.map((request) => resolveTwelveDataSymbol(request.symbol, request.config)).join(','),
+        apikey: process.env.TWELVEDATA_API_KEY,
+        interval: '1min',
+        prepost: true,
+    };
+
+    const response = await axios.get(`${TWELVE_DATA_API_BASE}/quote`, {
+        params,
+        timeout: 5000,
+    });
+
+    const symbolMap = Object.fromEntries(
+        requests.map((request) => [resolveTwelveDataSymbol(request.symbol, request.config), normalizeSymbol(request.symbol)])
+    );
+
+    return normalizeTwelveDataQuotePayload(response.data).reduce((acc, item) => {
+        const lookupKey = String(item.symbol || '').trim();
+        const originalSymbol = symbolMap[lookupKey] || symbolMap[normalizeSymbol(lookupKey)];
+        if (!originalSymbol) {
+            return acc;
+        }
+
+        const price = parseQuoteNumber(
+            item.price
+            ?? item.close
+            ?? item.last
+            ?? item.bid
+            ?? item.ask
+        );
+
+        if (price === null) {
+            return acc;
+        }
+
+        const timestamp = Number.parseInt(item.timestamp ?? item.time ?? 0, 10);
+        acc[originalSymbol] = {
+            price,
+            bid: parseQuoteNumber(item.bid),
+            ask: parseQuoteNumber(item.ask),
+            change: parseQuoteNumber(item.percent_change ?? item.change_percent ?? item.change) ?? 0,
+            volume: parseQuoteNumber(item.volume ?? item.day_volume),
+            updatedAt: Number.isFinite(timestamp) && timestamp > 0 ? timestamp * 1000 : Date.now(),
+            source: 'twelvedata',
+        };
+        return acc;
+    }, {});
+};
+
+const fetchTwelveDataHistory = async (symbol = '', interval = '15m', outputsize = 300, config = {}) => {
+    if (!hasTwelveDataApiKey()) {
+        throw new Error('Twelve Data API key not configured');
+    }
+
+    const response = await axios.get(`${TWELVE_DATA_API_BASE}/time_series`, {
+        params: {
+            symbol: resolveTwelveDataSymbol(symbol, config),
+            interval: TWELVE_DATA_INTERVAL_MAP[interval] || '15min',
+            outputsize,
+            order: 'asc',
+            dp: 8,
+            prepost: true,
+            apikey: process.env.TWELVEDATA_API_KEY,
+        },
+        timeout: 5000,
+    });
+
+    const values = response.data?.values || [];
+    if (!Array.isArray(values) || values.length === 0) {
+        throw new Error('Twelve Data history unavailable');
+    }
+
+    return values.reduce((acc, candle) => {
+        const timeMs = Date.parse(candle.datetime);
+        const open = parseQuoteNumber(candle.open);
+        const high = parseQuoteNumber(candle.high);
+        const low = parseQuoteNumber(candle.low);
+        const close = parseQuoteNumber(candle.close);
+        const volume = parseQuoteNumber(candle.volume) ?? 0;
+
+        if (!Number.isFinite(timeMs) || [open, high, low, close].some((value) => value === null)) {
+            return acc;
+        }
+
+        acc.push([
+            timeMs,
+            open.toString(),
+            high.toString(),
+            low.toString(),
+            close.toString(),
+            volume.toString(),
+            timeMs,
+            '0', '0', '0', '0', '0',
+        ]);
+        return acc;
+    }, []);
+};
+
 const fetchMarketQuotes = async (symbols = []) => {
     const requestedSymbols = Array.from(new Set(symbols.map(normalizeSymbol).filter(Boolean)));
     if (requestedSymbols.length === 0) {
@@ -348,22 +527,138 @@ const fetchMarketQuotes = async (symbols = []) => {
         }
         return isBinanceSymbol(normalizeSymbol(config.quoteSymbol || symbol));
     });
-    const yahooRequests = instrumentConfigs.filter(({ symbol, config }) => {
+    const nonBinanceRequests = instrumentConfigs.filter(({ symbol, config }) => {
         if (config.provider) {
             return config.provider !== 'binance';
         }
         return !isBinanceSymbol(normalizeSymbol(config.quoteSymbol || symbol));
     });
+    const twelveDataRequests = nonBinanceRequests.filter(({ config }) => config.provider === 'twelvedata');
+    const legacyYahooRequests = nonBinanceRequests.filter(({ config }) => config.provider !== 'twelvedata');
 
-    const [binanceData, yahooData] = await Promise.all([
+    const [binanceData, twelveDataData, legacyYahooData] = await Promise.all([
         fetchBinanceQuotes(binanceRequests).catch(() => ({})),
-        fetchYahooQuotes(yahooRequests).catch(() => ({})),
+        fetchTwelveDataQuotes(twelveDataRequests).catch(() => ({})),
+        fetchYahooQuotes(legacyYahooRequests).catch(() => ({})),
     ]);
+    const unresolvedTwelveDataRequests = twelveDataRequests.filter(
+        ({ symbol }) => !twelveDataData[normalizeSymbol(symbol)]?.price
+    );
+    const yahooFallbackData = unresolvedTwelveDataRequests.length > 0
+        ? await fetchYahooQuotes(unresolvedTwelveDataRequests).catch(() => ({}))
+        : {};
 
     return {
-        ...yahooData,
+        ...legacyYahooData,
+        ...yahooFallbackData,
+        ...twelveDataData,
         ...binanceData,
     };
+};
+
+const fetchMarketHistoryCandles = async (symbol = '', interval = '15m', outputsize = 300) => {
+    const normalized = normalizeSymbol(symbol);
+    if (!normalized) {
+        return [];
+    }
+
+    const config = await getMergedInstrumentConfig(normalized);
+    const quoteSymbol = normalizeSymbol(config.quoteSymbol || normalized);
+    const provider = config.provider || (isBinanceSymbol(quoteSymbol) ? 'binance' : 'twelvedata');
+
+    if (provider === 'binance' && isBinanceSymbol(quoteSymbol)) {
+        const response = await axios.get('https://api.binance.com/api/v3/klines', {
+            params: {
+                symbol: quoteSymbol,
+                interval,
+                limit: outputsize,
+            },
+            timeout: 5000,
+        });
+
+        return response.data || [];
+    }
+
+    try {
+        return await fetchTwelveDataHistory(normalized, interval, outputsize, config);
+    } catch (error) {
+        if (provider !== 'twelvedata') {
+            throw error;
+        }
+
+        return fetchYahooHistory([{ symbol: normalized, config }], interval, outputsize);
+    }
+};
+
+const fetchYahooHistory = async (requests = [], interval = '15m', outputsize = 300) => {
+    if (requests.length === 0) {
+        return [];
+    }
+
+    const [{ symbol, config = {} } = {}] = requests;
+    const yahooSymbol = resolveYahooSymbol(symbol, config);
+    const rangeMap = {
+        '1m': '1d',
+        '5m': '5d',
+        '15m': '5d',
+        '1h': '1mo',
+        '4h': '3mo',
+        '1d': '1y',
+        '1w': '5y',
+    };
+    const intervalMap = {
+        '1m': '1m',
+        '5m': '5m',
+        '15m': '15m',
+        '1h': '60m',
+        '4h': '60m',
+        '1d': '1d',
+        '1w': '1wk',
+    };
+
+    const response = await axios.get(`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(yahooSymbol)}`, {
+        params: {
+            interval: intervalMap[interval] || '15m',
+            range: rangeMap[interval] || '5d',
+            includePrePost: false,
+            events: 'div,splits',
+        },
+        timeout: 5000,
+    });
+
+    const result = response.data?.chart?.result?.[0];
+    const timestamps = result?.timestamp || [];
+    const quote = result?.indicators?.quote?.[0];
+
+    if (!timestamps.length || !quote) {
+        throw new Error('Yahoo history unavailable');
+    }
+
+    const candles = timestamps.reduce((acc, time, index) => {
+        const open = parseQuoteNumber(quote.open?.[index]);
+        const high = parseQuoteNumber(quote.high?.[index]);
+        const low = parseQuoteNumber(quote.low?.[index]);
+        const close = parseQuoteNumber(quote.close?.[index]);
+        const volume = parseQuoteNumber(quote.volume?.[index]) ?? 0;
+
+        if ([open, high, low, close].some((value) => value === null)) {
+            return acc;
+        }
+
+        acc.push([
+            time * 1000,
+            open.toString(),
+            high.toString(),
+            low.toString(),
+            close.toString(),
+            volume.toString(),
+            time * 1000,
+            '0', '0', '0', '0', '0',
+        ]);
+        return acc;
+    }, []);
+
+    return candles.slice(-outputsize);
 };
 
 const fetchOrderBook = async (symbol, levels = DEFAULT_DEPTH_LEVELS) => {
@@ -447,10 +742,13 @@ module.exports = {
     isForexPair,
     isBinanceSymbol,
     resolveYahooSymbol,
+    resolveTwelveDataSymbol,
     fetchMarketQuotes,
+    fetchMarketHistoryCandles,
     fetchOrderBook,
     getMarkPriceForSide,
     getExecutionPriceForSide,
     createSyntheticDepth,
     getMergedInstrumentConfig,
+    hasTwelveDataApiKey,
 };

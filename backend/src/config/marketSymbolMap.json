@@ -27,147 +27,156 @@
   "EURUSD": {
     "tradingView": "FX:EURUSD",
     "quote": "EURUSD=X",
-    "provider": "yahoo"
+    "provider": "twelvedata",
+    "dataSymbol": "EUR/USD"
   },
   "GBPUSD": {
     "tradingView": "FX:GBPUSD",
     "quote": "GBPUSD=X",
-    "provider": "yahoo"
+    "provider": "twelvedata",
+    "dataSymbol": "GBP/USD"
   },
   "USDJPY": {
     "tradingView": "FX:USDJPY",
     "quote": "USDJPY=X",
-    "provider": "yahoo"
+    "provider": "twelvedata",
+    "dataSymbol": "USD/JPY"
   },
   "AUDUSD": {
     "tradingView": "FX:AUDUSD",
     "quote": "AUDUSD=X",
-    "provider": "yahoo"
+    "provider": "twelvedata",
+    "dataSymbol": "AUD/USD"
   },
   "USDCAD": {
     "tradingView": "FX:USDCAD",
     "quote": "USDCAD=X",
-    "provider": "yahoo"
+    "provider": "twelvedata",
+    "dataSymbol": "USD/CAD"
   },
   "USDCHF": {
     "tradingView": "FX:USDCHF",
     "quote": "USDCHF=X",
-    "provider": "yahoo"
+    "provider": "twelvedata",
+    "dataSymbol": "USD/CHF"
   },
   "NZDUSD": {
     "tradingView": "FX:NZDUSD",
     "quote": "NZDUSD=X",
-    "provider": "yahoo"
+    "provider": "twelvedata",
+    "dataSymbol": "NZD/USD"
   },
   "XAUUSD": {
     "tradingView": "OANDA:XAUUSD",
     "quote": "XAUUSD=X",
-    "provider": "yahoo",
+    "provider": "twelvedata",
+    "dataSymbol": "XAU/USD",
     "useBidAsk": false,
     "precision": 3
   },
   "XAGUSD": {
     "tradingView": "OANDA:XAGUSD",
     "quote": "XAGUSD=X",
-    "provider": "yahoo",
+    "provider": "twelvedata",
+    "dataSymbol": "XAG/USD",
     "useBidAsk": false,
     "precision": 3
   },
   "BRENT": {
     "tradingView": "ICEEUR:BRN1!",
     "quote": "BZ=F",
-    "provider": "yahoo",
+    "provider": "twelvedata",
     "useBidAsk": false,
     "precision": 3
   },
   "US10Y": {
     "tradingView": "TVC:US10Y",
     "quote": "^TNX",
-    "provider": "yahoo",
+    "provider": "twelvedata",
     "useBidAsk": false,
     "precision": 3
   },
   "DXY": {
     "tradingView": "TVC:DXY",
     "quote": "DX-Y.NYB",
-    "provider": "yahoo",
+    "provider": "twelvedata",
     "useBidAsk": false,
     "precision": 3
   },
   "VIX": {
     "tradingView": "CBOE:VIX",
     "quote": "^VIX",
-    "provider": "yahoo",
+    "provider": "twelvedata",
     "useBidAsk": false,
     "precision": 2
   },
   "SPX": {
     "tradingView": "SP:SPX",
     "quote": "^GSPC",
-    "provider": "yahoo",
+    "provider": "twelvedata",
     "useBidAsk": false,
     "precision": 2
   },
   "NDX": {
     "tradingView": "NASDAQ:NDX",
     "quote": "^NDX",
-    "provider": "yahoo",
+    "provider": "twelvedata",
     "useBidAsk": false,
     "precision": 2
   },
   "DJI": {
     "tradingView": "DJ:DJI",
     "quote": "^DJI",
-    "provider": "yahoo"
+    "provider": "twelvedata"
   },
   "IBOV": {
     "tradingView": "BMFBOVESPA:IBOV",
     "quote": "^BVSP",
-    "provider": "yahoo"
+    "provider": "twelvedata"
   },
   "SPY": {
     "tradingView": "AMEX:SPY",
     "quote": "SPY",
-    "provider": "yahoo"
+    "provider": "twelvedata"
   },
   "QQQ": {
     "tradingView": "NASDAQ:QQQ",
     "quote": "QQQ",
-    "provider": "yahoo"
+    "provider": "twelvedata"
   },
   "AAPL": {
     "tradingView": "NASDAQ:AAPL",
     "quote": "AAPL",
-    "provider": "yahoo"
+    "provider": "twelvedata"
   },
   "TSLA": {
     "tradingView": "NASDAQ:TSLA",
     "quote": "TSLA",
-    "provider": "yahoo"
+    "provider": "twelvedata"
   },
   "MSFT": {
     "tradingView": "NASDAQ:MSFT",
     "quote": "MSFT",
-    "provider": "yahoo"
+    "provider": "twelvedata"
   },
   "GOOGL": {
     "tradingView": "NASDAQ:GOOGL",
     "quote": "GOOGL",
-    "provider": "yahoo"
+    "provider": "twelvedata"
   },
   "ES1!": {
     "tradingView": "CME_MINI:ES1!",
     "quote": "ES=F",
-    "provider": "yahoo"
+    "provider": "twelvedata"
   },
   "YM1!": {
     "tradingView": "CBOT_MINI:YM1!",
     "quote": "YM=F",
-    "provider": "yahoo"
+    "provider": "twelvedata"
   },
   "CL1!": {
     "tradingView": "NYMEX:CL1!",
     "quote": "CL=F",
-    "provider": "yahoo"
+    "provider": "twelvedata"
   }
 }

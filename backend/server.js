@@ -25,6 +25,7 @@ const infrastructureRoutes = require('./src/client/routes/infrastructureRoutes')
 const publicRoutes = require('./src/public/routes/publicRoutes');
 const { protect, admin } = require('./src/middleware/authMiddleware');
 const { startTradingEngine } = require('./src/services/tradingEngine');
+const marketStreamService = require('./src/services/marketStreamService');
 const { corsOptions, allowedOrigins } = require('./src/config/cors');
 
 app.use(cors(corsOptions));
@@ -158,25 +159,7 @@ app.get('/api/test', (req, res) => {
 try {
     const WebSocket = require('ws');
     const wss = new WebSocket.Server({ server });
-
-    wss.on('connection', (ws) => {
-        console.log('WebSocket client connected');
-        ws.send(
-            JSON.stringify({
-                type: 'connected',
-                message: "Welcome to Rizal's Trade",
-                timestamp: new Date().toISOString(),
-            })
-        );
-
-        ws.on('message', (message) => {
-            console.log('WS message received:', message.toString());
-        });
-
-        ws.on('close', () => {
-            console.log('WebSocket client disconnected');
-        });
-    });
+    marketStreamService.attachWebSocketServer(wss);
 
     console.log('WebSocket server initialized');
 } catch (error) {
@@ -220,6 +203,7 @@ const startServer = async () => {
     });
 
     startTradingEngine();
+    marketStreamService.start();
 };
 
 startServer();
