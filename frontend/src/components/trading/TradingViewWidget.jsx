@@ -1,6 +1,7 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { FaCompress, FaExpand } from 'react-icons/fa';
 import { normalizeSymbol, resolveTradingViewSymbol } from '../../utils/marketSymbols';
+import loadTradingViewScript from '../../utils/tradingViewLoader';
 
 const TradingViewWidget = ({
   symbol = 'BTCUSDT',
@@ -16,6 +17,18 @@ const TradingViewWidget = ({
   const [isOnline, setIsOnline] = useState(
     typeof navigator === 'undefined' ? true : navigator.onLine
   );
+  const instrumentCategory = instrument?.category || '';
+  const instrumentTradingViewSymbol = instrument?.tradingViewSymbol || instrument?.trading_view_symbol || '';
+  const tvSymbol = useMemo(
+    () => resolveTradingViewSymbol({
+      symbol,
+      instrument: {
+        category: instrumentCategory,
+        tradingViewSymbol: instrumentTradingViewSymbol,
+      },
+    }),
+    [instrumentCategory, instrumentTradingViewSymbol, symbol]
+  );
 
   useEffect(() => {
     if (!isOnline) {
@@ -23,21 +36,23 @@ const TradingViewWidget = ({
       return undefined;
     }
 
-    const scriptId = 'tradingview-widget-script';
-    let script = document.getElementById(scriptId);
+    let isCancelled = false;
 
-    if (!script) {
-      script = document.createElement('script');
-      script.id = scriptId;
-      script.src = 'https://s3.tradingview.com/tv.js';
-      script.async = true;
-      script.onload = () => setScriptLoaded(true);
-      document.head.appendChild(script);
-    } else {
-      setScriptLoaded(true);
-    }
+    loadTradingViewScript()
+      .then(() => {
+        if (!isCancelled) {
+          setScriptLoaded(true);
+        }
+      })
+      .catch((error) => {
+        console.error('TradingView script load failed:', error);
+        if (!isCancelled) {
+          setScriptLoaded(false);
+        }
+      });
 
     return () => {
+      isCancelled = true;
       widgetRef.current = null;
     };
   }, [isOnline]);
@@ -79,8 +94,6 @@ const TradingViewWidget = ({
     containerRef.current.id = widgetId;
 
     const isDark = theme === 'dark';
-    const tvSymbol = resolveTradingViewSymbol({ symbol, instrument });
-
     containerRef.current.innerHTML = '';
 
     try {
@@ -136,7 +149,7 @@ const TradingViewWidget = ({
       }
       widgetRef.current = null;
     };
-  }, [instrument, isOnline, scriptLoaded, symbol, theme]);
+  }, [isOnline, scriptLoaded, symbol, theme, tvSymbol]);
 
   const isDark = theme === 'dark';
   const normalizedSymbol = normalizeSymbol(symbol);
