@@ -302,6 +302,7 @@ const DashboardPage = () => {
           unreadNotifications={hookUnreadCount}
           notifications={notifications}
           instruments={instruments}
+          marketData={marketData}
           onMarkNotificationRead={handleMarkNotificationRead}
           onMarkAllNotificationsRead={handleMarkAllNotificationsRead}
           user={user}

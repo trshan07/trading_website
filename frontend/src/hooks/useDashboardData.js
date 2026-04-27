@@ -8,8 +8,6 @@ import { AuthContext } from '../context/AuthContext';
 import { toast } from 'react-hot-toast';
 import { MARKET_INSTRUMENTS } from '../constants/marketData';
 import websocketService from '../services/websocketService';
-import { calculateSpreads } from '../utils/spreadCalculator';
-import { getSymbolPrecision } from '../utils/marketSymbols';
 import { maskAccountNumber } from '../components/client/banking/utils';
 import { getUploadUrl } from '../utils/uploadUrl';
 
@@ -739,26 +737,11 @@ export const useDashboardData = (accountType = 'demo') => {
         if (!prev[symbol]) return prev;
         if (prev[symbol].price === price) return prev;
 
-        const matchedInstrument = instruments.find((instrument) => instrument.symbol === symbol);
-        const precision = getSymbolPrecision({
-          symbol,
-          category: matchedInstrument?.category || '',
-          price,
-        });
-
-        // Keep bid/ask aligned with the same category-aware spread model used across the dashboard.
-        const { bidPrice, askPrice } = calculateSpreads(symbol, price, {
-          category: matchedInstrument?.category,
-          precision,
-        });
-
         return {
           ...prev,
           [symbol]: {
             ...prev[symbol],
             price: price,
-            bid: parseFloat(bidPrice),
-            ask: parseFloat(askPrice),
             lastDir: price > prev[symbol].price ? 'up' : price < prev[symbol].price ? 'down' : 'none'
           }
         };
@@ -767,7 +750,7 @@ export const useDashboardData = (accountType = 'demo') => {
 
     window.addEventListener('active_price_update', handleChartUpdate);
     return () => window.removeEventListener('active_price_update', handleChartUpdate);
-  }, [instruments]);
+  }, []);
 
   // --- WebSocket Price Integration (Kept as is for UX) ---
   useEffect(() => {

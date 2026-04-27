@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { FaEye, FaBolt, FaBell, FaBars, FaChevronDown, FaExchangeAlt, FaTimes, FaFileAlt } from 'react-icons/fa';
 import { HiMagnifyingGlass } from 'react-icons/hi2';
 import ThemeToggle from '../ui/ThemeToggle';
+import { buildInstrumentSnapshot } from '../../utils/marketSymbols';
 
 // Infrastructure color mappings are now handled by the backend per instrumentcategory.
 // This allows the admin to change branding without a frontend redeploy.
@@ -23,6 +24,7 @@ const Header = ({
   onSelectSymbol = () => {},
   onShowStatement = () => {},
   instruments = [],
+  marketData = {},
 }) => {
   const [showDropdown, setShowDropdown] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
@@ -175,6 +177,12 @@ const Header = ({
                 ) : (
                   <div className="py-2 max-h-72 overflow-y-auto custom-scrollbar">
                     {searchResults.map((inst) => {
+                      const liveInstrument = buildInstrumentSnapshot({
+                        symbol: inst.symbol,
+                        instrument: inst,
+                        marketData,
+                      });
+
                       return (
                         <button
                           key={inst.symbol}
@@ -191,7 +199,10 @@ const Header = ({
                             </div>
                           </div>
                           <p className="text-xs font-black text-slate-700 dark:text-slate-300 tabular-nums italic">
-                            ${inst.price.toLocaleString()}
+                            ${liveInstrument.price.toLocaleString(undefined, {
+                              minimumFractionDigits: liveInstrument.precision,
+                              maximumFractionDigits: liveInstrument.precision,
+                            })}
                           </p>
                         </button>
                       );
