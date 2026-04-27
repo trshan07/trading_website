@@ -36,7 +36,6 @@ const RealTimeChart = ({
   const seriesRef = useRef(null);
   const wsRef = useRef(null);
   const wsConnectTimerRef = useRef(null);
-  const nonWsRefreshTimerRef = useRef(null);
   const wsClosingRef = useRef(false);
   const candleTimesRef = useRef([]);
   const shouldUseLiveWsRef = useRef(true);
@@ -142,10 +141,6 @@ const RealTimeChart = ({
       clearTimeout(wsConnectTimerRef.current);
       wsConnectTimerRef.current = null;
     }
-    if (nonWsRefreshTimerRef.current) {
-      clearInterval(nonWsRefreshTimerRef.current);
-      nonWsRefreshTimerRef.current = null;
-    }
     
     if (chartRef.current) {
       try { chartRef.current.remove(); } catch (e) {}
@@ -214,7 +209,7 @@ const RealTimeChart = ({
     seriesRef.current = candles;
 
     // Load historical data then open WS
-    const applyFetchedData = (result) => {
+    fetchData(binanceSymbol, interval, initialPrice).then(result => {
       // strict check: if not active OR chart/series already nulled, bail out.
       if (!active || !seriesRef.current || !chartRef.current) return;
 
@@ -238,7 +233,7 @@ const RealTimeChart = ({
 
         // Don't open Binance WS for fallback/mock data or unsupported symbols.
         if (isMock || !isBinanceWsCandidate(binanceSymbol)) {
-          setLiveStatus(isMock ? 'fallback' : 'live');
+          setLiveStatus(isMock ? 'fallback' : 'idle');
           return;
         }
         if (!canUseLiveConnections()) {
@@ -306,26 +301,6 @@ const RealTimeChart = ({
       } catch (err) {
         console.error('[RealTimeChart] Chart update error:', err);
       }
-    };
-
-    fetchData(binanceSymbol, interval, initialPrice).then((result) => {
-      applyFetchedData(result);
-
-      if (!active) {
-        return;
-      }
-
-      const isMock = Boolean(result?.isMock);
-      if (!isMock && !isBinanceWsCandidate(binanceSymbol)) {
-        nonWsRefreshTimerRef.current = setInterval(async () => {
-          if (!active) {
-            return;
-          }
-
-          const refreshed = await fetchData(binanceSymbol, interval, initialPrice);
-          applyFetchedData(refreshed);
-        }, 15000);
-      }
     });
 
     // --- Using ResizeObserver instead of window.resize for better local lifecycle sync ---
@@ -384,10 +359,6 @@ const RealTimeChart = ({
       if (wsConnectTimerRef.current) {
         clearTimeout(wsConnectTimerRef.current);
         wsConnectTimerRef.current = null;
-      }
-      if (nonWsRefreshTimerRef.current) {
-        clearInterval(nonWsRefreshTimerRef.current);
-        nonWsRefreshTimerRef.current = null;
       }
       if (wsRef.current) {
         try {
