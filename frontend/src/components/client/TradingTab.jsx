@@ -45,7 +45,6 @@ const TradingTab = ({
   }, []);
 
   const isMobile = windowWidth < 1024;
-  const executionChartSupported = /USDT$|BTC$|BUSD$/i.test(activeSymbol || '');
   const selectedInstrument = instruments.find((instrument) => instrument.symbol === activeSymbol);
 
   return (
@@ -136,13 +135,12 @@ const TradingTab = ({
               </button>
               <button
                 onClick={() => setChartMode('execution')}
-                disabled={!executionChartSupported}
-                title={!executionChartSupported ? 'Execution candles use the platform feed for all instruments. Advanced mode is TradingView analysis.' : 'Execution chart'}
+                title="Execution chart"
                 className={`px-3 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest transition-all ${
                   chartMode === 'execution'
                     ? 'bg-emerald-500 text-white shadow-md'
                     : theme === 'dark' ? 'bg-slate-800 text-slate-400 hover:text-white' : 'bg-slate-200 text-slate-500 hover:text-slate-900'
-                } ${!executionChartSupported ? 'opacity-40 cursor-not-allowed hover:text-slate-400' : ''}`}
+                }`}
               >
                 🎯 Execution {positions.filter(p => p?.symbol?.replace(/[^A-Z]/g,'') === activeSymbol.replace(/[^A-Z]/g,'')).length > 0 && (
                   <span className="ml-1 bg-white text-emerald-600 text-[7px] px-1 rounded-full font-black">
@@ -165,15 +163,13 @@ const TradingTab = ({
 
             {/* Chart: Execution (unified rates/feed for execution-side pricing) */}
             <div className={`flex-1 ${chartMode === 'execution' ? 'block' : 'hidden'}`}>
-              {!executionChartSupported && (
-                <div className={`px-4 py-2 text-[10px] font-black uppercase tracking-widest border-b ${
-                  theme === 'dark'
-                    ? 'bg-amber-500/10 text-amber-300 border-amber-500/20'
-                    : 'bg-amber-50 text-amber-700 border-amber-200'
-                }`}>
-                  Execution mode uses the platform price feed for order-side sync. Advanced mode is the TradingView analysis chart with built-in indicators.
-                </div>
-              )}
+              <div className={`px-4 py-2 text-[10px] font-black uppercase tracking-widest border-b ${
+                theme === 'dark'
+                  ? 'bg-emerald-500/10 text-emerald-300 border-emerald-500/20'
+                  : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+              }`}>
+                Execution mode uses the platform price feed for order-side sync. Advanced mode is the TradingView analysis chart with built-in indicators.
+              </div>
               <RealTimeChart
                 symbol={activeSymbol}
                 theme={theme}
