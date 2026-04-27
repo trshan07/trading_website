@@ -102,60 +102,6 @@ const fetchYahooQuotes = async (symbols = []) => {
     return {};
   }
 
-  const symbolMap = symbols.reduce((acc, symbol) => {
-    acc[resolveYahooSymbol(symbol)] = symbol;
-    return acc;
-  }, {});
-
-  const response = await axios.get('https://query1.finance.yahoo.com/v7/finance/quote', {
-    params: {
-      symbols: Object.keys(symbolMap).join(','),
-    },
-    timeout: 5000,
-  });
-
-  const results = response.data?.quoteResponse?.result || [];
-  return results.reduce((acc, quote) => {
-    const appSymbol = symbolMap[quote.symbol];
-    if (!appSymbol) {
-      return acc;
-    }
-
-    const price = parseQuoteNumber(
-      quote.regularMarketPrice
-      ?? quote.postMarketPrice
-      ?? quote.preMarketPrice
-    );
-    const bid = parseQuoteNumber(quote.bid);
-    const ask = parseQuoteNumber(quote.ask);
-    const change = parseQuoteNumber(quote.regularMarketChangePercent);
-    const volume = parseQuoteNumber(
-      quote.regularMarketVolume
-      ?? quote.averageDailyVolume3Month
-      ?? quote.averageDailyVolume10Day
-    );
-
-    if (price === null) {
-      return acc;
-    }
-
-    acc[appSymbol] = {
-      price,
-      bid,
-      ask,
-      change: change ?? 0,
-      volume,
-      source: 'yahoo',
-    };
-    return acc;
-  }, {});
-};
-
-const fetchYahooChartLastPrices = async (symbols = []) => {
-  if (symbols.length === 0) {
-    return {};
-  }
-
   const results = await Promise.all(symbols.map(async (symbol) => {
     const yahooSymbol = resolveYahooSymbol(symbol);
 
@@ -171,10 +117,31 @@ const fetchYahooChartLastPrices = async (symbols = []) => {
 
       const chart = response.data?.chart?.result?.[0];
       const closes = chart?.indicators?.quote?.[0]?.close || [];
-      const validCloses = closes.filter((value) => Number.isFinite(Number.parseFloat(value)));
-      const latestClose = validCloses.length > 0 ? Number.parseFloat(validCloses[validCloses.length - 1]) : null;
+      const volumes = chart?.indicators?.quote?.[0]?.volume || [];
+      const validCloses = closes
+        .map((value) => Number.parseFloat(value))
+        .filter((value) => Number.isFinite(value));
 
-      return [symbol, latestClose];
+      if (validCloses.length === 0) {
+        return [symbol, null];
+      }
+
+      const latestClose = validCloses[validCloses.length - 1];
+      const previousClose = validCloses.length > 1 ? validCloses[validCloses.length - 2] : latestClose;
+      const latestVolumeRaw = Number.parseFloat(volumes[volumes.length - 1]);
+      const latestVolume = Number.isFinite(latestVolumeRaw) ? latestVolumeRaw : null;
+      const change = previousClose
+        ? ((latestClose - previousClose) / previousClose) * 100
+        : 0;
+
+      return [symbol, {
+        price: latestClose,
+        bid: null,
+        ask: null,
+        change,
+        volume: latestVolume,
+        source: 'yahoo-chart',
+      }];
     } catch (error) {
       return [symbol, null];
     }
@@ -258,23 +225,6 @@ exports.getMarketQuotes = async (req, res) => {
       fetchBinanceQuotes(binanceSymbols).catch(() => ({})),
       fetchYahooQuotes(yahooSymbols).catch(() => ({})),
     ]);
-
-    const chartAlignedSymbols = yahooSymbols.filter((symbol) => marketSymbolMap[symbol]?.useBidAsk === false);
-    const chartLastPrices = await fetchYahooChartLastPrices(chartAlignedSymbols).catch(() => ({}));
-
-    chartAlignedSymbols.forEach((symbol) => {
-      const chartPrice = chartLastPrices[symbol];
-      if (!Number.isFinite(chartPrice) || !yahooData[symbol]) {
-        return;
-      }
-
-      yahooData[symbol] = {
-        ...yahooData[symbol],
-        price: chartPrice,
-        bid: null,
-        ask: null,
-      };
-    });
 
     return res.status(200).json({
       success: true,
