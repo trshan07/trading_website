@@ -180,8 +180,7 @@ const DashboardPage = () => {
 
   const isDemo = selectedAccountType === 'demo';
 
-  // Dynamic Portfolio Data
-  const [portfolio, setPortfolio] = useState({
+  const portfolioBase = useMemo(() => ({
     totalBalance: 0,
     availableBalance: 0,
     equity: 0,
@@ -191,13 +190,13 @@ const DashboardPage = () => {
     dailyPnLPercent: 0,
     weeklyPnL: 0,
     monthlyPnL: 0,
-  });
+  }), []);
 
 
 
   // Live Portfolio Calculation (Real-time P&L)
   const livePortfolio = useMemo(() => {
-    if (!user || !activeAccount) return portfolio;
+    if (!user || !activeAccount) return portfolioBase;
     
     let totalUnrealizedPnL = 0;
     let totalMargin = 0;
@@ -224,7 +223,7 @@ const DashboardPage = () => {
     const backendRisk = accountRisk?.risk || null;
     
     return {
-      ...portfolio,
+      ...portfolioBase,
       totalBalance: totalFunds,       // Balance = cash + credit (what admin gave)
       cashBalance: balance,           // raw cash only (for withdrawal checks)
       availableBalance: backendRisk?.freeMargin ?? (equity - totalMargin),
@@ -237,7 +236,7 @@ const DashboardPage = () => {
       credit,
       leverage: activeAccount.leverage || 100
     };
-  }, [user, activeAccount, positions, marketData, portfolio, accountRisk]);
+  }, [user, activeAccount, positions, marketData, portfolioBase, accountRisk]);
 
   const walletData = useMemo(() => ({
     mainWallet: livePortfolio.cashBalance,
@@ -248,6 +247,39 @@ const DashboardPage = () => {
     pendingWithdrawals: 0,
     pendingDeposits: 0,
   }), [livePortfolio]);
+
+  const overviewCards = useMemo(() => ([
+    {
+      label: 'Account Balance',
+      value: `$${Number(livePortfolio.totalBalance || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+      hint: isDemo ? 'Practice funds' : 'Available account capital',
+      tone: 'text-slate-900 dark:text-white',
+    },
+    {
+      label: 'Open P/L',
+      value: `${Number(livePortfolio.dailyPnL || 0) >= 0 ? '+' : ''}$${Number(livePortfolio.dailyPnL || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+      hint: `${positions.length} active position${positions.length === 1 ? '' : 's'}`,
+      tone: Number(livePortfolio.dailyPnL || 0) >= 0 ? 'text-emerald-500' : 'text-rose-500',
+    },
+    {
+      label: 'Pending Orders',
+      value: `${orders.length}`,
+      hint: orders.length > 0 ? 'Waiting for execution' : 'No pending orders',
+      tone: 'text-slate-900 dark:text-white',
+    },
+    {
+      label: 'Margin Level',
+      value: Number(livePortfolio.margin || 0) > 0 ? `${Number(livePortfolio.marginLevel || 0).toFixed(2)}%` : 'N/A',
+      hint: Number(livePortfolio.margin || 0) > 0 ? 'Keep this comfortably above 100%' : 'No active margin in use',
+      tone: Number(livePortfolio.marginLevel || 0) > 0 && Number(livePortfolio.marginLevel || 0) < 100 ? 'text-rose-500' : 'text-gold-500',
+    },
+  ]), [isDemo, livePortfolio, orders.length, positions.length]);
+
+  const quickActions = useMemo(() => ([
+    { label: 'Open Trade', description: 'Go straight to the order panel.', action: () => setActiveMainTab('trading') },
+    { label: 'Add Funds', description: 'Manage deposits, withdrawals, and transfers.', action: () => setActiveMainTab('banking') },
+    { label: 'Upload Documents', description: 'Complete verification in one place.', action: () => setActiveMainTab('documents') },
+  ]), []);
 
   const handleLogout = () => {
     logout();
@@ -327,6 +359,48 @@ const DashboardPage = () => {
         {/* Scrollable Region */}
         <div className="flex-1 overflow-y-auto relative custom-scrollbar bg-[var(--bg-primary)]">
           <main className="px-2 sm:px-6 md:px-10 py-4 md:py-10 pb-24 lg:pb-10 max-w-[1600px] mx-auto w-full">
+            {(activeMainTab === 'trading' || activeMainTab === 'markets' || activeMainTab === 'banking') && (
+              <WelcomeHeader
+                user={user}
+                portfolio={livePortfolio}
+                onTrade={() => setActiveMainTab('trading')}
+                onDeposit={() => setActiveMainTab('banking')}
+              />
+            )}
+
+            {(activeMainTab === 'trading' || activeMainTab === 'markets') && (
+              <QuickCategories onSelectCategory={handleCategorySelect} />
+            )}
+
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mb-6 sm:mb-8">
+              {overviewCards.map((card) => (
+                <div key={card.label} className="rounded-[1.75rem] border border-slate-200 dark:border-slate-800 bg-white/90 dark:bg-slate-900/70 backdrop-blur-sm px-5 py-5 shadow-lg shadow-slate-200/40 dark:shadow-black/20">
+                  <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-2">
+                    {card.label}
+                  </p>
+                  <p className={`text-2xl font-black italic tracking-tight ${card.tone}`}>
+                    {card.value}
+                  </p>
+                  <p className="mt-2 text-[10px] font-bold text-slate-400 dark:text-slate-500">
+                    {card.hint}
+                  </p>
+                </div>
+              ))}
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6 sm:mb-8">
+              {quickActions.map((item) => (
+                <button
+                  key={item.label}
+                  onClick={item.action}
+                  className="text-left rounded-[1.75rem] border border-slate-200 dark:border-slate-800 bg-slate-50/90 dark:bg-slate-900/60 px-5 py-5 hover:border-gold-500/40 hover:bg-white dark:hover:bg-slate-900 transition-all"
+                >
+                  <p className="text-sm font-black italic text-slate-900 dark:text-white">{item.label}</p>
+                  <p className="mt-2 text-[11px] font-medium text-slate-500 dark:text-slate-400">{item.description}</p>
+                </button>
+              ))}
+            </div>
+
             {/* Demo Mode Banner */}
             {isDemo && (
               <div className="mb-6 sm:mb-8 p-4 sm:p-6 bg-amber-500/10 border border-amber-500/20 rounded-[2rem] flex flex-col md:flex-row items-center justify-between gap-6 transition-all hover:bg-amber-500/20">

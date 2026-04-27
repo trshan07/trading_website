@@ -1,11 +1,9 @@
 import React from 'react';
 import { 
-  FaChartLine, FaTimes, FaSignOutAlt, FaChartBar, FaDatabase, FaWallet, FaFileAlt, FaCog, FaExchangeAlt
+  FaChartLine, FaTimes, FaSignOutAlt, FaChartBar, FaChartPie, FaWallet, FaFileAlt, FaCog, FaExchangeAlt
 } from 'react-icons/fa';
 import ThemeToggle from '../ui/ThemeToggle';
 import { useTheme } from '../../context/ThemeContext';
-import logoLight from '../../assets/images/logos/logo-light.jpg';
-import logoDark from '../../assets/images/logos/logo-dark.png';
 import logoVerticalLight from '../../assets/images/logos/logo-vertical-light.jpg';
 import logoVerticalDark from '../../assets/images/logos/logo-vertical-dark.png';
 
@@ -31,7 +29,7 @@ const MobileSidebar = ({
   const mobileNavItems = [
     { id: 'trading', label: 'Trading', icon: FaChartLine },
     { id: 'markets', label: 'Markets', icon: FaChartBar },
-    { id: 'portfolio', label: 'Portfolio', icon: FaDatabase },
+    { id: 'portfolio', label: 'Portfolio', icon: FaChartPie },
     { id: 'banking', label: 'Banking', icon: FaWallet },
     { id: 'documents', label: 'Documents', icon: FaFileAlt },
     { id: 'settings', label: 'Settings', icon: FaCog },
