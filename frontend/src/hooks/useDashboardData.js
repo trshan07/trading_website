@@ -998,6 +998,11 @@ export const useDashboardData = (accountType = 'demo', activeSymbol = null) => {
   // --- Chart Sync Integration ---
   useEffect(() => {
     const handleChartUpdate = (e) => {
+      const source = e.detail?.source;
+      if (source && source !== 'platform-feed') {
+        return;
+      }
+
       const symbol = e.detail?.symbol;
       const price = Number.parseFloat(e.detail?.price);
       if (!symbol || !Number.isFinite(price)) {

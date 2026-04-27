@@ -108,8 +108,8 @@ const TradingViewWidget = ({
         toolbar_bg: isDark ? '#0f172a' : '#f8fafc',
         enable_publishing: false,
         hide_side_toolbar: false,
-        // Keep the embedded chart locked to the dashboard-selected instrument
-        // so the order panel, ticker, and displayed rates never drift from the chart.
+        // Keep the embedded chart locked to the dashboard-selected instrument.
+        // TradingView is analysis-only here; execution prices come from the platform feed.
         allow_symbol_change: false,
         container_id: widgetId,
         library_path: 'https://s3.tradingview.com/tv.js',
@@ -225,7 +225,7 @@ const TradingViewWidget = ({
                 : 'border-slate-200 bg-white text-gold-600'
             }`}
           >
-            ADVANCED ANALYSIS MODE | SYMBOL SYNC LOCKED
+            ADVANCED ANALYSIS MODE | PANEL RATES USE YAHOO/BINANCE
           </div>
         </div>
       </div>

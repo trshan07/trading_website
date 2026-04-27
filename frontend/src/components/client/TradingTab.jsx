@@ -182,7 +182,7 @@ const TradingTab = ({
                     ? 'bg-emerald-500/10 text-emerald-300 border-emerald-500/20'
                     : 'bg-emerald-50 text-emerald-700 border-emerald-200'
                 }`}>
-                  Execution mode uses the platform price feed for order-side sync. Advanced mode is the TradingView analysis chart with built-in indicators.
+                  Execution mode drives order-side sync from the platform Yahoo/Binance feed. Advanced mode uses TradingView for analysis only.
                 </div>
                 <RealTimeChart
                   key={`execution-${activeSymbol}-${theme}`}

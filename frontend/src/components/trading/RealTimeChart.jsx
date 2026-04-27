@@ -305,7 +305,7 @@ const RealTimeChart = ({
           setLastPrice(last.close);
           setPriceChange(((last.close - first.open) / first.open * 100).toFixed(2));
           window.dispatchEvent(new CustomEvent('active_price_update', {
-            detail: { symbol, price: last.close }
+            detail: { symbol, price: last.close, source: 'platform-feed' }
           }));
         }
 
@@ -329,7 +329,7 @@ const RealTimeChart = ({
               setLastPrice(latest.close);
               setPriceChange(((latest.close - first.open) / first.open * 100).toFixed(2));
               window.dispatchEvent(new CustomEvent('active_price_update', {
-                detail: { symbol, price: latest.close }
+                detail: { symbol, price: latest.close, source: 'platform-feed' }
               }));
               setLiveStatus('live');
             }, 15000);
@@ -401,7 +401,7 @@ const RealTimeChart = ({
               }
               setLastPrice(tick.close);
               window.dispatchEvent(new CustomEvent('active_price_update', { 
-                detail: { symbol, price: tick.close } 
+                detail: { symbol, price: tick.close, source: 'platform-feed' } 
               }));
               setLiveStatus('live');
             } catch (e) {}
@@ -530,7 +530,7 @@ const RealTimeChart = ({
       applyIndicatorSeries(candleDataRef.current);
       setLastPrice(nextPrice);
       window.dispatchEvent(new CustomEvent('active_price_update', {
-        detail: { symbol, price: nextPrice }
+        detail: { symbol, price: nextPrice, source: 'platform-feed' }
       }));
     } catch (error) {
       console.error('[RealTimeChart] Live price sync error:', error);
