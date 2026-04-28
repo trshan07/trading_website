@@ -46,8 +46,10 @@ const AccountTypes = () => {
                     {accounts.map((account) => (
                         <Card
                             key={account.name}
-                            className={`relative flex flex-col h-full ${account.popular ? 'border-gold/50 !bg-navy-light/80 shadow-2xl shadow-gold/5' : ''
-                                }`}
+                            noGlass={true}
+                            className={`relative flex flex-col h-full !bg-navy border border-white/10 ${
+                                account.popular ? 'border-gold/50 shadow-2xl shadow-gold/5' : ''
+                            }`}
                         >
                             {account.popular && (
                                 <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-gold text-navy font-bold px-6 py-1.5 rounded-full text-[10px] uppercase tracking-widest shadow-lg shadow-gold/20">

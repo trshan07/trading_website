@@ -7,13 +7,13 @@ class PlatformInfo {
         // In a real app, these would come from a 'global_settings' or 'platform_config' table.
         return {
             bank_name: 'Apex Global Trust',
-            account_name: 'Rizal Trade Liquidity Pool',
+            account_name: 'Tik Trades Liquidity Pool',
             account_number: '992833774401',
             iban: 'GB29APEX0000992833774401',
-            swift_bic: 'APEXTR22',
+            swift_bic: 'TIKTR22',
             branch: 'London Main Branch',
             country: 'United Kingdom',
-            reference_format: 'RT-[USER_ID]-[TIMESTAMP]',
+            reference_format: 'TT-[USER_ID]-[TIMESTAMP]',
             instructions: 'Please include your User ID in the transfer reference to ensure rapid processing.'
         };
     }

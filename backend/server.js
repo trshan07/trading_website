@@ -78,7 +78,7 @@ app.use('/api/uploads', express.static(uploadsDir));
 
 app.get('/', (req, res) => {
     res.json({
-        message: "Welcome to Rizal's Trade Backend API",
+        message: "Welcome to Tik Trades Backend API",
         version: '1.0.0',
         api_health: `${process.env.API_URL || 'http://localhost:5000'}/api/health`,
         documentation: 'The API endpoints are located under /api/auth and /api/admin',

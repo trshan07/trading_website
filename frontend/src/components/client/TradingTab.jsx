@@ -38,7 +38,7 @@ const TradingTab = ({
   const [showSidebar, setShowSidebar] = useState(true);
   const [activeMobileView, setActiveMobileView] = useState('chart');
   const [activeOrderIntent, setActiveOrderIntent] = useState({ side: 'buy', type: 'market' });
-  const [chartMode, setChartMode] = useState('execution');
+  const [chartMode, setChartMode] = useState('advanced');
   const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1200);
   const { theme } = useTheme();
 

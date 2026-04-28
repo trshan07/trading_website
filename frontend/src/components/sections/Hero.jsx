@@ -112,7 +112,7 @@ const Hero = () => {
                         <div className="absolute inset-0 bg-gold/5 rounded-3xl blur-3xl -rotate-6 scale-110" />
 
                         {/* The Image Overlay/Card */}
-                        <div className="relative glass-card border-gold/30 p-2 rounded-[2rem] shadow-2xl overflow-hidden group">
+                        <div className="relative glass-card !bg-[#000F29]/60 border-gold/30 p-2 rounded-[2rem] shadow-2xl overflow-hidden group">
                             <motion.img
                                 src={dashboardImg}
                                 alt="TIK TRADES Terminal"

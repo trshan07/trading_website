@@ -4,7 +4,7 @@ import { HiOutlineLightningBolt, HiOutlineShieldCheck, HiOutlineUserGroup, HiOut
 import Container from '../../components/layout/Container';
 import Navbar from '../../components/layout/Navbar';
 import Footer from '../../components/layout/Footer';
-import aboutBg from '../../assets/images/rizals_about_bg.png';
+import tikTradesAboutBg from '../../assets/images/rizals_about_bg.png';
 
 const AboutPage = () => {
     const fadeInUp = {
@@ -18,7 +18,7 @@ const AboutPage = () => {
 
             {/* Premium Background Elements */}
             <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">                <img 
-                    src={aboutBg} 
+                    src={tikTradesAboutBg} 
                     alt="Background" 
                     className="absolute inset-0 w-full h-full object-cover opacity-70"
                 />
@@ -108,7 +108,7 @@ const AboutPage = () => {
                         >
                             <div className="aspect-square rounded-[3rem] border border-white/10 flex items-center justify-center overflow-hidden group relative shadow-2xl">
                                 {/* Base Image */}
-                                <img src={aboutBg} alt="About TIK TRADES" className="absolute inset-0 w-full h-full object-cover opacity-90 group-hover:scale-105 transition-transform duration-1000" />
+                                <img src={tikTradesAboutBg} alt="About Tik Trades" className="absolute inset-0 w-full h-full object-cover opacity-90 group-hover:scale-105 transition-transform duration-1000" />
                                 
                                 {/* Gradual dark gradient from bottom for text readability */}
                                 <div className="absolute inset-0 bg-gradient-to-t from-[#000F29] via-[#000F29]/30 to-transparent opacity-80" />

@@ -25,7 +25,7 @@ const Navbar = () => {
                     {/* Logo */}
                     <Link to="/" className="flex items-center">
                         <img 
-                          src={theme === 'dark' ? logoDark : logoLight} 
+                          src={logoDark} 
                           alt="TIK TRADES" 
                           className="h-10 w-auto object-contain"
                         />

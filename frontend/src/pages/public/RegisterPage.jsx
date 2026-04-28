@@ -238,7 +238,7 @@ const RegisterPage = () => {
                     <HiOutlineUser className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40 group-focus-within:text-gold transition-colors w-5 h-5" />
                     <input
                         type="text"
-                        placeholder="Given Name"
+                        placeholder="First Name"
                         value={formData.firstName}
                         onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
                         required
@@ -252,7 +252,7 @@ const RegisterPage = () => {
                     <HiOutlineUser className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40 group-focus-within:text-gold transition-colors w-5 h-5" />
                     <input
                         type="text"
-                        placeholder="Family Name"
+                        placeholder="Last Name"
                         value={formData.lastName}
                         onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
                         required

@@ -83,6 +83,7 @@ const MarketsSection = () => {
             }
         };
 
+
         // Fetch immediately and set interval
         fetchTradingViewData();
         const interval = setInterval(fetchTradingViewData, 5000);
@@ -125,22 +126,22 @@ const MarketsSection = () => {
                                 transition={{ duration: 0.3, delay: index * 0.1 }}
                             >
                                 <Link to="/login">
-                                    <Card className="!bg-navy/40 hover:!bg-navy-light/60 border-gold/10 hover:border-gold/30">
+                                    <Card className="!bg-navy/40 hover:!bg-navy-light/60 border-gold/10 hover:border-gold/30 group">
                                         <div className="flex justify-between items-start mb-4">
                                             <span className="text-lg font-bold">{item.name}</span>
                                             <span className={`text-sm font-bold ${item.change.startsWith('+') ? 'text-green-400' : 'text-red-400'}`}>
                                                 {item.change}
                                             </span>
                                         </div>
-                                        <div className="text-2xl font-display font-bold text-white mb-2">
+                                        <div className="text-2xl font-display font-bold text-white mb-6">
                                             {item.price}
                                         </div>
-                                        <div className="h-12 w-full bg-gold/5 rounded-lg mt-4 overflow-hidden relative">
-                                            <motion.div
-                                                animate={{ x: ['-100%', '100%'] }}
-                                                transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
-                                                className="absolute inset-0 bg-gradient-to-r from-transparent via-gold/10 to-transparent"
-                                            />
+                                        <div className="flex items-center justify-between pt-4 border-t border-white/5">
+                                            <span className="text-[10px] uppercase tracking-widest text-white/30 font-medium">Live Market</span>
+                                            <div className="flex items-center space-x-2">
+                                                <span className="w-2 h-2 rounded-full bg-gold animate-pulse" />
+                                                <span className="text-gold text-xs font-bold uppercase tracking-wider group-hover:underline">Trade Now</span>
+                                            </div>
                                         </div>
                                     </Card>
                                 </Link>

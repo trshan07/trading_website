@@ -18,7 +18,7 @@ const Footer = () => {
                     <div className="col-span-2 lg:col-span-1 text-center lg:text-left mb-4 md:mb-0">
                         <Link to="/" className="mb-4 md:mb-6 block">
                             <img 
-                              src={theme === 'dark' ? logoDark : logoLight} 
+                              src={logoDark} 
                               alt="TIK TRADES" 
                               className="h-10 w-auto object-contain mx-auto lg:mx-0" 
                             />

@@ -24,53 +24,59 @@ export const resolveTradingViewSymbol = ({ symbol, instrument }) => {
     return 'BINANCE:BTCUSDT';
   }
 
+  // If already prefixed, trust it unless it's a known problematic prefix
   if (symbol.includes(':')) {
+    const restricted = ['ICEEUR:', 'SP:', 'DJ:', 'CME_MINI:', 'CBOT_MINI:', 'NYMEX:', 'BMFBOVESPA:', 'DJ:'];
+    if (restricted.some(p => symbol.startsWith(p))) {
+      const parts = symbol.split(':');
+      const base = parts[parts.length - 1];
+      
+      // Special case for Oil
+      if (base === 'BRN1!' || base === 'BRENT') return 'TVC:UKOIL';
+      if (base === 'CL1!' || base === 'USOIL') return 'TVC:USOIL';
+      
+      return `TVC:${base}`;
+    }
     return symbol;
   }
 
   const normalized = normalizeSymbol(symbol);
   const category = (instrument?.category || '').toLowerCase();
 
+  // 1. Check explicit map first
   if (EXPLICIT_SYMBOL_MAP[normalized]) {
     return EXPLICIT_SYMBOL_MAP[normalized];
   }
 
+  // 2. Handle common patterns
   if (normalized.endsWith('!')) {
     return `TVC:${normalized}`;
   }
 
-  if (CRYPTO_QUOTES.some((quote) => normalized.endsWith(quote))) {
+  // Crypto
+  if (CRYPTO_QUOTES.some((quote) => normalized.endsWith(quote)) || category.includes('crypto')) {
     return `BINANCE:${normalized}`;
   }
 
+  // Forex
   if (isForexPair(normalized) || category.includes('forex')) {
+    // Try FX: first, then FOREXCOM:
     return `FX:${normalized}`;
   }
 
-  if (category.includes('crypto')) {
-    return `BINANCE:${normalized}`;
+  // Metals
+  if (normalized.startsWith('XAU') || normalized.startsWith('XAG') || category.includes('metal')) {
+    return `OANDA:${normalized}`;
   }
 
+  // Indices
+  if (category.includes('indice') || category.includes('index')) {
+    return `TVC:${normalized}`;
+  }
+
+  // Default to TVC for everything else (Commodities, Stocks fallback)
   if (category.includes('stock') || category.includes('share')) {
     return `NASDAQ:${normalized}`;
-  }
-
-  if (category.includes('fund') || category.includes('etf')) {
-    return `AMEX:${normalized}`;
-  }
-
-  if (category.includes('indice') || category.includes('index')) {
-    return `INDEX:${normalized}`;
-  }
-
-  if (
-    category.includes('future') ||
-    category.includes('bond') ||
-    category.includes('economy') ||
-    category.includes('option') ||
-    category.includes('commod')
-  ) {
-    return `TVC:${normalized}`;
   }
 
   return `TVC:${normalized}`;

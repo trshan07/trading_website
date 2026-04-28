@@ -16,8 +16,8 @@ async function setupPlatformSettings() {
 
         // Initial settings
         const initialSettings = {
-            platform_name: "Rizal Trade Platform",
-            support_email: "support@rizaltrade.com",
+            platform_name: "Tik Trades Platform",
+            support_email: "support@tiktrades.com",
             min_deposit: 100,
             max_withdrawal: 50000,
             max_credit_per_user: 50000,

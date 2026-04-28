@@ -207,7 +207,7 @@ const demoLogin = async (req, res) => {
     try {
         // Create a temporary guest user as client
         const guestId = Math.floor(100000 + Math.random() * 900000);
-        const guestEmail = `guest_${guestId}@rizalstrade.demo`;
+        const guestEmail = `guest_${guestId}@tiktrades.demo`;
         const guestPassword = `guest_${guestId}`;
 
         const user = await User.create({

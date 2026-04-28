@@ -213,7 +213,7 @@ const Header = ({
                 {/* Footer hint */}
                 <div className="px-4 py-2.5 border-t border-slate-50 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50">
                   <p className="text-[8px] font-black text-slate-300 dark:text-slate-600 uppercase tracking-widest">
-                    Press Enter to view all results Â· Click to open chart
+                    Press Enter to view all results • Click to open chart
                   </p>
                 </div>
               </div>
@@ -314,9 +314,12 @@ const Header = ({
                   <p className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-tight leading-none">
                     {user?.firstName} {user?.lastName}
                   </p>
-                  <p className="text-[9px] font-bold text-slate-400 dark:text-slate-500 mt-0.5 uppercase tracking-wider">
-                    {isDemo ? 'âš¡ Demo Mode' : 'ðŸŸ¢ Live Account'}
-                  </p>
+                  <div className="flex items-center gap-1.5 mt-0.5">
+                    <span className={`w-1.5 h-1.5 rounded-full ${isDemo ? 'bg-amber-500' : 'bg-emerald-500 animate-pulse'}`} />
+                    <p className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+                      {isDemo ? 'Demo Mode' : 'Live Account'}
+                    </p>
+                  </div>
                 </div>
                 <FaChevronDown
                   size={10}
@@ -384,7 +387,7 @@ const Header = ({
                   ? (item.label === 'Margin Level' && (portfolio?.marginLevel || 0) < 100 ? 'text-rose-500 animate-pulse' : 'text-gold-500') 
                   : 'text-slate-900 dark:text-white'
               }`}>
-                {showBalance ? (item.isPercent ? item.value : (item.value < 0 ? `-$${Math.abs(item.value).toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}` : `$${(item.value || 0).toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}`)) : 'â€¢â€¢â€¢â€¢'}
+                {showBalance ? (item.isPercent ? item.value : (item.value < 0 ? `-$${Math.abs(item.value).toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}` : `$${(item.value || 0).toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}`)) : '••••'}
               </span>
               {idx < 6 && <div className="h-3 w-[1px] bg-slate-100 dark:bg-slate-800 ml-4" />}
             </div>
