@@ -2,6 +2,8 @@ const db = require('../../config/database');
 const User = require('../../models/User');
 const Admin = require('../../models/Admin');
 const Account = require('../../models/Account');
+const BankAccount = require('../../models/BankAccount');
+const CreditCard = require('../../models/CreditCard');
 const KyCSubmission = require('../../models/KyCSubmission');
 const FundingRequest = require('../../models/FundingRequest');
 const Transaction = require('../../models/Transaction');
@@ -41,6 +43,60 @@ const paginate = (items, page = 1, limit = 10) => {
 
 const mapUserName = (user) =>
     `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.email || 'Unknown User';
+
+const maskAccountNumber = (value) => {
+    const normalized = String(value || '').replace(/\s+/g, '');
+    if (!normalized) {
+        return '';
+    }
+
+    if (normalized.length <= 4) {
+        return normalized;
+    }
+
+    return `${'*'.repeat(Math.max(normalized.length - 4, 0))}${normalized.slice(-4)}`;
+};
+
+const mapBankAccountForAdmin = (account = {}) => ({
+    id: account.id,
+    bankName: account.bank_name || '',
+    branchName: account.branch_name || '',
+    accountHolderName: account.account_holder_name || account.account_name || '',
+    accountName: account.account_name || account.account_holder_name || '',
+    accountNumber: account.account_number || '',
+    maskedAccountNumber: maskAccountNumber(account.account_number),
+    currency: account.currency || 'USD',
+    swiftCode: account.swift_code || '',
+    iban: account.iban || '',
+    beneficiaryName: account.beneficiary_name || '',
+    relationship: account.relationship || '',
+    proofFile: normalizeStoredUploadPath(account.proof_file),
+    isDefault: Boolean(account.is_default),
+    isVerified: Boolean(account.is_verified)
+});
+
+const mapCreditCardForAdmin = (card = {}) => ({
+    id: card.id,
+    cardType: card.card_type || 'Card',
+    last4: card.last4 || '',
+    expiry: card.expiry_date || '',
+    cardholderName: card.cardholder_name || '',
+    billingAddress: card.billing_address || '',
+    isDefault: Boolean(card.is_default),
+    isVerified: Boolean(card.is_verified)
+});
+
+const getUserFundingSources = async (userId) => {
+    const [bankAccounts, creditCards] = await Promise.all([
+        BankAccount.findByUserId(userId),
+        CreditCard.findByUserId(userId)
+    ]);
+
+    return {
+        bankAccounts: bankAccounts.map(mapBankAccountForAdmin),
+        creditCards: creditCards.map(mapCreditCardForAdmin)
+    };
+};
 
 const attachAccountsAndHistory = async (user) => {
     const accounts = await Account.findByUserId(user.id);
@@ -752,8 +808,10 @@ const getFundingRequests = async (req, res) => {
         const { status } = req.query;
         const rawRequests = await FundingRequest.findAll(status);
 
-        const mappedRequests = rawRequests.map((request) => {
+        const mappedRequests = await Promise.all(rawRequests.map(async (request) => {
             const isDemo = request.account_number && request.account_number.startsWith('DM');
+            const fundingSources = await getUserFundingSources(request.user_id);
+
             return {
                 id: request.id,
                 userId: request.user_id,
@@ -770,10 +828,13 @@ const getFundingRequests = async (req, res) => {
                 createdAt: request.created_at,
                 updatedAt: request.processed_at || request.updated_at || request.created_at,
                 processedAccount: isDemo ? 'demo' : 'real',
+                accountNumber: request.account_number || null,
                 note: request.rejection_reason || '',
-                rejectionReason: request.rejection_reason || ''
+                rejectionReason: request.rejection_reason || '',
+                bankAccounts: fundingSources.bankAccounts,
+                creditCards: fundingSources.creditCards
             };
-        });
+        }));
 
         res.json({ success: true, data: mappedRequests });
     } catch (error) {

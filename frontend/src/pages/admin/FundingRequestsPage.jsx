@@ -14,6 +14,8 @@ import {
   Descriptions,
   Badge,
   Tabs,
+  Divider,
+  Empty,
 } from 'antd';
 import {
   CheckOutlined,
@@ -189,6 +191,8 @@ const FundingRequestsPage = () => {
 
   const proofUrl = getUploadUrl(selectedRequest?.proofImage);
   const proofIsPdf = isPdfFile(selectedRequest?.proofImage);
+  const bankAccounts = selectedRequest?.bankAccounts || [];
+  const creditCards = selectedRequest?.creditCards || [];
 
   return (
     <div>
@@ -248,6 +252,7 @@ const FundingRequestsPage = () => {
                 </span>
               </Descriptions.Item>
               <Descriptions.Item label="Method">{selectedRequest.method.toUpperCase()}</Descriptions.Item>
+              <Descriptions.Item label="Trading Account">{selectedRequest.accountNumber || '-'}</Descriptions.Item>
               <Descriptions.Item label="Status">
                 <Badge 
                   status={
@@ -265,6 +270,83 @@ const FundingRequestsPage = () => {
                 </Descriptions.Item>
               )}
             </Descriptions>
+
+            <Divider orientation="left">Client Bank Details</Divider>
+            {bankAccounts.length > 0 ? (
+              <Space direction="vertical" style={{ width: '100%', marginBottom: 24 }} size={12}>
+                {bankAccounts.map((account) => (
+                  <Card
+                    key={account.id}
+                    size="small"
+                    title={
+                      <Space wrap>
+                        <span>{account.bankName || 'Bank Account'}</span>
+                        {account.isDefault && <Tag color="gold">DEFAULT</Tag>}
+                        {account.isVerified && <Tag color="green">VERIFIED</Tag>}
+                      </Space>
+                    }
+                  >
+                    <Descriptions size="small" column={2} bordered>
+                      <Descriptions.Item label="Account Holder">{account.accountHolderName || account.accountName || '-'}</Descriptions.Item>
+                      <Descriptions.Item label="Account Number">{account.accountNumber || account.maskedAccountNumber || '-'}</Descriptions.Item>
+                      <Descriptions.Item label="Branch">{account.branchName || '-'}</Descriptions.Item>
+                      <Descriptions.Item label="Currency">{account.currency || '-'}</Descriptions.Item>
+                      <Descriptions.Item label="SWIFT">{account.swiftCode || '-'}</Descriptions.Item>
+                      <Descriptions.Item label="IBAN">{account.iban || '-'}</Descriptions.Item>
+                      <Descriptions.Item label="Beneficiary">{account.beneficiaryName || '-'}</Descriptions.Item>
+                      <Descriptions.Item label="Relationship">{account.relationship || '-'}</Descriptions.Item>
+                    </Descriptions>
+                    {account.proofFile && (
+                      <Button
+                        style={{ marginTop: 12 }}
+                        icon={<EyeOutlined />}
+                        onClick={() => window.open(account.proofFile, '_blank')}
+                      >
+                        Open Bank Proof
+                      </Button>
+                    )}
+                  </Card>
+                ))}
+              </Space>
+            ) : (
+              <Empty
+                image={Empty.PRESENTED_IMAGE_SIMPLE}
+                description="No saved bank accounts for this client"
+                style={{ marginBottom: 24 }}
+              />
+            )}
+
+            <Divider orientation="left">Client Card Details</Divider>
+            {creditCards.length > 0 ? (
+              <Space direction="vertical" style={{ width: '100%', marginBottom: 24 }} size={12}>
+                {creditCards.map((card) => (
+                  <Card
+                    key={card.id}
+                    size="small"
+                    title={
+                      <Space wrap>
+                        <span>{card.cardType || 'Card'}</span>
+                        {card.isDefault && <Tag color="gold">DEFAULT</Tag>}
+                        {card.isVerified && <Tag color="green">VERIFIED</Tag>}
+                      </Space>
+                    }
+                  >
+                    <Descriptions size="small" column={2} bordered>
+                      <Descriptions.Item label="Cardholder">{card.cardholderName || '-'}</Descriptions.Item>
+                      <Descriptions.Item label="Last 4">**** {card.last4 || '----'}</Descriptions.Item>
+                      <Descriptions.Item label="Expiry">{card.expiry || '-'}</Descriptions.Item>
+                      <Descriptions.Item label="Billing Address" span={2}>{card.billingAddress || '-'}</Descriptions.Item>
+                    </Descriptions>
+                  </Card>
+                ))}
+              </Space>
+            ) : (
+              <Empty
+                image={Empty.PRESENTED_IMAGE_SIMPLE}
+                description="No saved cards for this client"
+                style={{ marginBottom: 24 }}
+              />
+            )}
             
             {proofUrl && (
               <div style={{ marginBottom: 24 }}>
