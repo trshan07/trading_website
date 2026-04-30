@@ -199,29 +199,16 @@ const DashboardPage = () => {
   const livePortfolio = useMemo(() => {
     if (!user || !activeAccount) return portfolio;
     
-    let totalUnrealizedPnL = 0;
-    let totalMargin = 0;
-    
-    positions.forEach(pos => {
-      const livePrice = marketData[pos.symbol]?.price || pos.currentPrice || pos.entryPrice;
-      const amount = pos.quantity;
-      const entryPrice = pos.entryPrice;
-      const side = pos.type; // BUY or SELL
-      
-      const pnl = side === 'BUY' 
-        ? (livePrice - entryPrice) * amount
-        : (entryPrice - livePrice) * amount;
-      
-      totalUnrealizedPnL += pnl;
-      totalMargin += pos.margin;
-    });
-    
     const balance = parseFloat(activeAccount.balance) || 0;
     const credit = parseFloat(activeAccount.credit) || 0;
     const totalFunds = balance + credit;
-    const equity = totalFunds + totalUnrealizedPnL;
-    const marginLevel = totalMargin > 0 ? (equity / totalMargin) * 100 : 0;
     const backendRisk = accountRisk?.risk || null;
+    const totalUnrealizedPnL = backendRisk?.unrealizedPnl
+      ?? positions.reduce((sum, pos) => sum + (Number.parseFloat(pos.pnl) || 0), 0);
+    const totalMargin = backendRisk?.usedMargin
+      ?? positions.reduce((sum, pos) => sum + (Number.parseFloat(pos.margin) || 0), 0);
+    const equity = backendRisk?.equity ?? (totalFunds + totalUnrealizedPnL);
+    const marginLevel = backendRisk?.marginLevel ?? (totalMargin > 0 ? (equity / totalMargin) * 100 : 0);
     
     return {
       ...portfolio,
@@ -237,7 +224,7 @@ const DashboardPage = () => {
       credit,
       leverage: activeAccount.leverage || 100
     };
-  }, [user, activeAccount, positions, marketData, portfolio, accountRisk]);
+  }, [user, activeAccount, positions, portfolio, accountRisk]);
 
   const walletData = useMemo(() => ({
     mainWallet: livePortfolio.cashBalance,

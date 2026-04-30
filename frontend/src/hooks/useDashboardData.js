@@ -11,7 +11,7 @@ import websocketService from '../services/websocketService';
 import { maskAccountNumber } from '../components/client/banking/utils';
 import { getUploadUrl } from '../utils/uploadUrl';
 import { buildInstrumentSnapshot } from '../utils/marketSymbols';
-import { calculateProjectedPnL } from '../utils/tradingUtils';
+import { calculateLotsFromQuantity, calculateProjectedPnL } from '../utils/tradingUtils';
 import { calculateSpreads } from '../utils/spreadCalculator';
 
 const GLOBAL_QUOTES_REFRESH_MS = 2500;
@@ -167,18 +167,25 @@ const buildPortfolioHistory = ({ activeAccount, positions = [], transactions = [
   const now = new Date();
   const currentBalance = (Number.parseFloat(activeAccount?.balance) || 0) + (Number.parseFloat(activeAccount?.credit) || 0);
   const unrealizedPnl = positions.reduce((acc, position) => {
+    const directPnl = Number.parseFloat(position.pnl);
+    if (Number.isFinite(directPnl)) {
+      return acc + directPnl;
+    }
+
     const currentPrice = Number.parseFloat(marketData[position.symbol]?.price ?? position.currentPrice ?? position.entryPrice) || 0;
     const entryPrice = Number.parseFloat(position.entryPrice) || 0;
     const quantity = Number.parseFloat(position.quantity) || 0;
-    const side = String(position.type || position.side || 'buy').toUpperCase();
+    const side = String(position.type || position.side || 'buy').toLowerCase();
 
-    if (!entryPrice || !quantity) {
-      return acc;
-    }
-
-    return acc + (side === 'BUY'
-      ? (currentPrice - entryPrice) * quantity
-      : (entryPrice - currentPrice) * quantity);
+    return acc + calculateProjectedPnL({
+      symbol: position.symbol,
+      category: position.category,
+      instrument: position.instrument || {},
+      side,
+      entryPrice,
+      exitPrice: currentPrice,
+      quantity,
+    });
   }, 0);
 
   const currentEquity = currentBalance + unrealizedPnl;
@@ -552,6 +559,9 @@ export const useDashboardData = (accountType = 'demo', activeSymbol = null) => {
               ? (Number.isFinite(snapshot.bid) ? snapshot.bid : parseFloat(syntheticBid))
               : (Number.isFinite(snapshot.ask) ? snapshot.ask : parseFloat(syntheticAsk));
             const pnl = calculateProjectedPnL({
+              symbol: pos.symbol,
+              category: snapshot.category,
+              instrument: snapshot,
               side: side.toLowerCase(),
               entryPrice,
               exitPrice: markPrice,
@@ -565,11 +575,14 @@ export const useDashboardData = (accountType = 'demo', activeSymbol = null) => {
               side: side.toLowerCase(),
               amount: totalPositionValue,
               quantity: qty,
+              lots: calculateLotsFromQuantity(qty, pos.symbol, snapshot.category, snapshot),
               entryPrice: entryPrice,
               currentPrice: markPrice,
               pnl: pnl,
               pnlPercent: totalPositionValue > 0 ? (pnl / totalPositionValue) * 100 : 0,
               margin: parseFloat(pos.margin),
+              category: snapshot.category,
+              instrument: snapshot,
               leverage: parseFloat(pos.leverage) || null,
               takeProfit: pos.take_profit != null ? parseFloat(pos.take_profit) : null,
               stopLoss: pos.stop_loss != null ? parseFloat(pos.stop_loss) : null,
@@ -883,7 +896,9 @@ export const useDashboardData = (accountType = 'demo', activeSymbol = null) => {
             symbol: order.symbol || 'BTCUSDT',
             side: order.side.toLowerCase(),
             amount: usdInvestment,
+            lots: order.lots,
             quantity: order.quantity,
+            category: order.category,
             entryPrice: entryPrice,
             type: order.type.toLowerCase(),
             leverage: order.leverage,
@@ -957,7 +972,7 @@ export const useDashboardData = (accountType = 'demo', activeSymbol = null) => {
       const position = positions.find(p => p.id === id);
       if (!position) return false;
 
-      const exitPrice = marketData[position.symbol]?.price || position.currentPrice;
+      const exitPrice = position.currentPrice || marketData[position.symbol]?.price || position.entryPrice;
 
       try {
           const response = await tradingService.closePosition(id, exitPrice, closeQuantity);

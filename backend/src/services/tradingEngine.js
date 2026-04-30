@@ -10,7 +10,15 @@ const {
     getExecutionPriceForSide,
     getMarkPriceForSide,
     normalizeSymbol,
+    getMergedInstrumentConfig,
 } = require('./marketDataService');
+const {
+    calculateMarginRequired,
+    calculateNotionalValue,
+    calculateProjectedPnl,
+    calculateQuantityFromLots,
+    getInstrumentTradingMeta,
+} = require('../utils/calculators');
 
 const MARGIN_CALL_LEVEL = Number.parseFloat(process.env.MARGIN_CALL_LEVEL ?? '100') || 100;
 const STOP_OUT_LEVEL = Number.parseFloat(process.env.STOP_OUT_LEVEL ?? '50') || 50;
@@ -88,20 +96,29 @@ const validateStops = ({ side, entryPrice, takeProfit, stopLoss }) => {
     }
 };
 
-const parseTradeInputs = (payload = {}) => {
+const parseTradeInputs = async (payload = {}) => {
     const side = normalizeSide(payload.side);
     const type = normalizeOrderType(payload.type, side);
     const symbol = normalizeSymbol(payload.symbol || '');
     const leverage = Number.parseFloat(payload.leverage) || 100;
     const entryPrice = Number.parseFloat(payload.entryPrice ?? payload.price) || 0;
+    const lotsInput = Number.parseFloat(payload.lots);
     const quantityInput = Number.parseFloat(payload.quantity);
     const amountInput = Number.parseFloat(payload.amount);
+    const instrumentConfig = await getMergedInstrumentConfig(symbol);
+    const category = payload.category || instrumentConfig.category || '';
+    const meta = getInstrumentTradingMeta({ symbol, category, instrument: instrumentConfig });
     const quantity = Number.isFinite(quantityInput) && quantityInput > 0
         ? quantityInput
-        : (entryPrice > 0 && Number.isFinite(amountInput) ? amountInput / entryPrice : 0);
+        : (Number.isFinite(lotsInput) && lotsInput > 0
+            ? calculateQuantityFromLots(lotsInput, symbol, category, instrumentConfig)
+            : (entryPrice > 0 && Number.isFinite(amountInput) ? amountInput / entryPrice : 0));
+    const lots = Number.isFinite(lotsInput) && lotsInput > 0
+        ? lotsInput
+        : (meta.contractSize > 0 ? quantity / meta.contractSize : 0);
     const amount = Number.isFinite(amountInput) && amountInput > 0
         ? amountInput
-        : quantity * entryPrice;
+        : calculateNotionalValue({ quantity, price: entryPrice });
     const takeProfit = payload.takeProfit == null ? null : Number.parseFloat(payload.takeProfit);
     const stopLoss = payload.stopLoss == null ? null : Number.parseFloat(payload.stopLoss);
 
@@ -109,19 +126,33 @@ const parseTradeInputs = (payload = {}) => {
         throw new Error('Missing required trade parameters');
     }
 
+    if (lots > 0 && lots < meta.minLot) {
+        throw new Error(`Minimum order size is ${meta.minLot} lots`);
+    }
+
     validateStops({ side, entryPrice, takeProfit, stopLoss });
 
     return {
         symbol,
+        category,
         side,
         type,
         entryPrice,
         leverage,
+        lots,
         quantity,
         amount,
         takeProfit,
         stopLoss,
-        margin: amount / leverage,
+        margin: calculateMarginRequired({
+            symbol,
+            category,
+            instrument: instrumentConfig,
+            quantity,
+            lots,
+            price: entryPrice,
+            leverage,
+        }),
     };
 };
 
@@ -274,7 +305,7 @@ const createExecutedPosition = async ({ userId, accountId, symbol, side, amount,
 };
 
 const placeTrade = async ({ userId, accountId, payload }) => {
-    const trade = parseTradeInputs(payload);
+    const trade = await parseTradeInputs(payload);
     const pendingType = getTriggerKind(trade.type);
 
     if (pendingType !== 'market') {
@@ -442,11 +473,12 @@ const processPendingOrders = async ({ accountId = null, userId = null, symbols =
 };
 
 const calculatePositionPnl = ({ side, entryPrice, exitPrice, quantity }) => {
-    const normalizedSide = normalizeSide(side);
-    if (normalizedSide === 'buy') {
-        return (exitPrice - entryPrice) * quantity;
-    }
-    return (entryPrice - exitPrice) * quantity;
+    return calculateProjectedPnl({
+        side: normalizeSide(side),
+        entryPrice,
+        exitPrice,
+        quantity,
+    });
 };
 
 const updatePositionProtection = async ({ positionId, userId, takeProfit = null, stopLoss = null }) => {

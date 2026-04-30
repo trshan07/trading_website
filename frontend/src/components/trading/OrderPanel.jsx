@@ -5,6 +5,7 @@ import { calculateSpreads } from '../../utils/spreadCalculator';
 import {
   calculateUsdFromLots,
   calculateLotsFromUsd,
+  calculateMarginRequired,
   getLotStep,
   calculatePips,
   calculateProjectedPnL,
@@ -14,14 +15,6 @@ import {
 } from '../../utils/tradingUtils';
 import { MARKET_INSTRUMENTS } from '../../constants/marketData';
 import { buildInstrumentSnapshot } from '../../utils/marketSymbols';
-
-const ORDER_TYPE_OPTIONS = [
-  { id: 'market', label: 'Market', side: null },
-  { id: 'buy_limit', label: 'Buy Limit', side: 'buy' },
-  { id: 'sell_limit', label: 'Sell Limit', side: 'sell' },
-  { id: 'buy_stop', label: 'Buy Stop', side: 'buy' },
-  { id: 'sell_stop', label: 'Sell Stop', side: 'sell' },
-];
 
 const formatOrderType = (value = '') => value.replace(/_/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase());
 
@@ -42,7 +35,6 @@ const OrderPanel = ({
   const [lots, setLots] = useState(0.01);
   const [amount, setAmount] = useState(100);
   const [useLots, setUseLots] = useState(true);
-  const [pendingPrice, setPendingPrice] = useState('');
   const [tpEnabled, setTpEnabled] = useState(false);
   const [slEnabled, setSlEnabled] = useState(false);
   const [tpValue, setTpValue] = useState('');
@@ -89,8 +81,16 @@ const OrderPanel = ({
   const lotStep = getLotStep(category, symbol, instrument);
   const minLot = getMinLot(category, symbol, instrument);
   const quantity = calculateQuantityFromLots(lots, symbol, category, instrument);
-  const finalPrice = orderType === 'market' ? executionPrice : parseFloat(pendingPrice);
-  const requiredMargin = (Number(amount) || 0) / (Number(maxLeverage) || 1);
+  const finalPrice = executionPrice;
+  const requiredMargin = calculateMarginRequired({
+    symbol,
+    category,
+    instrument,
+    quantity,
+    lots,
+    price: finalPrice,
+    leverage: maxLeverage,
+  });
   const freeMargin = Number(portfolio?.freeMargin ?? 0);
   const marginLoaded = portfolio?.freeMargin != null;
   const hasMarginLevel = Number(portfolio?.margin || 0) > 0;
@@ -98,24 +98,29 @@ const OrderPanel = ({
 
   const tpPrice = tpEnabled ? parseFloat(tpValue) : null;
   const slPrice = slEnabled ? parseFloat(slValue) : null;
-  const isPendingOrder = orderType !== 'market';
   const hasValidSize = Number.isFinite(lots) && lots >= minLot && Number.isFinite(amount) && amount > 0 && Number.isFinite(quantity) && quantity > 0;
-  const hasValidPendingPrice = !isPendingOrder || (Number.isFinite(finalPrice) && finalPrice > 0);
+  const hasValidPendingPrice = Number.isFinite(finalPrice) && finalPrice > 0;
   const hasValidTp = !tpEnabled || Number.isFinite(tpPrice);
   const hasValidSl = !slEnabled || Number.isFinite(slPrice);
   const hasEnoughMargin = !marginLoaded || requiredMargin <= freeMargin;
   const canReview = hasValidSize && hasValidPendingPrice && hasValidTp && hasValidSl && requiredMargin > 0 && hasEnoughMargin;
 
   const projectedTakeProfit = tpPrice ? calculateProjectedPnL({
+    symbol,
+    category,
+    instrument,
     side: selectedSide,
-    entryPrice: finalPrice || executionPrice,
+    entryPrice: finalPrice,
     exitPrice: tpPrice,
     quantity,
   }) : null;
 
   const projectedStopLoss = slPrice ? calculateProjectedPnL({
+    symbol,
+    category,
+    instrument,
     side: selectedSide,
-    entryPrice: finalPrice || executionPrice,
+    entryPrice: finalPrice,
     exitPrice: slPrice,
     quantity,
   }) : null;
@@ -139,12 +144,12 @@ const OrderPanel = ({
       onIntentChange({
         side: selectedSide,
         type: orderType,
-        price: orderType === 'market' ? null : (parseFloat(pendingPrice) || currentPrice),
+        price: finalPrice,
         tp: tpEnabled ? parseFloat(tpValue) : null,
         sl: slEnabled ? parseFloat(slValue) : null,
       });
     }
-  }, [selectedSide, orderType, pendingPrice, tpEnabled, tpValue, slEnabled, slValue, onIntentChange, currentPrice]);
+  }, [selectedSide, orderType, finalPrice, tpEnabled, tpValue, slEnabled, slValue, onIntentChange]);
 
   const handleSideSelect = (side) => {
     setSelectedSide(side);
@@ -153,17 +158,6 @@ const OrderPanel = ({
     }
     if (orderType === 'buy_stop' || orderType === 'sell_stop') {
       setOrderType(side === 'buy' ? 'buy_stop' : 'sell_stop');
-    }
-    setShowConfirmation(false);
-  };
-
-  const handleOrderTypeSelect = (type) => {
-    setOrderType(type);
-    if (type.startsWith('buy_')) {
-      setSelectedSide('buy');
-    }
-    if (type.startsWith('sell_')) {
-      setSelectedSide('sell');
     }
     setShowConfirmation(false);
   };
@@ -185,7 +179,9 @@ const OrderPanel = ({
       type: orderType,
       side: selectedSide,
       amount: parseFloat(amount),
+      lots,
       quantity,
+      category,
       leverage: maxLeverage,
       takeProfit: tpEnabled ? parseFloat(tpValue) : null,
       stopLoss: slEnabled ? parseFloat(slValue) : null,
@@ -285,20 +281,17 @@ const OrderPanel = ({
                 </button>
               </div>
 
-              <div className="grid grid-cols-2 gap-2">
-                {ORDER_TYPE_OPTIONS.map((option) => (
-                  <button
-                    key={option.id}
-                    onClick={() => handleOrderTypeSelect(option.id)}
-                    className={`px-3 py-3 rounded-xl border text-[8px] font-black uppercase tracking-widest transition-all ${
-                      orderType === option.id
-                        ? 'bg-slate-900 dark:bg-gold-500 text-white dark:text-slate-900 border-slate-900 dark:border-gold-500 shadow-md'
-                        : 'bg-slate-50 dark:bg-slate-800/50 text-slate-500 border-slate-100 dark:border-slate-700 hover:text-slate-900 dark:hover:text-white'
-                    }`}
-                  >
-                    {option.label}
-                  </button>
-                ))}
+              <div className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 px-4 py-3 flex items-center justify-between">
+                <div>
+                  <p className="text-[8px] font-black uppercase tracking-widest text-slate-400">Execution</p>
+                  <p className="text-[11px] font-black uppercase tracking-widest text-slate-900 dark:text-white mt-1">Market Only</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-[8px] font-black uppercase tracking-widest text-slate-400">Live Entry</p>
+                  <p className="text-[11px] font-black tabular-nums text-gold-500 mt-1">
+                    {finalPrice.toLocaleString(undefined, { minimumFractionDigits: instrument.precision, maximumFractionDigits: instrument.precision })}
+                  </p>
+                </div>
               </div>
 
               <div className="space-y-3">
@@ -354,22 +347,6 @@ const OrderPanel = ({
                 </div>
               </div>
 
-              {orderType !== 'market' && (
-                <div className="space-y-2">
-                  <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 italic">Trigger Price</label>
-                  <input
-                    type="number"
-                    placeholder={`Enter ${formatOrderType(orderType)} price`}
-                    value={pendingPrice}
-                    onChange={(event) => {
-                      setPendingPrice(event.target.value);
-                      setShowConfirmation(false);
-                    }}
-                    className="w-full bg-amber-500/5 border border-amber-500/20 rounded-xl py-4 px-4 text-sm font-black text-amber-500 focus:outline-none focus:border-amber-500 transition-all"
-                  />
-                </div>
-              )}
-
               <div className="space-y-4 pt-2">
                 <div className="flex items-center space-x-2 text-[9px] font-black uppercase tracking-widest text-slate-900 dark:text-white">
                   <FaShieldAlt className="text-gold-500" />
@@ -397,7 +374,13 @@ const OrderPanel = ({
                           className="w-full bg-emerald-500/5 border border-emerald-500/20 rounded-lg py-2 px-3 text-xs font-black text-emerald-500 focus:outline-none"
                         />
                         <div className="text-[7px] text-emerald-500/70 font-bold uppercase text-right">
-                          +{calculatePips(symbol, finalPrice || currentPrice, parseFloat(tpValue) || (finalPrice || currentPrice)).toFixed(1)} Pips
+                          +{calculatePips({
+                            symbol,
+                            category,
+                            instrument,
+                            entryPrice: finalPrice,
+                            exitPrice: parseFloat(tpValue) || finalPrice,
+                          }).toFixed(1)} {tradingMeta.movementLabel}
                         </div>
                         {projectedTakeProfit !== null && (
                           <div className="text-[7px] text-emerald-500/70 font-bold uppercase text-right">
@@ -428,7 +411,13 @@ const OrderPanel = ({
                           className="w-full bg-rose-500/5 border border-rose-500/20 rounded-lg py-2 px-3 text-xs font-black text-rose-500 focus:outline-none"
                         />
                         <div className="text-[7px] text-rose-500/70 font-bold uppercase text-right">
-                          -{calculatePips(symbol, finalPrice || currentPrice, parseFloat(slValue) || (finalPrice || currentPrice)).toFixed(1)} Pips
+                          -{calculatePips({
+                            symbol,
+                            category,
+                            instrument,
+                            entryPrice: finalPrice,
+                            exitPrice: parseFloat(slValue) || finalPrice,
+                          }).toFixed(1)} {tradingMeta.movementLabel}
                         </div>
                         {projectedStopLoss !== null && (
                           <div className="text-[7px] text-rose-500/70 font-bold uppercase text-right">
@@ -463,7 +452,7 @@ const OrderPanel = ({
 
               {!hasValidPendingPrice && (
                 <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 px-4 py-3 text-[9px] font-black uppercase tracking-widest text-amber-500">
-                  Enter a valid trigger price for this pending order.
+                  Live market price is unavailable right now.
                 </div>
               )}
 
@@ -493,7 +482,7 @@ const OrderPanel = ({
                   Review Order
                 </span>
                 <span className="text-[9px] font-bold text-white/70 mt-1 relative z-10">
-                  {lots} Lots | {quantity.toLocaleString(undefined, { maximumFractionDigits: 4 })} {tradingMeta.quantityLabel} @ {orderType === 'market' ? executionPrice : pendingPrice || '...'}
+                  {lots} Lots | {quantity.toLocaleString(undefined, { maximumFractionDigits: 4 })} {tradingMeta.quantityLabel} @ {finalPrice.toLocaleString(undefined, { minimumFractionDigits: instrument.precision, maximumFractionDigits: instrument.precision })}
                 </span>
               </button>
 
@@ -504,13 +493,13 @@ const OrderPanel = ({
                     <span>Order Confirmation</span>
                   </div>
                   <div className="grid grid-cols-2 gap-3 text-[10px]">
-                    {[
+                    {[ 
                       { label: 'Instrument', value: symbol },
                       { label: 'Type', value: formatOrderType(orderType) },
                       { label: 'Side', value: selectedSide.toUpperCase() },
                       { label: 'Lots', value: lots.toFixed(2) },
                       { label: 'Quantity', value: quantity.toLocaleString(undefined, { maximumFractionDigits: 4 }) },
-                      { label: 'Entry Price', value: finalPrice ? finalPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 8 }) : '--' },
+                      { label: 'Entry Price', value: finalPrice ? finalPrice.toLocaleString(undefined, { minimumFractionDigits: instrument.precision, maximumFractionDigits: instrument.precision }) : '--' },
                       { label: 'Stop Loss', value: slEnabled && slValue ? slValue : 'Off' },
                       { label: 'Take Profit', value: tpEnabled && tpValue ? tpValue : 'Off' },
                       { label: 'Required Margin', value: `$${requiredMargin.toFixed(2)}` },
