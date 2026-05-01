@@ -203,26 +203,27 @@ const DashboardPage = () => {
     const credit = parseFloat(activeAccount.credit) || 0;
     const totalFunds = balance + credit;
     const backendRisk = accountRisk?.risk || null;
-    const totalUnrealizedPnL = backendRisk?.unrealizedPnl
-      ?? positions.reduce((sum, pos) => sum + (Number.parseFloat(pos.pnl) || 0), 0);
-    const totalMargin = backendRisk?.usedMargin
-      ?? positions.reduce((sum, pos) => sum + (Number.parseFloat(pos.margin) || 0), 0);
-    const equity = backendRisk?.equity ?? (totalFunds + totalUnrealizedPnL);
-    const marginLevel = backendRisk?.marginLevel ?? (totalMargin > 0 ? (equity / totalMargin) * 100 : 0);
+    const totalUnrealizedPnL = positions.reduce((sum, pos) => sum + (Number.parseFloat(pos.pnl) || 0), 0);
+    const totalMargin = positions.reduce((sum, pos) => sum + (Number.parseFloat(pos.margin) || 0), 0);
+    const equity = totalFunds + totalUnrealizedPnL;
+    const freeMargin = equity - totalMargin;
+    const marginLevel = totalMargin > 0 ? (equity / totalMargin) * 100 : 0;
     
     return {
       ...portfolio,
       totalBalance: totalFunds,       // Balance = cash + credit (what admin gave)
       cashBalance: balance,           // raw cash only (for withdrawal checks)
-      availableBalance: backendRisk?.freeMargin ?? (equity - totalMargin),
-      freeMargin: backendRisk?.freeMargin ?? (equity - totalMargin),
-      equity: backendRisk?.equity ?? equity,
-      margin: backendRisk?.usedMargin ?? totalMargin,
-      marginLevel: backendRisk?.marginLevel ?? marginLevel,
+      availableBalance: freeMargin,
+      freeMargin,
+      equity,
+      margin: totalMargin,
+      marginLevel,
       dailyPnL: totalUnrealizedPnL,
       positionsCount: positions.length,
       credit,
-      leverage: activeAccount.leverage || 100
+      leverage: activeAccount.leverage || 100,
+      marginCall: Boolean(backendRisk?.marginCall),
+      stopOut: Boolean(backendRisk?.stopOut),
     };
   }, [user, activeAccount, positions, portfolio, accountRisk]);
 

@@ -269,7 +269,15 @@ const fetchYahooBatchQuotes = async (requests = []) => {
         return {};
     }
 
-    const yahooSymbols = requests.map((request) => resolveYahooSymbol(request.symbol, request.config));
+    const symbolsByYahoo = requests.reduce((acc, request) => {
+        const yahooSymbol = resolveYahooSymbol(request.symbol, request.config);
+        if (!acc[yahooSymbol]) {
+            acc[yahooSymbol] = [];
+        }
+        acc[yahooSymbol].push(normalizeSymbol(request.symbol));
+        return acc;
+    }, {});
+    const yahooSymbols = Object.keys(symbolsByYahoo);
     const response = await axios.get('https://query1.finance.yahoo.com/v7/finance/quote', {
         params: {
             symbols: yahooSymbols.join(','),
@@ -278,13 +286,9 @@ const fetchYahooBatchQuotes = async (requests = []) => {
     });
 
     const rawResults = response.data?.quoteResponse?.result || [];
-    const symbolByYahoo = Object.fromEntries(
-        requests.map((request) => [resolveYahooSymbol(request.symbol, request.config), normalizeSymbol(request.symbol)])
-    );
-
     return rawResults.reduce((acc, item) => {
-        const originalSymbol = symbolByYahoo[item?.symbol];
-        if (!originalSymbol) {
+        const originalSymbols = symbolsByYahoo[item?.symbol] || [];
+        if (originalSymbols.length === 0) {
             return acc;
         }
 
@@ -300,17 +304,19 @@ const fetchYahooBatchQuotes = async (requests = []) => {
             return acc;
         }
 
-        const matchingRequest = requests.find((request) => normalizeSymbol(request.symbol) === originalSymbol);
-        const allowBidAsk = matchingRequest?.config?.useBidAsk !== false;
+        originalSymbols.forEach((originalSymbol) => {
+            const matchingRequest = requests.find((request) => normalizeSymbol(request.symbol) === originalSymbol);
+            const allowBidAsk = matchingRequest?.config?.useBidAsk !== false;
 
-        acc[originalSymbol] = {
-            price,
-            bid: allowBidAsk ? parseQuoteNumber(item.bid) : null,
-            ask: allowBidAsk ? parseQuoteNumber(item.ask) : null,
-            change: parseQuoteNumber(item.regularMarketChangePercent) ?? 0,
-            volume: parseQuoteNumber(item.regularMarketVolume),
-            source: 'yahoo-quote',
-        };
+            acc[originalSymbol] = {
+                price,
+                bid: allowBidAsk ? parseQuoteNumber(item.bid) : null,
+                ask: allowBidAsk ? parseQuoteNumber(item.ask) : null,
+                change: parseQuoteNumber(item.regularMarketChangePercent) ?? 0,
+                volume: parseQuoteNumber(item.regularMarketVolume),
+                source: 'yahoo-quote',
+            };
+        });
         return acc;
     }, {});
 };
@@ -418,8 +424,16 @@ const fetchTwelveDataQuotes = async (requests = []) => {
         return {};
     }
 
+    const symbolsByProvider = requests.reduce((acc, request) => {
+        const providerSymbol = resolveTwelveDataSymbol(request.symbol, request.config);
+        if (!acc[providerSymbol]) {
+            acc[providerSymbol] = [];
+        }
+        acc[providerSymbol].push(normalizeSymbol(request.symbol));
+        return acc;
+    }, {});
     const params = {
-        symbol: requests.map((request) => resolveTwelveDataSymbol(request.symbol, request.config)).join(','),
+        symbol: Object.keys(symbolsByProvider).join(','),
         apikey: process.env.TWELVEDATA_API_KEY,
         interval: '1min',
         prepost: true,
@@ -430,14 +444,10 @@ const fetchTwelveDataQuotes = async (requests = []) => {
         timeout: 5000,
     });
 
-    const symbolMap = Object.fromEntries(
-        requests.map((request) => [resolveTwelveDataSymbol(request.symbol, request.config), normalizeSymbol(request.symbol)])
-    );
-
     return normalizeTwelveDataQuotePayload(response.data).reduce((acc, item) => {
         const lookupKey = String(item.symbol || '').trim();
-        const originalSymbol = symbolMap[lookupKey] || symbolMap[normalizeSymbol(lookupKey)];
-        if (!originalSymbol) {
+        const originalSymbols = symbolsByProvider[lookupKey] || symbolsByProvider[normalizeSymbol(lookupKey)] || [];
+        if (originalSymbols.length === 0) {
             return acc;
         }
 
@@ -454,15 +464,17 @@ const fetchTwelveDataQuotes = async (requests = []) => {
         }
 
         const timestamp = Number.parseInt(item.timestamp ?? item.time ?? 0, 10);
-        acc[originalSymbol] = {
-            price,
-            bid: parseQuoteNumber(item.bid),
-            ask: parseQuoteNumber(item.ask),
-            change: parseQuoteNumber(item.percent_change ?? item.change_percent ?? item.change) ?? 0,
-            volume: parseQuoteNumber(item.volume ?? item.day_volume),
-            updatedAt: Number.isFinite(timestamp) && timestamp > 0 ? timestamp * 1000 : Date.now(),
-            source: 'twelvedata',
-        };
+        originalSymbols.forEach((originalSymbol) => {
+            acc[originalSymbol] = {
+                price,
+                bid: parseQuoteNumber(item.bid),
+                ask: parseQuoteNumber(item.ask),
+                change: parseQuoteNumber(item.percent_change ?? item.change_percent ?? item.change) ?? 0,
+                volume: parseQuoteNumber(item.volume ?? item.day_volume),
+                updatedAt: Number.isFinite(timestamp) && timestamp > 0 ? timestamp * 1000 : Date.now(),
+                source: 'twelvedata',
+            };
+        });
         return acc;
     }, {});
 };

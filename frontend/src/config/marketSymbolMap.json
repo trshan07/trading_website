@@ -9,9 +9,29 @@
     "lotStep": 0.001,
     "minLot": 0.001
   },
+  "BTCUSD": {
+    "tradingView": "COINBASE:BTCUSD",
+    "quote": "BTC-USD",
+    "provider": "twelvedata",
+    "dataSymbol": "BTC/USD",
+    "contractSize": 1,
+    "quantityLabel": "BTC",
+    "lotStep": 0.001,
+    "minLot": 0.001
+  },
   "ETHUSDT": {
     "tradingView": "BINANCE:ETHUSDT",
     "quote": "ETHUSDT",
+    "provider": "twelvedata",
+    "dataSymbol": "ETH/USD",
+    "contractSize": 1,
+    "quantityLabel": "ETH",
+    "lotStep": 0.001,
+    "minLot": 0.001
+  },
+  "ETHUSD": {
+    "tradingView": "COINBASE:ETHUSD",
+    "quote": "ETH-USD",
     "provider": "twelvedata",
     "dataSymbol": "ETH/USD",
     "contractSize": 1,
@@ -39,9 +59,29 @@
     "lotStep": 0.001,
     "minLot": 0.001
   },
+  "SOLUSD": {
+    "tradingView": "COINBASE:SOLUSD",
+    "quote": "SOL-USD",
+    "provider": "twelvedata",
+    "dataSymbol": "SOL/USD",
+    "contractSize": 1,
+    "quantityLabel": "SOL",
+    "lotStep": 0.001,
+    "minLot": 0.001
+  },
   "ADAUSDT": {
     "tradingView": "BINANCE:ADAUSDT",
     "quote": "ADAUSDT",
+    "provider": "twelvedata",
+    "dataSymbol": "ADA/USD",
+    "contractSize": 1,
+    "quantityLabel": "ADA",
+    "lotStep": 0.001,
+    "minLot": 0.001
+  },
+  "ADAUSD": {
+    "tradingView": "COINBASE:ADAUSD",
+    "quote": "ADA-USD",
     "provider": "twelvedata",
     "dataSymbol": "ADA/USD",
     "contractSize": 1,

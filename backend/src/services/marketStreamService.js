@@ -32,8 +32,14 @@ class MarketStreamService {
       }
 
       const normalizedInternalSymbol = normalizeSymbol(symbol);
-      acc[providerSymbol] = normalizedInternalSymbol;
-      acc[normalizeSymbol(providerSymbol)] = normalizedInternalSymbol;
+      if (!acc[providerSymbol]) {
+        acc[providerSymbol] = [];
+      }
+      if (!acc[normalizeSymbol(providerSymbol)]) {
+        acc[normalizeSymbol(providerSymbol)] = [];
+      }
+      acc[providerSymbol].push(normalizedInternalSymbol);
+      acc[normalizeSymbol(providerSymbol)].push(normalizedInternalSymbol);
       return acc;
     }, {});
   }
@@ -178,16 +184,16 @@ class MarketStreamService {
         const payload = JSON.parse(rawMessage.toString());
         const providerSymbol = String(payload?.symbol || '').trim();
         const normalizedProviderSymbol = normalizeSymbol(providerSymbol);
-        const internalSymbol = symbolMap[providerSymbol] || symbolMap[normalizedProviderSymbol] || normalizedProviderSymbol;
+        const internalSymbols = symbolMap[providerSymbol] || symbolMap[normalizedProviderSymbol] || [normalizedProviderSymbol];
         const price = Number.parseFloat(payload?.price ?? payload?.close);
 
-        if (!internalSymbol || !Number.isFinite(price)) {
+        if (internalSymbols.length === 0 || !Number.isFinite(price)) {
           return;
         }
 
         const timestamp = Number.parseInt(payload.timestamp ?? payload.time ?? 0, 10);
-        this.publishQuotes({
-          [internalSymbol]: {
+        const quotePayload = internalSymbols.reduce((acc, internalSymbol) => {
+          acc[internalSymbol] = {
             price,
             bid: Number.parseFloat(payload.bid) || null,
             ask: Number.parseFloat(payload.ask) || null,
@@ -195,8 +201,10 @@ class MarketStreamService {
             volume: Number.parseFloat(payload.day_volume ?? payload.volume ?? 0) || null,
             updatedAt: Number.isFinite(timestamp) && timestamp > 0 ? timestamp * 1000 : Date.now(),
             source: 'twelvedata-stream',
-          },
-        });
+          };
+          return acc;
+        }, {});
+        this.publishQuotes(quotePayload);
       } catch (error) {}
     });
 

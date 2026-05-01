@@ -35,34 +35,6 @@ const createFlatData = (basePrice, interval = '15m', count = 300) => {
   });
 };
 
-const generateMockData = (basePrice, count = 300) => {
-  let prev = parseFloat(basePrice) || 100;
-  const data = [];
-  const now = Math.floor(Date.now() / 1000);
-  const intervalSec = 15 * 60;
-
-  for (let i = count; i > 0; i -= 1) {
-    const open = prev;
-    const close = open + (Math.random() - 0.5) * (open * 0.01);
-    const high = Math.max(open, close) + Math.random() * (open * 0.005);
-    const low = Math.min(open, close) - Math.random() * (open * 0.005);
-
-    data.push([
-      (now - (i * intervalSec)) * 1000,
-      open.toString(),
-      high.toString(),
-      low.toString(),
-      close.toString(),
-      '100',
-      (now - ((i - 1) * intervalSec)) * 1000,
-      '0', '0', '0', '0', '0',
-    ]);
-    prev = close;
-  }
-
-  return data;
-};
-
 exports.getMarketQuotes = async (req, res) => {
   const requestedSymbols = String(req.query.symbols || '')
     .split(',')
@@ -100,16 +72,13 @@ exports.getMarketHistory = async (req, res) => {
     console.log(`[MarketProxy] History fallback for ${sym} due to: ${error.message}`);
     const liveQuote = await fetchMarketQuotes([sym]).catch(() => ({}));
     const quotePrice = parseQuoteNumber(liveQuote?.[sym]?.price);
-    const fallbackData = quotePrice
-      ? createFlatData(quotePrice, iv)
-      : generateMockData(req.query.initialPrice || 100);
+    const fallbackData = quotePrice ? createFlatData(quotePrice, iv) : [];
 
     return res.status(200).json({
       success: true,
       data: fallbackData,
-      isMock: !quotePrice,
       isSynthetic: Boolean(quotePrice),
-      source: quotePrice ? 'quote-fallback' : 'mock',
+      source: quotePrice ? 'quote-fallback' : 'unavailable',
     });
   }
 };

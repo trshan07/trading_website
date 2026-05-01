@@ -81,6 +81,7 @@ const RealTimeChart = ({
   const [isLoading, setIsLoading] = useState(true);
   const [liveStatus, setLiveStatus] = useState('connecting');
   const [lastQuoteAt, setLastQuoteAt] = useState(0);
+  const [historySource, setHistorySource] = useState('market-provider');
 
   const isDark = theme === 'dark';
   const normalizedSymbol = useMemo(() => normalizeSymbol(symbol), [symbol]);
@@ -228,30 +229,44 @@ const RealTimeChart = ({
         setIsLoading(true);
         const response = await infraService.getMarketHistory(symbol, interval, initialPrice);
         const candles = toCandles(response?.data || []);
+        const canUseQuoteFallback = Boolean(response?.isSynthetic)
+          && Number.isFinite(livePrice || initialPrice || instrumentSnapshot.price || 0);
         const usableCandles = candles.length > 0
           ? candles
-          : createFallbackCandles(livePrice || initialPrice || instrumentSnapshot.price || 100, interval);
+          : canUseQuoteFallback
+            ? createFallbackCandles(livePrice || initialPrice || instrumentSnapshot.price || 100, interval)
+            : [];
 
-        if (!active || !seriesRef.current || usableCandles.length === 0) {
+        if (!active || !seriesRef.current) {
           return;
         }
 
         seriesRef.current.setData(usableCandles);
         candleDataRef.current = usableCandles;
         candleTimesRef.current = usableCandles.map((candle) => candle.time);
-        chartRef.current?.timeScale().fitContent();
+        setHistorySource(response?.source || (candles.length > 0 ? 'market-provider' : 'unavailable'));
 
-        const first = usableCandles[0];
-        const last = usableCandles[usableCandles.length - 1];
-        setLastPrice(last.close);
-        setPriceChange(first?.open ? (((last.close - first.open) / first.open) * 100).toFixed(2) : null);
-        setLiveStatus(candles.length > 0 ? 'live' : 'delayed');
+        if (usableCandles.length > 0) {
+          chartRef.current?.timeScale().fitContent();
 
-        window.dispatchEvent(new CustomEvent('active_price_update', {
-          detail: { symbol, price: last.close, source: 'platform-feed' },
-        }));
+          const first = usableCandles[0];
+          const last = usableCandles[usableCandles.length - 1];
+          setLastPrice(last.close);
+          setPriceChange(first?.open ? (((last.close - first.open) / first.open) * 100).toFixed(2) : null);
+          setLiveStatus(candles.length > 0 ? 'live' : (canUseQuoteFallback ? 'quote-sync' : 'delayed'));
+
+          window.dispatchEvent(new CustomEvent('active_price_update', {
+            detail: { symbol, price: last.close, source: 'platform-feed' },
+          }));
+          return;
+        }
+
+        setLastPrice(null);
+        setPriceChange(null);
+        setLiveStatus(navigator.onLine ? 'delayed' : 'offline');
       } catch (error) {
         if (active) {
+          setHistorySource('unavailable');
           setLiveStatus(navigator.onLine ? 'delayed' : 'offline');
         }
       } finally {
@@ -321,12 +336,12 @@ const RealTimeChart = ({
       seriesRef.current.update(syncedCandle);
       setLastPrice(nextPrice);
       setLastQuoteAt(Date.now());
-      setLiveStatus(navigator.onLine ? 'live' : 'offline');
+      setLiveStatus(navigator.onLine ? (historySource === 'quote-fallback' ? 'quote-sync' : 'live') : 'offline');
       window.dispatchEvent(new CustomEvent('active_price_update', {
         detail: { symbol, price: nextPrice, source: 'platform-feed' },
       }));
     } catch (error) {}
-  }, [livePrice, symbol]);
+  }, [historySource, livePrice, symbol]);
 
   useEffect(() => {
     if (!seriesRef.current) {
@@ -407,7 +422,7 @@ const RealTimeChart = ({
         if (!navigator.onLine) {
           return 'offline';
         }
-        if (previous === 'connecting' || previous === 'delayed') {
+        if (previous === 'connecting' || previous === 'delayed' || previous === 'quote-sync') {
           return previous;
         }
         return isFresh ? 'live' : 'delayed';
@@ -421,6 +436,7 @@ const RealTimeChart = ({
   const liveLabel = {
     live: 'LIVE',
     connecting: 'CONNECTING',
+    'quote-sync': 'QUOTE SYNC',
     delayed: 'SYNCING',
     offline: 'OFFLINE',
   }[liveStatus] || 'LIVE';

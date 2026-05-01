@@ -3,10 +3,14 @@
 export const MARKET_INSTRUMENTS = [
   // Crypto
   { symbol: 'BTCUSDT', name: 'Bitcoin', category: 'Crypto', price: 43250.00, change: 2.5, volume: '$28.4B' },
+  { symbol: 'BTCUSD', name: 'Bitcoin / USD', category: 'Crypto', price: 43250.00, change: 2.5, volume: '$28.4B' },
   { symbol: 'ETHUSDT', name: 'Ethereum', category: 'Crypto', price: 2820.00, change: 1.8, volume: '$14.1B' },
+  { symbol: 'ETHUSD', name: 'Ethereum / USD', category: 'Crypto', price: 2820.00, change: 1.8, volume: '$14.1B' },
   { symbol: 'BNBUSDT', name: 'Binance Coin', category: 'Crypto', price: 380.00, change: -0.5, volume: '$1.2B' },
   { symbol: 'SOLUSDT', name: 'Solana', category: 'Crypto', price: 105.00, change: 5.2, volume: '$3.8B' },
+  { symbol: 'SOLUSD', name: 'Solana / USD', category: 'Crypto', price: 105.00, change: 5.2, volume: '$3.8B' },
   { symbol: 'ADAUSDT', name: 'Cardano', category: 'Crypto', price: 0.58, change: 1.1, volume: '$0.9B' },
+  { symbol: 'ADAUSD', name: 'Cardano / USD', category: 'Crypto', price: 0.58, change: 1.1, volume: '$0.9B' },
   // Forex
   { symbol: 'EURUSD', name: 'Euro / USD', category: 'Forex', price: 1.0875, change: 0.23, volume: '$3.2T' },
   { symbol: 'GBPUSD', name: 'GBP / USD', category: 'Forex', price: 1.265, change: -0.12, volume: '$0.8T' },

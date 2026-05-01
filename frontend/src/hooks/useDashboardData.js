@@ -1,4 +1,4 @@
-import { useState, useEffect, useContext, useCallback } from 'react';
+import { useState, useEffect, useContext, useCallback, useMemo } from 'react';
 import tradingService from '../services/tradingService';
 import fundingService from '../services/fundingService';
 import kycService from '../services/kycService';
@@ -390,6 +390,95 @@ const normalizeTransaction = (transaction = {}) => {
   };
 };
 
+const mapPositionToLiveView = (position = {}, instruments = [], marketData = {}) => {
+  const instrument = instruments.find((item) => item.symbol === position.symbol);
+  const snapshot = buildInstrumentSnapshot({
+    symbol: position.symbol,
+    instrument,
+    marketData,
+  });
+  const quantity = Number.parseFloat(position.quantity) || 0;
+  const entryPrice = Number.parseFloat(position.entry_price) || 0;
+  const side = String(position.side || 'buy').toUpperCase();
+  const { bidPrice: syntheticBid, askPrice: syntheticAsk } = calculateSpreads(position.symbol, snapshot.price || entryPrice, {
+    category: snapshot.category,
+    precision: snapshot.precision,
+  });
+  const markPrice = side === 'BUY'
+    ? (Number.isFinite(snapshot.bid) ? snapshot.bid : Number.parseFloat(syntheticBid))
+    : (Number.isFinite(snapshot.ask) ? snapshot.ask : Number.parseFloat(syntheticAsk));
+  const pnl = calculateProjectedPnL({
+    symbol: position.symbol,
+    category: snapshot.category,
+    instrument: snapshot,
+    side: side.toLowerCase(),
+    entryPrice,
+    exitPrice: markPrice,
+    quantity,
+  });
+  const lots = calculateLotsFromQuantity(quantity, position.symbol, snapshot.category, snapshot);
+  const totalPositionValue = calculateUsdFromLots(lots, entryPrice, snapshot.category, position.symbol, snapshot)
+    || Number.parseFloat(position.amount)
+    || (quantity * entryPrice);
+
+  return {
+    id: position.id,
+    symbol: position.symbol,
+    type: side,
+    side: side.toLowerCase(),
+    amount: totalPositionValue,
+    quantity,
+    lots,
+    entryPrice,
+    currentPrice: markPrice,
+    pnl,
+    pnlPercent: totalPositionValue > 0 ? (pnl / totalPositionValue) * 100 : 0,
+    margin: Number.parseFloat(position.margin) || 0,
+    category: snapshot.category,
+    instrument: snapshot,
+    leverage: Number.parseFloat(position.leverage) || null,
+    takeProfit: position.take_profit != null ? Number.parseFloat(position.take_profit) : null,
+    stopLoss: position.stop_loss != null ? Number.parseFloat(position.stop_loss) : null,
+    createdAt: position.created_at,
+    entryTime: position.created_at,
+    swap: Number.parseFloat(position.swap) || 0,
+    commission: Number.parseFloat(position.commission) || 0,
+  };
+};
+
+const mapOrderToLiveView = (order = {}, instruments = [], marketData = {}) => {
+  const instrument = instruments.find((item) => item.symbol === order.symbol);
+  const snapshot = buildInstrumentSnapshot({
+    symbol: order.symbol,
+    instrument,
+    marketData,
+  });
+  const quantity = Number.parseFloat(order.quantity) || 0;
+  const lots = calculateLotsFromQuantity(quantity, order.symbol, snapshot.category, snapshot);
+  const amount = calculateUsdFromLots(lots, Number.parseFloat(order.entry_price) || 0, snapshot.category, order.symbol, snapshot)
+    || Number.parseFloat(order.amount)
+    || 0;
+
+  return {
+    id: order.id,
+    symbol: order.symbol,
+    type: formatOrderTypeLabel(order.type || 'limit'),
+    rawType: String(order.type || 'limit').toLowerCase(),
+    side: String(order.side || 'buy').toUpperCase(),
+    amount,
+    quantity,
+    lots,
+    entryPrice: Number.parseFloat(order.entry_price) || 0,
+    leverage: Number.parseFloat(order.leverage) || null,
+    takeProfit: order.take_profit != null ? Number.parseFloat(order.take_profit) : null,
+    stopLoss: order.stop_loss != null ? Number.parseFloat(order.stop_loss) : null,
+    createdAt: order.created_at,
+    status: order.status,
+    category: snapshot.category,
+    instrument: snapshot,
+  };
+};
+
 export const useDashboardData = (accountType = 'demo', activeSymbol = null) => {
   const { user, refreshUser } = useContext(AuthContext);
   const isDemo = accountType === 'demo';
@@ -411,9 +500,9 @@ export const useDashboardData = (accountType = 'demo', activeSymbol = null) => {
   const [creditCards, setCreditCards] = useState([]);
   const [transactions, setTransactions] = useState([]);
   const [documents, setDocuments] = useState([]);
-  const [positions, setPositions] = useState([]);
-  const [orders, setOrders] = useState([]);
-  const [closedTrades, setClosedTrades] = useState([]);
+  const [rawPositions, setRawPositions] = useState([]);
+  const [rawOrders, setRawOrders] = useState([]);
+  const [rawClosedTrades, setRawClosedTrades] = useState([]);
   const [accountRisk, setAccountRisk] = useState(null);
   const [priceAlerts, setPriceAlerts] = useState([]);
   const [settings, setSettings] = useState({});
@@ -427,6 +516,21 @@ export const useDashboardData = (accountType = 'demo', activeSymbol = null) => {
   const [portfolioHistory, setPortfolioHistory] = useState([]);
   
   const [marketData, setMarketData] = useState({});
+
+  const positions = useMemo(
+    () => rawPositions.map((position) => mapPositionToLiveView(position, instruments, marketData)),
+    [instruments, marketData, rawPositions]
+  );
+
+  const orders = useMemo(
+    () => rawOrders.map((order) => mapOrderToLiveView(order, instruments, marketData)),
+    [instruments, marketData, rawOrders]
+  );
+
+  const closedTrades = useMemo(
+    () => rawClosedTrades.map((trade) => normalizeClosedTrade(trade, instruments, marketData)),
+    [instruments, marketData, rawClosedTrades]
+  );
 
   // --- Fetch Methods ---
 
@@ -618,70 +722,15 @@ export const useDashboardData = (accountType = 'demo', activeSymbol = null) => {
     const token = localStorage.getItem('token');
     if (!token) return; // No token = don't fire, avoids 401 spam after logout
     try {
-        const response = await tradingService.getOpenPositions(accountId);
+      const response = await tradingService.getOpenPositions(accountId);
       if (response.success) {
         setAccountRisk(response.risk || null);
-        const mappedPositions = response.data.map(pos => {
-            const instrument = instruments.find((item) => item.symbol === pos.symbol);
-            const snapshot = buildInstrumentSnapshot({
-              symbol: pos.symbol,
-              instrument,
-              marketData,
-            });
-            const qty = parseFloat(pos.quantity);
-            const entryPrice = parseFloat(pos.entry_price);
-            const side = pos.side.toUpperCase();
-            const { bidPrice: syntheticBid, askPrice: syntheticAsk } = calculateSpreads(pos.symbol, snapshot.price || entryPrice, {
-              category: snapshot.category,
-              precision: snapshot.precision,
-            });
-            const markPrice = side === 'BUY'
-              ? (Number.isFinite(snapshot.bid) ? snapshot.bid : parseFloat(syntheticBid))
-              : (Number.isFinite(snapshot.ask) ? snapshot.ask : parseFloat(syntheticAsk));
-            const pnl = calculateProjectedPnL({
-              symbol: pos.symbol,
-              category: snapshot.category,
-              instrument: snapshot,
-              side: side.toLowerCase(),
-              entryPrice,
-              exitPrice: markPrice,
-              quantity: qty,
-            });
-            const lots = calculateLotsFromQuantity(qty, pos.symbol, snapshot.category, snapshot);
-            const totalPositionValue = calculateUsdFromLots(lots, entryPrice, snapshot.category, pos.symbol, snapshot)
-              || parseFloat(pos.amount)
-              || (qty * entryPrice);
-
-            return {
-              id: pos.id,
-              symbol: pos.symbol,
-              type: side,
-              side: side.toLowerCase(),
-              amount: totalPositionValue,
-              quantity: qty,
-              lots,
-              entryPrice: entryPrice,
-              currentPrice: markPrice,
-              pnl: pnl,
-              pnlPercent: totalPositionValue > 0 ? (pnl / totalPositionValue) * 100 : 0,
-              margin: parseFloat(pos.margin),
-              category: snapshot.category,
-              instrument: snapshot,
-              leverage: parseFloat(pos.leverage) || null,
-              takeProfit: pos.take_profit != null ? parseFloat(pos.take_profit) : null,
-              stopLoss: pos.stop_loss != null ? parseFloat(pos.stop_loss) : null,
-              createdAt: pos.created_at,
-              entryTime: pos.created_at,
-              swap: parseFloat(pos.swap) || 0,
-              commission: parseFloat(pos.commission) || 0,
-            };
-        });
-        setPositions(mappedPositions);
+        setRawPositions(response.data || []);
       }
     } catch (error) {
       console.error('Failed to fetch positions:', error);
     }
-  }, [accountId, instruments, marketData]);
+  }, [accountId]);
 
   const fetchOrders = useCallback(async () => {
     if (!accountId) return;
@@ -691,44 +740,12 @@ export const useDashboardData = (accountType = 'demo', activeSymbol = null) => {
     try {
       const response = await tradingService.getOpenOrders(accountId);
       if (response.success) {
-        const mappedOrders = (response.data || []).map((order) => {
-          const instrument = instruments.find((item) => item.symbol === order.symbol);
-          const snapshot = buildInstrumentSnapshot({
-            symbol: order.symbol,
-            instrument,
-            marketData,
-          });
-          const quantity = parseFloat(order.quantity) || 0;
-          const lots = calculateLotsFromQuantity(quantity, order.symbol, snapshot.category, snapshot);
-          const amount = calculateUsdFromLots(lots, parseFloat(order.entry_price) || 0, snapshot.category, order.symbol, snapshot)
-            || parseFloat(order.amount)
-            || 0;
-
-          return {
-            id: order.id,
-            symbol: order.symbol,
-            type: formatOrderTypeLabel(order.type || 'limit'),
-            rawType: String(order.type || 'limit').toLowerCase(),
-            side: (order.side || 'buy').toUpperCase(),
-            amount,
-            quantity,
-            lots,
-            entryPrice: parseFloat(order.entry_price) || 0,
-            leverage: parseFloat(order.leverage) || null,
-            takeProfit: order.take_profit != null ? parseFloat(order.take_profit) : null,
-            stopLoss: order.stop_loss != null ? parseFloat(order.stop_loss) : null,
-            createdAt: order.created_at,
-            status: order.status,
-            category: snapshot.category,
-            instrument: snapshot,
-          };
-        });
-        setOrders(mappedOrders);
+        setRawOrders(response.data || []);
       }
     } catch (error) {
       console.error('Failed to fetch orders:', error);
     }
-  }, [accountId, instruments, marketData]);
+  }, [accountId]);
 
   const fetchClosedTrades = useCallback(async () => {
     if (!accountId) return;
@@ -738,12 +755,12 @@ export const useDashboardData = (accountType = 'demo', activeSymbol = null) => {
     try {
       const response = await tradingService.getClosedPositions(accountId);
       if (response.success) {
-        setClosedTrades((response.data || []).map((trade) => normalizeClosedTrade(trade, instruments, marketData)));
+        setRawClosedTrades(response.data || []);
       }
     } catch (error) {
       console.error('Failed to fetch closed trades:', error);
     }
-  }, [accountId, instruments, marketData]);
+  }, [accountId]);
 
   // --- Initial Data loading Lifecycle ---
   useEffect(() => {
@@ -1065,7 +1082,7 @@ export const useDashboardData = (accountType = 'demo', activeSymbol = null) => {
       if (!res.success) {
         throw new Error('Cancel failed');
       }
-      setOrders(prev => prev.filter(o => o.id !== id));
+      setRawOrders(prev => prev.filter((order) => order.id !== id));
       toast.success("Order Cancelled");
       return true;
     } catch (error) {
