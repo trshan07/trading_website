@@ -8,11 +8,6 @@ import { useTheme } from '../../context/ThemeContext';
 import { buildInstrumentSnapshot, formatInstrumentDisplaySymbol, normalizeSymbol } from '../../utils/marketSymbols';
 import { getDisplayQuoteSnapshot } from '../../utils/spreadCalculator';
 
-const formatMoney = (value = 0, digits = 2) => Number(value || 0).toLocaleString(undefined, {
-  minimumFractionDigits: digits,
-  maximumFractionDigits: digits,
-});
-
 const TradingTab = ({
   portfolio = {},
   positions = [],
@@ -61,7 +56,6 @@ const TradingTab = ({
     () => positions.filter((position) => normalizeSymbol(position?.symbol) === normalizedActiveSymbol),
     [normalizedActiveSymbol, positions]
   );
-  const matchingPositionCount = selectedSymbolPositions.length;
   const quoteSnapshot = useMemo(() => getDisplayQuoteSnapshot({
     symbol: activeSymbol,
     instrument: selectedInstrument,
@@ -69,43 +63,7 @@ const TradingTab = ({
   }), [activeSymbol, marketData, selectedInstrument]);
   const bidPrice = quoteSnapshot.bidLabel;
   const askPrice = quoteSnapshot.askLabel;
-  const spreadLabel = quoteSnapshot.spreadLabel;
   const activeSymbolLabel = formatInstrumentDisplaySymbol(activeSymbol, { withSlash: true });
-  const selectedCategory = selectedInstrument.category || 'Multi-Asset';
-
-  const marketCards = [
-    {
-      label: 'Mark',
-      value: formatMoney(selectedInstrument.price || 0, selectedInstrument.precision),
-      tone: selectedInstrument.lastDir === 'up'
-        ? 'text-emerald-500'
-        : selectedInstrument.lastDir === 'down'
-          ? 'text-rose-500'
-          : theme === 'dark'
-            ? 'text-white'
-            : 'text-slate-900',
-    },
-    {
-      label: '24H Change',
-      value: `${Number(selectedInstrument.change || 0) >= 0 ? '+' : ''}${Number(selectedInstrument.change || 0).toFixed(2)}%`,
-      tone: Number(selectedInstrument.change || 0) >= 0 ? 'text-emerald-500' : 'text-rose-500',
-    },
-    {
-      label: 'Bid / Ask',
-      value: `${bidPrice} / ${askPrice}`,
-      tone: theme === 'dark' ? 'text-white' : 'text-slate-900',
-    },
-    {
-      label: 'Spread',
-      value: spreadLabel,
-      tone: 'text-gold-500',
-    },
-    {
-      label: 'Open Exposure',
-      value: `${matchingPositionCount} position${matchingPositionCount === 1 ? '' : 's'}`,
-      tone: theme === 'dark' ? 'text-white' : 'text-slate-900',
-    },
-  ];
 
   return (
     <div className="flex flex-col h-[calc(100vh-10rem)] min-h-[500px] lg:min-h-[1220px] -mx-4 md:-mx-10 border-t border-slate-100 dark:border-slate-800 animate-in fade-in duration-500">
@@ -172,86 +130,6 @@ const TradingTab = ({
           )}
 
           <div className="flex-1 flex flex-col min-w-0">
-            <div className={`px-4 py-4 border-b flex-shrink-0 ${
-              theme === 'dark' ? 'bg-slate-900 border-slate-800' : 'bg-slate-50 border-slate-200'
-            }`}>
-              <div className="flex items-start justify-between gap-4 flex-wrap">
-                <div>
-                  <p className={`text-[8px] font-black uppercase tracking-widest ${
-                    theme === 'dark' ? 'text-slate-500' : 'text-slate-400'
-                  }`}>Professional Execution Workspace</p>
-                  <div className="mt-2 flex items-center gap-3 flex-wrap">
-                    <span className={`text-lg font-black uppercase tracking-[0.25em] ${
-                      theme === 'dark' ? 'text-white' : 'text-slate-900'
-                    }`}>{activeSymbolLabel}</span>
-                    <span className="px-3 py-1 rounded-full bg-gold-500/10 text-gold-500 border border-gold-500/20 text-[10px] font-black uppercase tracking-widest">
-                      {selectedCategory}
-                    </span>
-                    <span className={`px-3 py-1 rounded-full border text-[10px] font-black uppercase tracking-widest ${
-                      quoteSnapshot.hasRealBidAsk
-                        ? 'border-emerald-500/20 bg-emerald-500/10 text-emerald-500'
-                        : 'border-amber-500/20 bg-amber-500/10 text-amber-500'
-                    }`}>
-                      {quoteSnapshot.hasRealBidAsk ? 'Bid / Ask Feed' : 'Last Price Sync'}
-                    </span>
-                  </div>
-                  <p className={`mt-2 text-[11px] ${
-                    theme === 'dark' ? 'text-slate-400' : 'text-slate-500'
-                  }`}>
-                    Chart, order desk, watchlist, and portfolio are all focused on the same live instrument.
-                  </p>
-                </div>
-
-                <div className="flex flex-wrap items-center gap-2">
-                  {[
-                    { label: showSidebar ? 'Hide Markets' : 'Show Markets', action: () => setShowSidebar((value) => !value) },
-                  ].map((item) => (
-                    <button
-                      key={item.label}
-                      onClick={() => {
-                        if (item.action) {
-                          item.action();
-                        }
-                      }}
-                      className={`px-3 py-2 rounded-xl border text-[10px] font-black uppercase tracking-widest transition-all ${
-                        theme === 'dark'
-                          ? 'bg-slate-950 border-slate-800 text-slate-300 hover:text-gold-500'
-                          : 'bg-white border-slate-200 text-slate-600 hover:text-gold-600'
-                      }`}
-                    >
-                      {item.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="mt-4 grid grid-cols-2 xl:grid-cols-6 gap-3">
-                {marketCards.map((item) => (
-                  <div
-                    key={item.label}
-                    className={`rounded-2xl border px-4 py-3 ${
-                      theme === 'dark'
-                        ? 'border-slate-800 bg-slate-950/80'
-                        : 'border-slate-200 bg-white'
-                    }`}
-                  >
-                    <p className={`text-[8px] font-black uppercase tracking-widest ${
-                      theme === 'dark' ? 'text-slate-500' : 'text-slate-400'
-                    }`}>{item.label}</p>
-                    <p className={`mt-2 text-sm font-black ${item.tone}`}>{item.value}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className={`px-4 py-2 text-[10px] font-black uppercase tracking-widest border-b ${
-              theme === 'dark'
-                ? 'bg-emerald-500/10 text-emerald-300 border-emerald-500/20'
-                : 'bg-emerald-50 text-emerald-700 border-emerald-200'
-            }`}>
-              Professional terminal mode active for {activeSymbolLabel}. The main chart is now driven by your own backend history and live quote feeds.
-            </div>
-
             <div className="flex-1 flex flex-col px-4 py-4 min-w-0">
               <div className={`flex-1 min-h-[520px] rounded-[2rem] overflow-hidden border shadow-2xl ${
                 theme === 'dark'
