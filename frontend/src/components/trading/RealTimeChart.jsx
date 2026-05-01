@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { createChart } from 'lightweight-charts';
-import { FaChartBar, FaCompress, FaExpand } from 'react-icons/fa';
+import { FaChartBar, FaCompress, FaExpand, FaServer } from 'react-icons/fa';
 import infraService from '../../services/infraService';
 import { buildInstrumentSnapshot, formatInstrumentDisplaySymbol, getSymbolPrecision, normalizeSymbol } from '../../utils/marketSymbols';
 
@@ -445,6 +445,14 @@ const RealTimeChart = ({
               {formatExecutionSymbol(symbol)}
             </span>
           </div>
+          <span className={`hidden md:flex items-center gap-1.5 rounded-full border px-2 py-1 text-[8px] font-black uppercase tracking-widest ${
+            isDark
+              ? 'border-slate-700 bg-slate-900 text-slate-300'
+              : 'border-slate-200 bg-white text-slate-500'
+          }`}>
+            <FaServer size={9} className="text-gold-500" />
+            Backend Chart Engine
+          </span>
           {lastPrice !== null && (
             <div className="flex items-center gap-2">
               <span className={`text-sm font-black tabular-nums ${isDark ? 'text-white' : 'text-slate-900'}`}>

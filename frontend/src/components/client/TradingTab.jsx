@@ -1,6 +1,6 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import { FaBell, FaBolt, FaChartLine, FaHistory, FaListUl, FaShieldAlt, FaSignal, FaWallet } from 'react-icons/fa';
-import TradingViewWidget from '../trading/TradingViewWidget';
+import RealTimeChart from '../trading/RealTimeChart';
 import OrderPanel from '../trading/OrderPanel';
 import PositionsTable from '../trading/PositionsTable';
 import OpenOrders from '../trading/OpenOrders';
@@ -47,6 +47,7 @@ const TradingTab = ({
   const [activeSubTab, setActiveSubTab] = useState('positions');
   const [showSidebar, setShowSidebar] = useState(true);
   const [activeMobileView, setActiveMobileView] = useState('chart');
+  const [activeOrderIntent, setActiveOrderIntent] = useState({ side: 'buy', type: 'market' });
   const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1200);
   const { theme } = useTheme();
 
@@ -64,7 +65,7 @@ const TradingTab = ({
     instrument: baseInstrument || {},
     marketData,
   }), [activeSymbol, baseInstrument, marketData]);
-  const handleIntentChange = useCallback(() => {}, []);
+  const handleIntentChange = useCallback((intent) => setActiveOrderIntent(intent), []);
   const selectedSymbolPositions = useMemo(
     () => positions.filter((position) => normalizeSymbol(position?.symbol) === normalizedActiveSymbol),
     [normalizedActiveSymbol, positions]
@@ -301,7 +302,7 @@ const TradingTab = ({
                 ? 'bg-emerald-500/10 text-emerald-300 border-emerald-500/20'
                 : 'bg-emerald-50 text-emerald-700 border-emerald-200'
             }`}>
-              Professional terminal mode active for {activeSymbolLabel}. TradingView remains the primary chart while the desk tracks the same symbol for execution and risk.
+              Professional terminal mode active for {activeSymbolLabel}. The main chart is now driven by your own backend history and live quote feeds.
             </div>
 
             <div className="flex-1 flex flex-col px-4 py-4 gap-4 min-w-0">
@@ -310,13 +311,15 @@ const TradingTab = ({
                   ? 'border-slate-800 bg-slate-900'
                   : 'border-slate-200 bg-white'
               }`}>
-                <TradingViewWidget
+                <RealTimeChart
                   key={`terminal-${activeSymbol}-${theme}`}
                   symbol={activeSymbol}
                   theme={theme}
                   instrument={selectedInstrument}
                   positions={positions}
-                  marketStatus="LIVE ADVANCED MARKET CHART"
+                  activeIntent={activeOrderIntent}
+                  livePrice={Number(selectedInstrument.price || 0)}
+                  initialPrice={Number(selectedInstrument.price || baseInstrument?.price || 100)}
                 />
               </div>
 
