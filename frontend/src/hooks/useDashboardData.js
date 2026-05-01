@@ -4,6 +4,7 @@ import fundingService from '../services/fundingService';
 import kycService from '../services/kycService';
 import userService from '../services/userService';
 import infraService from '../services/infraService';
+import { fetchPublicMarketQuotes } from '../services/marketFallbackService';
 import { AuthContext } from '../context/AuthContext';
 import { toast } from 'react-hot-toast';
 import { MARKET_INSTRUMENTS } from '../constants/marketData';
@@ -16,6 +17,8 @@ import { calculateSpreads } from '../utils/spreadCalculator';
 
 const GLOBAL_QUOTES_REFRESH_MS = 2500;
 const ACTIVE_SYMBOL_REFRESH_MS = 1000;
+const GLOBAL_PUBLIC_QUOTES_REFRESH_MS = 5000;
+const ACTIVE_PUBLIC_SYMBOL_REFRESH_MS = 1500;
 
 const normalizeInstrument = (instrument = {}) => ({
   symbol: instrument.symbol,
@@ -687,6 +690,30 @@ export const useDashboardData = (accountType = 'demo', activeSymbol = null) => {
     }
   }, []);
 
+  const fetchChartAlignedQuotes = useCallback(async (symbols = []) => {
+    const filteredSymbols = Array.from(new Set(symbols.filter(Boolean)));
+    if (filteredSymbols.length === 0) {
+      return;
+    }
+
+    const instrumentPool = instruments.length > 0 ? instruments : fallbackInstruments;
+    const requestedInstruments = filteredSymbols
+      .map((symbol) => instrumentPool.find((instrument) => instrument.symbol === symbol) || { symbol })
+      .filter((instrument) => instrument?.symbol);
+
+    try {
+      const publicQuotes = await fetchPublicMarketQuotes(requestedInstruments);
+      if (!publicQuotes || Object.keys(publicQuotes).length === 0) {
+        return;
+      }
+
+      setMarketData((prev) => mergeQuoteSnapshot(prev, publicQuotes));
+      setInstruments((prev) => syncInstrumentsWithQuotes(prev, publicQuotes));
+    } catch (error) {
+      console.error('Chart-aligned quote sync failed:', error);
+    }
+  }, [instruments]);
+
   const fetchPositions = useCallback(async () => {
     if (!accountId) return; // No account = nothing to fetch
     const token = localStorage.getItem('token');
@@ -773,6 +800,34 @@ export const useDashboardData = (accountType = 'demo', activeSymbol = null) => {
   }, [fetchLiveQuotes, instruments, user]);
 
   useEffect(() => {
+    if (!user || instruments.length === 0) {
+      return undefined;
+    }
+
+    const instrumentSymbols = instruments.map((instrument) => instrument.symbol).filter(Boolean);
+    let inFlight = false;
+
+    const pollPublicQuotes = async () => {
+      if (inFlight) {
+        return;
+      }
+
+      inFlight = true;
+      try {
+        await fetchChartAlignedQuotes(instrumentSymbols);
+      } finally {
+        inFlight = false;
+      }
+    };
+
+    pollPublicQuotes();
+
+    const publicQuoteInterval = setInterval(pollPublicQuotes, GLOBAL_PUBLIC_QUOTES_REFRESH_MS);
+
+    return () => clearInterval(publicQuoteInterval);
+  }, [fetchChartAlignedQuotes, instruments, user]);
+
+  useEffect(() => {
     if (!user || !activeSymbol) {
       return undefined;
     }
@@ -805,6 +860,41 @@ export const useDashboardData = (accountType = 'demo', activeSymbol = null) => {
 
     return () => clearInterval(activeSymbolInterval);
   }, [activeSymbol, fetchLiveQuotes, user]);
+
+  useEffect(() => {
+    if (!user || !activeSymbol) {
+      return undefined;
+    }
+
+    const normalizedActiveSymbol = String(activeSymbol).trim().toUpperCase();
+    if (!normalizedActiveSymbol) {
+      return undefined;
+    }
+
+    let inFlight = false;
+
+    const pollActivePublicSymbol = async () => {
+      if (inFlight) {
+        return;
+      }
+
+      inFlight = true;
+      try {
+        await fetchChartAlignedQuotes([normalizedActiveSymbol]);
+      } finally {
+        inFlight = false;
+      }
+    };
+
+    pollActivePublicSymbol();
+
+    const activePublicSymbolInterval = setInterval(
+      pollActivePublicSymbol,
+      ACTIVE_PUBLIC_SYMBOL_REFRESH_MS
+    );
+
+    return () => clearInterval(activePublicSymbolInterval);
+  }, [activeSymbol, fetchChartAlignedQuotes, user]);
 
   useEffect(() => {
     if (!accountId) return; // Don't start polling at all without an account
