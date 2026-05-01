@@ -1,7 +1,7 @@
 // frontend/src/components/trading/TerminalAssetList.jsx
 import React, { useState } from 'react';
 import { FaSearch, FaStar, FaRegStar, FaChevronDown, FaTimes } from 'react-icons/fa';
-import { calculateSpreads } from '../../utils/spreadCalculator';
+import { getDisplayQuoteSnapshot } from '../../utils/spreadCalculator';
 import { buildInstrumentSnapshot, formatInstrumentDisplaySymbol } from '../../utils/marketSymbols';
 
 const TerminalAssetList = ({ 
@@ -153,23 +153,17 @@ const TerminalAssetList = ({
                   instrument: inst,
                   marketData,
                 });
-                const liveData = marketData[inst.symbol] || {};
                 const currentPrice = instrumentSnapshot.price;
                 const currentChange = instrumentSnapshot.change;
                 const lastDir = instrumentSnapshot.lastDir || 'none';
-                const precision = instrumentSnapshot.precision;
-                const { bidPrice: calcBid, askPrice: calcAsk, spreadAmt: calcSpread } = calculateSpreads(inst.symbol, currentPrice, {
-                  category: inst.category,
-                  precision,
+                const quoteSnapshot = getDisplayQuoteSnapshot({
+                  symbol: inst.symbol,
+                  instrument: instrumentSnapshot,
+                  marketData,
                 });
-
-                const hasRealBidAsk = instrumentSnapshot.useBidAsk !== false
-                  && Number.isFinite(liveData.bid)
-                  && Number.isFinite(liveData.ask);
-                const sellPrice = hasRealBidAsk ? liveData.bid.toFixed(precision) : Number(currentPrice || calcBid).toFixed(precision);
-                const buyPrice = hasRealBidAsk ? liveData.ask.toFixed(precision) : Number(currentPrice || calcAsk).toFixed(precision);
-                const spreadAmt = hasRealBidAsk ? Math.abs(liveData.ask - liveData.bid) : Number(calcSpread) || 0;
-                
+                const sellPrice = quoteSnapshot.bidLabel;
+                const buyPrice = quoteSnapshot.askLabel;
+                const spreadAmt = quoteSnapshot.spread;
                 const spreadDisplay = spreadAmt < 0.01 ? spreadAmt.toFixed(4) : spreadAmt.toFixed(2);
                 
                 const flashClass = lastDir === 'up' ? 'flash-up' : lastDir === 'down' ? 'flash-down' : '';

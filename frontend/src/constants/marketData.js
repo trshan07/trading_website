@@ -11,6 +11,10 @@ export const MARKET_INSTRUMENTS = [
   { symbol: 'EURUSD', name: 'Euro / USD', category: 'Forex', price: 1.0875, change: 0.23, volume: '$3.2T' },
   { symbol: 'GBPUSD', name: 'GBP / USD', category: 'Forex', price: 1.265, change: -0.12, volume: '$0.8T' },
   { symbol: 'USDJPY', name: 'USD / JPY', category: 'Forex', price: 148.5, change: 0.05, volume: '$1.1T' },
+  { symbol: 'AUDUSD', name: 'AUD / USD', category: 'Forex', price: 0.6584, change: 0.09, volume: '$0.6T' },
+  { symbol: 'USDCAD', name: 'USD / CAD', category: 'Forex', price: 1.3621, change: -0.03, volume: '$0.5T' },
+  { symbol: 'USDCHF', name: 'USD / CHF', category: 'Forex', price: 0.9114, change: 0.04, volume: '$0.4T' },
+  { symbol: 'NZDUSD', name: 'NZD / USD', category: 'Forex', price: 0.6015, change: 0.06, volume: '$0.2T' },
   // Stocks
   { symbol: 'AAPL', name: 'Apple Inc.', category: 'Stocks', price: 185.2, change: 1.2, volume: '$4.5B' },
   { symbol: 'MSFT', name: 'Microsoft', category: 'Stocks', price: 410.5, change: -0.4, volume: '$2.8B' },

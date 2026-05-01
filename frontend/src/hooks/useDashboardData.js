@@ -26,6 +26,7 @@ const normalizeInstrument = (instrument = {}) => ({
   volume: instrument.volume ?? instrument.default_volume ?? null,
   provider: instrument.provider || null,
   quoteSymbol: instrument.quoteSymbol || instrument.quote_symbol || null,
+  dataSymbol: instrument.dataSymbol || instrument.data_symbol || null,
   tradingViewSymbol: instrument.tradingViewSymbol || instrument.trading_view_symbol || null,
   useBidAsk: typeof instrument.useBidAsk === 'boolean'
     ? instrument.useBidAsk

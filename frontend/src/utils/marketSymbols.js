@@ -137,6 +137,7 @@ export const buildInstrumentSnapshot = ({ symbol, instrument = {}, marketData = 
     symbol: lookupSymbol,
     name: instrument.name || lookupSymbol,
     category,
+    dataSymbol: instrument.dataSymbol || instrument.data_symbol || mapping.dataSymbol || null,
     price,
     change,
     volume: liveInfo.volume ?? instrument.volume ?? instrument.default_volume ?? null,

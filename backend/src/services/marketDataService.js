@@ -184,6 +184,22 @@ const resolveTwelveDataSymbol = (symbol = '', config = {}) => {
         return 'XAG/USD';
     }
 
+    if (normalized.endsWith('USDT') && normalized.length > 4) {
+        return `${normalized.slice(0, -4)}/USD`;
+    }
+
+    if (normalized.endsWith('USDC') && normalized.length > 4) {
+        return `${normalized.slice(0, -4)}/USD`;
+    }
+
+    if (normalized.endsWith('BUSD') && normalized.length > 4) {
+        return `${normalized.slice(0, -4)}/USD`;
+    }
+
+    if (!isForexPair(normalized) && normalized.endsWith('USD') && normalized.length > 6) {
+        return `${normalized.slice(0, -3)}/USD`;
+    }
+
     return normalized;
 };
 

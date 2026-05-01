@@ -10,7 +10,7 @@ import { FaChartLine, FaHistory, FaListUl, FaBell, FaBolt } from 'react-icons/fa
 import TradeHistory from '../trading/TradeHistory';
 import PriceAlertsTab from '../trading/PriceAlertsTab';
 import { buildInstrumentSnapshot, formatInstrumentDisplaySymbol } from '../../utils/marketSymbols';
-import { calculateSpreads } from '../../utils/spreadCalculator';
+import { getDisplayQuoteSnapshot } from '../../utils/spreadCalculator';
 
 const TradingTab = ({
   portfolio = {},
@@ -59,21 +59,14 @@ const TradingTab = ({
   const matchingPositionCount = positions.filter(
     (position) => position?.symbol?.replace(/[^A-Z]/g, '') === activeSymbol.replace(/[^A-Z]/g, '')
   ).length;
-  const { bidPrice: calcBid, askPrice: calcAsk, spreadAmt: calcSpread } = calculateSpreads(activeSymbol, selectedInstrument.price || 0, {
-    category: selectedInstrument.category,
-    precision: selectedInstrument.precision,
-  });
-  const hasRealBidAsk = selectedInstrument.useBidAsk !== false
-    && Number.isFinite(selectedInstrument.bid)
-    && Number.isFinite(selectedInstrument.ask);
-  const bidPrice = hasRealBidAsk
-    ? selectedInstrument.bid.toFixed(selectedInstrument.precision)
-    : Number(selectedInstrument.price || calcBid).toFixed(selectedInstrument.precision);
-  const askPrice = hasRealBidAsk
-    ? selectedInstrument.ask.toFixed(selectedInstrument.precision)
-    : Number(selectedInstrument.price || calcAsk).toFixed(selectedInstrument.precision);
-  const spreadLabel = (hasRealBidAsk ? Math.abs(selectedInstrument.ask - selectedInstrument.bid) : Number(calcSpread) || 0)
-    .toFixed(selectedInstrument.precision);
+  const quoteSnapshot = useMemo(() => getDisplayQuoteSnapshot({
+    symbol: activeSymbol,
+    instrument: selectedInstrument,
+    marketData,
+  }), [activeSymbol, marketData, selectedInstrument]);
+  const bidPrice = quoteSnapshot.bidLabel;
+  const askPrice = quoteSnapshot.askLabel;
+  const spreadLabel = quoteSnapshot.spreadLabel;
 
   return (
     <div className="flex flex-col h-[calc(100vh-10rem)] min-h-[500px] lg:min-h-[1050px] -mx-4 md:-mx-10 border-t border-slate-100 dark:border-slate-800 animate-in fade-in duration-500">

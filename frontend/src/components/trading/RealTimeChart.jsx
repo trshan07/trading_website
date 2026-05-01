@@ -33,6 +33,32 @@ const toCandles = (rows = []) => rows.reduce((acc, row) => {
   return acc;
 }, []);
 
+const createFallbackCandles = (price = 100, interval = '15m', count = 120) => {
+  const safePrice = Number.parseFloat(price) || 100;
+  const intervalSecondsMap = {
+    '1m': 60,
+    '5m': 300,
+    '15m': 900,
+    '1h': 3600,
+    '4h': 14400,
+    '1d': 86400,
+    '1w': 604800,
+  };
+  const intervalSeconds = intervalSecondsMap[interval] || intervalSecondsMap['15m'];
+  const now = Math.floor(Date.now() / 1000);
+
+  return Array.from({ length: count }, (_, index) => {
+    const time = now - ((count - index) * intervalSeconds);
+    return {
+      time,
+      open: safePrice,
+      high: safePrice,
+      low: safePrice,
+      close: safePrice,
+    };
+  });
+};
+
 const RealTimeChart = ({
   symbol = 'BTCUSDT',
   theme = 'dark',
@@ -202,21 +228,24 @@ const RealTimeChart = ({
         setIsLoading(true);
         const response = await infraService.getMarketHistory(symbol, interval, initialPrice);
         const candles = toCandles(response?.data || []);
+        const usableCandles = candles.length > 0
+          ? candles
+          : createFallbackCandles(livePrice || initialPrice || instrumentSnapshot.price || 100, interval);
 
-        if (!active || !seriesRef.current || candles.length === 0) {
+        if (!active || !seriesRef.current || usableCandles.length === 0) {
           return;
         }
 
-        seriesRef.current.setData(candles);
-        candleDataRef.current = candles;
-        candleTimesRef.current = candles.map((candle) => candle.time);
+        seriesRef.current.setData(usableCandles);
+        candleDataRef.current = usableCandles;
+        candleTimesRef.current = usableCandles.map((candle) => candle.time);
         chartRef.current?.timeScale().fitContent();
 
-        const first = candles[0];
-        const last = candles[candles.length - 1];
+        const first = usableCandles[0];
+        const last = usableCandles[usableCandles.length - 1];
         setLastPrice(last.close);
         setPriceChange(first?.open ? (((last.close - first.open) / first.open) * 100).toFixed(2) : null);
-        setLiveStatus('live');
+        setLiveStatus(candles.length > 0 ? 'live' : 'delayed');
 
         window.dispatchEvent(new CustomEvent('active_price_update', {
           detail: { symbol, price: last.close, source: 'platform-feed' },

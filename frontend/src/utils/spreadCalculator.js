@@ -1,6 +1,6 @@
 // frontend/src/utils/spreadCalculator.js
 import { MARKET_INSTRUMENTS } from '../constants/marketData';
-import { getSymbolPrecision } from './marketSymbols';
+import { buildInstrumentSnapshot, getSymbolPrecision } from './marketSymbols';
 import marketSymbolMap from '../config/marketSymbolMap.json';
 
 const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
@@ -68,5 +68,51 @@ export const calculateSpreads = (symbol, currentPrice, options = {}) => {
     bidPrice: bidPrice.toFixed(precision),
     askPrice: askPrice.toFixed(precision),
     spreadAmt,
+  };
+};
+
+export const getDisplayQuoteSnapshot = ({ symbol, instrument = {}, marketData = {} } = {}) => {
+  const instrumentSnapshot = buildInstrumentSnapshot({
+    symbol,
+    instrument,
+    marketData,
+  });
+
+  const currentPrice = Number(instrumentSnapshot.price || 0);
+  const precision = Number.isInteger(instrumentSnapshot.precision)
+    ? instrumentSnapshot.precision
+    : getSymbolPrecision({
+      symbol,
+      category: instrumentSnapshot.category,
+      price: currentPrice,
+    });
+
+  const liveBid = Number.parseFloat(instrumentSnapshot.bid);
+  const liveAsk = Number.parseFloat(instrumentSnapshot.ask);
+  const hasRealBidAsk = instrumentSnapshot.useBidAsk !== false
+    && Number.isFinite(liveBid)
+    && Number.isFinite(liveAsk)
+    && liveBid > 0
+    && liveAsk > 0;
+
+  const syntheticSpread = calculateSpreads(symbol, currentPrice, {
+    category: instrumentSnapshot.category,
+    precision,
+  });
+
+  const bid = hasRealBidAsk ? liveBid : Number.parseFloat(syntheticSpread.bidPrice) || currentPrice;
+  const ask = hasRealBidAsk ? liveAsk : Number.parseFloat(syntheticSpread.askPrice) || currentPrice;
+  const spread = hasRealBidAsk ? Math.abs(liveAsk - liveBid) : Number(syntheticSpread.spreadAmt) || 0;
+
+  return {
+    instrument: instrumentSnapshot,
+    precision,
+    hasRealBidAsk,
+    bid,
+    ask,
+    spread,
+    bidLabel: Number(bid || 0).toFixed(precision),
+    askLabel: Number(ask || 0).toFixed(precision),
+    spreadLabel: Number(spread || 0).toFixed(precision),
   };
 };

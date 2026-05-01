@@ -314,6 +314,16 @@
     "minLot": 0.01,
     "spread": 0.5
   },
+  "YM1!": {
+    "tradingView": "CBOT_MINI:YM1!",
+    "quote": "YM=F",
+    "provider": "twelvedata",
+    "contractSize": 5,
+    "quantityLabel": "contracts",
+    "lotStep": 0.01,
+    "minLot": 0.01,
+    "spread": 5
+  },
   "CL1!": {
     "tradingView": "TVC:USOIL",
     "quote": "CL=F",

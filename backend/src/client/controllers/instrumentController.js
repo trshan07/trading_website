@@ -11,6 +11,7 @@ const mapInstrumentRow = (row) => ({
     volume: row.default_volume ?? row.volume ?? null,
     provider: marketSymbolMap[row.symbol]?.provider || row.provider || null,
     quoteSymbol: marketSymbolMap[row.symbol]?.quote || row.quote_symbol || null,
+    dataSymbol: marketSymbolMap[row.symbol]?.dataSymbol || row.data_symbol || null,
     tradingViewSymbol: marketSymbolMap[row.symbol]?.tradingView || row.trading_view_symbol || null,
     useBidAsk: typeof row.use_bid_ask === 'boolean'
         ? row.use_bid_ask

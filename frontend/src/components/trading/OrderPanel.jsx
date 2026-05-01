@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { FaTimes, FaExchangeAlt, FaListUl, FaChartLine, FaShieldAlt, FaCaretUp, FaCaretDown, FaCheckCircle } from 'react-icons/fa';
 import { motion, AnimatePresence } from 'framer-motion';
-import { calculateSpreads } from '../../utils/spreadCalculator';
+import { getDisplayQuoteSnapshot } from '../../utils/spreadCalculator';
 import {
   calculateUsdFromLots,
   calculateLotsFromUsd,
@@ -62,23 +62,15 @@ const OrderPanel = ({
   const symbolPositions = useMemo(() => positions.filter((position) => position?.symbol === symbol), [positions, symbol]);
   const symbolOrders = useMemo(() => orders.filter((order) => order?.symbol === symbol), [orders, symbol]);
   const activePnl = symbolPositions.reduce((sum, position) => sum + (Number(position?.pnl) || 0), 0);
-
-  const { bidPrice: calcBid, askPrice: calcAsk, spreadAmt: calcSpread } = calculateSpreads(symbol, currentPrice, {
-    category,
-    precision: instrument.precision,
-  });
-
-  const hasRealBidAsk = instrument.useBidAsk !== false
-    && Number.isFinite(instrument.bid)
-    && Number.isFinite(instrument.ask);
-
-  const bidPrice = hasRealBidAsk
-    ? instrument.bid.toFixed(instrument.precision)
-    : Number(currentPrice || calcBid).toFixed(instrument.precision);
-  const askPrice = hasRealBidAsk
-    ? instrument.ask.toFixed(instrument.precision)
-    : Number(currentPrice || calcAsk).toFixed(instrument.precision);
-  const spreadAmt = hasRealBidAsk ? Math.abs(instrument.ask - instrument.bid) : Number(calcSpread) || 0;
+  const quoteSnapshot = useMemo(() => getDisplayQuoteSnapshot({
+    symbol,
+    instrument,
+    marketData,
+  }), [instrument, marketData, symbol]);
+  const hasRealBidAsk = quoteSnapshot.hasRealBidAsk;
+  const bidPrice = quoteSnapshot.bidLabel;
+  const askPrice = quoteSnapshot.askLabel;
+  const spreadAmt = quoteSnapshot.spread;
 
   const executionPrice = selectedSide === 'buy' ? parseFloat(askPrice) : parseFloat(bidPrice);
   const lotStep = getLotStep(category, symbol, instrument);
