@@ -140,6 +140,80 @@ const getInstrumentTradingMeta = ({ symbol = '', category = '', instrument = {} 
     };
 };
 
+const getForexLegs = (symbol = '') => {
+    const normalized = normalizeSymbol(symbol);
+    if (!isForexPair(normalized)) {
+        return null;
+    }
+
+    return {
+        base: normalized.slice(0, 3),
+        quote: normalized.slice(3, 6),
+    };
+};
+
+const calculateAccountCurrencyNotional = ({
+    symbol = '',
+    category = '',
+    instrument = {},
+    quantity = 0,
+    price = 0,
+    accountCurrency = 'USD',
+}) => {
+    const meta = getInstrumentTradingMeta({ symbol, category, instrument });
+    const parsedQuantity = Number.parseFloat(quantity) || 0;
+    const parsedPrice = Number.parseFloat(price) || 0;
+    const normalizedAccountCurrency = String(accountCurrency || 'USD').toUpperCase();
+
+    if (parsedQuantity <= 0) {
+        return 0;
+    }
+
+    if (meta.categoryKey === 'forex') {
+        const legs = getForexLegs(symbol);
+        if (legs?.quote === normalizedAccountCurrency) {
+            return parsedQuantity * parsedPrice;
+        }
+
+        if (legs?.base === normalizedAccountCurrency) {
+            return parsedQuantity;
+        }
+    }
+
+    return parsedQuantity * parsedPrice;
+};
+
+const convertQuotePnlToAccountCurrency = ({
+    symbol = '',
+    category = '',
+    instrument = {},
+    pnl = 0,
+    conversionPrice = 0,
+    accountCurrency = 'USD',
+}) => {
+    const meta = getInstrumentTradingMeta({ symbol, category, instrument });
+    const normalizedAccountCurrency = String(accountCurrency || 'USD').toUpperCase();
+    const parsedPnl = Number.parseFloat(pnl) || 0;
+    const parsedConversionPrice = Number.parseFloat(conversionPrice) || 0;
+
+    if (parsedPnl === 0) {
+        return 0;
+    }
+
+    if (meta.categoryKey === 'forex') {
+        const legs = getForexLegs(symbol);
+        if (legs?.quote === normalizedAccountCurrency) {
+            return parsedPnl;
+        }
+
+        if (legs?.base === normalizedAccountCurrency && parsedConversionPrice > 0) {
+            return parsedPnl / parsedConversionPrice;
+        }
+    }
+
+    return parsedPnl;
+};
+
 const calculateQuantityFromLots = (lots, symbol, category, instrument) => {
     const meta = getInstrumentTradingMeta({ symbol, category, instrument });
     return (Number.parseFloat(lots) || 0) * meta.contractSize;
@@ -169,7 +243,13 @@ const calculateMarginRequired = ({
         return 0;
     }
 
-    return calculateNotionalValue({ quantity: resolvedQuantity, price }) / parsedLeverage;
+    return calculateAccountCurrencyNotional({
+        symbol,
+        category,
+        instrument,
+        quantity: resolvedQuantity,
+        price,
+    }) / parsedLeverage;
 };
 
 const calculateProjectedPnl = ({
@@ -192,9 +272,17 @@ const calculateProjectedPnl = ({
         return 0;
     }
 
-    return String(side).toLowerCase() === 'sell'
+    const rawPnl = String(side).toLowerCase() === 'sell'
         ? (parsedEntry - parsedExit) * resolvedQuantity
         : (parsedExit - parsedEntry) * resolvedQuantity;
+
+    return convertQuotePnlToAccountCurrency({
+        symbol,
+        category,
+        instrument,
+        pnl: rawPnl,
+        conversionPrice: parsedExit || parsedEntry,
+    });
 };
 
 module.exports = {

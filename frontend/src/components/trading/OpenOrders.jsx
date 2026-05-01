@@ -1,9 +1,17 @@
 // frontend/src/components/trading/OpenOrders.jsx
 import React, { useState } from 'react';
 import { FaTimes, FaClock, FaExchangeAlt, FaArrowUp, FaArrowDown, FaChartBar, FaHourglass } from 'react-icons/fa';
+import { formatLots } from '../../utils/tradingUtils';
 
 const OpenOrders = ({ orders = [], onCancel, onModify = () => {}, compact = false }) => {
   const [hoveredRow, setHoveredRow] = useState(null);
+  const getLotText = (order) => formatLots(
+    order.lots,
+    order.category,
+    order.symbol,
+    order.instrument
+  );
+  const getQuantityLabel = (order) => order.instrument?.quantityLabel || 'units';
 
   const handleProtectionEdit = async (order) => {
     const nextEntry = window.prompt('Update trigger price:', order.entryPrice ?? '');
@@ -46,7 +54,7 @@ const OpenOrders = ({ orders = [], onCancel, onModify = () => {}, compact = fals
             </div>
             <div className="grid grid-cols-3 gap-3 mb-4 pl-3">
               {[
-                { label: 'Qty', value: order.quantity },
+                { label: 'Size', value: `${getLotText(order)} lots` },
                 { label: 'Price', value: `$${Number(order.entryPrice || order.price || 0).toLocaleString()}` },
                 { label: 'Time', value: new Date(order.createdAt || order.created).toLocaleTimeString() },
               ].map(({ label, value }) => (
@@ -57,6 +65,10 @@ const OpenOrders = ({ orders = [], onCancel, onModify = () => {}, compact = fals
               ))}
             </div>
             <div className="flex flex-col space-y-2 mb-4 pl-3">
+              <div className="flex justify-between items-center text-[9px] uppercase font-black text-slate-400">
+                <span>Units:</span>
+                <span className="text-slate-900 dark:text-white">{Number(order.quantity || 0).toLocaleString(undefined, { maximumFractionDigits: 4 })} {getQuantityLabel(order)}</span>
+              </div>
               <div className="flex justify-between items-center text-[9px] uppercase font-black text-slate-400">
                 <span>Leverage:</span>
                 <span className="text-slate-900 dark:text-white">1:{order.leverage || 1}</span>
@@ -101,7 +113,7 @@ const OpenOrders = ({ orders = [], onCancel, onModify = () => {}, compact = fals
         <span>Instrument</span>
         <span>Type</span>
         <span>Side</span>
-        <span className="text-right">Quantity</span>
+        <span className="text-right">Size</span>
         <span className="text-right">Limit Price</span>
         <span className="text-right">Lev</span>
         <span className="text-right">TP</span>
@@ -166,8 +178,10 @@ const OpenOrders = ({ orders = [], onCancel, onModify = () => {}, compact = fals
 
               {/* Quantity */}
               <div className="text-right">
-                <p className="text-sm font-black text-slate-800 dark:text-slate-200 italic tabular-nums">{order.quantity}</p>
-                <p className="text-[8px] text-slate-400 dark:text-slate-600 font-bold tracking-widest uppercase">units</p>
+                <p className="text-sm font-black text-slate-800 dark:text-slate-200 italic tabular-nums">{getLotText(order)}</p>
+                <p className="text-[8px] text-slate-400 dark:text-slate-600 font-bold tracking-widest uppercase">
+                  {Number(order.quantity || 0).toLocaleString(undefined, { maximumFractionDigits: 4 })} {getQuantityLabel(order)}
+                </p>
               </div>
 
               {/* Limit Price */}

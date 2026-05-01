@@ -72,59 +72,6 @@ const RealTimeChart = ({
       });
   const priceMinMove = pricePrecision <= 0 ? 1 : Number((1 / (10 ** pricePrecision)).toFixed(pricePrecision));
 
-  const applyIndicatorSeries = useCallback((data = []) => {
-    if (!chartRef.current || data.length === 0) {
-      return;
-    }
-
-    if (!chartRef.current.__sma20Series) {
-      chartRef.current.__sma20Series = chartRef.current.addLineSeries({
-        color: '#f59e0b',
-        lineWidth: 2,
-        priceLineVisible: false,
-        lastValueVisible: false,
-      });
-    }
-
-    if (!chartRef.current.__ema50Series) {
-      chartRef.current.__ema50Series = chartRef.current.addLineSeries({
-        color: '#38bdf8',
-        lineWidth: 2,
-        priceLineVisible: false,
-        lastValueVisible: false,
-      });
-    }
-
-    let rollingSum = 0;
-    let ema = null;
-    const multiplier = 2 / 51;
-    const smaData = [];
-    const emaData = [];
-
-    data.forEach((candle, index) => {
-      rollingSum += candle.close;
-      if (index >= 20) {
-        rollingSum -= data[index - 20].close;
-      }
-
-      if (index >= 19) {
-        smaData.push({
-          time: candle.time,
-          value: rollingSum / 20,
-        });
-      }
-
-      ema = ema == null ? candle.close : ((candle.close - ema) * multiplier) + ema;
-      emaData.push({
-        time: candle.time,
-        value: ema,
-      });
-    });
-
-    chartRef.current.__sma20Series.setData(smaData);
-    chartRef.current.__ema50Series.setData(emaData);
-  }, []);
-
   // Format symbol cleanly for Binance API
   const binanceSymbol = symbol.replace(/[^A-Z0-9]/g, '');
   const isBinanceWsCandidate = useCallback((sym) => {
@@ -299,7 +246,6 @@ const RealTimeChart = ({
           seriesRef.current.setData(data);
           candleTimesRef.current = data.map(c => c.time);
           candleDataRef.current = data;
-          applyIndicatorSeries(data);
           chartRef.current.timeScale().fitContent();
           
           const last = data[data.length - 1];
@@ -324,7 +270,6 @@ const RealTimeChart = ({
               seriesRef.current.setData(refreshedData);
               candleTimesRef.current = refreshedData.map((candle) => candle.time);
               candleDataRef.current = refreshedData;
-              applyIndicatorSeries(refreshedData);
 
               const latest = refreshedData[refreshedData.length - 1];
               const first = refreshedData[0];
@@ -391,7 +336,6 @@ const RealTimeChart = ({
               } else {
                 candleDataRef.current = [...candleDataRef.current, tick].slice(-500);
               }
-              applyIndicatorSeries(candleDataRef.current);
               if (
                 candleTimesRef.current.length === 0 ||
                 candleTimesRef.current[candleTimesRef.current.length - 1] !== tick.time
@@ -502,7 +446,7 @@ const RealTimeChart = ({
       candleTimesRef.current = [];
       candleDataRef.current = [];
     };
-  }, [symbol, interval, isDark, fetchData, isBinanceWsCandidate, applyIndicatorSeries, priceMinMove, pricePrecision]); // initialPrice removed from dependencies
+  }, [symbol, interval, isDark, fetchData, isBinanceWsCandidate, priceMinMove, pricePrecision]); // initialPrice removed from dependencies
 
   useEffect(() => {
     const nextPrice = Number.parseFloat(livePrice) || 0;
@@ -529,7 +473,6 @@ const RealTimeChart = ({
 
     try {
       seriesRef.current.update(syncedCandle);
-      applyIndicatorSeries(candleDataRef.current);
       setLastPrice(nextPrice);
       window.dispatchEvent(new CustomEvent('active_price_update', {
         detail: { symbol, price: nextPrice, source: 'platform-feed' }
@@ -537,7 +480,7 @@ const RealTimeChart = ({
     } catch (error) {
       console.error('[RealTimeChart] Live price sync error:', error);
     }
-  }, [applyIndicatorSeries, livePrice, symbol]);
+  }, [livePrice, symbol]);
 
   // --- Plot Buy/Sell markers when positions change ---
   useEffect(() => {
@@ -674,12 +617,6 @@ const RealTimeChart = ({
               {iv.label}
             </button>
           ))}
-        </div>
-
-        <div className="hidden md:flex items-center gap-2">
-          <span className={`text-[8px] font-black uppercase tracking-widest ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>Indicators</span>
-          <span className="px-2 py-1 rounded-full bg-amber-500/15 text-[8px] font-black uppercase tracking-widest text-amber-400">SMA 20</span>
-          <span className="px-2 py-1 rounded-full bg-sky-500/15 text-[8px] font-black uppercase tracking-widest text-sky-400">EMA 50</span>
         </div>
 
         {/* Right: Controls */}

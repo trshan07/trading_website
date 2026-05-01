@@ -11,7 +11,7 @@ import websocketService from '../services/websocketService';
 import { maskAccountNumber } from '../components/client/banking/utils';
 import { getUploadUrl } from '../utils/uploadUrl';
 import { buildInstrumentSnapshot } from '../utils/marketSymbols';
-import { calculateLotsFromQuantity, calculateProjectedPnL } from '../utils/tradingUtils';
+import { calculateLotsFromQuantity, calculateProjectedPnL, calculateUsdFromLots } from '../utils/tradingUtils';
 import { calculateSpreads } from '../utils/spreadCalculator';
 
 const GLOBAL_QUOTES_REFRESH_MS = 2500;
@@ -549,7 +549,6 @@ export const useDashboardData = (accountType = 'demo', activeSymbol = null) => {
             });
             const qty = parseFloat(pos.quantity);
             const entryPrice = parseFloat(pos.entry_price);
-            const totalPositionValue = parseFloat(pos.amount) || (qty * entryPrice);
             const side = pos.side.toUpperCase();
             const { bidPrice: syntheticBid, askPrice: syntheticAsk } = calculateSpreads(pos.symbol, snapshot.price || entryPrice, {
               category: snapshot.category,
@@ -567,6 +566,10 @@ export const useDashboardData = (accountType = 'demo', activeSymbol = null) => {
               exitPrice: markPrice,
               quantity: qty,
             });
+            const lots = calculateLotsFromQuantity(qty, pos.symbol, snapshot.category, snapshot);
+            const totalPositionValue = calculateUsdFromLots(lots, entryPrice, snapshot.category, pos.symbol, snapshot)
+              || parseFloat(pos.amount)
+              || (qty * entryPrice);
 
             return {
               id: pos.id,
@@ -575,7 +578,7 @@ export const useDashboardData = (accountType = 'demo', activeSymbol = null) => {
               side: side.toLowerCase(),
               amount: totalPositionValue,
               quantity: qty,
-              lots: calculateLotsFromQuantity(qty, pos.symbol, snapshot.category, snapshot),
+              lots,
               entryPrice: entryPrice,
               currentPrice: markPrice,
               pnl: pnl,
@@ -607,27 +610,44 @@ export const useDashboardData = (accountType = 'demo', activeSymbol = null) => {
     try {
       const response = await tradingService.getOpenOrders(accountId);
       if (response.success) {
-        const mappedOrders = (response.data || []).map((order) => ({
-          id: order.id,
-          symbol: order.symbol,
-          type: formatOrderTypeLabel(order.type || 'limit'),
-          rawType: String(order.type || 'limit').toLowerCase(),
-          side: (order.side || 'buy').toUpperCase(),
-          amount: parseFloat(order.amount) || 0,
-          quantity: parseFloat(order.quantity) || 0,
-          entryPrice: parseFloat(order.entry_price) || 0,
-          leverage: parseFloat(order.leverage) || null,
-          takeProfit: order.take_profit != null ? parseFloat(order.take_profit) : null,
-          stopLoss: order.stop_loss != null ? parseFloat(order.stop_loss) : null,
-          createdAt: order.created_at,
-          status: order.status,
-        }));
+        const mappedOrders = (response.data || []).map((order) => {
+          const instrument = instruments.find((item) => item.symbol === order.symbol);
+          const snapshot = buildInstrumentSnapshot({
+            symbol: order.symbol,
+            instrument,
+            marketData,
+          });
+          const quantity = parseFloat(order.quantity) || 0;
+          const lots = calculateLotsFromQuantity(quantity, order.symbol, snapshot.category, snapshot);
+          const amount = calculateUsdFromLots(lots, parseFloat(order.entry_price) || 0, snapshot.category, order.symbol, snapshot)
+            || parseFloat(order.amount)
+            || 0;
+
+          return {
+            id: order.id,
+            symbol: order.symbol,
+            type: formatOrderTypeLabel(order.type || 'limit'),
+            rawType: String(order.type || 'limit').toLowerCase(),
+            side: (order.side || 'buy').toUpperCase(),
+            amount,
+            quantity,
+            lots,
+            entryPrice: parseFloat(order.entry_price) || 0,
+            leverage: parseFloat(order.leverage) || null,
+            takeProfit: order.take_profit != null ? parseFloat(order.take_profit) : null,
+            stopLoss: order.stop_loss != null ? parseFloat(order.stop_loss) : null,
+            createdAt: order.created_at,
+            status: order.status,
+            category: snapshot.category,
+            instrument: snapshot,
+          };
+        });
         setOrders(mappedOrders);
       }
     } catch (error) {
       console.error('Failed to fetch orders:', error);
     }
-  }, [accountId]);
+  }, [accountId, instruments, marketData]);
 
   const fetchClosedTrades = useCallback(async () => {
     if (!accountId) return;
@@ -637,12 +657,12 @@ export const useDashboardData = (accountType = 'demo', activeSymbol = null) => {
     try {
       const response = await tradingService.getClosedPositions(accountId);
       if (response.success) {
-        setClosedTrades((response.data || []).map(normalizeClosedTrade));
+        setClosedTrades((response.data || []).map((trade) => normalizeClosedTrade(trade, instruments, marketData)));
       }
     } catch (error) {
       console.error('Failed to fetch closed trades:', error);
     }
-  }, [accountId]);
+  }, [accountId, instruments, marketData]);
 
   // --- Initial Data loading Lifecycle ---
   useEffect(() => {
@@ -1172,12 +1192,22 @@ const formatOrderTypeLabel = (type = '') => type
   .trim()
   .toUpperCase();
 
-const normalizeClosedTrade = (trade = {}) => {
+const normalizeClosedTrade = (trade = {}, instruments = [], marketData = {}) => {
   const entryPrice = Number.parseFloat(trade.entry_price ?? trade.entryPrice ?? 0) || 0;
   const exitPrice = Number.parseFloat(trade.close_price ?? trade.exit_price ?? trade.exitPrice ?? 0) || 0;
   const quantity = Number.parseFloat(trade.quantity ?? 0) || 0;
   const pnl = Number.parseFloat(trade.pnl ?? 0) || 0;
-  const amount = Number.parseFloat(trade.amount ?? (entryPrice * quantity) ?? 0) || 0;
+  const instrument = instruments.find((item) => item.symbol === trade.symbol);
+  const snapshot = buildInstrumentSnapshot({
+    symbol: trade.symbol,
+    instrument,
+    marketData,
+  });
+  const lots = calculateLotsFromQuantity(quantity, trade.symbol, snapshot.category, snapshot);
+  const amount = calculateUsdFromLots(lots, entryPrice, snapshot.category, trade.symbol, snapshot)
+    || Number.parseFloat(trade.amount ?? 0)
+    || (entryPrice * quantity)
+    || 0;
 
   return {
     id: trade.id,
@@ -1185,10 +1215,13 @@ const normalizeClosedTrade = (trade = {}) => {
     side: String(trade.side || 'buy').toUpperCase(),
     type: 'Closed Trade',
     quantity,
+    lots,
     entryPrice,
     exitPrice,
     pnl,
     amount,
+    category: snapshot.category,
+    instrument: snapshot,
     status: String(trade.status || 'closed').toUpperCase(),
     closedAt: trade.closed_at || trade.closedAt || trade.updated_at || trade.updatedAt || trade.created_at || trade.createdAt,
   };

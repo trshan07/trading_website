@@ -152,6 +152,80 @@ export const getInstrumentTradingMeta = ({ symbol = '', category = '', instrumen
   };
 };
 
+const getForexLegs = (symbol = '') => {
+  const normalized = normalizeSymbol(symbol);
+  if (!isForexPair(normalized)) {
+    return null;
+  }
+
+  return {
+    base: normalized.slice(0, 3),
+    quote: normalized.slice(3, 6),
+  };
+};
+
+const calculateAccountCurrencyNotional = ({
+  symbol = '',
+  category = '',
+  instrument = {},
+  quantity = 0,
+  price = 0,
+  accountCurrency = 'USD',
+}) => {
+  const meta = getInstrumentTradingMeta({ symbol, category, instrument });
+  const parsedQuantity = Number.parseFloat(quantity) || 0;
+  const parsedPrice = Number.parseFloat(price) || 0;
+  const normalizedAccountCurrency = String(accountCurrency || 'USD').toUpperCase();
+
+  if (parsedQuantity <= 0) {
+    return 0;
+  }
+
+  if (meta.categoryKey === 'forex') {
+    const legs = getForexLegs(symbol);
+    if (legs?.quote === normalizedAccountCurrency) {
+      return parsedQuantity * parsedPrice;
+    }
+
+    if (legs?.base === normalizedAccountCurrency) {
+      return parsedQuantity;
+    }
+  }
+
+  return parsedQuantity * parsedPrice;
+};
+
+const convertQuotePnlToAccountCurrency = ({
+  symbol = '',
+  category = '',
+  instrument = {},
+  pnl = 0,
+  conversionPrice = 0,
+  accountCurrency = 'USD',
+}) => {
+  const meta = getInstrumentTradingMeta({ symbol, category, instrument });
+  const normalizedAccountCurrency = String(accountCurrency || 'USD').toUpperCase();
+  const parsedPnl = Number.parseFloat(pnl) || 0;
+  const parsedConversionPrice = Number.parseFloat(conversionPrice) || 0;
+
+  if (parsedPnl === 0) {
+    return 0;
+  }
+
+  if (meta.categoryKey === 'forex') {
+    const legs = getForexLegs(symbol);
+    if (legs?.quote === normalizedAccountCurrency) {
+      return parsedPnl;
+    }
+
+    if (legs?.base === normalizedAccountCurrency && parsedConversionPrice > 0) {
+      return parsedPnl / parsedConversionPrice;
+    }
+  }
+
+  return parsedPnl;
+};
+
 export const calculateQuantityFromLots = (lots, symbol, category, instrument) => {
   const meta = getInstrumentTradingMeta({ symbol, category, instrument });
   return (Number.parseFloat(lots) || 0) * meta.contractSize;
@@ -167,18 +241,30 @@ export const calculateNotionalValue = ({
 };
 
 export const calculateUsdFromLots = (lots, price, category, symbol, instrument) =>
-  calculateNotionalValue({
+  calculateAccountCurrencyNotional({
+    symbol,
+    category,
+    instrument,
     quantity: calculateQuantityFromLots(lots, symbol, category, instrument),
     price,
   });
 
 export const calculateLotsFromUsd = (usd, price, category, symbol, instrument) => {
   const meta = getInstrumentTradingMeta({ symbol, category, instrument });
-  const parsedPrice = Number.parseFloat(price) || 0;
-  if (!parsedPrice || !meta.contractSize) {
-    return meta.minLot;
+  const parsedUsd = Number.parseFloat(usd) || 0;
+  const contractNotional = calculateAccountCurrencyNotional({
+    symbol,
+    category,
+    instrument,
+    quantity: meta.contractSize,
+    price,
+  });
+
+  if (parsedUsd <= 0 || contractNotional <= 0 || !meta.contractSize) {
+    return 0;
   }
-  return (Number.parseFloat(usd) || 0) / (meta.contractSize * parsedPrice);
+
+  return parsedUsd / contractNotional;
 };
 
 export const calculateLotsFromQuantity = (quantity, symbol, category, instrument) => {
@@ -209,7 +295,13 @@ export const calculateMarginRequired = ({
     return 0;
   }
 
-  return calculateNotionalValue({ quantity: resolvedQuantity, price }) / parsedLeverage;
+  return calculateAccountCurrencyNotional({
+    symbol,
+    category,
+    instrument,
+    quantity: resolvedQuantity,
+    price,
+  }) / parsedLeverage;
 };
 
 export const calculateMovementValue = ({
@@ -255,5 +347,11 @@ export const calculateProjectedPnL = ({
     ? parsedEntry - parsedExit
     : parsedExit - parsedEntry;
 
-  return priceDelta * resolvedQuantity;
+  return convertQuotePnlToAccountCurrency({
+    symbol,
+    category,
+    instrument,
+    pnl: priceDelta * resolvedQuantity,
+    conversionPrice: parsedExit || parsedEntry,
+  });
 };

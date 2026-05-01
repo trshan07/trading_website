@@ -2,69 +2,124 @@
   "BTCUSDT": {
     "tradingView": "BINANCE:BTCUSDT",
     "quote": "BTCUSDT",
-    "provider": "binance"
+    "provider": "binance",
+    "contractSize": 1,
+    "quantityLabel": "BTC",
+    "lotStep": 0.001,
+    "minLot": 0.001
   },
   "ETHUSDT": {
     "tradingView": "BINANCE:ETHUSDT",
     "quote": "ETHUSDT",
-    "provider": "binance"
+    "provider": "binance",
+    "contractSize": 1,
+    "quantityLabel": "ETH",
+    "lotStep": 0.001,
+    "minLot": 0.001
   },
   "BNBUSDT": {
     "tradingView": "BINANCE:BNBUSDT",
     "quote": "BNBUSDT",
-    "provider": "binance"
+    "provider": "binance",
+    "contractSize": 1,
+    "quantityLabel": "BNB",
+    "lotStep": 0.001,
+    "minLot": 0.001
   },
   "SOLUSDT": {
     "tradingView": "BINANCE:SOLUSDT",
     "quote": "SOLUSDT",
-    "provider": "binance"
+    "provider": "binance",
+    "contractSize": 1,
+    "quantityLabel": "SOL",
+    "lotStep": 0.001,
+    "minLot": 0.001
   },
   "ADAUSDT": {
     "tradingView": "BINANCE:ADAUSDT",
     "quote": "ADAUSDT",
-    "provider": "binance"
+    "provider": "binance",
+    "contractSize": 1,
+    "quantityLabel": "ADA",
+    "lotStep": 0.001,
+    "minLot": 0.001
   },
   "EURUSD": {
     "tradingView": "FX:EURUSD",
     "quote": "EURUSD=X",
     "provider": "twelvedata",
-    "dataSymbol": "EUR/USD"
+    "dataSymbol": "EUR/USD",
+    "contractSize": 100000,
+    "quantityLabel": "EUR",
+    "lotStep": 0.01,
+    "minLot": 0.01,
+    "spread": 0.00012
   },
   "GBPUSD": {
     "tradingView": "FX:GBPUSD",
     "quote": "GBPUSD=X",
     "provider": "twelvedata",
-    "dataSymbol": "GBP/USD"
+    "dataSymbol": "GBP/USD",
+    "contractSize": 100000,
+    "quantityLabel": "GBP",
+    "lotStep": 0.01,
+    "minLot": 0.01,
+    "spread": 0.00015
   },
   "USDJPY": {
     "tradingView": "FX:USDJPY",
     "quote": "USDJPY=X",
     "provider": "twelvedata",
-    "dataSymbol": "USD/JPY"
+    "dataSymbol": "USD/JPY",
+    "contractSize": 100000,
+    "quantityLabel": "USD",
+    "lotStep": 0.01,
+    "minLot": 0.01,
+    "spread": 0.018
   },
   "AUDUSD": {
     "tradingView": "FX:AUDUSD",
     "quote": "AUDUSD=X",
     "provider": "twelvedata",
-    "dataSymbol": "AUD/USD"
+    "dataSymbol": "AUD/USD",
+    "contractSize": 100000,
+    "quantityLabel": "AUD",
+    "lotStep": 0.01,
+    "minLot": 0.01,
+    "spread": 0.00014
   },
   "USDCAD": {
     "tradingView": "FX:USDCAD",
     "quote": "USDCAD=X",
     "provider": "twelvedata",
-    "dataSymbol": "USD/CAD"
+    "dataSymbol": "USD/CAD",
+    "contractSize": 100000,
+    "quantityLabel": "USD",
+    "lotStep": 0.01,
+    "minLot": 0.01,
+    "spread": 0.00016
   },
   "USDCHF": {
     "tradingView": "FX:USDCHF",
     "quote": "USDCHF=X",
     "provider": "twelvedata",
-    "dataSymbol": "USD/CHF"
+    "dataSymbol": "USD/CHF",
+    "contractSize": 100000,
+    "quantityLabel": "USD",
+    "lotStep": 0.01,
+    "minLot": 0.01,
+    "spread": 0.00014
   },
   "NZDUSD": {
     "tradingView": "FX:NZDUSD",
     "quote": "NZDUSD=X",
     "provider": "twelvedata",
-    "dataSymbol": "NZD/USD"
+    "dataSymbol": "NZD/USD",
+    "contractSize": 100000,
+    "quantityLabel": "NZD",
+    "lotStep": 0.01,
+    "minLot": 0.01,
+    "spread": 0.00016
   },
   "XAUUSD": {
     "tradingView": "OANDA:XAUUSD",
@@ -72,7 +127,12 @@
     "provider": "twelvedata",
     "dataSymbol": "XAU/USD",
     "useBidAsk": false,
-    "precision": 3
+    "precision": 2,
+    "contractSize": 100,
+    "quantityLabel": "oz",
+    "lotStep": 0.01,
+    "minLot": 0.01,
+    "spread": 0.42
   },
   "XAGUSD": {
     "tradingView": "OANDA:XAGUSD",
@@ -80,103 +140,193 @@
     "provider": "twelvedata",
     "dataSymbol": "XAG/USD",
     "useBidAsk": false,
-    "precision": 3
+    "precision": 3,
+    "contractSize": 5000,
+    "quantityLabel": "oz",
+    "lotStep": 0.01,
+    "minLot": 0.01,
+    "spread": 0.094
   },
   "BRENT": {
-    "tradingView": "ICEEUR:BRN1!",
+    "tradingView": "TVC:UKOIL",
     "quote": "BZ=F",
     "provider": "twelvedata",
     "useBidAsk": false,
-    "precision": 3
+    "precision": 3,
+    "contractSize": 1000,
+    "quantityLabel": "bbl",
+    "lotStep": 0.01,
+    "minLot": 0.01,
+    "spread": 0.08
   },
   "US10Y": {
     "tradingView": "TVC:US10Y",
     "quote": "^TNX",
     "provider": "twelvedata",
     "useBidAsk": false,
-    "precision": 3
+    "precision": 3,
+    "contractSize": 1000,
+    "quantityLabel": "contracts",
+    "lotStep": 0.01,
+    "minLot": 0.01,
+    "spread": 0.01
   },
   "DXY": {
     "tradingView": "TVC:DXY",
     "quote": "DX-Y.NYB",
     "provider": "twelvedata",
     "useBidAsk": false,
-    "precision": 3
+    "precision": 3,
+    "contractSize": 1000,
+    "quantityLabel": "contracts",
+    "lotStep": 0.01,
+    "minLot": 0.01,
+    "spread": 0.03
   },
   "VIX": {
-    "tradingView": "CBOE:VIX",
+    "tradingView": "TVC:VIX",
     "quote": "^VIX",
     "provider": "twelvedata",
     "useBidAsk": false,
-    "precision": 2
+    "precision": 2,
+    "contractSize": 100,
+    "quantityLabel": "contracts",
+    "lotStep": 0.01,
+    "minLot": 0.01,
+    "spread": 0.08
   },
   "SPX": {
-    "tradingView": "SP:SPX",
+    "tradingView": "TVC:SPX",
     "quote": "^GSPC",
     "provider": "twelvedata",
     "useBidAsk": false,
-    "precision": 2
+    "precision": 2,
+    "contractSize": 10,
+    "quantityLabel": "index units",
+    "lotStep": 0.01,
+    "minLot": 0.01,
+    "spread": 0.8
   },
   "NDX": {
-    "tradingView": "NASDAQ:NDX",
+    "tradingView": "TVC:NDQ",
     "quote": "^NDX",
     "provider": "twelvedata",
     "useBidAsk": false,
-    "precision": 2
+    "precision": 2,
+    "contractSize": 10,
+    "quantityLabel": "index units",
+    "lotStep": 0.01,
+    "minLot": 0.01,
+    "spread": 1.2
   },
   "DJI": {
-    "tradingView": "DJ:DJI",
+    "tradingView": "TVC:DJI",
     "quote": "^DJI",
-    "provider": "twelvedata"
+    "provider": "twelvedata",
+    "contractSize": 10,
+    "quantityLabel": "index units",
+    "lotStep": 0.01,
+    "minLot": 0.01,
+    "spread": 3
   },
   "IBOV": {
     "tradingView": "BMFBOVESPA:IBOV",
     "quote": "^BVSP",
-    "provider": "twelvedata"
+    "provider": "twelvedata",
+    "contractSize": 1,
+    "quantityLabel": "index units",
+    "lotStep": 0.01,
+    "minLot": 0.01,
+    "spread": 15
   },
   "SPY": {
     "tradingView": "AMEX:SPY",
     "quote": "SPY",
-    "provider": "twelvedata"
+    "provider": "twelvedata",
+    "contractSize": 1,
+    "quantityLabel": "shares",
+    "lotStep": 0.01,
+    "minLot": 0.01,
+    "spread": 0.03
   },
   "QQQ": {
     "tradingView": "NASDAQ:QQQ",
     "quote": "QQQ",
-    "provider": "twelvedata"
+    "provider": "twelvedata",
+    "contractSize": 1,
+    "quantityLabel": "shares",
+    "lotStep": 0.01,
+    "minLot": 0.01,
+    "spread": 0.03
   },
   "AAPL": {
     "tradingView": "NASDAQ:AAPL",
     "quote": "AAPL",
-    "provider": "twelvedata"
+    "provider": "twelvedata",
+    "contractSize": 1,
+    "quantityLabel": "shares",
+    "lotStep": 0.01,
+    "minLot": 0.01,
+    "spread": 0.03
   },
   "TSLA": {
     "tradingView": "NASDAQ:TSLA",
     "quote": "TSLA",
-    "provider": "twelvedata"
+    "provider": "twelvedata",
+    "contractSize": 1,
+    "quantityLabel": "shares",
+    "lotStep": 0.01,
+    "minLot": 0.01,
+    "spread": 0.05
   },
   "MSFT": {
     "tradingView": "NASDAQ:MSFT",
     "quote": "MSFT",
-    "provider": "twelvedata"
+    "provider": "twelvedata",
+    "contractSize": 1,
+    "quantityLabel": "shares",
+    "lotStep": 0.01,
+    "minLot": 0.01,
+    "spread": 0.03
   },
   "GOOGL": {
     "tradingView": "NASDAQ:GOOGL",
     "quote": "GOOGL",
-    "provider": "twelvedata"
+    "provider": "twelvedata",
+    "contractSize": 1,
+    "quantityLabel": "shares",
+    "lotStep": 0.01,
+    "minLot": 0.01,
+    "spread": 0.04
   },
   "ES1!": {
-    "tradingView": "CME_MINI:ES1!",
+    "tradingView": "TVC:SPX",
     "quote": "ES=F",
-    "provider": "twelvedata"
+    "provider": "twelvedata",
+    "contractSize": 50,
+    "quantityLabel": "contracts",
+    "lotStep": 0.01,
+    "minLot": 0.01,
+    "spread": 0.5
   },
   "YM1!": {
     "tradingView": "CBOT_MINI:YM1!",
     "quote": "YM=F",
-    "provider": "twelvedata"
+    "provider": "twelvedata",
+    "contractSize": 5,
+    "quantityLabel": "contracts",
+    "lotStep": 0.01,
+    "minLot": 0.01,
+    "spread": 5
   },
   "CL1!": {
-    "tradingView": "NYMEX:CL1!",
+    "tradingView": "TVC:USOIL",
     "quote": "CL=F",
-    "provider": "twelvedata"
+    "provider": "twelvedata",
+    "contractSize": 1000,
+    "quantityLabel": "bbl",
+    "lotStep": 0.01,
+    "minLot": 0.01,
+    "spread": 0.04
   }
 }

@@ -7,11 +7,13 @@ import {
   calculateLotsFromUsd,
   calculateMarginRequired,
   getLotStep,
+  getLotPrecision,
   calculatePips,
   calculateProjectedPnL,
   calculateQuantityFromLots,
   getInstrumentTradingMeta,
-  getMinLot
+  getMinLot,
+  formatLots
 } from '../../utils/tradingUtils';
 import { MARKET_INSTRUMENTS } from '../../constants/marketData';
 import { buildInstrumentSnapshot } from '../../utils/marketSymbols';
@@ -80,8 +82,10 @@ const OrderPanel = ({
   const executionPrice = selectedSide === 'buy' ? parseFloat(askPrice) : parseFloat(bidPrice);
   const lotStep = getLotStep(category, symbol, instrument);
   const minLot = getMinLot(category, symbol, instrument);
+  const lotPrecision = getLotPrecision(category, symbol, instrument);
   const quantity = calculateQuantityFromLots(lots, symbol, category, instrument);
   const finalPrice = executionPrice;
+  const notionalValue = calculateUsdFromLots(lots, finalPrice, category, symbol, instrument);
   const requiredMargin = calculateMarginRequired({
     symbol,
     category,
@@ -93,8 +97,10 @@ const OrderPanel = ({
   });
   const freeMargin = Number(portfolio?.freeMargin ?? 0);
   const marginLoaded = portfolio?.freeMargin != null;
+  const projectedFreeMargin = marginLoaded ? freeMargin - requiredMargin : null;
   const hasMarginLevel = Number(portfolio?.margin || 0) > 0;
   const marginLevelLabel = hasMarginLevel ? `${Number(portfolio?.marginLevel || 0).toFixed(2)}%` : 'N/A';
+  const formattedLots = formatLots(lots, category, symbol, instrument);
 
   const tpPrice = tpEnabled ? parseFloat(tpValue) : null;
   const slPrice = slEnabled ? parseFloat(slValue) : null;
@@ -135,9 +141,9 @@ const OrderPanel = ({
   useEffect(() => {
     if (!useLots) {
       const derivedLots = calculateLotsFromUsd(amount, currentPrice, category, symbol, instrument);
-      setLots(Number.isFinite(derivedLots) ? parseFloat(derivedLots.toFixed(3)) : minLot);
+      setLots(Number.isFinite(derivedLots) ? parseFloat(derivedLots.toFixed(lotPrecision)) : minLot);
     }
-  }, [amount, useLots, currentPrice, category, symbol, instrument, minLot]);
+  }, [amount, useLots, currentPrice, category, symbol, instrument, minLot, lotPrecision]);
 
   useEffect(() => {
     if (onIntentChange) {
@@ -328,13 +334,13 @@ const OrderPanel = ({
                   />
                   <div className="absolute inset-y-0 right-2 flex flex-col justify-center space-y-1">
                     <button
-                      onClick={() => useLots ? setLots((prev) => +(prev + lotStep).toFixed(3)) : setAmount((prev) => prev + 100)}
+                      onClick={() => useLots ? setLots((prev) => +(prev + lotStep).toFixed(lotPrecision)) : setAmount((prev) => prev + 100)}
                       className="p-1 hover:bg-slate-200 dark:hover:bg-slate-700 rounded text-slate-400"
                     >
                       <FaCaretUp size={10} />
                     </button>
                     <button
-                      onClick={() => useLots ? setLots((prev) => Math.max(minLot, +(prev - lotStep).toFixed(3))) : setAmount((prev) => Math.max(0, prev - 100))}
+                      onClick={() => useLots ? setLots((prev) => Math.max(0, +(prev - lotStep).toFixed(lotPrecision))) : setAmount((prev) => Math.max(0, prev - 100))}
                       className="p-1 hover:bg-slate-200 dark:hover:bg-slate-700 rounded text-slate-400"
                     >
                       <FaCaretDown size={10} />
@@ -342,7 +348,7 @@ const OrderPanel = ({
                   </div>
                 </div>
                 <div className="flex justify-between text-[8px] font-bold text-slate-400 uppercase tracking-tighter">
-                  <span>~ {useLots ? `$${Number(amount || 0).toFixed(2)}` : `${lots} Lots`}</span>
+                  <span>~ {useLots ? `$${Number(amount || 0).toFixed(2)}` : `${formattedLots} Lots`}</span>
                   <span>{quantity.toLocaleString(undefined, { maximumFractionDigits: 4 })} {tradingMeta.quantityLabel}</span>
                 </div>
               </div>
@@ -432,8 +438,10 @@ const OrderPanel = ({
 
               <div className="grid grid-cols-2 gap-3">
                 {[
+                  { label: 'Notional', value: `$${notionalValue.toFixed(2)}`, tone: 'text-slate-900 dark:text-white' },
                   { label: 'Required Margin', value: `$${requiredMargin.toFixed(2)}`, tone: freeMargin >= requiredMargin ? 'text-emerald-500' : 'text-rose-500' },
                   { label: 'Free Margin', value: `$${freeMargin.toFixed(2)}`, tone: 'text-slate-900 dark:text-white' },
+                  { label: 'Post-Trade Free', value: projectedFreeMargin != null ? `$${projectedFreeMargin.toFixed(2)}` : '--', tone: projectedFreeMargin != null && projectedFreeMargin >= 0 ? 'text-emerald-500' : 'text-rose-500' },
                   { label: 'Leverage', value: `1:${maxLeverage}`, tone: 'text-slate-900 dark:text-white' },
                   { label: 'Margin Level', value: marginLevelLabel, tone: hasMarginLevel && Number(portfolio?.marginLevel || 0) < 100 ? 'text-rose-500' : 'text-gold-500' },
                 ].map((item) => (
@@ -444,9 +452,22 @@ const OrderPanel = ({
                 ))}
               </div>
 
+              <div className="grid grid-cols-3 gap-3">
+                {[
+                  { label: 'Contract Size', value: `${tradingMeta.contractSize.toLocaleString()} ${tradingMeta.quantityLabel}` },
+                  { label: 'Lot Step', value: `${formatLots(lotStep, category, symbol, instrument)} lots` },
+                  { label: 'Min Lot', value: `${formatLots(minLot, category, symbol, instrument)} lots` },
+                ].map((item) => (
+                  <div key={item.label} className="bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700/50 rounded-xl p-3">
+                    <p className="text-[8px] font-black uppercase tracking-widest text-slate-400 mb-1">{item.label}</p>
+                    <p className="text-sm font-black text-slate-900 dark:text-white">{item.value}</p>
+                  </div>
+                ))}
+              </div>
+
               {!hasValidSize && (
                 <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 px-4 py-3 text-[9px] font-black uppercase tracking-widest text-amber-500">
-                  Minimum size is {minLot.toFixed(2)} lots and the order quantity must be greater than zero.
+                  Minimum size is {formatLots(minLot, category, symbol, instrument)} lots and the order quantity must be greater than zero.
                 </div>
               )}
 
@@ -482,7 +503,7 @@ const OrderPanel = ({
                   Review Order
                 </span>
                 <span className="text-[9px] font-bold text-white/70 mt-1 relative z-10">
-                  {lots} Lots | {quantity.toLocaleString(undefined, { maximumFractionDigits: 4 })} {tradingMeta.quantityLabel} @ {finalPrice.toLocaleString(undefined, { minimumFractionDigits: instrument.precision, maximumFractionDigits: instrument.precision })}
+                  {formattedLots} Lots | {quantity.toLocaleString(undefined, { maximumFractionDigits: 4 })} {tradingMeta.quantityLabel} @ {finalPrice.toLocaleString(undefined, { minimumFractionDigits: instrument.precision, maximumFractionDigits: instrument.precision })}
                 </span>
               </button>
 
@@ -497,8 +518,9 @@ const OrderPanel = ({
                       { label: 'Instrument', value: symbol },
                       { label: 'Type', value: formatOrderType(orderType) },
                       { label: 'Side', value: selectedSide.toUpperCase() },
-                      { label: 'Lots', value: lots.toFixed(2) },
+                      { label: 'Lots', value: formattedLots },
                       { label: 'Quantity', value: quantity.toLocaleString(undefined, { maximumFractionDigits: 4 }) },
+                      { label: 'Notional', value: `$${notionalValue.toFixed(2)}` },
                       { label: 'Entry Price', value: finalPrice ? finalPrice.toLocaleString(undefined, { minimumFractionDigits: instrument.precision, maximumFractionDigits: instrument.precision }) : '--' },
                       { label: 'Stop Loss', value: slEnabled && slValue ? slValue : 'Off' },
                       { label: 'Take Profit', value: tpEnabled && tpValue ? tpValue : 'Off' },
@@ -565,7 +587,7 @@ const OrderPanel = ({
                       </div>
                     </div>
                     <div className="flex justify-between text-[8px] font-bold text-slate-400 uppercase">
-                      <span>Qty {Number(position.quantity || 0).toLocaleString(undefined, { maximumFractionDigits: 4 })} @ {position.entryPrice}</span>
+                      <span>{formatLots(position.lots, position.category, position.symbol, position.instrument)} lots | {Number(position.quantity || 0).toLocaleString(undefined, { maximumFractionDigits: 4 })} {position.instrument?.quantityLabel || tradingMeta.quantityLabel}</span>
                       <span>SL: {position.stopLoss ?? 'Off'} / TP: {position.takeProfit ?? 'Off'}</span>
                     </div>
                   </div>
@@ -605,7 +627,7 @@ const OrderPanel = ({
                       </span>
                     </div>
                     <div className="flex justify-between text-[8px] font-bold text-slate-400 uppercase">
-                      <span>Qty {Number(order.quantity || 0).toLocaleString(undefined, { maximumFractionDigits: 4 })} @ {order.entryPrice}</span>
+                      <span>{formatLots(order.lots, order.category, order.symbol, order.instrument)} lots | {Number(order.quantity || 0).toLocaleString(undefined, { maximumFractionDigits: 4 })} {order.instrument?.quantityLabel || tradingMeta.quantityLabel}</span>
                       <span className="text-gold-500 italic">WAITING</span>
                     </div>
                   </div>

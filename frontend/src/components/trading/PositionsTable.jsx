@@ -1,9 +1,17 @@
 // frontend/src/components/trading/PositionsTable.jsx
 import React, { useState } from 'react';
 import { FaTimes, FaArrowUp, FaArrowDown, FaChartLine, FaBolt, FaShieldAlt } from 'react-icons/fa';
+import { formatLots } from '../../utils/tradingUtils';
 
 const PositionsTable = ({ positions = [], onClose, onModify = () => {}, compact = false }) => {
   const [hoveredRow, setHoveredRow] = useState(null);
+  const getLotText = (position) => formatLots(
+    position.lots,
+    position.category,
+    position.symbol,
+    position.instrument
+  );
+  const getQuantityLabel = (position) => position.instrument?.quantityLabel || 'units';
 
   const handleProtectionEdit = async (position) => {
     const nextTp = window.prompt('Update Take Profit price (leave blank to remove):', position.takeProfit ?? '');
@@ -65,7 +73,7 @@ const PositionsTable = ({ positions = [], onClose, onModify = () => {}, compact 
               </div>
               <div className="grid grid-cols-3 gap-3 mb-4 pl-2">
                 {[
-                  { label: 'Size', value: (position.quantity || 0).toFixed(4) },
+                  { label: 'Size', value: `${getLotText(position)} lots` },
                   { label: 'Entry', value: `$${(position.entryPrice || 0).toLocaleString()}` },
                   { label: 'Market', value: `$${(position.currentPrice || 0).toLocaleString()}` },
                 ].map(({ label, value }) => (
@@ -79,6 +87,10 @@ const PositionsTable = ({ positions = [], onClose, onModify = () => {}, compact 
                 <div className="flex justify-between items-center text-[9px] uppercase font-black text-slate-400">
                   <span>Leverage:</span>
                   <span className="text-slate-900 dark:text-white">1:{position.leverage || 1}</span>
+                </div>
+                <div className="flex justify-between items-center text-[9px] uppercase font-black text-slate-400">
+                  <span>Units:</span>
+                  <span className="text-slate-900 dark:text-white">{Number(position.quantity || 0).toLocaleString(undefined, { maximumFractionDigits: 4 })} {getQuantityLabel(position)}</span>
                 </div>
                 <div className="flex justify-between items-center text-[9px] uppercase font-black text-slate-400">
                   <span>Take Profit:</span>
@@ -202,8 +214,10 @@ const PositionsTable = ({ positions = [], onClose, onModify = () => {}, compact 
 
               {/* Size */}
               <div className="text-right">
-                <p className="text-sm font-black text-slate-800 dark:text-slate-200 italic tabular-nums">{(position.quantity || 0).toFixed(4)}</p>
-                <p className="text-[8px] text-slate-400 dark:text-slate-600 font-bold tracking-widest uppercase">units</p>
+                <p className="text-sm font-black text-slate-800 dark:text-slate-200 italic tabular-nums">{getLotText(position)}</p>
+                <p className="text-[8px] text-slate-400 dark:text-slate-600 font-bold tracking-widest uppercase">
+                  {Number(position.quantity || 0).toLocaleString(undefined, { maximumFractionDigits: 4 })} {getQuantityLabel(position)}
+                </p>
               </div>
 
               {/* Avg Entry */}

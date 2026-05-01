@@ -1,5 +1,6 @@
 import React from 'react';
 import { FaHistory } from 'react-icons/fa';
+import { formatLots } from '../../utils/tradingUtils';
 
 const TradeHistory = ({ trades = [] }) => {
   if (!trades.length) {
@@ -17,6 +18,8 @@ const TradeHistory = ({ trades = [] }) => {
     <div className="space-y-3">
       {trades.map((trade) => {
         const isProfit = trade.pnl >= 0;
+        const formattedLots = formatLots(trade.lots, trade.category, trade.symbol, trade.instrument);
+        const quantityLabel = trade.instrument?.quantityLabel || 'units';
         return (
           <div
             key={trade.id}
@@ -28,7 +31,7 @@ const TradeHistory = ({ trades = [] }) => {
                   {trade.symbol}
                 </p>
                 <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500 mt-1">
-                  {trade.side} | Qty {trade.quantity.toLocaleString(undefined, { maximumFractionDigits: 4 })}
+                  {trade.side} | {formattedLots} lots | {trade.quantity.toLocaleString(undefined, { maximumFractionDigits: 4 })} {quantityLabel}
                 </p>
               </div>
               <div className="text-right">

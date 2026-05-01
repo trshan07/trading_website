@@ -14,7 +14,6 @@ const {
 } = require('./marketDataService');
 const {
     calculateMarginRequired,
-    calculateNotionalValue,
     calculateProjectedPnl,
     calculateQuantityFromLots,
     getInstrumentTradingMeta,
@@ -108,17 +107,35 @@ const parseTradeInputs = async (payload = {}) => {
     const instrumentConfig = await getMergedInstrumentConfig(symbol);
     const category = payload.category || instrumentConfig.category || '';
     const meta = getInstrumentTradingMeta({ symbol, category, instrument: instrumentConfig });
+    const notionalPerLot = calculateMarginRequired({
+        symbol,
+        category,
+        instrument: instrumentConfig,
+        quantity: meta.contractSize,
+        price: entryPrice,
+        leverage: 1,
+    });
+    const derivedLotsFromAmount = Number.isFinite(amountInput) && amountInput > 0 && notionalPerLot > 0
+        ? amountInput / notionalPerLot
+        : 0;
     const quantity = Number.isFinite(quantityInput) && quantityInput > 0
         ? quantityInput
         : (Number.isFinite(lotsInput) && lotsInput > 0
             ? calculateQuantityFromLots(lotsInput, symbol, category, instrumentConfig)
-            : (entryPrice > 0 && Number.isFinite(amountInput) ? amountInput / entryPrice : 0));
+            : (derivedLotsFromAmount > 0 ? calculateQuantityFromLots(derivedLotsFromAmount, symbol, category, instrumentConfig) : 0));
     const lots = Number.isFinite(lotsInput) && lotsInput > 0
         ? lotsInput
         : (meta.contractSize > 0 ? quantity / meta.contractSize : 0);
     const amount = Number.isFinite(amountInput) && amountInput > 0
         ? amountInput
-        : calculateNotionalValue({ quantity, price: entryPrice });
+        : calculateMarginRequired({
+            symbol,
+            category,
+            instrument: instrumentConfig,
+            quantity,
+            price: entryPrice,
+            leverage: 1,
+        });
     const takeProfit = payload.takeProfit == null ? null : Number.parseFloat(payload.takeProfit);
     const stopLoss = payload.stopLoss == null ? null : Number.parseFloat(payload.stopLoss);
 
