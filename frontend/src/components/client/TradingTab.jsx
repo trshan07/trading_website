@@ -1,13 +1,9 @@
 import React, { useCallback, useMemo, useState } from 'react';
-import { FaBell, FaBolt, FaChartLine, FaHistory, FaListUl, FaShieldAlt, FaSignal, FaWallet } from 'react-icons/fa';
+import { FaBolt, FaChartLine, FaHistory, FaListUl } from 'react-icons/fa';
 import RealTimeChart from '../trading/RealTimeChart';
 import OrderPanel from '../trading/OrderPanel';
 import PositionsTable from '../trading/PositionsTable';
-import OpenOrders from '../trading/OpenOrders';
-import OrderBook from '../trading/OrderBook';
 import TerminalAssetList from '../trading/TerminalAssetList';
-import TradeHistory from '../trading/TradeHistory';
-import PriceAlertsTab from '../trading/PriceAlertsTab';
 import { useTheme } from '../../context/ThemeContext';
 import { buildInstrumentSnapshot, formatInstrumentDisplaySymbol, normalizeSymbol } from '../../utils/marketSymbols';
 import { getDisplayQuoteSnapshot } from '../../utils/spreadCalculator';
@@ -40,7 +36,6 @@ const TradingTab = ({
   categories = [],
   maxLeverage = 100
 }) => {
-  const [activeSubTab, setActiveSubTab] = useState('positions');
   const [showSidebar, setShowSidebar] = useState(true);
   const [activeMobileView, setActiveMobileView] = useState('chart');
   const [activeOrderIntent, setActiveOrderIntent] = useState({ side: 'buy', type: 'market' });
@@ -66,12 +61,7 @@ const TradingTab = ({
     () => positions.filter((position) => normalizeSymbol(position?.symbol) === normalizedActiveSymbol),
     [normalizedActiveSymbol, positions]
   );
-  const selectedSymbolOrders = useMemo(
-    () => orders.filter((order) => normalizeSymbol(order?.symbol) === normalizedActiveSymbol),
-    [normalizedActiveSymbol, orders]
-  );
   const matchingPositionCount = selectedSymbolPositions.length;
-  const selectedSymbolPnl = selectedSymbolPositions.reduce((sum, position) => sum + (Number(position?.pnl) || 0), 0);
   const quoteSnapshot = useMemo(() => getDisplayQuoteSnapshot({
     symbol: activeSymbol,
     instrument: selectedInstrument,
@@ -115,38 +105,6 @@ const TradingTab = ({
       value: `${matchingPositionCount} position${matchingPositionCount === 1 ? '' : 's'}`,
       tone: theme === 'dark' ? 'text-white' : 'text-slate-900',
     },
-    {
-      label: 'Pending Orders',
-      value: `${selectedSymbolOrders.length}`,
-      tone: theme === 'dark' ? 'text-white' : 'text-slate-900',
-    },
-  ];
-
-  const deskStats = [
-    {
-      label: 'Equity',
-      value: `$${formatMoney(portfolio.equity || 0)}`,
-      icon: FaWallet,
-      tone: 'text-white',
-    },
-    {
-      label: 'Free Margin',
-      value: `$${formatMoney(portfolio.freeMargin || 0)}`,
-      icon: FaShieldAlt,
-      tone: Number(portfolio.freeMargin || 0) >= 0 ? 'text-emerald-500' : 'text-rose-500',
-    },
-    {
-      label: `${activeSymbolLabel} P&L`,
-      value: `${selectedSymbolPnl >= 0 ? '+' : ''}$${formatMoney(selectedSymbolPnl || 0)}`,
-      icon: FaChartLine,
-      tone: selectedSymbolPnl >= 0 ? 'text-emerald-500' : 'text-rose-500',
-    },
-    {
-      label: 'Watchlist',
-      value: `${favorites.length} symbols`,
-      icon: FaListUl,
-      tone: theme === 'dark' ? 'text-white' : 'text-slate-900',
-    },
   ];
 
   return (
@@ -156,7 +114,7 @@ const TradingTab = ({
           { id: 'markets', label: 'Markets', icon: FaListUl },
           { id: 'chart', label: 'Chart', icon: FaChartLine },
           { id: 'trade', label: 'Trade', icon: FaBolt },
-          { id: 'portfolio', label: 'Portfolio', icon: FaHistory }
+          { id: 'portfolio', label: 'Positions', icon: FaHistory }
         ].map((view) => (
           <button
             key={view.id}
@@ -246,17 +204,11 @@ const TradingTab = ({
 
                 <div className="flex flex-wrap items-center gap-2">
                   {[
-                    { label: 'Positions', tab: 'positions' },
-                    { label: 'Pending', tab: 'orders' },
-                    { label: 'Alerts', tab: 'alerts' },
                     { label: showSidebar ? 'Hide Markets' : 'Show Markets', action: () => setShowSidebar((value) => !value) },
                   ].map((item) => (
                     <button
                       key={item.label}
                       onClick={() => {
-                        if (item.tab) {
-                          setActiveSubTab(item.tab);
-                        }
                         if (item.action) {
                           item.action();
                         }
@@ -331,37 +283,12 @@ const TradingTab = ({
               <div>
                 <p className="text-[8px] font-black uppercase tracking-widest text-slate-400">Execution Desk</p>
                 <p className="mt-1 text-xs font-black text-slate-900 dark:text-white">{activeSymbolLabel}</p>
+                <p className="mt-1 text-[10px] font-black uppercase tracking-widest text-emerald-500">
+                  Bid {bidPrice} | Ask {askPrice}
+                </p>
               </div>
               <div className="px-3 py-1 rounded-full bg-gold-500/10 text-gold-500 border border-gold-500/20 text-[9px] font-black uppercase tracking-widest">
                 1:{maxLeverage}
-              </div>
-            </div>
-
-            <div className="mt-4 grid grid-cols-2 gap-3">
-              {deskStats.map((item) => (
-                <div
-                  key={item.label}
-                  className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-3"
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="text-[8px] font-black uppercase tracking-widest text-slate-400">{item.label}</p>
-                    <item.icon size={11} className="text-gold-500" />
-                  </div>
-                  <p className={`mt-2 text-sm font-black ${item.tone}`}>{item.value}</p>
-                </div>
-              ))}
-            </div>
-
-            <div className="mt-3 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-4 py-3">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <p className="text-[8px] font-black uppercase tracking-widest text-slate-400">Feed Alignment</p>
-                  <p className="mt-1 text-[11px] font-black text-slate-900 dark:text-white">Bid {bidPrice} | Ask {askPrice}</p>
-                </div>
-                <div className="flex items-center gap-2 text-[9px] font-black uppercase tracking-widest text-emerald-500">
-                  <FaSignal size={10} />
-                  <span>Live</span>
-                </div>
               </div>
             </div>
           </div>
@@ -387,75 +314,30 @@ const TradingTab = ({
         ${activeMobileView === 'portfolio' ? 'flex' : 'hidden lg:flex'}
         flex-col bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 shadow-2xl z-10 transition-colors
       `}>
-        <div className="flex items-center space-x-1 px-4 border-b border-slate-50 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50 overflow-x-auto scrollbar-hide">
-          {[
-            { id: 'positions', label: 'Positions', count: positions.length, icon: FaChartLine },
-            { id: 'orders', label: 'Pending', count: orders.length, icon: FaListUl },
-            { id: 'book', label: 'Order Book', count: 0, icon: FaBolt },
-            { id: 'history', label: 'History', count: closedTrades?.length || 0, icon: FaHistory },
-            { id: 'alerts', label: 'Alerts', count: priceAlerts.length, icon: FaBell }
-          ].map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveSubTab(tab.id)}
-              className={`px-6 py-3 text-[10px] font-black uppercase tracking-widest flex items-center space-x-2 border-b-2 transition-all ${
-                activeSubTab === tab.id
-                  ? 'border-gold-500 text-slate-900 dark:text-gold-500 bg-white dark:bg-slate-900 shadow-sm'
-                  : 'border-transparent text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'
-              }`}
-            >
-              <tab.icon size={10} />
-              <span>{tab.label}</span>
-              {tab.count > 0 && (
-                <span className="ml-2 px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 rounded-md text-[8px]">
-                  {tab.count}
-                </span>
-              )}
-            </button>
-          ))}
+        <div className="flex items-center justify-between gap-3 px-4 py-3 border-b border-slate-50 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50">
+          <div className="flex items-center gap-2">
+            <FaChartLine size={11} className="text-gold-500" />
+            <span className="text-[10px] font-black uppercase tracking-widest text-slate-900 dark:text-white">
+              Positions
+            </span>
+          </div>
+          <span className="px-2 py-1 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 text-[8px] font-black uppercase tracking-widest">
+            {positions.length} open
+          </span>
         </div>
 
         <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
-          {activeSubTab === 'positions' && (
-            positions.length > 0 ? (
-              <PositionsTable
-                positions={positions}
-                onClose={onClosePosition}
-                onModify={onModifyPosition}
-                compact={isMobile}
-              />
-            ) : (
-              <div className="text-center py-10">
-                <p className="text-[10px] font-black text-slate-300 dark:text-slate-600 uppercase tracking-widest italic">No Open Positions</p>
-              </div>
-            )
-          )}
-          {activeSubTab === 'orders' && (
-            orders.length > 0 ? (
-              <OpenOrders
-                orders={orders}
-                onCancel={onCancelOrder}
-                onModify={onModifyOrder}
-                compact={isMobile}
-              />
-            ) : (
-              <div className="text-center py-10">
-                <p className="text-[10px] font-black text-slate-300 dark:text-slate-600 uppercase tracking-widest italic">No Pending Orders</p>
-              </div>
-            )
-          )}
-          {activeSubTab === 'book' && (
-            <OrderBook symbol={activeSymbol} />
-          )}
-          {activeSubTab === 'history' && (
-            <TradeHistory trades={closedTrades} />
-          )}
-          {activeSubTab === 'alerts' && (
-            <PriceAlertsTab
-              alerts={priceAlerts}
-              onCreateAlert={onCreateAlert}
-              onDeleteAlert={onDeleteAlert}
+          {positions.length > 0 ? (
+            <PositionsTable
+              positions={positions}
+              onClose={onClosePosition}
+              onModify={onModifyPosition}
+              compact={isMobile}
             />
+          ) : (
+            <div className="text-center py-10">
+              <p className="text-[10px] font-black text-slate-300 dark:text-slate-600 uppercase tracking-widest italic">No Open Positions</p>
+            </div>
           )}
         </div>
       </div>
