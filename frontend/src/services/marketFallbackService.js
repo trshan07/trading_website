@@ -3,6 +3,7 @@ import { normalizeSymbol } from '../utils/marketSymbols';
 const CRYPTO_QUOTES = ['USDT', 'BUSD', 'USDC', 'BTC', 'ETH'];
 const FOREX_CODES = ['USD', 'EUR', 'GBP', 'JPY', 'AUD', 'NZD', 'CAD', 'CHF'];
 const BIQUOTE_BASE_URL = 'https://biquote.io/api';
+const METAL_SYMBOLS = new Set(['XAUUSD', 'XAGUSD']);
 
 const isForexPair = (symbol = '') => {
   if (symbol.length !== 6) {
@@ -17,6 +18,11 @@ const isForexPair = (symbol = '') => {
 const isCryptoSymbol = (symbol = '', category = '') => {
   const normalized = normalizeSymbol(symbol);
   return CRYPTO_QUOTES.some((quote) => normalized.endsWith(quote)) || String(category).toLowerCase().includes('crypto');
+};
+
+const isMetalSymbol = (symbol = '', category = '') => {
+  const normalized = normalizeSymbol(symbol);
+  return METAL_SYMBOLS.has(normalized) || String(category).toLowerCase().includes('metal');
 };
 
 const resolveYahooSymbol = (instrument = {}) => {
@@ -212,19 +218,23 @@ export const fetchPublicMarketQuotes = async (instruments = []) => {
     return {};
   }
 
-  const biquoteQuotes = await fetchBiquoteQuotes(filtered).catch(() => ({}));
-  const unresolvedInstruments = filtered.filter((instrument) => !biquoteQuotes[instrument.symbol]);
+  const metals = filtered.filter((instrument) => isMetalSymbol(instrument.symbol, instrument.category));
+  const nonMetals = filtered.filter((instrument) => !isMetalSymbol(instrument.symbol, instrument.category));
+  const biquoteQuotes = await fetchBiquoteQuotes(nonMetals).catch(() => ({}));
+  const unresolvedInstruments = nonMetals.filter((instrument) => !biquoteQuotes[instrument.symbol]);
   const cryptoInstruments = unresolvedInstruments.filter((instrument) => isCryptoSymbol(instrument.symbol, instrument.category));
   const nonCryptoInstruments = unresolvedInstruments.filter((instrument) => !isCryptoSymbol(instrument.symbol, instrument.category));
 
-  const [cryptoQuotes, yahooQuotes] = await Promise.all([
+  const [cryptoQuotes, yahooQuotes, metalQuotes] = await Promise.all([
     fetchBinanceQuotes(cryptoInstruments).catch(() => ({})),
     fetchYahooQuotes(nonCryptoInstruments).catch(() => ({})),
+    fetchYahooQuotes(metals).catch(() => ({})),
   ]);
 
   return {
     ...biquoteQuotes,
     ...yahooQuotes,
+    ...metalQuotes,
     ...cryptoQuotes,
   };
 };
