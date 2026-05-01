@@ -8,10 +8,6 @@ import OrderBook from '../trading/OrderBook';
 import TerminalAssetList from '../trading/TerminalAssetList';
 import TradeHistory from '../trading/TradeHistory';
 import PriceAlertsTab from '../trading/PriceAlertsTab';
-import SymbolInfoWidget from '../trading/SymbolInfoWidget';
-import TechnicalAnalysisWidget from '../trading/TechnicalAnalysisWidget';
-import MarketQuotesWidget from '../trading/MarketQuotesWidget';
-import CompanyProfileWidget from '../trading/CompanyProfileWidget';
 import { useTheme } from '../../context/ThemeContext';
 import { buildInstrumentSnapshot, formatInstrumentDisplaySymbol, normalizeSymbol } from '../../utils/marketSymbols';
 import { getDisplayQuoteSnapshot } from '../../utils/spreadCalculator';
@@ -86,7 +82,6 @@ const TradingTab = ({
   const spreadLabel = quoteSnapshot.spreadLabel;
   const activeSymbolLabel = formatInstrumentDisplaySymbol(activeSymbol, { withSlash: true });
   const selectedCategory = selectedInstrument.category || 'Multi-Asset';
-  const isStockLike = /stock|share|fund/i.test(selectedCategory);
 
   const marketCards = [
     {
@@ -245,7 +240,7 @@ const TradingTab = ({
                   <p className={`mt-2 text-[11px] ${
                     theme === 'dark' ? 'text-slate-400' : 'text-slate-500'
                   }`}>
-                    Chart, order desk, watchlist, and portfolio widgets are all focused on the same live instrument.
+                    Chart, order desk, watchlist, and portfolio are all focused on the same live instrument.
                   </p>
                 </div>
 
@@ -305,8 +300,8 @@ const TradingTab = ({
               Professional terminal mode active for {activeSymbolLabel}. The main chart is now driven by your own backend history and live quote feeds.
             </div>
 
-            <div className="flex-1 flex flex-col px-4 py-4 gap-4 min-w-0">
-              <div className={`rounded-[2rem] overflow-hidden border shadow-2xl ${
+            <div className="flex-1 flex flex-col px-4 py-4 min-w-0">
+              <div className={`flex-1 min-h-[520px] rounded-[2rem] overflow-hidden border shadow-2xl ${
                 theme === 'dark'
                   ? 'border-slate-800 bg-slate-900'
                   : 'border-slate-200 bg-white'
@@ -322,85 +317,6 @@ const TradingTab = ({
                   livePrice={Number(selectedInstrument.price || 0)}
                   initialPrice={Number(selectedInstrument.price || baseInstrument?.price || 100)}
                 />
-              </div>
-
-              <div className="grid gap-4 xl:grid-cols-[1fr_1.15fr]">
-                <div className="grid gap-4">
-                  <div className={`rounded-[2rem] border overflow-hidden ${
-                    theme === 'dark'
-                      ? 'border-slate-800 bg-slate-900'
-                      : 'border-slate-200 bg-white'
-                  }`}>
-                    <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-800">
-                      <p className="text-[8px] font-black uppercase tracking-widest text-slate-400">TradingView Symbol Info</p>
-                      <p className="mt-1 text-xs font-black text-slate-900 dark:text-white">Snapshot for {activeSymbolLabel}</p>
-                    </div>
-                    <div className="h-[220px]">
-                      <SymbolInfoWidget
-                        symbol={activeSymbol}
-                        instrument={selectedInstrument}
-                        theme={theme}
-                        height="220"
-                      />
-                    </div>
-                  </div>
-
-                  <div className={`rounded-[2rem] border overflow-hidden ${
-                    theme === 'dark'
-                      ? 'border-slate-800 bg-slate-900'
-                      : 'border-slate-200 bg-white'
-                  }`}>
-                    <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-800">
-                      <p className="text-[8px] font-black uppercase tracking-widest text-slate-400">
-                        {isStockLike ? 'TradingView Company Profile' : 'TradingView Market Board'}
-                      </p>
-                      <p className="mt-1 text-xs font-black text-slate-900 dark:text-white">
-                        {isStockLike ? 'Issuer context' : `${selectedCategory} peer watch`}
-                      </p>
-                    </div>
-                    <div className="h-[320px]">
-                      {isStockLike ? (
-                        <CompanyProfileWidget
-                          symbol={activeSymbol}
-                          instrument={selectedInstrument}
-                          theme={theme}
-                          height="320"
-                        />
-                      ) : (
-                        <MarketQuotesWidget
-                          category={selectedCategory}
-                          theme={theme}
-                          height="320"
-                        />
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                <div className={`rounded-[2rem] border overflow-hidden ${
-                  theme === 'dark'
-                    ? 'border-slate-800 bg-slate-900'
-                    : 'border-slate-200 bg-white'
-                }`}>
-                  <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between gap-3">
-                    <div>
-                      <p className="text-[8px] font-black uppercase tracking-widest text-slate-400">TradingView Technicals</p>
-                      <p className="mt-1 text-xs font-black text-slate-900 dark:text-white">Signal stack for {activeSymbolLabel}</p>
-                    </div>
-                    <div className="px-3 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-300 text-[9px] font-black uppercase tracking-widest">
-                      Daily Bias
-                    </div>
-                  </div>
-                  <div className="h-[544px]">
-                    <TechnicalAnalysisWidget
-                      symbol={activeSymbol}
-                      instrument={selectedInstrument}
-                      interval="1D"
-                      theme={theme}
-                      height="544"
-                    />
-                  </div>
-                </div>
               </div>
             </div>
           </div>

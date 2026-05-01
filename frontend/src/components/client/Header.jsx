@@ -35,6 +35,33 @@ const Header = ({
   const searchRef = useRef(null);
   const notificationRef = useRef(null);
   const previousUnreadCountRef = useRef(unreadNotifications);
+  const audioContextRef = useRef(null);
+  const pendingNotificationToneRef = useRef(false);
+
+  const playNotificationTone = () => {
+    const audioContext = audioContextRef.current;
+
+    if (!audioContext || audioContext.state !== 'running') {
+      return false;
+    }
+
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+
+    oscillator.type = 'sine';
+    oscillator.frequency.setValueAtTime(880, audioContext.currentTime);
+    oscillator.frequency.exponentialRampToValueAtTime(660, audioContext.currentTime + 0.18);
+    gainNode.gain.setValueAtTime(0.0001, audioContext.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.05, audioContext.currentTime + 0.02);
+    gainNode.gain.exponentialRampToValueAtTime(0.0001, audioContext.currentTime + 0.22);
+
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    oscillator.start();
+    oscillator.stop(audioContext.currentTime + 0.24);
+
+    return true;
+  };
 
   // Filter instruments based on query
   const searchResults = searchQuery.trim().length > 0
@@ -64,22 +91,59 @@ const Header = ({
   }, []);
 
   useEffect(() => {
+    if (typeof window === 'undefined') {
+      return undefined;
+    }
+
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+
+    if (!AudioContextClass) {
+      return undefined;
+    }
+
+    const unlockAudio = async () => {
+      try {
+        if (!audioContextRef.current) {
+          audioContextRef.current = new AudioContextClass();
+        }
+
+        if (audioContextRef.current.state === 'suspended') {
+          await audioContextRef.current.resume();
+        }
+
+        if (pendingNotificationToneRef.current) {
+          pendingNotificationToneRef.current = false;
+          playNotificationTone();
+        }
+      } catch (error) {
+        // Ignore autoplay-policy failures until the next user gesture.
+      }
+    };
+
+    const gestureEvents = ['pointerdown', 'keydown', 'touchstart'];
+    gestureEvents.forEach((eventName) => {
+      window.addEventListener(eventName, unlockAudio, { passive: true });
+    });
+
+    return () => {
+      gestureEvents.forEach((eventName) => {
+        window.removeEventListener(eventName, unlockAudio);
+      });
+
+      if (audioContextRef.current) {
+        audioContextRef.current.close().catch(() => {});
+        audioContextRef.current = null;
+      }
+    };
+  }, []);
+
+  useEffect(() => {
     if (previousUnreadCountRef.current < unreadNotifications) {
-      const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-      const oscillator = audioContext.createOscillator();
-      const gainNode = audioContext.createGain();
+      const played = playNotificationTone();
 
-      oscillator.type = 'sine';
-      oscillator.frequency.setValueAtTime(880, audioContext.currentTime);
-      oscillator.frequency.exponentialRampToValueAtTime(660, audioContext.currentTime + 0.18);
-      gainNode.gain.setValueAtTime(0.0001, audioContext.currentTime);
-      gainNode.gain.exponentialRampToValueAtTime(0.05, audioContext.currentTime + 0.02);
-      gainNode.gain.exponentialRampToValueAtTime(0.0001, audioContext.currentTime + 0.22);
-
-      oscillator.connect(gainNode);
-      gainNode.connect(audioContext.destination);
-      oscillator.start();
-      oscillator.stop(audioContext.currentTime + 0.24);
+      if (!played) {
+        pendingNotificationToneRef.current = true;
+      }
     }
 
     previousUnreadCountRef.current = unreadNotifications;
