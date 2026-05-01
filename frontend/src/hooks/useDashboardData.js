@@ -109,6 +109,53 @@ const toUpdateStamp = (value) => {
   return 0;
 };
 
+const getQuoteSourcePriority = (source = '') => {
+  const normalizedSource = String(source || '').toLowerCase();
+
+  if (normalizedSource === 'platform-feed') {
+    return 6;
+  }
+
+  if (normalizedSource === 'binance-public' || normalizedSource === 'yahoo-public') {
+    return 5;
+  }
+
+  if (normalizedSource === 'twelvedata-stream') {
+    return 4;
+  }
+
+  if (normalizedSource === 'twelvedata' || normalizedSource === 'yahoo-quote' || normalizedSource === 'yahoo-chart') {
+    return 3;
+  }
+
+  if (normalizedSource === 'synthetic' || normalizedSource === 'quote-fallback' || normalizedSource === 'mock') {
+    return 1;
+  }
+
+  return 2;
+};
+
+const shouldApplyIncomingQuote = ({ previous = {}, incoming = {} }) => {
+  const previousUpdatedAt = toUpdateStamp(previous.updatedAt ?? previous.updated_at);
+  const incomingUpdatedAt = toUpdateStamp(incoming.updatedAt ?? incoming.updated_at);
+  const previousPriority = getQuoteSourcePriority(previous.source);
+  const incomingPriority = getQuoteSourcePriority(incoming.source);
+
+  if (!previousUpdatedAt) {
+    return true;
+  }
+
+  if (incomingPriority < previousPriority && incomingUpdatedAt <= (previousUpdatedAt + 30000)) {
+    return false;
+  }
+
+  if (previousUpdatedAt && incomingUpdatedAt && incomingUpdatedAt < previousUpdatedAt && incomingPriority <= previousPriority) {
+    return false;
+  }
+
+  return true;
+};
+
 const mergeQuoteSnapshot = (current = {}, incoming = {}) => {
   const next = { ...current };
 
@@ -118,13 +165,12 @@ const mergeQuoteSnapshot = (current = {}, incoming = {}) => {
     }
 
     const previous = current[symbol] || {};
-    const previousUpdatedAt = toUpdateStamp(previous.updatedAt ?? previous.updated_at);
-    const incomingUpdatedAt = toUpdateStamp(quote.updatedAt ?? quote.updated_at);
-
-    if (previousUpdatedAt && incomingUpdatedAt && incomingUpdatedAt < previousUpdatedAt) {
+    if (!shouldApplyIncomingQuote({ previous, incoming: quote })) {
       return;
     }
 
+    const previousUpdatedAt = toUpdateStamp(previous.updatedAt ?? previous.updated_at);
+    const incomingUpdatedAt = toUpdateStamp(quote.updatedAt ?? quote.updated_at);
     const nextPrice = Number.parseFloat(quote.price ?? previous.price ?? 0) || 0;
     const prevPrice = Number.parseFloat(previous.price ?? nextPrice) || nextPrice;
 
@@ -146,12 +192,12 @@ const syncInstrumentsWithQuotes = (current = [], incoming = {}) => current.map((
     return instrument;
   }
 
-  const previousUpdatedAt = toUpdateStamp(instrument.updatedAt ?? instrument.updated_at);
-  const incomingUpdatedAt = toUpdateStamp(quote.updatedAt ?? quote.updated_at);
-  if (previousUpdatedAt && incomingUpdatedAt && incomingUpdatedAt < previousUpdatedAt) {
+  if (!shouldApplyIncomingQuote({ previous: instrument, incoming: quote })) {
     return instrument;
   }
 
+  const previousUpdatedAt = toUpdateStamp(instrument.updatedAt ?? instrument.updated_at);
+  const incomingUpdatedAt = toUpdateStamp(quote.updatedAt ?? quote.updated_at);
   const nextPrice = Number.parseFloat(quote.price ?? instrument.price ?? instrument.default_price ?? 0) || 0;
   const prevPrice = Number.parseFloat(instrument.price ?? instrument.default_price ?? nextPrice) || nextPrice;
 
