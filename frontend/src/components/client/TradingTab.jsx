@@ -317,6 +317,7 @@ const TradingTab = ({
                   theme={theme}
                   instrument={selectedInstrument}
                   positions={positions}
+                  closedTrades={closedTrades}
                   activeIntent={activeOrderIntent}
                   livePrice={Number(selectedInstrument.price || 0)}
                   initialPrice={Number(selectedInstrument.price || baseInstrument?.price || 100)}

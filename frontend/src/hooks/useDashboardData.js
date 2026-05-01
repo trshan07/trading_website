@@ -1354,6 +1354,7 @@ const normalizeClosedTrade = (trade = {}, instruments = [], marketData = {}) => 
     category: snapshot.category,
     instrument: snapshot,
     status: String(trade.status || 'closed').toUpperCase(),
+    createdAt: trade.created_at || trade.createdAt || trade.opened_at || trade.openedAt || null,
     closedAt: trade.closed_at || trade.closedAt || trade.updated_at || trade.updatedAt || trade.created_at || trade.createdAt,
   };
 };

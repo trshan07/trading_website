@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { createChart } from 'lightweight-charts';
+import { createChart, LineStyle } from 'lightweight-charts';
 import { FaChartBar, FaCompress, FaExpand, FaServer } from 'react-icons/fa';
 import infraService from '../../services/infraService';
 import { buildInstrumentSnapshot, formatInstrumentDisplaySymbol, getSymbolPrecision, normalizeSymbol } from '../../utils/marketSymbols';
@@ -64,6 +64,7 @@ const RealTimeChart = ({
   theme = 'dark',
   instrument = null,
   positions = [],
+  closedTrades = [],
   activeIntent = null,
   livePrice = 0,
   initialPrice = 100,
@@ -74,6 +75,7 @@ const RealTimeChart = ({
   const candleTimesRef = useRef([]);
   const candleDataRef = useRef([]);
   const historyRefreshRef = useRef(null);
+  const priceLinesRef = useRef([]);
   const [interval, setInterval] = useState('15m');
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [lastPrice, setLastPrice] = useState(null);
@@ -82,6 +84,7 @@ const RealTimeChart = ({
   const [liveStatus, setLiveStatus] = useState('connecting');
   const [lastQuoteAt, setLastQuoteAt] = useState(0);
   const [historySource, setHistorySource] = useState('market-provider');
+  const [historyVersion, setHistoryVersion] = useState(0);
 
   const isDark = theme === 'dark';
   const normalizedSymbol = useMemo(() => normalizeSymbol(symbol), [symbol]);
@@ -102,6 +105,20 @@ const RealTimeChart = ({
       price: livePrice || initialPrice || 0,
     });
   const priceMinMove = pricePrecision <= 0 ? 1 : Number((1 / (10 ** pricePrecision)).toFixed(pricePrecision));
+
+  const clearTradeLines = () => {
+    if (!seriesRef.current || priceLinesRef.current.length === 0) {
+      priceLinesRef.current = [];
+      return;
+    }
+
+    priceLinesRef.current.forEach((priceLine) => {
+      try {
+        seriesRef.current.removePriceLine(priceLine);
+      } catch (error) {}
+    });
+    priceLinesRef.current = [];
+  };
 
   useEffect(() => {
     const handleOnline = () => setLiveStatus('connecting');
@@ -164,6 +181,7 @@ const RealTimeChart = ({
     seriesRef.current = null;
     candleTimesRef.current = [];
     candleDataRef.current = [];
+    priceLinesRef.current = [];
 
     const chart = createChart(containerRef.current, {
       layout: {
@@ -244,6 +262,7 @@ const RealTimeChart = ({
         seriesRef.current.setData(usableCandles);
         candleDataRef.current = usableCandles;
         candleTimesRef.current = usableCandles.map((candle) => candle.time);
+        setHistoryVersion((value) => value + 1);
         setHistorySource(response?.source || (candles.length > 0 ? 'market-provider' : 'unavailable'));
 
         if (usableCandles.length > 0) {
@@ -296,6 +315,7 @@ const RealTimeChart = ({
       resizeObserver.disconnect();
 
       const currentChart = chartRef.current;
+      clearTradeLines();
       chartRef.current = null;
       seriesRef.current = null;
       candleTimesRef.current = [];
@@ -371,7 +391,9 @@ const RealTimeChart = ({
       return Math.abs(unixTime - lower) <= Math.abs(upper - unixTime) ? lower : upper;
     };
 
-    const markers = positions
+    clearTradeLines();
+
+    const openPositionMarkers = positions
       .filter((position) => normalizeSymbol(position?.symbol) === normalizedSymbol)
       .map((position) => {
         const side = String(position.side || position.type || 'buy').toLowerCase();
@@ -391,6 +413,71 @@ const RealTimeChart = ({
         };
       });
 
+    const closedTradeMarkers = closedTrades
+      .filter((trade) => normalizeSymbol(trade?.symbol) === normalizedSymbol)
+      .flatMap((trade) => {
+        const side = String(trade.side || trade.type || 'buy').toLowerCase();
+        const isBuy = side === 'buy';
+        const openRawTime = trade.createdAt || trade.created_at || trade.entryTime || trade.openTime;
+        const closeRawTime = trade.closedAt || trade.closed_at || trade.updatedAt || trade.updated_at;
+        const openUnixTime = openRawTime
+          ? Math.floor(new Date(openRawTime).getTime() / 1000)
+          : null;
+        const closeUnixTime = closeRawTime
+          ? Math.floor(new Date(closeRawTime).getTime() / 1000)
+          : null;
+        const markers = [];
+
+        if (openUnixTime) {
+          markers.push({
+            time: snapToNearestCandleTime(openUnixTime),
+            position: isBuy ? 'belowBar' : 'aboveBar',
+            color: isBuy ? '#10b981' : '#ef4444',
+            shape: isBuy ? 'arrowUp' : 'arrowDown',
+            size: 2,
+            text: `${isBuy ? 'BUY' : 'SELL'} OPEN @ ${Number(trade.entryPrice || trade.entry_price || 0).toLocaleString()}`,
+          });
+        }
+
+        if (closeUnixTime) {
+          markers.push({
+            time: snapToNearestCandleTime(closeUnixTime),
+            position: isBuy ? 'aboveBar' : 'belowBar',
+            color: '#f59e0b',
+            shape: 'square',
+            size: 2,
+            text: `CLOSE @ ${Number(trade.exitPrice || trade.close_price || 0).toLocaleString()}`,
+          });
+        }
+
+        return markers;
+      });
+
+    positions
+      .filter((position) => normalizeSymbol(position?.symbol) === normalizedSymbol)
+      .forEach((position, index) => {
+        const side = String(position.side || position.type || 'buy').toLowerCase();
+        const isBuy = side === 'buy';
+        const entryPrice = Number(position.entryPrice || position.entry_price || 0);
+        if (!Number.isFinite(entryPrice) || entryPrice <= 0) {
+          return;
+        }
+
+        try {
+          const priceLine = seriesRef.current.createPriceLine({
+            price: entryPrice,
+            color: isBuy ? '#10b981' : '#ef4444',
+            lineWidth: 1,
+            lineStyle: LineStyle.Dashed,
+            axisLabelVisible: true,
+            title: `${isBuy ? 'BUY' : 'SELL'} ${index + 1}`,
+          });
+          priceLinesRef.current.push(priceLine);
+        } catch (error) {}
+      });
+
+    const markers = [...openPositionMarkers, ...closedTradeMarkers];
+
     if (activeIntent?.side && candleDataRef.current.length > 0) {
       const latestCandle = candleDataRef.current[candleDataRef.current.length - 1];
       const previewIsBuy = String(activeIntent.side).toLowerCase() === 'buy';
@@ -409,7 +496,7 @@ const RealTimeChart = ({
     try {
       seriesRef.current.setMarkers(markers);
     } catch (error) {}
-  }, [activeIntent, normalizedSymbol, positions]);
+  }, [activeIntent, closedTrades, historyVersion, normalizedSymbol, positions]);
 
   useEffect(() => {
     if (!lastQuoteAt) {
