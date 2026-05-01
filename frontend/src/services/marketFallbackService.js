@@ -2,6 +2,7 @@ import { normalizeSymbol } from '../utils/marketSymbols';
 
 const CRYPTO_QUOTES = ['USDT', 'BUSD', 'USDC', 'BTC', 'ETH'];
 const FOREX_CODES = ['USD', 'EUR', 'GBP', 'JPY', 'AUD', 'NZD', 'CAD', 'CHF'];
+const BIQUOTE_BASE_URL = 'https://biquote.io/api';
 
 const isForexPair = (symbol = '') => {
   if (symbol.length !== 6) {
@@ -36,6 +37,82 @@ const resolveYahooSymbol = (instrument = {}) => {
 const parseQuoteNumber = (value) => {
   const parsed = Number.parseFloat(value);
   return Number.isFinite(parsed) ? parsed : null;
+};
+
+const resolveBiquoteSymbol = (instrument = {}) => {
+  const normalized = normalizeSymbol(instrument.symbol);
+  const explicitDataSymbol = String(instrument.dataSymbol || instrument.data_symbol || '').trim();
+  const compactDataSymbol = explicitDataSymbol.replace('/', '').toUpperCase();
+
+  if (compactDataSymbol) {
+    if (compactDataSymbol.endsWith('USDT')) {
+      return `${compactDataSymbol.slice(0, -4)}USD`;
+    }
+
+    return compactDataSymbol;
+  }
+
+  if (normalized.endsWith('USDT')) {
+    return `${normalized.slice(0, -4)}USD`;
+  }
+
+  return normalized;
+};
+
+const fetchBiquoteQuotes = async (instruments = []) => {
+  if (instruments.length === 0) {
+    return {};
+  }
+
+  const providerToOriginalSymbol = Object.fromEntries(
+    instruments.map((instrument) => [resolveBiquoteSymbol(instrument), instrument.symbol])
+  );
+
+  const query = new URLSearchParams();
+  instruments.forEach((instrument) => {
+    query.append('symbols', resolveBiquoteSymbol(instrument));
+  });
+
+  const response = await fetch(`${BIQUOTE_BASE_URL}/latest?${query.toString()}`);
+  if (!response.ok) {
+    throw new Error('BiQuote quote request failed');
+  }
+
+  const payload = await response.json();
+  const ticks = Array.isArray(payload)
+    ? payload
+    : Array.isArray(payload?.items)
+      ? payload.items
+      : Array.isArray(payload?.data)
+        ? payload.data
+        : [];
+
+  return ticks.reduce((acc, tick) => {
+    const providerSymbol = normalizeSymbol(tick?.symbol || tick?.name || '');
+    const originalSymbol = providerToOriginalSymbol[providerSymbol];
+    if (!originalSymbol) {
+      return acc;
+    }
+
+    const last = parseQuoteNumber(tick.last ?? tick.price ?? tick.close);
+    if (last === null) {
+      return acc;
+    }
+
+    const isoTime = tick.time || tick.timestamp || null;
+    const updatedAt = isoTime ? Date.parse(isoTime) || Date.now() : Date.now();
+
+    acc[originalSymbol] = {
+      price: last,
+      bid: parseQuoteNumber(tick.bid),
+      ask: parseQuoteNumber(tick.ask),
+      change: parseQuoteNumber(tick.changePercent ?? tick.change_percent ?? tick.change) ?? 0,
+      volume: parseQuoteNumber(tick.volume),
+      updatedAt,
+      source: 'biquote-public',
+    };
+    return acc;
+  }, {});
 };
 
 const fetchBinanceQuotes = async (instruments = []) => {
@@ -135,8 +212,10 @@ export const fetchPublicMarketQuotes = async (instruments = []) => {
     return {};
   }
 
-  const cryptoInstruments = filtered.filter((instrument) => isCryptoSymbol(instrument.symbol, instrument.category));
-  const nonCryptoInstruments = filtered.filter((instrument) => !isCryptoSymbol(instrument.symbol, instrument.category));
+  const biquoteQuotes = await fetchBiquoteQuotes(filtered).catch(() => ({}));
+  const unresolvedInstruments = filtered.filter((instrument) => !biquoteQuotes[instrument.symbol]);
+  const cryptoInstruments = unresolvedInstruments.filter((instrument) => isCryptoSymbol(instrument.symbol, instrument.category));
+  const nonCryptoInstruments = unresolvedInstruments.filter((instrument) => !isCryptoSymbol(instrument.symbol, instrument.category));
 
   const [cryptoQuotes, yahooQuotes] = await Promise.all([
     fetchBinanceQuotes(cryptoInstruments).catch(() => ({})),
@@ -144,6 +223,7 @@ export const fetchPublicMarketQuotes = async (instruments = []) => {
   ]);
 
   return {
+    ...biquoteQuotes,
     ...yahooQuotes,
     ...cryptoQuotes,
   };

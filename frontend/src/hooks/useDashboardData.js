@@ -116,16 +116,20 @@ const getQuoteSourcePriority = (source = '') => {
     return 6;
   }
 
-  if (normalizedSource === 'binance-public' || normalizedSource === 'yahoo-public') {
+  if (normalizedSource === 'biquote-public') {
     return 5;
   }
 
-  if (normalizedSource === 'twelvedata-stream') {
+  if (normalizedSource === 'binance-public' || normalizedSource === 'yahoo-public') {
     return 4;
   }
 
-  if (normalizedSource === 'twelvedata' || normalizedSource === 'yahoo-quote' || normalizedSource === 'yahoo-chart') {
+  if (normalizedSource === 'twelvedata-stream') {
     return 3;
+  }
+
+  if (normalizedSource === 'twelvedata' || normalizedSource === 'yahoo-quote' || normalizedSource === 'yahoo-chart') {
+    return 2;
   }
 
   if (normalizedSource === 'synthetic' || normalizedSource === 'quote-fallback' || normalizedSource === 'mock') {
