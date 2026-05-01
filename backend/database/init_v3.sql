@@ -31,6 +31,7 @@ CREATE TABLE IF NOT EXISTS instruments (
     default_volume VARCHAR(50),
     provider VARCHAR(20),
     quote_symbol VARCHAR(50),
+    data_symbol VARCHAR(50),
     trading_view_symbol VARCHAR(50),
     use_bid_ask BOOLEAN,
     price_precision INTEGER,
@@ -60,6 +61,9 @@ ADD COLUMN IF NOT EXISTS provider VARCHAR(20);
 
 ALTER TABLE instruments
 ADD COLUMN IF NOT EXISTS quote_symbol VARCHAR(50);
+
+ALTER TABLE instruments
+ADD COLUMN IF NOT EXISTS data_symbol VARCHAR(50);
 
 ALTER TABLE instruments
 ADD COLUMN IF NOT EXISTS trading_view_symbol VARCHAR(50);
@@ -162,17 +166,20 @@ ON CONFLICT (name) DO NOTHING;
 -- Seeding Instruments
 INSERT INTO instruments (
     symbol, name, category_name, default_price, default_change, default_volume,
-    provider, quote_symbol, trading_view_symbol, use_bid_ask, price_precision,
+    provider, quote_symbol, data_symbol, trading_view_symbol, use_bid_ask, price_precision,
     spread, contract_size, lot_step, min_lot, quantity_label
 ) VALUES
-('BTCUSDT', 'Bitcoin', 'Crypto', 43250.00, 2.5, '$28.4B', 'binance', 'BTCUSDT', 'BINANCE:BTCUSDT', TRUE, 2, NULL, 1, 0.001, 0.001, 'coins'),
-('ETHUSDT', 'Ethereum', 'Crypto', 2820.00, 1.8, '$14.1B', 'binance', 'ETHUSDT', 'BINANCE:ETHUSDT', TRUE, 2, NULL, 1, 0.001, 0.001, 'coins'),
-('BNBUSDT', 'Binance Coin', 'Crypto', 380.00, -0.5, '$1.2B', 'binance', 'BNBUSDT', 'BINANCE:BNBUSDT', TRUE, 2, NULL, 1, 0.001, 0.001, 'coins'),
-('EURUSD', 'Euro / USD', 'Forex', 1.0875, 0.23, '$3.2T', 'yahoo', 'EURUSD=X', 'FX:EURUSD', FALSE, 5, 0.0002, 100000, 0.01, 0.01, 'units'),
-('GBPUSD', 'GBP / USD', 'Forex', 1.265, -0.12, '$0.8T', 'yahoo', 'GBPUSD=X', 'FX:GBPUSD', FALSE, 5, 0.0002, 100000, 0.01, 0.01, 'units'),
-('AAPL', 'Apple Inc.', 'Stocks', 185.2, 1.2, '$4.5B', 'yahoo', 'AAPL', 'NASDAQ:AAPL', FALSE, 2, 0.02, 1, 0.01, 0.01, 'shares'),
-('TSLA', 'Tesla', 'Stocks', 195.3, 3.5, '$6.1B', 'yahoo', 'TSLA', 'NASDAQ:TSLA', FALSE, 2, 0.02, 1, 0.01, 0.01, 'shares'),
-('SPX', 'S&P 500', 'Indices', 4850, 0.32, 'N/A', 'yahoo', '^GSPC', 'SP:SPX', FALSE, 2, 1, 1, 0.01, 0.01, 'index units'),
-('XAUUSD', 'Gold', 'Commodities', 2340.5, 0.85, '$42.1B', 'yahoo', 'XAUUSD=X', 'OANDA:XAUUSD', FALSE, 3, 0.1, 100, 0.01, 0.01, 'units'),
-('BRENT', 'Brent Oil', 'Commodities', 82.4, -0.6, '$12.1B', 'yahoo', 'BZ=F', 'ICEEUR:BRN1!', FALSE, 3, 0.05, 100, 0.01, 0.01, 'units')
+('BTCUSDT', 'Bitcoin', 'Crypto', 43250.00, 2.5, '$28.4B', 'twelvedata', 'BTCUSDT', 'BTC/USD', 'BINANCE:BTCUSDT', TRUE, 2, NULL, 1, 0.001, 0.001, 'coins'),
+('ETHUSDT', 'Ethereum', 'Crypto', 2820.00, 1.8, '$14.1B', 'twelvedata', 'ETHUSDT', 'ETH/USD', 'BINANCE:ETHUSDT', TRUE, 2, NULL, 1, 0.001, 0.001, 'coins'),
+('BNBUSDT', 'Binance Coin', 'Crypto', 380.00, -0.5, '$1.2B', 'twelvedata', 'BNBUSDT', 'BNB/USD', 'BINANCE:BNBUSDT', TRUE, 2, NULL, 1, 0.001, 0.001, 'coins'),
+('SOLUSDT', 'Solana', 'Crypto', 105.00, 5.2, '$3.8B', 'twelvedata', 'SOLUSDT', 'SOL/USD', 'BINANCE:SOLUSDT', TRUE, 2, NULL, 1, 0.001, 0.001, 'coins'),
+('ADAUSDT', 'Cardano', 'Crypto', 0.58, 1.1, '$0.9B', 'twelvedata', 'ADAUSDT', 'ADA/USD', 'BINANCE:ADAUSDT', TRUE, 4, NULL, 1, 0.001, 0.001, 'coins'),
+('EURUSD', 'Euro / USD', 'Forex', 1.0875, 0.23, '$3.2T', 'twelvedata', 'EURUSD=X', 'EUR/USD', 'FX:EURUSD', FALSE, 5, 0.0002, 100000, 0.01, 0.01, 'units'),
+('GBPUSD', 'GBP / USD', 'Forex', 1.265, -0.12, '$0.8T', 'twelvedata', 'GBPUSD=X', 'GBP/USD', 'FX:GBPUSD', FALSE, 5, 0.0002, 100000, 0.01, 0.01, 'units'),
+('USDJPY', 'USD / JPY', 'Forex', 148.5, 0.05, '$1.1T', 'twelvedata', 'USDJPY=X', 'USD/JPY', 'FX:USDJPY', FALSE, 3, 0.02, 100000, 0.01, 0.01, 'units'),
+('AAPL', 'Apple Inc.', 'Stocks', 185.2, 1.2, '$4.5B', 'twelvedata', 'AAPL', 'AAPL', 'NASDAQ:AAPL', FALSE, 2, 0.02, 1, 0.01, 0.01, 'shares'),
+('TSLA', 'Tesla', 'Stocks', 195.3, 3.5, '$6.1B', 'twelvedata', 'TSLA', 'TSLA', 'NASDAQ:TSLA', FALSE, 2, 0.02, 1, 0.01, 0.01, 'shares'),
+('SPX', 'S&P 500', 'Indices', 4850, 0.32, 'N/A', 'twelvedata', '^GSPC', 'SPX', 'SP:SPX', FALSE, 2, 1, 1, 0.01, 0.01, 'index units'),
+('XAUUSD', 'Gold', 'Commodities', 2340.5, 0.85, '$42.1B', 'twelvedata', 'XAUUSD=X', 'XAU/USD', 'OANDA:XAUUSD', FALSE, 3, 0.1, 100, 0.01, 0.01, 'units'),
+('BRENT', 'Brent Oil', 'Commodities', 82.4, -0.6, '$12.1B', 'twelvedata', 'BZ=F', 'BRENT', 'ICEEUR:BRN1!', FALSE, 3, 0.05, 100, 0.01, 0.01, 'units')
 ON CONFLICT (symbol) DO NOTHING;

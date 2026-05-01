@@ -70,27 +70,56 @@ const getCachedInstrumentConfigs = async () => {
     }
 
     try {
-        const { rows } = await db.query(`
-            SELECT
-                symbol,
-                provider,
-                quote_symbol,
-                NULL::text AS data_symbol,
-                trading_view_symbol,
-                use_bid_ask,
-                price_precision,
-                spread,
-                contract_size,
-                lot_step,
-                min_lot,
-                quantity_label,
-                category_name,
-                default_price,
-                default_change,
-                default_volume
-            FROM instruments
-            WHERE is_active = TRUE
-        `);
+        let rows;
+        try {
+            ({ rows } = await db.query(`
+                SELECT
+                    symbol,
+                    provider,
+                    quote_symbol,
+                    data_symbol,
+                    trading_view_symbol,
+                    use_bid_ask,
+                    price_precision,
+                    spread,
+                    contract_size,
+                    lot_step,
+                    min_lot,
+                    quantity_label,
+                    category_name,
+                    default_price,
+                    default_change,
+                    default_volume
+                FROM instruments
+                WHERE is_active = TRUE
+            `));
+        } catch (error) {
+            if (!(isMissingColumnError(error) && error?.message?.includes('data_symbol'))) {
+                throw error;
+            }
+
+            ({ rows } = await db.query(`
+                SELECT
+                    symbol,
+                    provider,
+                    quote_symbol,
+                    NULL::text AS data_symbol,
+                    trading_view_symbol,
+                    use_bid_ask,
+                    price_precision,
+                    spread,
+                    contract_size,
+                    lot_step,
+                    min_lot,
+                    quantity_label,
+                    category_name,
+                    default_price,
+                    default_change,
+                    default_volume
+                FROM instruments
+                WHERE is_active = TRUE
+            `));
+        }
 
         instrumentConfigCache = {
             expiresAt: now + INSTRUMENT_CONFIG_CACHE_MS,

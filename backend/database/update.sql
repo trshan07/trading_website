@@ -154,6 +154,9 @@ ALTER TABLE instruments
 ADD COLUMN IF NOT EXISTS quote_symbol VARCHAR(50);
 
 ALTER TABLE instruments
+ADD COLUMN IF NOT EXISTS data_symbol VARCHAR(50);
+
+ALTER TABLE instruments
 ADD COLUMN IF NOT EXISTS trading_view_symbol VARCHAR(50);
 
 ALTER TABLE instruments
@@ -252,36 +255,40 @@ WHERE default_volume IS NULL;
 
 INSERT INTO instruments (
     symbol, name, category_name, default_price, default_change, default_volume,
-    provider, quote_symbol, trading_view_symbol, use_bid_ask, price_precision,
+    provider, quote_symbol, data_symbol, trading_view_symbol, use_bid_ask, price_precision,
     spread, contract_size, lot_step, min_lot, quantity_label, is_active
 ) VALUES
-('BTCUSDT', 'Bitcoin', 'Crypto', 43250.00, 2.5, '28.4B', 'binance', 'BTCUSDT', 'BINANCE:BTCUSDT', TRUE, 2, NULL, 1, 0.001, 0.001, 'coins', TRUE),
-('ETHUSDT', 'Ethereum', 'Crypto', 2820.00, 1.8, '14.1B', 'binance', 'ETHUSDT', 'BINANCE:ETHUSDT', TRUE, 2, NULL, 1, 0.001, 0.001, 'coins', TRUE),
-('BNBUSDT', 'Binance Coin', 'Crypto', 380.00, -0.5, '1.2B', 'binance', 'BNBUSDT', 'BINANCE:BNBUSDT', TRUE, 2, NULL, 1, 0.001, 0.001, 'coins', TRUE),
-('SOLUSDT', 'Solana', 'Crypto', 105.00, 5.2, '3.8B', 'binance', 'SOLUSDT', 'BINANCE:SOLUSDT', TRUE, 2, NULL, 1, 0.001, 0.001, 'coins', TRUE),
-('ADAUSDT', 'Cardano', 'Crypto', 0.58, 1.1, '0.9B', 'binance', 'ADAUSDT', 'BINANCE:ADAUSDT', TRUE, 4, NULL, 1, 0.001, 0.001, 'coins', TRUE),
-('EURUSD', 'Euro / USD', 'Forex', 1.0875, 0.23, '3.2T', 'yahoo', 'EURUSD=X', 'FX:EURUSD', FALSE, 5, 0.0002, 100000, 0.01, 0.01, 'units', TRUE),
-('GBPUSD', 'GBP / USD', 'Forex', 1.265, -0.12, '0.8T', 'yahoo', 'GBPUSD=X', 'FX:GBPUSD', FALSE, 5, 0.0002, 100000, 0.01, 0.01, 'units', TRUE),
-('USDJPY', 'USD / JPY', 'Forex', 148.5, 0.05, '1.1T', 'yahoo', 'USDJPY=X', 'FX:USDJPY', FALSE, 3, 0.02, 100000, 0.01, 0.01, 'units', TRUE),
-('AAPL', 'Apple Inc.', 'Stocks', 185.2, 1.2, '4.5B', 'yahoo', 'AAPL', 'NASDAQ:AAPL', FALSE, 2, 0.02, 1, 0.01, 0.01, 'shares', TRUE),
-('MSFT', 'Microsoft', 'Stocks', 410.5, -0.4, '2.8B', 'yahoo', 'MSFT', 'NASDAQ:MSFT', FALSE, 2, 0.02, 1, 0.01, 0.01, 'shares', TRUE),
-('TSLA', 'Tesla', 'Stocks', 195.3, 3.5, '6.1B', 'yahoo', 'TSLA', 'NASDAQ:TSLA', FALSE, 2, 0.02, 1, 0.01, 0.01, 'shares', TRUE),
-('GOOGL', 'Alphabet Inc.', 'Stocks', 141.8, 0.6, '1.9B', 'yahoo', 'GOOGL', 'NASDAQ:GOOGL', FALSE, 2, 0.02, 1, 0.01, 0.01, 'shares', TRUE),
-('SPX', 'S&P 500', 'Indices', 4850, 0.32, 'N/A', 'yahoo', '^GSPC', 'SP:SPX', FALSE, 2, 1, 1, 0.01, 0.01, 'index units', TRUE),
-('NDX', 'Nasdaq 100', 'Indices', 16800, 0.45, 'N/A', 'yahoo', '^NDX', 'NASDAQ:NDX', FALSE, 2, 1, 1, 0.01, 0.01, 'index units', TRUE),
-('DJI', 'Dow Jones', 'Indices', 38500, 0.18, 'N/A', 'yahoo', '^DJI', 'DJ:DJI', FALSE, 2, 1, 1, 0.01, 0.01, 'index units', TRUE),
-('SPY', 'SPDR S&P 500 ETF', 'Funds', 484.5, 0.31, '18.2B', 'yahoo', 'SPY', 'AMEX:SPY', FALSE, 2, 0.02, 1, 0.01, 0.01, 'shares', TRUE),
-('QQQ', 'Invesco QQQ', 'Funds', 412.3, 0.42, '9.8B', 'yahoo', 'QQQ', 'NASDAQ:QQQ', FALSE, 2, 0.02, 1, 0.01, 0.01, 'shares', TRUE),
-('US10Y', 'US 10-Yr Treasury', 'Bonds', 4.15, -0.02, 'N/A', 'yahoo', '^TNX', 'TVC:US10Y', FALSE, 3, 0.01, 1000, 0.01, 0.01, 'contracts', TRUE),
-('DXY', 'US Dollar Index', 'Economy', 104.2, 0.15, 'N/A', 'yahoo', 'DX-Y.NYB', 'TVC:DXY', FALSE, 3, 0.01, 1000, 0.01, 0.01, 'contracts', TRUE),
-('VIX', 'Volatility Index', 'Options', 13.5, -2.5, 'N/A', 'yahoo', '^VIX', 'CBOE:VIX', FALSE, 2, 0.01, 100, 0.01, 0.01, 'contracts', TRUE),
-('XAUUSD', 'Gold', 'Commodities', 2340.5, 0.85, '42.1B', 'yahoo', 'XAUUSD=X', 'OANDA:XAUUSD', FALSE, 3, 0.1, 100, 0.01, 0.01, 'units', TRUE),
-('XAGUSD', 'Silver', 'Commodities', 28.45, 1.2, '8.4B', 'yahoo', 'XAGUSD=X', 'OANDA:XAGUSD', FALSE, 3, 0.05, 100, 0.01, 0.01, 'units', TRUE),
-('BRENT', 'Brent Oil', 'Commodities', 82.4, -0.6, '12.1B', 'yahoo', 'BZ=F', 'ICEEUR:BRN1!', FALSE, 3, 0.05, 100, 0.01, 0.01, 'units', TRUE),
-('IBOV', 'BOVESPA', 'Brazilian Index', 128500, 0.45, '24.1B', 'yahoo', '^BVSP', 'BMFBOVESPA:IBOV', FALSE, 2, 5, 1, 0.01, 0.01, 'index units', TRUE),
-('ES1!', 'S&P 500 E-Mini Future', 'Futures', 4890, 0.25, 'N/A', 'yahoo', 'ES=F', 'CME_MINI:ES1!', FALSE, 2, 1, 1, 0.01, 0.01, 'contracts', TRUE),
-('YM1!', 'Dow 30 Future', 'Futures', 38650, 0.15, 'N/A', 'yahoo', 'YM=F', 'CBOT_MINI:YM1!', FALSE, 2, 1, 1, 0.01, 0.01, 'contracts', TRUE),
-('CL1!', 'Crude Oil Future', 'Futures', 81.25, -0.45, 'N/A', 'yahoo', 'CL=F', 'NYMEX:CL1!', FALSE, 3, 0.05, 1, 0.01, 0.01, 'contracts', TRUE)
+('BTCUSDT', 'Bitcoin', 'Crypto', 43250.00, 2.5, '28.4B', 'twelvedata', 'BTCUSDT', 'BTC/USD', 'BINANCE:BTCUSDT', TRUE, 2, NULL, 1, 0.001, 0.001, 'coins', TRUE),
+('ETHUSDT', 'Ethereum', 'Crypto', 2820.00, 1.8, '14.1B', 'twelvedata', 'ETHUSDT', 'ETH/USD', 'BINANCE:ETHUSDT', TRUE, 2, NULL, 1, 0.001, 0.001, 'coins', TRUE),
+('BNBUSDT', 'Binance Coin', 'Crypto', 380.00, -0.5, '1.2B', 'twelvedata', 'BNBUSDT', 'BNB/USD', 'BINANCE:BNBUSDT', TRUE, 2, NULL, 1, 0.001, 0.001, 'coins', TRUE),
+('SOLUSDT', 'Solana', 'Crypto', 105.00, 5.2, '3.8B', 'twelvedata', 'SOLUSDT', 'SOL/USD', 'BINANCE:SOLUSDT', TRUE, 2, NULL, 1, 0.001, 0.001, 'coins', TRUE),
+('ADAUSDT', 'Cardano', 'Crypto', 0.58, 1.1, '0.9B', 'twelvedata', 'ADAUSDT', 'ADA/USD', 'BINANCE:ADAUSDT', TRUE, 4, NULL, 1, 0.001, 0.001, 'coins', TRUE),
+('EURUSD', 'Euro / USD', 'Forex', 1.0875, 0.23, '3.2T', 'twelvedata', 'EURUSD=X', 'EUR/USD', 'FX:EURUSD', FALSE, 5, 0.0002, 100000, 0.01, 0.01, 'units', TRUE),
+('GBPUSD', 'GBP / USD', 'Forex', 1.265, -0.12, '0.8T', 'twelvedata', 'GBPUSD=X', 'GBP/USD', 'FX:GBPUSD', FALSE, 5, 0.0002, 100000, 0.01, 0.01, 'units', TRUE),
+('USDJPY', 'USD / JPY', 'Forex', 148.5, 0.05, '1.1T', 'twelvedata', 'USDJPY=X', 'USD/JPY', 'FX:USDJPY', FALSE, 3, 0.02, 100000, 0.01, 0.01, 'units', TRUE),
+('AUDUSD', 'AUD / USD', 'Forex', 0.6584, 0.09, '0.6T', 'twelvedata', 'AUDUSD=X', 'AUD/USD', 'FX:AUDUSD', FALSE, 5, 0.00014, 100000, 0.01, 0.01, 'units', TRUE),
+('USDCAD', 'USD / CAD', 'Forex', 1.3621, -0.03, '0.5T', 'twelvedata', 'USDCAD=X', 'USD/CAD', 'FX:USDCAD', FALSE, 5, 0.00016, 100000, 0.01, 0.01, 'units', TRUE),
+('USDCHF', 'USD / CHF', 'Forex', 0.9114, 0.04, '0.4T', 'twelvedata', 'USDCHF=X', 'USD/CHF', 'FX:USDCHF', FALSE, 5, 0.00014, 100000, 0.01, 0.01, 'units', TRUE),
+('NZDUSD', 'NZD / USD', 'Forex', 0.6015, 0.06, '0.2T', 'twelvedata', 'NZDUSD=X', 'NZD/USD', 'FX:NZDUSD', FALSE, 5, 0.00016, 100000, 0.01, 0.01, 'units', TRUE),
+('AAPL', 'Apple Inc.', 'Stocks', 185.2, 1.2, '4.5B', 'twelvedata', 'AAPL', 'AAPL', 'NASDAQ:AAPL', FALSE, 2, 0.02, 1, 0.01, 0.01, 'shares', TRUE),
+('MSFT', 'Microsoft', 'Stocks', 410.5, -0.4, '2.8B', 'twelvedata', 'MSFT', 'MSFT', 'NASDAQ:MSFT', FALSE, 2, 0.02, 1, 0.01, 0.01, 'shares', TRUE),
+('TSLA', 'Tesla', 'Stocks', 195.3, 3.5, '6.1B', 'twelvedata', 'TSLA', 'TSLA', 'NASDAQ:TSLA', FALSE, 2, 0.02, 1, 0.01, 0.01, 'shares', TRUE),
+('GOOGL', 'Alphabet Inc.', 'Stocks', 141.8, 0.6, '1.9B', 'twelvedata', 'GOOGL', 'GOOGL', 'NASDAQ:GOOGL', FALSE, 2, 0.02, 1, 0.01, 0.01, 'shares', TRUE),
+('SPX', 'S&P 500', 'Indices', 4850, 0.32, 'N/A', 'twelvedata', '^GSPC', 'SPX', 'SP:SPX', FALSE, 2, 1, 10, 0.01, 0.01, 'index units', TRUE),
+('NDX', 'Nasdaq 100', 'Indices', 16800, 0.45, 'N/A', 'twelvedata', '^NDX', 'NDX', 'NASDAQ:NDX', FALSE, 2, 1, 10, 0.01, 0.01, 'index units', TRUE),
+('DJI', 'Dow Jones', 'Indices', 38500, 0.18, 'N/A', 'twelvedata', '^DJI', 'DJI', 'DJ:DJI', FALSE, 2, 3, 10, 0.01, 0.01, 'index units', TRUE),
+('SPY', 'SPDR S&P 500 ETF', 'Funds', 484.5, 0.31, '18.2B', 'twelvedata', 'SPY', 'SPY', 'AMEX:SPY', FALSE, 2, 0.02, 1, 0.01, 0.01, 'shares', TRUE),
+('QQQ', 'Invesco QQQ', 'Funds', 412.3, 0.42, '9.8B', 'twelvedata', 'QQQ', 'QQQ', 'NASDAQ:QQQ', FALSE, 2, 0.02, 1, 0.01, 0.01, 'shares', TRUE),
+('US10Y', 'US 10-Yr Treasury', 'Bonds', 4.15, -0.02, 'N/A', 'twelvedata', '^TNX', 'US10Y', 'TVC:US10Y', FALSE, 3, 0.01, 1000, 0.01, 0.01, 'contracts', TRUE),
+('DXY', 'US Dollar Index', 'Economy', 104.2, 0.15, 'N/A', 'twelvedata', 'DX-Y.NYB', 'DXY', 'TVC:DXY', FALSE, 3, 0.01, 1000, 0.01, 0.01, 'contracts', TRUE),
+('VIX', 'Volatility Index', 'Options', 13.5, -2.5, 'N/A', 'twelvedata', '^VIX', 'VIX', 'CBOE:VIX', FALSE, 2, 0.01, 100, 0.01, 0.01, 'contracts', TRUE),
+('XAUUSD', 'Gold', 'Commodities', 2340.5, 0.85, '42.1B', 'twelvedata', 'XAUUSD=X', 'XAU/USD', 'OANDA:XAUUSD', FALSE, 2, 0.42, 100, 0.01, 0.01, 'oz', TRUE),
+('XAGUSD', 'Silver', 'Commodities', 28.45, 1.2, '8.4B', 'twelvedata', 'XAGUSD=X', 'XAG/USD', 'OANDA:XAGUSD', FALSE, 3, 0.094, 5000, 0.01, 0.01, 'oz', TRUE),
+('BRENT', 'Brent Oil', 'Commodities', 82.4, -0.6, '12.1B', 'twelvedata', 'BZ=F', 'BRENT', 'ICEEUR:BRN1!', FALSE, 3, 0.08, 1000, 0.01, 0.01, 'bbl', TRUE),
+('IBOV', 'BOVESPA', 'Brazilian Index', 128500, 0.45, '24.1B', 'twelvedata', '^BVSP', 'IBOV', 'BMFBOVESPA:IBOV', FALSE, 2, 15, 1, 0.01, 0.01, 'index units', TRUE),
+('ES1!', 'S&P 500 E-Mini Future', 'Futures', 4890, 0.25, 'N/A', 'twelvedata', 'ES=F', 'ES1!', 'CME_MINI:ES1!', FALSE, 2, 0.5, 50, 0.01, 0.01, 'contracts', TRUE),
+('YM1!', 'Dow 30 Future', 'Futures', 38650, 0.15, 'N/A', 'twelvedata', 'YM=F', 'YM1!', 'CBOT_MINI:YM1!', FALSE, 2, 5, 5, 0.01, 0.01, 'contracts', TRUE),
+('CL1!', 'Crude Oil Future', 'Futures', 81.25, -0.45, 'N/A', 'twelvedata', 'CL=F', 'CL1!', 'NYMEX:CL1!', FALSE, 3, 0.04, 1000, 0.01, 0.01, 'bbl', TRUE)
 ON CONFLICT (symbol) DO UPDATE SET
     name = EXCLUDED.name,
     category_name = COALESCE(instruments.category_name, EXCLUDED.category_name),
@@ -290,6 +297,7 @@ ON CONFLICT (symbol) DO UPDATE SET
     default_volume = COALESCE(instruments.default_volume, EXCLUDED.default_volume),
     provider = COALESCE(instruments.provider, EXCLUDED.provider),
     quote_symbol = COALESCE(instruments.quote_symbol, EXCLUDED.quote_symbol),
+    data_symbol = COALESCE(instruments.data_symbol, EXCLUDED.data_symbol),
     trading_view_symbol = COALESCE(instruments.trading_view_symbol, EXCLUDED.trading_view_symbol),
     use_bid_ask = COALESCE(instruments.use_bid_ask, EXCLUDED.use_bid_ask),
     price_precision = COALESCE(instruments.price_precision, EXCLUDED.price_precision),
