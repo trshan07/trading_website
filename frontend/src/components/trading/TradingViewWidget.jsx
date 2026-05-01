@@ -1,18 +1,17 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { FaCompress, FaExpand } from 'react-icons/fa';
 import { normalizeSymbol, resolveTradingViewSymbol } from '../../utils/marketSymbols';
-import loadTradingViewScript from '../../utils/tradingViewLoader';
+
+const EMBED_SCRIPT_SRC = 'https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js';
 
 const TradingViewWidget = ({
   symbol = 'BTCUSDT',
   instrument = null,
   theme = 'dark',
-  activeIntent = null,
   positions = [],
+  marketStatus = 'LIVE MARKET DATA',
 }) => {
   const containerRef = useRef(null);
-  const widgetRef = useRef(null);
-  const [scriptLoaded, setScriptLoaded] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isOnline, setIsOnline] = useState(
     typeof navigator === 'undefined' ? true : navigator.onLine
@@ -32,29 +31,10 @@ const TradingViewWidget = ({
 
   useEffect(() => {
     if (!isOnline) {
-      setScriptLoaded(false);
       return undefined;
     }
 
-    let isCancelled = false;
-
-    loadTradingViewScript()
-      .then(() => {
-        if (!isCancelled) {
-          setScriptLoaded(true);
-        }
-      })
-      .catch((error) => {
-        console.error('TradingView script load failed:', error);
-        if (!isCancelled) {
-          setScriptLoaded(false);
-        }
-      });
-
-    return () => {
-      isCancelled = true;
-      widgetRef.current = null;
-    };
+    return undefined;
   }, [isOnline]);
 
   useEffect(() => {
@@ -86,70 +66,50 @@ const TradingViewWidget = ({
   }, [isFullscreen]);
 
   useEffect(() => {
-    if (!isOnline || !scriptLoaded || !containerRef.current || !window.TradingView || !symbol) {
+    if (!isOnline || !containerRef.current || !symbol) {
       return undefined;
     }
-
-    const widgetId = `tradingview_${Math.random().toString(36).substring(7)}`;
-    containerRef.current.id = widgetId;
 
     const isDark = theme === 'dark';
     containerRef.current.innerHTML = '';
 
-    try {
-      widgetRef.current = new window.TradingView.widget({
-        autosize: true,
-        symbol: tvSymbol,
-        interval: 'D',
-        timezone: 'Etc/UTC',
-        theme: isDark ? 'dark' : 'light',
-        style: '1',
-        locale: 'en',
-        toolbar_bg: isDark ? '#0f172a' : '#f8fafc',
-        enable_publishing: false,
-        hide_side_toolbar: false,
-        // Keep the embedded chart locked to the dashboard-selected instrument.
-        // TradingView is analysis-only here; execution prices come from the platform feed.
-        allow_symbol_change: false,
-        container_id: widgetId,
-        library_path: 'https://s3.tradingview.com/tv.js',
-        width: '100%',
-        height: '100%',
-        hide_legend: false,
-        save_image: false,
-        backgroundColor: isDark ? '#0f172a' : '#ffffff',
-        gridColor: isDark ? '#1e293b' : '#f1f5f9',
-        studies: [
-          'MASimple@tv-basicstudies',
-          'MAExp@tv-basicstudies',
-          'RSI@tv-basicstudies',
-          'MACD@tv-basicstudies'
-        ],
-        overrides: isDark
-          ? {
-              'paneProperties.background': '#0f172a',
-              'paneProperties.vertGridProperties.color': '#1e293b',
-              'paneProperties.horzGridProperties.color': '#1e293b',
-              'mainSeriesProperties.candleStyle.upColor': '#10b981',
-              'mainSeriesProperties.candleStyle.downColor': '#f43f5e',
-              'mainSeriesProperties.candleStyle.borderUpColor': '#10b981',
-              'mainSeriesProperties.candleStyle.borderDownColor': '#f43f5e',
-              'mainSeriesProperties.candleStyle.wickUpColor': '#10b981',
-              'mainSeriesProperties.candleStyle.wickDownColor': '#f43f5e',
-            }
-          : {},
-      });
-    } catch (error) {
-      console.error('TradingView widget initialization failed:', error);
-    }
+    const widgetRoot = document.createElement('div');
+    widgetRoot.className = 'tradingview-widget-container__widget';
+    widgetRoot.style.height = '100%';
+    widgetRoot.style.width = '100%';
+
+    const script = document.createElement('script');
+    script.type = 'text/javascript';
+    script.async = true;
+    script.src = EMBED_SCRIPT_SRC;
+    script.text = JSON.stringify({
+      autosize: true,
+      symbol: tvSymbol,
+      interval: '15',
+      timezone: 'exchange',
+      theme: isDark ? 'dark' : 'light',
+      style: '1',
+      locale: 'en',
+      backgroundColor: isDark ? '#0f172a' : '#ffffff',
+      withdateranges: true,
+      hide_side_toolbar: false,
+      allow_symbol_change: false,
+      save_image: false,
+      calendar: false,
+      details: true,
+      hotlist: true,
+      support_host: 'https://www.tradingview.com',
+    });
+
+    containerRef.current.appendChild(widgetRoot);
+    containerRef.current.appendChild(script);
 
     return () => {
       if (containerRef.current) {
         containerRef.current.innerHTML = '';
       }
-      widgetRef.current = null;
     };
-  }, [isOnline, scriptLoaded, symbol, theme, tvSymbol]);
+  }, [isOnline, symbol, theme, tvSymbol]);
 
   const isDark = theme === 'dark';
   const normalizedSymbol = normalizeSymbol(symbol);
@@ -167,7 +127,7 @@ const TradingViewWidget = ({
     >
       <div className="relative flex-1 min-h-[500px]">
         {isOnline ? (
-          <div ref={containerRef} className="absolute inset-0 h-full w-full" />
+          <div ref={containerRef} className="absolute inset-0 h-full w-full tradingview-widget-container" />
         ) : (
           <div className="absolute inset-0 flex items-center justify-center px-6">
             <div
@@ -198,10 +158,16 @@ const TradingViewWidget = ({
         <div className="flex items-center gap-4">
           <span className="flex items-center gap-1.5">
             <span className={`h-2 w-2 rounded-full ${isOnline ? 'bg-emerald-500 animate-pulse' : 'bg-slate-500'}`} />
-            {isOnline ? 'LIVE MARKET DATA' : 'OFFLINE MODE'}
+            {isOnline ? marketStatus : 'OFFLINE MODE'}
           </span>
           <span className="opacity-40">|</span>
           <span>POWERED BY TRADINGVIEW</span>
+          {symbolPositions.length > 0 && (
+            <>
+              <span className="opacity-40">|</span>
+              <span>{symbolPositions.length} OPEN POSITION{symbolPositions.length > 1 ? 'S' : ''}</span>
+            </>
+          )}
         </div>
         <div className="flex items-center gap-3">
           <button
@@ -225,7 +191,7 @@ const TradingViewWidget = ({
                 : 'border-slate-200 bg-white text-gold-600'
             }`}
           >
-            ADVANCED ANALYSIS MODE | PANEL RATES USE YAHOO/BINANCE
+            TERMINAL CHART | LIVE EXTERNAL MARKET FEED
           </div>
         </div>
       </div>

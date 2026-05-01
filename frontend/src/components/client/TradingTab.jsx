@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useMemo } from 'react';
-import RealTimeChart from '../trading/RealTimeChart';
+import TradingViewWidget from '../trading/TradingViewWidget';
 import OrderPanel from '../trading/OrderPanel';
 import PositionsTable from '../trading/PositionsTable';
 import OpenOrders from '../trading/OpenOrders';
@@ -199,17 +199,15 @@ const TradingTab = ({
                   ? 'bg-emerald-500/10 text-emerald-300 border-emerald-500/20'
                   : 'bg-emerald-50 text-emerald-700 border-emerald-200'
               }`}>
-                Chart, market list, and order ticket are locked to the same live platform feed for {activeSymbol}.
+                Trading chart, market list, order ticket, and positions are locked to the same selected instrument for {formatInstrumentDisplaySymbol(activeSymbol, { withSlash: true })}.
               </div>
-              <RealTimeChart
-                key={`execution-${activeSymbol}-${theme}`}
+              <TradingViewWidget
+                key={`terminal-${activeSymbol}-${theme}`}
                 symbol={activeSymbol}
                 theme={theme}
                 instrument={selectedInstrument}
                 positions={positions}
-                activeIntent={activeOrderIntent}
-                livePrice={marketData[activeSymbol]?.price || selectedInstrument?.price || 0}
-                initialPrice={selectedInstrument?.price || 100}
+                marketStatus={selectedInstrument?.provider ? `${String(selectedInstrument.provider).toUpperCase()} / BINANCE FEED` : 'LIVE EXTERNAL MARKET FEED'}
               />
             </div>
           </div>
