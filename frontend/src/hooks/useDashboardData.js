@@ -8,6 +8,7 @@ import { AuthContext } from '../context/AuthContext';
 import { toast } from 'react-hot-toast';
 import { MARKET_INSTRUMENTS } from '../constants/marketData';
 import websocketService from '../services/websocketService';
+import { fetchPublicMarketQuotes } from '../services/marketFallbackService';
 import { maskAccountNumber } from '../components/client/banking/utils';
 import { getUploadUrl } from '../utils/uploadUrl';
 import { buildInstrumentSnapshot } from '../utils/marketSymbols';
@@ -16,6 +17,8 @@ import { calculateSpreads } from '../utils/spreadCalculator';
 
 const GLOBAL_QUOTES_REFRESH_MS = 2500;
 const ACTIVE_SYMBOL_REFRESH_MS = 1000;
+const GLOBAL_PUBLIC_QUOTES_REFRESH_MS = 15000;
+const ACTIVE_PUBLIC_QUOTES_REFRESH_MS = 4000;
 
 const normalizeInstrument = (instrument = {}) => ({
   symbol: instrument.symbol,
@@ -533,6 +536,33 @@ export const useDashboardData = (accountType = 'demo', activeSymbol = null) => {
     }
   }, []);
 
+  const fetchPublicFallbackQuotes = useCallback(async (symbols = []) => {
+    const normalizedSymbols = Array.from(new Set(symbols.filter(Boolean)));
+    if (normalizedSymbols.length === 0) {
+      return;
+    }
+
+    const targetInstruments = normalizedSymbols
+      .map((symbol) => instruments.find((instrument) => instrument.symbol === symbol))
+      .filter(Boolean);
+
+    if (targetInstruments.length === 0) {
+      return;
+    }
+
+    try {
+      const quotes = await fetchPublicMarketQuotes(targetInstruments);
+      if (!quotes || Object.keys(quotes).length === 0) {
+        return;
+      }
+
+      setMarketData((prev) => mergeQuoteSnapshot(prev, quotes));
+      setInstruments((prev) => syncInstrumentsWithQuotes(prev, quotes));
+    } catch (error) {
+      console.error('Public quote fallback failed:', error);
+    }
+  }, [instruments]);
+
   const fetchPositions = useCallback(async () => {
     if (!accountId) return; // No account = nothing to fetch
     const token = localStorage.getItem('token');
@@ -706,6 +736,21 @@ export const useDashboardData = (accountType = 'demo', activeSymbol = null) => {
   }, [fetchLiveQuotes, instruments, user]);
 
   useEffect(() => {
+    if (!user || instruments.length === 0) {
+      return undefined;
+    }
+
+    const instrumentSymbols = instruments.map((instrument) => instrument.symbol).filter(Boolean);
+
+    fetchPublicFallbackQuotes(instrumentSymbols);
+    const publicQuoteInterval = setInterval(() => {
+      fetchPublicFallbackQuotes(instrumentSymbols);
+    }, GLOBAL_PUBLIC_QUOTES_REFRESH_MS);
+
+    return () => clearInterval(publicQuoteInterval);
+  }, [fetchPublicFallbackQuotes, instruments, user]);
+
+  useEffect(() => {
     if (!user || !activeSymbol) {
       return undefined;
     }
@@ -738,6 +783,24 @@ export const useDashboardData = (accountType = 'demo', activeSymbol = null) => {
 
     return () => clearInterval(activeSymbolInterval);
   }, [activeSymbol, fetchLiveQuotes, user]);
+
+  useEffect(() => {
+    if (!user || !activeSymbol) {
+      return undefined;
+    }
+
+    const normalizedActiveSymbol = String(activeSymbol).trim().toUpperCase();
+    if (!normalizedActiveSymbol) {
+      return undefined;
+    }
+
+    fetchPublicFallbackQuotes([normalizedActiveSymbol]);
+    const publicActiveSymbolInterval = setInterval(() => {
+      fetchPublicFallbackQuotes([normalizedActiveSymbol]);
+    }, ACTIVE_PUBLIC_QUOTES_REFRESH_MS);
+
+    return () => clearInterval(publicActiveSymbolInterval);
+  }, [activeSymbol, fetchPublicFallbackQuotes, user]);
 
   useEffect(() => {
     if (!accountId) return; // Don't start polling at all without an account
