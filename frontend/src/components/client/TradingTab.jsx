@@ -1,9 +1,9 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import { FaBolt, FaChartLine, FaHistory, FaListUl } from 'react-icons/fa';
-import RealTimeChart from '../trading/RealTimeChart';
 import OrderPanel from '../trading/OrderPanel';
 import PositionsTable from '../trading/PositionsTable';
 import TerminalAssetList from '../trading/TerminalAssetList';
+import TradingViewWidget from '../trading/TradingViewWidget';
 import { useTheme } from '../../context/ThemeContext';
 import { buildInstrumentSnapshot, formatInstrumentDisplaySymbol, normalizeSymbol } from '../../utils/marketSymbols';
 import { getDisplayQuoteSnapshot } from '../../utils/spreadCalculator';
@@ -136,17 +136,13 @@ const TradingTab = ({
                   ? 'border-slate-800 bg-slate-900'
                   : 'border-slate-200 bg-white'
               }`}>
-                <RealTimeChart
+                <TradingViewWidget
                   key={`terminal-${activeSymbol}-${theme}`}
                   symbol={activeSymbol}
                   theme={theme}
                   instrument={selectedInstrument}
                   positions={positions}
-                  closedTrades={closedTrades}
-                  activeIntent={activeOrderIntent}
-                  livePrice={Number(selectedInstrument.price || 0)}
-                  initialPrice={Number(selectedInstrument.price || baseInstrument?.price || 100)}
-                  isVisible={!isMobile || activeMobileView === 'chart'}
+                  marketStatus="LIVE MARKET DATA"
                 />
               </div>
             </div>
