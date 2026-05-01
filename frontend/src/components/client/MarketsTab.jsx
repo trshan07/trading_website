@@ -3,7 +3,7 @@ import RealTimeChart from '../trading/RealTimeChart';
 import TerminalAssetList from '../trading/TerminalAssetList';
 import { FaGlobe, FaSearch, FaChartBar, FaLayerGroup, FaTimes } from 'react-icons/fa';
 import { useTheme } from '../../context/ThemeContext';
-import { buildInstrumentSnapshot } from '../../utils/marketSymbols';
+import { buildInstrumentSnapshot, formatInstrumentDisplaySymbol } from '../../utils/marketSymbols';
 
 const MarketsTab = ({
   symbol,
@@ -235,7 +235,9 @@ const MarketsTab = ({
                                 {liveInstrument.category}
                               </span>
                               <div className="text-left">
-                                <p className="text-xs font-black text-slate-900 dark:text-white italic uppercase tracking-tight leading-none">{inst.symbol}</p>
+                                <p className="text-xs font-black text-slate-900 dark:text-white italic uppercase tracking-tight leading-none">
+                                  {formatInstrumentDisplaySymbol(inst.symbol, { withSlash: true })}
+                                </p>
                                 <p className="text-[9px] text-slate-400 font-medium mt-0.5">{inst.name}</p>
                               </div>
                             </div>

@@ -9,6 +9,27 @@ const FOREX_CODES = ['USD', 'EUR', 'GBP', 'JPY', 'AUD', 'NZD', 'CAD', 'CHF'];
 
 export const normalizeSymbol = (symbol = '') => symbol.toUpperCase().replace(/[^A-Z0-9!]/g, '');
 
+export const formatInstrumentDisplaySymbol = (symbol = '', { withSlash = false } = {}) => {
+  const normalized = normalizeSymbol(symbol);
+
+  if (normalized.endsWith('USDT')) {
+    const base = normalized.slice(0, -4);
+    return withSlash ? `${base}/USD` : `${base}USD`;
+  }
+
+  if (isForexPair(normalized)) {
+    const base = normalized.slice(0, 3);
+    const quote = normalized.slice(3, 6);
+    return withSlash ? `${base}/${quote}` : normalized;
+  }
+
+  if (withSlash && normalized.endsWith('USD') && normalized.length >= 6) {
+    return `${normalized.slice(0, -3)}/USD`;
+  }
+
+  return normalized;
+};
+
 export const isForexPair = (symbol = '') => {
   if (symbol.length !== 6) {
     return false;

@@ -9,7 +9,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { FaChartLine, FaHistory, FaListUl, FaBell, FaBolt } from 'react-icons/fa';
 import TradeHistory from '../trading/TradeHistory';
 import PriceAlertsTab from '../trading/PriceAlertsTab';
-import { buildInstrumentSnapshot } from '../../utils/marketSymbols';
+import { buildInstrumentSnapshot, formatInstrumentDisplaySymbol } from '../../utils/marketSymbols';
 import { calculateSpreads } from '../../utils/spreadCalculator';
 
 const TradingTab = ({
@@ -150,7 +150,7 @@ const TradingTab = ({
                 <div className="mt-1 flex items-center gap-3 flex-wrap">
                   <span className={`text-sm font-black uppercase tracking-widest ${
                     theme === 'dark' ? 'text-white' : 'text-slate-900'
-                  }`}>{activeSymbol}</span>
+                  }`}>{formatInstrumentDisplaySymbol(activeSymbol, { withSlash: true })}</span>
                   <span className={`text-sm font-black tabular-nums ${
                     selectedInstrument.lastDir === 'up'
                       ? 'text-emerald-500'

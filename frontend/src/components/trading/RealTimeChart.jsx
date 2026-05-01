@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { createChart } from 'lightweight-charts';
 import { FaExpand, FaCompress, FaChartBar } from 'react-icons/fa';
 import infraService from '../../services/infraService';
-import { buildInstrumentSnapshot, getSymbolPrecision, isForexPair } from '../../utils/marketSymbols';
+import { buildInstrumentSnapshot, formatInstrumentDisplaySymbol, getSymbolPrecision } from '../../utils/marketSymbols';
 
 const INTERVALS = [
   { label: '1m', value: '1m' },
@@ -16,17 +16,7 @@ const INTERVALS = [
 
 const NON_STREAM_REFRESH_MS = 2500;
 
-const formatExecutionSymbol = (symbol = '') => {
-  if (symbol.endsWith('USDT')) {
-    return `${symbol.slice(0, -4)} / USDT`;
-  }
-
-  if (symbol.endsWith('USD') && symbol.length >= 6) {
-    return `${symbol.slice(0, -3)} / USD`;
-  }
-
-  return symbol;
-};
+const formatExecutionSymbol = (symbol = '') => formatInstrumentDisplaySymbol(symbol, { withSlash: true }).replace('/', ' / ');
 
 const RealTimeChart = ({ 
   symbol = 'BTCUSDT',

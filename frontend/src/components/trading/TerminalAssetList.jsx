@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { FaSearch, FaStar, FaRegStar, FaChevronDown, FaTimes } from 'react-icons/fa';
 import { calculateSpreads } from '../../utils/spreadCalculator';
-import { buildInstrumentSnapshot } from '../../utils/marketSymbols';
+import { buildInstrumentSnapshot, formatInstrumentDisplaySymbol } from '../../utils/marketSymbols';
 
 const TerminalAssetList = ({ 
   activeSymbol, 
@@ -141,7 +141,7 @@ const TerminalAssetList = ({
               {/* Instrument Column */}
               <div className="flex items-center space-x-1 md:space-x-2 min-w-0">
                 <span className="text-[11px] md:text-[10px] font-bold text-slate-900 dark:text-white truncate uppercase">
-                  {inst.symbol.replace('USDT', '')}
+                  {formatInstrumentDisplaySymbol(inst.symbol, { withSlash: true })}
                 </span>
                 {isActive && <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse flex-shrink-0"></span>}
               </div>
