@@ -4,6 +4,7 @@ const marketSymbolMap = require('../config/marketSymbolMap.json');
 const { isMissingColumnError, isMissingRelationError } = require('../utils/dbCompat');
 
 const FOREX_CODES = ['USD', 'EUR', 'GBP', 'JPY', 'AUD', 'NZD', 'CAD', 'CHF'];
+const METAL_SYMBOLS = new Set(['XAUUSD', 'XAGUSD']);
 const DEFAULT_DEPTH_LEVELS = 15;
 const INSTRUMENT_CONFIG_CACHE_MS = 60 * 1000;
 const TWELVE_DATA_API_BASE = 'https://api.twelvedata.com';
@@ -37,6 +38,16 @@ const isForexPair = (symbol = '') => {
     const base = symbol.slice(0, 3);
     const quote = symbol.slice(3, 6);
     return FOREX_CODES.includes(base) && FOREX_CODES.includes(quote);
+};
+
+const isMetalSymbol = (symbol = '', config = {}) => {
+    const normalized = normalizeSymbol(symbol);
+    if (METAL_SYMBOLS.has(normalized)) {
+        return true;
+    }
+
+    const category = String(config.category || '').toLowerCase();
+    return category.includes('metal');
 };
 
 const toNullableNumber = (value) => {
@@ -540,16 +551,21 @@ const fetchMarketQuotes = async (symbols = []) => {
             config: await getMergedInstrumentConfig(symbol),
         }))
     );
-    const twelveDataRequests = instrumentConfigs.filter(({ config }) => (
-        config.provider === 'twelvedata' || hasTwelveDataApiKey()
+    const twelveDataRequests = instrumentConfigs.filter(({ symbol, config }) => (
+        !isMetalSymbol(symbol, config)
+        && (config.provider === 'twelvedata' || hasTwelveDataApiKey())
     ));
     const legacyYahooRequests = instrumentConfigs.filter(({ config }) => (
         config.provider !== 'twelvedata' && !hasTwelveDataApiKey()
     ));
+    const metalYahooRequests = instrumentConfigs.filter(({ symbol, config }) => (
+        isMetalSymbol(symbol, config)
+    ));
 
-    const [twelveDataData, legacyYahooData] = await Promise.all([
+    const [twelveDataData, legacyYahooData, metalYahooData] = await Promise.all([
         fetchTwelveDataQuotes(twelveDataRequests).catch(() => ({})),
         fetchYahooQuotes(legacyYahooRequests).catch(() => ({})),
+        fetchYahooQuotes(metalYahooRequests).catch(() => ({})),
     ]);
     const unresolvedTwelveDataRequests = twelveDataRequests.filter(
         ({ symbol }) => !twelveDataData[normalizeSymbol(symbol)]?.price
@@ -560,6 +576,7 @@ const fetchMarketQuotes = async (symbols = []) => {
 
     return {
         ...legacyYahooData,
+        ...metalYahooData,
         ...yahooFallbackData,
         ...twelveDataData,
     };
