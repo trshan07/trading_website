@@ -6,6 +6,7 @@ export {
   calculateMarginRequired,
   calculateMovementValue as calculatePips,
   calculateNotionalValue,
+  calculatePipValue,
   calculateProjectedPnL,
   calculateQuantityFromLots,
   calculateUsdFromLots,

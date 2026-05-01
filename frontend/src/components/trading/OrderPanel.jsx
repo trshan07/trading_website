@@ -9,6 +9,7 @@ import {
   getLotStep,
   getLotPrecision,
   calculatePips,
+  calculatePipValue,
   calculateProjectedPnL,
   calculateQuantityFromLots,
   getInstrumentTradingMeta,
@@ -101,6 +102,13 @@ const OrderPanel = ({
   const hasMarginLevel = Number(portfolio?.margin || 0) > 0;
   const marginLevelLabel = hasMarginLevel ? `${Number(portfolio?.marginLevel || 0).toFixed(2)}%` : 'N/A';
   const formattedLots = formatLots(lots, category, symbol, instrument);
+  const moveValue = calculatePipValue({
+    symbol,
+    category,
+    instrument,
+    quantity,
+    price: finalPrice,
+  });
 
   const tpPrice = tpEnabled ? parseFloat(tpValue) : null;
   const slPrice = slEnabled ? parseFloat(slValue) : null;
@@ -133,17 +141,17 @@ const OrderPanel = ({
 
   useEffect(() => {
     if (useLots) {
-      const usd = calculateUsdFromLots(lots, currentPrice, category, symbol, instrument);
+      const usd = calculateUsdFromLots(lots, finalPrice, category, symbol, instrument);
       setAmount(Number.isFinite(usd) ? Number(usd.toFixed(2)) : 0);
     }
-  }, [lots, useLots, currentPrice, category, symbol, instrument]);
+  }, [lots, useLots, finalPrice, category, symbol, instrument]);
 
   useEffect(() => {
     if (!useLots) {
-      const derivedLots = calculateLotsFromUsd(amount, currentPrice, category, symbol, instrument);
+      const derivedLots = calculateLotsFromUsd(amount, finalPrice, category, symbol, instrument);
       setLots(Number.isFinite(derivedLots) ? parseFloat(derivedLots.toFixed(lotPrecision)) : minLot);
     }
-  }, [amount, useLots, currentPrice, category, symbol, instrument, minLot, lotPrecision]);
+  }, [amount, useLots, finalPrice, category, symbol, instrument, minLot, lotPrecision]);
 
   useEffect(() => {
     if (onIntentChange) {
@@ -457,6 +465,9 @@ const OrderPanel = ({
                   { label: 'Contract Size', value: `${tradingMeta.contractSize.toLocaleString()} ${tradingMeta.quantityLabel}` },
                   { label: 'Lot Step', value: `${formatLots(lotStep, category, symbol, instrument)} lots` },
                   { label: 'Min Lot', value: `${formatLots(minLot, category, symbol, instrument)} lots` },
+                  { label: `${tradingMeta.movementLabel} Value`, value: `$${moveValue.toFixed(2)} per ${tradingMeta.movementLabel.toLowerCase()}` },
+                  { label: 'Execution Side', value: selectedSide === 'buy' ? `Buy @ ${askPrice}` : `Sell @ ${bidPrice}` },
+                  { label: 'Mark Source', value: hasRealBidAsk ? 'Bid / Ask' : 'Synthetic Spread' },
                 ].map((item) => (
                   <div key={item.label} className="bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700/50 rounded-xl p-3">
                     <p className="text-[8px] font-black uppercase tracking-widest text-slate-400 mb-1">{item.label}</p>

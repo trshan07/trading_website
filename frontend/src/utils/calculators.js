@@ -355,3 +355,32 @@ export const calculateProjectedPnL = ({
     conversionPrice: parsedExit || parsedEntry,
   });
 };
+
+export const calculatePipValue = ({
+  symbol = '',
+  category = '',
+  instrument = {},
+  lots = null,
+  quantity = 0,
+  price = 0,
+}) => {
+  const meta = getInstrumentTradingMeta({ symbol, category, instrument });
+  const referencePrice = Number.parseFloat(price) || Number.parseFloat(instrument.price) || 1;
+  const resolvedQuantity = Number.isFinite(Number.parseFloat(quantity)) && Number.parseFloat(quantity) > 0
+    ? Number.parseFloat(quantity)
+    : calculateQuantityFromLots(lots ?? 1, symbol, category, instrument);
+
+  if (!resolvedQuantity || !meta.movementSize) {
+    return 0;
+  }
+
+  return calculateProjectedPnL({
+    symbol,
+    category,
+    instrument,
+    side: 'buy',
+    entryPrice: referencePrice,
+    exitPrice: referencePrice + meta.movementSize,
+    quantity: resolvedQuantity,
+  });
+};
