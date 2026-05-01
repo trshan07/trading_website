@@ -78,6 +78,7 @@ const RealTimeChart = ({
   const historyRefreshRef = useRef(null);
   const priceLinesRef = useRef([]);
   const syncChartSizeRef = useRef(() => {});
+  const fallbackPriceRef = useRef(Number.parseFloat(livePrice || initialPrice || 0) || 0);
   const [interval, setInterval] = useState('15m');
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [lastPrice, setLastPrice] = useState(null);
@@ -122,6 +123,13 @@ const RealTimeChart = ({
     });
     priceLinesRef.current = [];
   };
+
+  useEffect(() => {
+    const nextFallbackPrice = Number.parseFloat(livePrice || initialPrice || instrumentSnapshot.price || 0);
+    if (Number.isFinite(nextFallbackPrice) && nextFallbackPrice > 0) {
+      fallbackPriceRef.current = nextFallbackPrice;
+    }
+  }, [initialPrice, instrumentSnapshot.price, livePrice, symbol]);
 
   useEffect(() => {
     const handleOnline = () => setLiveStatus('connecting');
@@ -169,6 +177,7 @@ const RealTimeChart = ({
     }
 
     let active = true;
+    let hasFittedContent = false;
 
     if (historyRefreshRef.current) {
       clearInterval(historyRefreshRef.current);
@@ -247,7 +256,7 @@ const RealTimeChart = ({
     syncChartSizeRef.current = syncChartSize;
 
     const loadHistory = async () => {
-      const fallbackPrice = Number.parseFloat(livePrice || initialPrice || instrumentSnapshot.price || 0);
+      const fallbackPrice = fallbackPriceRef.current;
       const canUseQuoteFallback = Number.isFinite(fallbackPrice) && fallbackPrice > 0;
 
       try {
@@ -278,7 +287,10 @@ const RealTimeChart = ({
         );
 
         if (usableCandles.length > 0) {
-          chartRef.current?.timeScale().fitContent();
+          if (!hasFittedContent) {
+            chartRef.current?.timeScale().fitContent();
+            hasFittedContent = true;
+          }
 
           const first = usableCandles[0];
           const last = usableCandles[usableCandles.length - 1];
@@ -297,7 +309,7 @@ const RealTimeChart = ({
         setLiveStatus(navigator.onLine ? 'delayed' : 'offline');
       } catch (error) {
         if (active) {
-          const fallbackPrice = Number.parseFloat(livePrice || initialPrice || instrumentSnapshot.price || 0);
+          const fallbackPrice = fallbackPriceRef.current;
           const usableCandles = Number.isFinite(fallbackPrice) && fallbackPrice > 0
             ? createFallbackCandles(fallbackPrice, interval)
             : [];
@@ -318,7 +330,11 @@ const RealTimeChart = ({
           );
 
           if (usableCandles.length > 0) {
-            chartRef.current?.timeScale().fitContent();
+            if (!hasFittedContent) {
+              chartRef.current?.timeScale().fitContent();
+              hasFittedContent = true;
+            }
+
             const first = usableCandles[0];
             const last = usableCandles[usableCandles.length - 1];
             setLastPrice(last.close);
@@ -368,7 +384,7 @@ const RealTimeChart = ({
         } catch (error) {}
       }
     };
-  }, [initialPrice, interval, isDark, livePrice, priceMinMove, pricePrecision, symbol]);
+  }, [interval, isDark, priceMinMove, pricePrecision, symbol]);
 
   useEffect(() => {
     if (!isVisible) {
@@ -389,8 +405,18 @@ const RealTimeChart = ({
 
   useEffect(() => {
     const nextPrice = Number.parseFloat(livePrice);
-    if (!Number.isFinite(nextPrice) || !seriesRef.current || candleDataRef.current.length === 0) {
+    if (!Number.isFinite(nextPrice) || !seriesRef.current) {
       return;
+    }
+
+    if (candleDataRef.current.length === 0) {
+      const seededCandles = createFallbackCandles(nextPrice, interval);
+      seriesRef.current.setData(seededCandles);
+      candleDataRef.current = seededCandles;
+      candleTimesRef.current = seededCandles.map((candle) => candle.time);
+      setHasChartData(seededCandles.length > 0);
+      setHistorySource('quote-fallback');
+      setHistoryVersion((value) => value + 1);
     }
 
     const lastCandle = candleDataRef.current[candleDataRef.current.length - 1];
@@ -419,7 +445,7 @@ const RealTimeChart = ({
         detail: { symbol, price: nextPrice, source: 'platform-feed' },
       }));
     } catch (error) {}
-  }, [historySource, livePrice, symbol]);
+  }, [historySource, interval, livePrice, symbol]);
 
   useEffect(() => {
     if (!seriesRef.current) {
