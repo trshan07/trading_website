@@ -1,7 +1,12 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useMemo, useRef } from 'react';
+import { resolveTradingViewSymbol } from '../../utils/marketSymbols';
 
-const SymbolInfo = ({ symbol = 'BTCUSDT', height = '100%', theme = 'dark' }) => {
+const SymbolInfo = ({ symbol = 'BTCUSDT', instrument = null, height = '100%', theme = 'dark' }) => {
   const containerRef = useRef(null);
+  const tvSymbol = useMemo(
+    () => resolveTradingViewSymbol({ symbol, instrument }),
+    [instrument, symbol]
+  );
 
   useEffect(() => {
     // Clear container
@@ -18,11 +23,11 @@ const SymbolInfo = ({ symbol = 'BTCUSDT', height = '100%', theme = 'dark' }) => 
     
     // Widget configuration
     const config = {
-      "symbol": symbol,
+      "symbol": tvSymbol,
       "width": "100%",
       "height": height,
       "locale": "en",
-      "colorTheme": theme,
+      "colorTheme": theme === 'dark' ? 'dark' : 'light',
       "isTransparent": false,
       "largeChartUrl": ""
     };
@@ -41,7 +46,7 @@ const SymbolInfo = ({ symbol = 'BTCUSDT', height = '100%', theme = 'dark' }) => 
         containerRef.current.innerHTML = '';
       }
     };
-  }, [symbol, theme, height]);
+  }, [height, theme, tvSymbol]);
 
   return (
     <div 

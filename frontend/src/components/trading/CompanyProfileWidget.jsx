@@ -1,38 +1,42 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useMemo, useRef } from 'react';
+import { resolveTradingViewSymbol } from '../../utils/marketSymbols';
 
-const CompanyProfile = ({ symbol = 'NASDAQ:AAPL', height = '100%', theme = 'dark' }) => {
+const CompanyProfile = ({ symbol = 'NASDAQ:AAPL', instrument = null, height = '100%', theme = 'dark' }) => {
   const containerRef = useRef(null);
-  const widgetInitialized = useRef(false);
+  const tvSymbol = useMemo(
+    () => resolveTradingViewSymbol({ symbol, instrument }),
+    [instrument, symbol]
+  );
 
   useEffect(() => {
-    if (widgetInitialized.current) return;
+    if (containerRef.current) {
+      containerRef.current.innerHTML = '';
+    }
 
     const script = document.createElement('script');
     script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-symbol-profile.js';
     script.async = true;
     script.innerHTML = JSON.stringify({
-      "symbol": symbol,
+      "symbol": tvSymbol,
       "width": "100%",
       "height": height,
       "locale": "en",
-      "colorTheme": theme,
+      "colorTheme": theme === 'dark' ? 'dark' : 'light',
       "isTransparent": false,
       "largeChartUrl": ""
     });
 
     const container = containerRef.current;
-    if (container && !widgetInitialized.current) {
+    if (container) {
       container.appendChild(script);
-      widgetInitialized.current = true;
     }
 
     return () => {
-      if (script.parentNode) {
-        script.parentNode.removeChild(script);
+      if (containerRef.current) {
+        containerRef.current.innerHTML = '';
       }
-      widgetInitialized.current = false;
     };
-  }, [symbol, theme, height]);
+  }, [height, theme, tvSymbol]);
 
   return (
     <div 

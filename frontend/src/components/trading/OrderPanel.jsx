@@ -17,9 +17,10 @@ import {
   formatLots
 } from '../../utils/tradingUtils';
 import { MARKET_INSTRUMENTS } from '../../constants/marketData';
-import { buildInstrumentSnapshot } from '../../utils/marketSymbols';
+import { buildInstrumentSnapshot, normalizeSymbol } from '../../utils/marketSymbols';
 
 const formatOrderType = (value = '') => value.replace(/_/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase());
+const formatOrderTicketLabel = ({ side, orderType }) => `${String(side || 'buy').toUpperCase()} ${String(orderType || 'market').toUpperCase()}`;
 
 const OrderPanel = ({
   onSubmit,
@@ -35,6 +36,7 @@ const OrderPanel = ({
 }) => {
   const [orderType, setOrderType] = useState('market');
   const [selectedSide, setSelectedSide] = useState('buy');
+  const [pendingPrice, setPendingPrice] = useState('');
   const [lots, setLots] = useState(0.01);
   const [amount, setAmount] = useState(100);
   const [useLots, setUseLots] = useState(true);
@@ -59,8 +61,15 @@ const OrderPanel = ({
   const currentPrice = instrument.price || 0;
   const lastDir = instrument.lastDir || 'none';
   const tradingMeta = useMemo(() => getInstrumentTradingMeta({ symbol, category, instrument }), [category, instrument, symbol]);
-  const symbolPositions = useMemo(() => positions.filter((position) => position?.symbol === symbol), [positions, symbol]);
-  const symbolOrders = useMemo(() => orders.filter((order) => order?.symbol === symbol), [orders, symbol]);
+  const normalizedSymbol = useMemo(() => normalizeSymbol(symbol), [symbol]);
+  const symbolPositions = useMemo(
+    () => positions.filter((position) => normalizeSymbol(position?.symbol) === normalizedSymbol),
+    [normalizedSymbol, positions]
+  );
+  const symbolOrders = useMemo(
+    () => orders.filter((order) => normalizeSymbol(order?.symbol) === normalizedSymbol),
+    [normalizedSymbol, orders]
+  );
   const activePnl = symbolPositions.reduce((sum, position) => sum + (Number(position?.pnl) || 0), 0);
   const quoteSnapshot = useMemo(() => getDisplayQuoteSnapshot({
     symbol,
@@ -73,11 +82,13 @@ const OrderPanel = ({
   const spreadAmt = quoteSnapshot.spread;
 
   const executionPrice = selectedSide === 'buy' ? parseFloat(askPrice) : parseFloat(bidPrice);
+  const isPendingOrder = orderType !== 'market';
+  const pendingEntryPrice = parseFloat(pendingPrice);
+  const finalPrice = isPendingOrder ? pendingEntryPrice : executionPrice;
   const lotStep = getLotStep(category, symbol, instrument);
   const minLot = getMinLot(category, symbol, instrument);
   const lotPrecision = getLotPrecision(category, symbol, instrument);
   const quantity = calculateQuantityFromLots(lots, symbol, category, instrument);
-  const finalPrice = executionPrice;
   const notionalValue = calculateUsdFromLots(lots, finalPrice, category, symbol, instrument);
   const requiredMargin = calculateMarginRequired({
     symbol,
@@ -106,10 +117,53 @@ const OrderPanel = ({
   const slPrice = slEnabled ? parseFloat(slValue) : null;
   const hasValidSize = Number.isFinite(lots) && lots >= minLot && Number.isFinite(amount) && amount > 0 && Number.isFinite(quantity) && quantity > 0;
   const hasValidPendingPrice = Number.isFinite(finalPrice) && finalPrice > 0;
+  const hasValidPendingDirection = useMemo(() => {
+    if (!isPendingOrder || !hasValidPendingPrice || !Number.isFinite(executionPrice) || executionPrice <= 0) {
+      return true;
+    }
+
+    if (selectedSide === 'buy' && orderType === 'limit') {
+      return finalPrice <= executionPrice;
+    }
+
+    if (selectedSide === 'buy' && orderType === 'stop') {
+      return finalPrice >= executionPrice;
+    }
+
+    if (selectedSide === 'sell' && orderType === 'limit') {
+      return finalPrice >= executionPrice;
+    }
+
+    if (selectedSide === 'sell' && orderType === 'stop') {
+      return finalPrice <= executionPrice;
+    }
+
+    return true;
+  }, [executionPrice, finalPrice, hasValidPendingPrice, isPendingOrder, orderType, selectedSide]);
   const hasValidTp = !tpEnabled || Number.isFinite(tpPrice);
   const hasValidSl = !slEnabled || Number.isFinite(slPrice);
   const hasEnoughMargin = !marginLoaded || requiredMargin <= freeMargin;
-  const canReview = hasValidSize && hasValidPendingPrice && hasValidTp && hasValidSl && requiredMargin > 0 && hasEnoughMargin;
+  const canReview = hasValidSize && hasValidPendingPrice && hasValidPendingDirection && hasValidTp && hasValidSl && requiredMargin > 0 && hasEnoughMargin;
+  const orderTicketLabel = formatOrderTicketLabel({ side: selectedSide, orderType });
+  const pendingPriceGuide = useMemo(() => {
+    if (!isPendingOrder) {
+      return 'Market orders execute immediately at the live quote.';
+    }
+
+    if (selectedSide === 'buy' && orderType === 'limit') {
+      return 'Buy limit should sit at or below the current ask to catch a pullback.';
+    }
+
+    if (selectedSide === 'buy' && orderType === 'stop') {
+      return 'Buy stop should sit at or above the current ask to catch a breakout.';
+    }
+
+    if (selectedSide === 'sell' && orderType === 'limit') {
+      return 'Sell limit should sit at or above the current bid to fade into strength.';
+    }
+
+    return 'Sell stop should sit at or below the current bid to catch downside momentum.';
+  }, [isPendingOrder, orderType, selectedSide]);
 
   const projectedTakeProfit = tpPrice ? calculateProjectedPnL({
     symbol,
@@ -146,6 +200,23 @@ const OrderPanel = ({
   }, [amount, useLots, finalPrice, category, symbol, instrument, minLot, lotPrecision]);
 
   useEffect(() => {
+    if (!isPendingOrder) {
+      setPendingPrice('');
+      return;
+    }
+
+    setPendingPrice((current) => {
+      if (current && Number.isFinite(parseFloat(current))) {
+        return current;
+      }
+
+      return Number.isFinite(executionPrice)
+        ? executionPrice.toFixed(instrument.precision)
+        : '';
+    });
+  }, [executionPrice, instrument.precision, isPendingOrder]);
+
+  useEffect(() => {
     if (onIntentChange) {
       onIntentChange({
         side: selectedSide,
@@ -159,12 +230,6 @@ const OrderPanel = ({
 
   const handleSideSelect = (side) => {
     setSelectedSide(side);
-    if (orderType === 'buy_limit' || orderType === 'sell_limit') {
-      setOrderType(side === 'buy' ? 'buy_limit' : 'sell_limit');
-    }
-    if (orderType === 'buy_stop' || orderType === 'sell_stop') {
-      setOrderType(side === 'buy' ? 'buy_stop' : 'sell_stop');
-    }
     setShowConfirmation(false);
   };
 
@@ -287,18 +352,68 @@ const OrderPanel = ({
                 </button>
               </div>
 
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 italic">Order Type</label>
+                  <span className="text-[8px] font-black uppercase tracking-widest text-gold-500">{orderTicketLabel}</span>
+                </div>
+                <div className="grid grid-cols-3 gap-2">
+                  {['market', 'limit', 'stop'].map((type) => (
+                    <button
+                      key={type}
+                      onClick={() => {
+                        setOrderType(type);
+                        setShowConfirmation(false);
+                      }}
+                      className={`rounded-xl border px-3 py-3 text-[9px] font-black uppercase tracking-widest transition-all ${
+                        orderType === type
+                          ? 'border-gold-500 bg-gold-500 text-slate-900 shadow-lg shadow-gold-500/20'
+                          : 'border-slate-200 bg-slate-50 text-slate-500 hover:border-gold-500/40 hover:text-slate-900 dark:border-slate-700 dark:bg-slate-800/50 dark:text-slate-300'
+                      }`}
+                    >
+                      {type}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               <div className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 px-4 py-3 flex items-center justify-between">
                 <div>
                   <p className="text-[8px] font-black uppercase tracking-widest text-slate-400">Execution</p>
-                  <p className="text-[11px] font-black uppercase tracking-widest text-slate-900 dark:text-white mt-1">Market Only</p>
+                  <p className="text-[11px] font-black uppercase tracking-widest text-slate-900 dark:text-white mt-1">{orderTicketLabel}</p>
                 </div>
                 <div className="text-right">
-                  <p className="text-[8px] font-black uppercase tracking-widest text-slate-400">Live Entry</p>
+                  <p className="text-[8px] font-black uppercase tracking-widest text-slate-400">{isPendingOrder ? 'Trigger Price' : 'Live Entry'}</p>
                   <p className="text-[11px] font-black tabular-nums text-gold-500 mt-1">
-                    {finalPrice.toLocaleString(undefined, { minimumFractionDigits: instrument.precision, maximumFractionDigits: instrument.precision })}
+                    {Number(finalPrice || 0).toLocaleString(undefined, { minimumFractionDigits: instrument.precision, maximumFractionDigits: instrument.precision })}
                   </p>
                 </div>
               </div>
+
+              {isPendingOrder && (
+                <div className="space-y-2 rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/40 p-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <label className="text-[9px] font-black uppercase tracking-widest text-slate-400">Pending Entry</label>
+                    <span className="text-[8px] font-black uppercase tracking-widest text-slate-400">
+                      Live {selectedSide === 'buy' ? 'Ask' : 'Bid'} {Number(executionPrice || 0).toFixed(instrument.precision)}
+                    </span>
+                  </div>
+                  <input
+                    type="number"
+                    step={1 / (10 ** instrument.precision)}
+                    min="0"
+                    value={pendingPrice}
+                    onChange={(event) => {
+                      setPendingPrice(event.target.value);
+                      setShowConfirmation(false);
+                    }}
+                    className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl py-3 px-4 text-sm font-black text-slate-900 dark:text-white focus:outline-none focus:border-gold-500 transition-all"
+                  />
+                  <p className="text-[8px] font-bold uppercase tracking-wide text-slate-400">
+                    {pendingPriceGuide}
+                  </p>
+                </div>
+              )}
 
               <div className="space-y-3">
                 <div className="flex justify-between items-end">
@@ -458,7 +573,7 @@ const OrderPanel = ({
                   { label: 'Lot Step', value: `${formatLots(lotStep, category, symbol, instrument)} lots` },
                   { label: 'Min Lot', value: `${formatLots(minLot, category, symbol, instrument)} lots` },
                   { label: `${tradingMeta.movementLabel} Value`, value: `$${moveValue.toFixed(2)} per ${tradingMeta.movementLabel.toLowerCase()}` },
-                  { label: 'Execution Side', value: selectedSide === 'buy' ? `Buy @ ${askPrice}` : `Sell @ ${bidPrice}` },
+                  { label: 'Execution Side', value: selectedSide === 'buy' ? `Buy ref ${askPrice}` : `Sell ref ${bidPrice}` },
                   { label: 'Mark Source', value: hasRealBidAsk ? 'Bid / Ask' : 'Synthetic Spread' },
                 ].map((item) => (
                   <div key={item.label} className="bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700/50 rounded-xl p-3">
@@ -476,7 +591,13 @@ const OrderPanel = ({
 
               {!hasValidPendingPrice && (
                 <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 px-4 py-3 text-[9px] font-black uppercase tracking-widest text-amber-500">
-                  Live market price is unavailable right now.
+                  {isPendingOrder ? 'Enter a valid trigger price.' : 'Live market price is unavailable right now.'}
+                </div>
+              )}
+
+              {!hasValidPendingDirection && (
+                <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 px-4 py-3 text-[9px] font-black uppercase tracking-widest text-amber-500">
+                  {pendingPriceGuide}
                 </div>
               )}
 
@@ -519,7 +640,7 @@ const OrderPanel = ({
                   <div className="grid grid-cols-2 gap-3 text-[10px]">
                     {[ 
                       { label: 'Instrument', value: symbol },
-                      { label: 'Type', value: formatOrderType(orderType) },
+                      { label: 'Type', value: formatOrderType(orderTicketLabel) },
                       { label: 'Side', value: selectedSide.toUpperCase() },
                       { label: 'Lots', value: formattedLots },
                       { label: 'Quantity', value: quantity.toLocaleString(undefined, { maximumFractionDigits: 4 }) },

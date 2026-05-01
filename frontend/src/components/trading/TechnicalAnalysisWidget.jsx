@@ -1,7 +1,12 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useMemo, useRef } from 'react';
+import { resolveTradingViewSymbol } from '../../utils/marketSymbols';
 
-const TechnicalAnalysis = ({ symbol = 'BTCUSDT', interval = 'D', height = '100%', theme = 'dark' }) => {
+const TechnicalAnalysis = ({ symbol = 'BTCUSDT', instrument = null, interval = 'D', height = '100%', theme = 'dark' }) => {
   const containerRef = useRef(null);
+  const tvSymbol = useMemo(
+    () => resolveTradingViewSymbol({ symbol, instrument }),
+    [instrument, symbol]
+  );
 
   useEffect(() => {
     // Clear container
@@ -21,10 +26,10 @@ const TechnicalAnalysis = ({ symbol = 'BTCUSDT', interval = 'D', height = '100%'
       "interval": interval,
       "width": "100%",
       "height": height,
-      "symbol": symbol,
+      "symbol": tvSymbol,
       "showIntervalTabs": true,
       "locale": "en",
-      "colorTheme": theme,
+      "colorTheme": theme === 'dark' ? 'dark' : 'light',
       "isTransparent": false,
       "largeChartUrl": ""
     };
@@ -43,7 +48,7 @@ const TechnicalAnalysis = ({ symbol = 'BTCUSDT', interval = 'D', height = '100%'
         containerRef.current.innerHTML = '';
       }
     };
-  }, [symbol, interval, theme, height]);
+  }, [height, interval, theme, tvSymbol]);
 
   return (
     <div 
