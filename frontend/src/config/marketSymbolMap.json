@@ -2,7 +2,8 @@
   "BTCUSDT": {
     "tradingView": "BINANCE:BTCUSDT",
     "quote": "BTCUSDT",
-    "provider": "binance",
+    "provider": "twelvedata",
+    "dataSymbol": "BTC/USD",
     "contractSize": 1,
     "quantityLabel": "BTC",
     "lotStep": 0.001,
@@ -11,7 +12,8 @@
   "ETHUSDT": {
     "tradingView": "BINANCE:ETHUSDT",
     "quote": "ETHUSDT",
-    "provider": "binance",
+    "provider": "twelvedata",
+    "dataSymbol": "ETH/USD",
     "contractSize": 1,
     "quantityLabel": "ETH",
     "lotStep": 0.001,
@@ -20,7 +22,8 @@
   "BNBUSDT": {
     "tradingView": "BINANCE:BNBUSDT",
     "quote": "BNBUSDT",
-    "provider": "binance",
+    "provider": "twelvedata",
+    "dataSymbol": "BNB/USD",
     "contractSize": 1,
     "quantityLabel": "BNB",
     "lotStep": 0.001,
@@ -29,7 +32,8 @@
   "SOLUSDT": {
     "tradingView": "BINANCE:SOLUSDT",
     "quote": "SOLUSDT",
-    "provider": "binance",
+    "provider": "twelvedata",
+    "dataSymbol": "SOL/USD",
     "contractSize": 1,
     "quantityLabel": "SOL",
     "lotStep": 0.001,
@@ -38,7 +42,8 @@
   "ADAUSDT": {
     "tradingView": "BINANCE:ADAUSDT",
     "quote": "ADAUSDT",
-    "provider": "binance",
+    "provider": "twelvedata",
+    "dataSymbol": "ADA/USD",
     "contractSize": 1,
     "quantityLabel": "ADA",
     "lotStep": 0.001,

@@ -6,7 +6,6 @@ const {
   resolveTwelveDataSymbol,
 } = require('./marketDataService');
 
-const BINANCE_STREAM_URL = 'wss://stream.binance.com:9443/ws/!ticker@arr';
 const TWELVE_DATA_STREAM_URL = 'wss://ws.twelvedata.com/v1/quotes/price';
 const MAX_RECONNECT_DELAY_MS = 15000;
 
@@ -14,14 +13,29 @@ class MarketStreamService {
   constructor() {
     this.clients = new Set();
     this.latestQuotes = {};
-    this.binanceSocket = null;
     this.twelveDataSocket = null;
-    this.binanceReconnectAttempts = 0;
     this.twelveDataReconnectAttempts = 0;
-    this.binanceReconnectTimer = null;
     this.twelveDataReconnectTimer = null;
     this.twelveDataHeartbeatTimer = null;
     this.started = false;
+  }
+
+  getTwelveDataSymbolMap() {
+    return Object.entries(marketSymbolMap).reduce((acc, [symbol, config]) => {
+      if (config?.provider !== 'twelvedata') {
+        return acc;
+      }
+
+      const providerSymbol = String(resolveTwelveDataSymbol(symbol, config) || '').trim();
+      if (!providerSymbol) {
+        return acc;
+      }
+
+      const normalizedInternalSymbol = normalizeSymbol(symbol);
+      acc[providerSymbol] = normalizedInternalSymbol;
+      acc[normalizeSymbol(providerSymbol)] = normalizedInternalSymbol;
+      return acc;
+    }, {});
   }
 
   getTwelveDataSymbols() {
@@ -105,85 +119,20 @@ class MarketStreamService {
     });
   }
 
-  scheduleReconnect(kind) {
-    const attempts = kind === 'binance' ? this.binanceReconnectAttempts : this.twelveDataReconnectAttempts;
-    const delay = Math.min(1000 * (2 ** Math.min(attempts, 4)), MAX_RECONNECT_DELAY_MS);
-    const timerField = kind === 'binance' ? 'binanceReconnectTimer' : 'twelveDataReconnectTimer';
+  scheduleReconnect() {
+    const delay = Math.min(
+      1000 * (2 ** Math.min(this.twelveDataReconnectAttempts, 4)),
+      MAX_RECONNECT_DELAY_MS
+    );
 
-    if (this[timerField]) {
-      clearTimeout(this[timerField]);
+    if (this.twelveDataReconnectTimer) {
+      clearTimeout(this.twelveDataReconnectTimer);
     }
 
-    this[timerField] = setTimeout(() => {
-      this[timerField] = null;
-      if (kind === 'binance') {
-        this.connectBinance();
-        return;
-      }
-
+    this.twelveDataReconnectTimer = setTimeout(() => {
+      this.twelveDataReconnectTimer = null;
       this.connectTwelveData();
     }, delay);
-  }
-
-  connectBinance() {
-    if (!this.started || this.binanceSocket) {
-      return;
-    }
-
-    const socket = new WebSocket(BINANCE_STREAM_URL);
-    this.binanceSocket = socket;
-
-    socket.on('open', () => {
-      this.binanceReconnectAttempts = 0;
-    });
-
-    socket.on('message', (rawMessage) => {
-      try {
-        const payload = JSON.parse(rawMessage.toString());
-        if (!Array.isArray(payload)) {
-          return;
-        }
-
-        const updatedAt = Date.now();
-        const quotes = payload.reduce((acc, ticker) => {
-          if (!ticker?.s || !ticker?.c) {
-            return acc;
-          }
-
-          acc[normalizeSymbol(ticker.s)] = {
-            price: Number.parseFloat(ticker.c),
-            bid: Number.parseFloat(ticker.b),
-            ask: Number.parseFloat(ticker.a),
-            change: Number.parseFloat(ticker.P),
-            volume: Number.parseFloat(ticker.v),
-            updatedAt,
-            source: 'binance-stream',
-          };
-          return acc;
-        }, {});
-
-        this.publishQuotes(quotes);
-      } catch (error) {}
-    });
-
-    socket.on('close', () => {
-      if (this.binanceSocket === socket) {
-        this.binanceSocket = null;
-      }
-
-      if (!this.started) {
-        return;
-      }
-
-      this.binanceReconnectAttempts += 1;
-      this.scheduleReconnect('binance');
-    });
-
-    socket.on('error', () => {
-      try {
-        socket.close();
-      } catch (error) {}
-    });
   }
 
   connectTwelveData() {
@@ -192,6 +141,7 @@ class MarketStreamService {
     }
 
     const symbols = this.getTwelveDataSymbols();
+    const symbolMap = this.getTwelveDataSymbolMap();
     if (symbols.length === 0) {
       return;
     }
@@ -226,17 +176,21 @@ class MarketStreamService {
     socket.on('message', (rawMessage) => {
       try {
         const payload = JSON.parse(rawMessage.toString());
-        const normalizedSymbol = normalizeSymbol(payload?.symbol || '');
+        const providerSymbol = String(payload?.symbol || '').trim();
+        const normalizedProviderSymbol = normalizeSymbol(providerSymbol);
+        const internalSymbol = symbolMap[providerSymbol] || symbolMap[normalizedProviderSymbol] || normalizedProviderSymbol;
         const price = Number.parseFloat(payload?.price ?? payload?.close);
 
-        if (!normalizedSymbol || !Number.isFinite(price)) {
+        if (!internalSymbol || !Number.isFinite(price)) {
           return;
         }
 
         const timestamp = Number.parseInt(payload.timestamp ?? payload.time ?? 0, 10);
         this.publishQuotes({
-          [normalizedSymbol]: {
+          [internalSymbol]: {
             price,
+            bid: Number.parseFloat(payload.bid) || null,
+            ask: Number.parseFloat(payload.ask) || null,
             change: Number.parseFloat(payload.percent_change ?? payload.change ?? 0) || 0,
             volume: Number.parseFloat(payload.day_volume ?? payload.volume ?? 0) || null,
             updatedAt: Number.isFinite(timestamp) && timestamp > 0 ? timestamp * 1000 : Date.now(),
@@ -261,7 +215,7 @@ class MarketStreamService {
       }
 
       this.twelveDataReconnectAttempts += 1;
-      this.scheduleReconnect('twelvedata');
+      this.scheduleReconnect();
     });
 
     socket.on('error', () => {
@@ -277,7 +231,6 @@ class MarketStreamService {
     }
 
     this.started = true;
-    this.connectBinance();
     this.connectTwelveData();
   }
 }

@@ -1,8 +1,8 @@
-import React, { useEffect, useRef, useState, useCallback } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { createChart } from 'lightweight-charts';
-import { FaExpand, FaCompress, FaChartBar } from 'react-icons/fa';
+import { FaChartBar, FaCompress, FaExpand } from 'react-icons/fa';
 import infraService from '../../services/infraService';
-import { buildInstrumentSnapshot, formatInstrumentDisplaySymbol, getSymbolPrecision } from '../../utils/marketSymbols';
+import { buildInstrumentSnapshot, formatInstrumentDisplaySymbol, getSymbolPrecision, normalizeSymbol } from '../../utils/marketSymbols';
 
 const INTERVALS = [
   { label: '1m', value: '1m' },
@@ -14,36 +14,50 @@ const INTERVALS = [
   { label: '1W', value: '1w' },
 ];
 
-const NON_STREAM_REFRESH_MS = 2500;
+const HISTORY_REFRESH_MS = 15000;
 
 const formatExecutionSymbol = (symbol = '') => formatInstrumentDisplaySymbol(symbol, { withSlash: true }).replace('/', ' / ');
 
-const RealTimeChart = ({ 
+const toCandles = (rows = []) => rows.reduce((acc, row) => {
+  const time = Number(row?.[0]) / 1000;
+  const open = Number.parseFloat(row?.[1]);
+  const high = Number.parseFloat(row?.[2]);
+  const low = Number.parseFloat(row?.[3]);
+  const close = Number.parseFloat(row?.[4]);
+
+  if (!Number.isFinite(time) || [open, high, low, close].some((value) => !Number.isFinite(value))) {
+    return acc;
+  }
+
+  acc.push({ time, open, high, low, close });
+  return acc;
+}, []);
+
+const RealTimeChart = ({
   symbol = 'BTCUSDT',
   theme = 'dark',
   instrument = null,
   positions = [],
   activeIntent = null,
   livePrice = 0,
-  initialPrice = 100
+  initialPrice = 100,
 }) => {
   const containerRef = useRef(null);
   const chartRef = useRef(null);
   const seriesRef = useRef(null);
-  const wsRef = useRef(null);
-  const wsConnectTimerRef = useRef(null);
-  const wsClosingRef = useRef(false);
   const candleTimesRef = useRef([]);
   const candleDataRef = useRef([]);
-  const shouldUseLiveWsRef = useRef(true);
+  const historyRefreshRef = useRef(null);
   const [interval, setInterval] = useState('15m');
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [lastPrice, setLastPrice] = useState(null);
   const [priceChange, setPriceChange] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [liveStatus, setLiveStatus] = useState('connecting');
+  const [lastQuoteAt, setLastQuoteAt] = useState(0);
 
   const isDark = theme === 'dark';
+  const normalizedSymbol = useMemo(() => normalizeSymbol(symbol), [symbol]);
   const instrumentSnapshot = buildInstrumentSnapshot({
     symbol,
     instrument: instrument || { symbol, price: livePrice || initialPrice },
@@ -56,112 +70,73 @@ const RealTimeChart = ({
   const pricePrecision = Number.isInteger(instrumentSnapshot.precision)
     ? instrumentSnapshot.precision
     : getSymbolPrecision({
-        symbol,
-        category: instrumentSnapshot.category || '',
-        price: livePrice || initialPrice || 0,
-      });
+      symbol,
+      category: instrumentSnapshot.category || '',
+      price: livePrice || initialPrice || 0,
+    });
   const priceMinMove = pricePrecision <= 0 ? 1 : Number((1 / (10 ** pricePrecision)).toFixed(pricePrecision));
 
-  // Format symbol cleanly for Binance API
-  const binanceSymbol = symbol.replace(/[^A-Z0-9]/g, '');
-  const isBinanceWsCandidate = useCallback((sym) => {
-    if (!sym) return false;
-    const s = sym.replace(/[^A-Z0-9]/g, '');
-    // Binance klines are reliable for spot-like symbols (primarily quote-paired crypto symbols)
-    return s.endsWith('USDT') || s.endsWith('BTC') || s.endsWith('BUSD');
-  }, []);
-
-  const canUseLiveConnections = useCallback(() => {
-    if (typeof window === 'undefined') return true;
-    return navigator.onLine && document.visibilityState !== 'hidden';
-  }, []);
-
-  // --- Helper: Generate Mock Data ---
-  const generateMockData = (basePrice, count = 300) => {
-    let prev = basePrice || 100;
-    const data = [];
-    const now = Math.floor(Date.now() / 1000);
-    const intervalSec = 15 * 60; // 15m default
-    
-    for (let i = count; i > 0; i--) {
-      const open = prev;
-      const close = open + (Math.random() - 0.5) * (open * 0.01);
-      const high = Math.max(open, close) + Math.random() * (open * 0.005);
-      const low = Math.min(open, close) - Math.random() * (open * 0.005);
-      
-      data.push({
-        time: now - (i * intervalSec),
-        open, high, low, close
-      });
-      prev = close;
-    }
-    return data;
-  };
-
-  // --- Fetch Historical Kline Data via Backend Proxy ---
-  const fetchData = useCallback(async (sym, iv, initPrice) => {
-    try {
-      setIsLoading(true);
-      const res = await infraService.getMarketHistory(sym, iv, initPrice);
-      
-      if (!res.success || !res.data) throw new Error('Proxy error');
-
-      const candles = res.data.map(d => ({
-        time: d[0] / 1000,
-        open: parseFloat(d[1]),
-        high: parseFloat(d[2]),
-        low: parseFloat(d[3]),
-        close: parseFloat(d[4]),
-      }));
-
-      return {
-        candles,
-        isMock: Boolean(res.isMock)
-      };
-    } catch (err) {
-      // Failover is handled by proxy, but we handle it here too for maximum safety
-      return {
-        candles: generateMockData(initPrice),
-        isMock: true
-      };
-    } finally {
-      setIsLoading(false);
-    }
-  }, []); // initialPrice removed from dependencies to prevent re-creating this function on every price update
-
-  // --- Build / Rebuild chart ---
   useEffect(() => {
-    if (!containerRef.current) return;
-    let historyPollTimer = null;
+    const handleOnline = () => setLiveStatus('connecting');
+    const handleOffline = () => setLiveStatus('offline');
+    const handleVisibility = () => {
+      if (document.visibilityState === 'hidden') {
+        setLiveStatus('offline');
+      } else {
+        setLiveStatus('connecting');
+      }
+    };
 
-    // Guards against the async fetchData or ResizeObserver resolver after this effect has cleaned up.
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    document.addEventListener('visibilitychange', handleVisibility);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+      document.removeEventListener('visibilitychange', handleVisibility);
+    };
+  }, []);
+
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape' && isFullscreen) {
+        setIsFullscreen(false);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isFullscreen]);
+
+  useEffect(() => {
+    document.body.style.overflow = isFullscreen ? 'hidden' : 'unset';
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [isFullscreen]);
+
+  useEffect(() => {
+    if (!containerRef.current) {
+      return undefined;
+    }
+
     let active = true;
-    shouldUseLiveWsRef.current = true;
-    setLiveStatus(canUseLiveConnections() ? 'connecting' : 'offline');
 
-    // Cleanup previous chart/WS before creating new ones
-    if (wsRef.current) {
-      try {
-        wsClosingRef.current = true;
-        wsRef.current.onmessage = null;
-        wsRef.current.onerror = null;
-        wsRef.current.onclose = null;
-        if (wsRef.current.readyState === WebSocket.OPEN || wsRef.current.readyState === WebSocket.CONNECTING) {
-          wsRef.current.close(1000, 'Chart reinit');
-        }
-      } catch (e) {}
-      wsRef.current = null;
+    if (historyRefreshRef.current) {
+      clearInterval(historyRefreshRef.current);
+      historyRefreshRef.current = null;
     }
-    if (wsConnectTimerRef.current) {
-      clearTimeout(wsConnectTimerRef.current);
-      wsConnectTimerRef.current = null;
-    }
-    
+
     if (chartRef.current) {
-      try { chartRef.current.remove(); } catch (e) {}
+      try {
+        chartRef.current.remove();
+      } catch (error) {}
       chartRef.current = null;
     }
     seriesRef.current = null;
+    candleTimesRef.current = [];
+    candleDataRef.current = [];
 
     const chart = createChart(containerRef.current, {
       layout: {
@@ -195,20 +170,7 @@ const RealTimeChart = ({
     });
     chartRef.current = chart;
 
-    // Ensure re-layout after a short delay (for CSS Transitions/Hidden switches)
-    const handleInitialLayout = () => {
-      if (!active || !chartRef.current || !containerRef.current) return;
-      const w = containerRef.current.clientWidth;
-      const h = containerRef.current.clientHeight;
-      if (w > 0 && h > 0) {
-        chartRef.current.applyOptions({ width: w, height: h });
-      }
-    };
-    setTimeout(handleInitialLayout, 50);
-    setTimeout(handleInitialLayout, 250); // double check after transition
-
-    // Candlestick series
-    const candles = chart.addCandlestickSeries({
+    const series = chart.addCandlestickSeries({
       upColor: '#10b981',
       downColor: '#ef4444',
       borderUpColor: '#10b981',
@@ -221,231 +183,96 @@ const RealTimeChart = ({
         minMove: priceMinMove,
       },
     });
-    seriesRef.current = candles;
+    seriesRef.current = series;
 
-    // Load historical data then open WS
-    fetchData(binanceSymbol, interval, initialPrice).then(result => {
-      // strict check: if not active OR chart/series already nulled, bail out.
-      if (!active || !seriesRef.current || !chartRef.current) return;
-
-      try {
-        const data = result?.candles || [];
-        const isMock = Boolean(result?.isMock);
-
-        if (data.length > 0) {
-          seriesRef.current.setData(data);
-          candleTimesRef.current = data.map(c => c.time);
-          candleDataRef.current = data;
-          chartRef.current.timeScale().fitContent();
-          
-          const last = data[data.length - 1];
-          const first = data[0];
-          setLastPrice(last.close);
-          setPriceChange(((last.close - first.open) / first.open * 100).toFixed(2));
-          window.dispatchEvent(new CustomEvent('active_price_update', {
-            detail: { symbol, price: last.close, source: 'platform-feed' }
-          }));
-        }
-
-        // Don't open Binance WS for fallback/mock data or unsupported symbols.
-        if (isMock || !isBinanceWsCandidate(binanceSymbol)) {
-          if (!isMock) {
-            historyPollTimer = setInterval(async () => {
-              const refresh = await fetchData(binanceSymbol, interval, initialPrice);
-              if (!active || !seriesRef.current || !chartRef.current || !refresh?.candles?.length) {
-                return;
-              }
-
-              const refreshedData = refresh.candles;
-              seriesRef.current.setData(refreshedData);
-              candleTimesRef.current = refreshedData.map((candle) => candle.time);
-              candleDataRef.current = refreshedData;
-
-              const latest = refreshedData[refreshedData.length - 1];
-              const first = refreshedData[0];
-              setLastPrice(latest.close);
-              setPriceChange(((latest.close - first.open) / first.open * 100).toFixed(2));
-              window.dispatchEvent(new CustomEvent('active_price_update', {
-                detail: { symbol, price: latest.close, source: 'platform-feed' }
-              }));
-              setLiveStatus('live');
-            }, NON_STREAM_REFRESH_MS);
-          }
-
-          setLiveStatus(isMock ? 'fallback' : 'live');
-          return;
-        }
-        if (!canUseLiveConnections()) {
-          setLiveStatus('offline');
-          return;
-        }
-
-        // Open WebSocket for live kline updates
-        const wsSymbol = binanceSymbol.toLowerCase();
-        wsConnectTimerRef.current = setTimeout(() => {
-          if (!active || wsRef.current || !shouldUseLiveWsRef.current || !canUseLiveConnections()) return;
-          wsClosingRef.current = false;
-          const ws = new WebSocket(`wss://stream.binance.com:9443/ws/${wsSymbol}@kline_${interval}`);
-          wsRef.current = ws;
-
-          ws.onopen = () => {
-            if (!active || wsRef.current !== ws) return;
-            setLiveStatus('live');
-          };
-          ws.onerror = () => {
-            if (!active || wsRef.current !== ws || wsClosingRef.current) return;
-            setLiveStatus(canUseLiveConnections() ? 'reconnecting' : 'offline');
-          };
-          ws.onclose = (event) => {
-            if (wsRef.current === ws) wsRef.current = null;
-            if (!active) return;
-            if (wsClosingRef.current || event.code === 1000) {
-              setLiveStatus(canUseLiveConnections() ? 'idle' : 'offline');
-              return;
-            }
-            setLiveStatus(canUseLiveConnections() ? 'reconnecting' : 'offline');
-          };
-
-          ws.onmessage = (event) => {
-            try {
-              // Re-check existence inside every async callback
-              if (!active || !seriesRef.current) return;
-              const { k } = JSON.parse(event.data);
-              if (!k) return;
-              const tick = {
-                time: k.t / 1000,
-                open: parseFloat(k.o),
-                high: parseFloat(k.h),
-                low: parseFloat(k.l),
-                close: parseFloat(k.c),
-              };
-              seriesRef.current.update(tick);
-              const existingIndex = candleDataRef.current.findIndex((candle) => candle.time === tick.time);
-              if (existingIndex >= 0) {
-                candleDataRef.current[existingIndex] = tick;
-              } else {
-                candleDataRef.current = [...candleDataRef.current, tick].slice(-500);
-              }
-              if (
-                candleTimesRef.current.length === 0 ||
-                candleTimesRef.current[candleTimesRef.current.length - 1] !== tick.time
-              ) {
-                candleTimesRef.current.push(tick.time);
-                if (candleTimesRef.current.length > 2000) {
-                  candleTimesRef.current = candleTimesRef.current.slice(-2000);
-                }
-              }
-              setLastPrice(tick.close);
-              window.dispatchEvent(new CustomEvent('active_price_update', { 
-                detail: { symbol, price: tick.close, source: 'platform-feed' } 
-              }));
-              setLiveStatus('live');
-            } catch (e) {}
-          };
-        }, 120);
-      } catch (err) {
-        console.error('[RealTimeChart] Chart update error:', err);
+    const syncChartSize = () => {
+      if (!active || !chartRef.current || !containerRef.current) {
+        return;
       }
-    });
 
-    // --- Using ResizeObserver instead of window.resize for better local lifecycle sync ---
-    const resizeObserver = new ResizeObserver((entries) => {
-      if (!active || !chartRef.current || !entries.length) return;
-      const { width, height } = entries[0].contentRect;
-      if (width === 0 || height === 0) return; // ignore hidden state
-      
-      try {
+      const width = containerRef.current.clientWidth;
+      const height = containerRef.current.clientHeight;
+      if (width > 0 && height > 0) {
         chartRef.current.applyOptions({ width, height });
-      } catch (e) {
-        // "Object is disposed" usually happens here if remove() was called but RO fired one last time
       }
-    });
+    };
 
+    const loadHistory = async () => {
+      try {
+        setIsLoading(true);
+        const response = await infraService.getMarketHistory(symbol, interval, initialPrice);
+        const candles = toCandles(response?.data || []);
+
+        if (!active || !seriesRef.current || candles.length === 0) {
+          return;
+        }
+
+        seriesRef.current.setData(candles);
+        candleDataRef.current = candles;
+        candleTimesRef.current = candles.map((candle) => candle.time);
+        chartRef.current?.timeScale().fitContent();
+
+        const first = candles[0];
+        const last = candles[candles.length - 1];
+        setLastPrice(last.close);
+        setPriceChange(first?.open ? (((last.close - first.open) / first.open) * 100).toFixed(2) : null);
+        setLiveStatus('live');
+
+        window.dispatchEvent(new CustomEvent('active_price_update', {
+          detail: { symbol, price: last.close, source: 'platform-feed' },
+        }));
+      } catch (error) {
+        if (active) {
+          setLiveStatus(navigator.onLine ? 'delayed' : 'offline');
+        }
+      } finally {
+        if (active) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    loadHistory();
+    historyRefreshRef.current = setInterval(loadHistory, HISTORY_REFRESH_MS);
+
+    const resizeObserver = new ResizeObserver(() => {
+      syncChartSize();
+    });
     resizeObserver.observe(containerRef.current);
 
-    const handleOnline = () => {
-      if (!active) return;
-      setLiveStatus('connecting');
-    };
-
-    const handleOffline = () => {
-      if (!active) return;
-      setLiveStatus('offline');
-      if (wsRef.current) {
-        try {
-          wsClosingRef.current = true;
-          wsRef.current.onmessage = null;
-          wsRef.current.onerror = null;
-          wsRef.current.onclose = null;
-          wsRef.current.close(1000, 'Browser offline');
-        } catch (e) {}
-        wsRef.current = null;
-      }
-    };
-
-    const handleVisibilityChange = () => {
-      if (!active) return;
-      if (document.visibilityState === 'hidden') {
-        handleOffline();
-      }
-    };
-
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
-    document.addEventListener('visibilitychange', handleVisibilityChange);
+    setTimeout(syncChartSize, 50);
+    setTimeout(syncChartSize, 250);
 
     return () => {
       active = false;
-      shouldUseLiveWsRef.current = false;
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      if (historyRefreshRef.current) {
+        clearInterval(historyRefreshRef.current);
+        historyRefreshRef.current = null;
+      }
       resizeObserver.disconnect();
-      if (wsConnectTimerRef.current) {
-        clearTimeout(wsConnectTimerRef.current);
-        wsConnectTimerRef.current = null;
-      }
-      if (historyPollTimer) {
-        clearInterval(historyPollTimer);
-        historyPollTimer = null;
-      }
-      if (wsRef.current) {
-        try {
-          wsClosingRef.current = true;
-          // Null out all handlers FIRST to silence any incoming messages/errors during close
-          wsRef.current.onmessage = null;
-          wsRef.current.onerror = null;
-          wsRef.current.onclose = null;
-          // Only close if not already closing/closed
-          if (wsRef.current.readyState === WebSocket.OPEN || wsRef.current.readyState === WebSocket.CONNECTING) {
-            wsRef.current.close();
-          }
-        } catch (e) {}
-        wsRef.current = null;
-      }
-      // Null refs BEFORE calling remove() to stop pending async callbacks immediately
+
       const currentChart = chartRef.current;
-      seriesRef.current = null;
       chartRef.current = null;
-      
+      seriesRef.current = null;
+      candleTimesRef.current = [];
+      candleDataRef.current = [];
+
       if (currentChart) {
         try {
           currentChart.remove();
-        } catch (e) {}
+        } catch (error) {}
       }
-      candleTimesRef.current = [];
-      candleDataRef.current = [];
     };
-  }, [symbol, interval, isDark, fetchData, isBinanceWsCandidate, priceMinMove, pricePrecision]); // initialPrice removed from dependencies
+  }, [interval, isDark, priceMinMove, pricePrecision, symbol]);
 
   useEffect(() => {
-    const nextPrice = Number.parseFloat(livePrice) || 0;
-    if (!nextPrice || !seriesRef.current || candleDataRef.current.length === 0) {
+    const nextPrice = Number.parseFloat(livePrice);
+    if (!Number.isFinite(nextPrice) || !seriesRef.current || candleDataRef.current.length === 0) {
       return;
     }
 
     const lastCandle = candleDataRef.current[candleDataRef.current.length - 1];
-    if (!lastCandle || lastCandle.close === nextPrice) {
+    if (!lastCandle) {
       return;
     }
 
@@ -464,61 +291,61 @@ const RealTimeChart = ({
     try {
       seriesRef.current.update(syncedCandle);
       setLastPrice(nextPrice);
+      setLastQuoteAt(Date.now());
+      setLiveStatus(navigator.onLine ? 'live' : 'offline');
       window.dispatchEvent(new CustomEvent('active_price_update', {
-        detail: { symbol, price: nextPrice, source: 'platform-feed' }
+        detail: { symbol, price: nextPrice, source: 'platform-feed' },
       }));
-    } catch (error) {
-      console.error('[RealTimeChart] Live price sync error:', error);
-    }
+    } catch (error) {}
   }, [livePrice, symbol]);
 
-  // --- Plot Buy/Sell markers when positions change ---
   useEffect(() => {
-    if (!seriesRef.current) return;
+    if (!seriesRef.current) {
+      return;
+    }
 
     const snapToNearestCandleTime = (unixTime) => {
       const times = candleTimesRef.current;
-      if (!times || times.length === 0) return Math.floor(Date.now() / 1000);
+      if (!times.length) {
+        return Math.floor(Date.now() / 1000);
+      }
 
       if (unixTime <= times[0]) return times[0];
       if (unixTime >= times[times.length - 1]) return times[times.length - 1];
 
-      let lo = 0;
-      let hi = times.length - 1;
-      while (lo <= hi) {
-        const mid = Math.floor((lo + hi) / 2);
+      let low = 0;
+      let high = times.length - 1;
+      while (low <= high) {
+        const mid = Math.floor((low + high) / 2);
         if (times[mid] === unixTime) return times[mid];
-        if (times[mid] < unixTime) lo = mid + 1;
-        else hi = mid - 1;
+        if (times[mid] < unixTime) low = mid + 1;
+        else high = mid - 1;
       }
 
-      const lower = times[Math.max(0, hi)];
-      const upper = times[Math.min(times.length - 1, lo)];
-      return (Math.abs(unixTime - lower) <= Math.abs(upper - unixTime)) ? lower : upper;
+      const lower = times[Math.max(0, high)];
+      const upper = times[Math.min(times.length - 1, low)];
+      return Math.abs(unixTime - lower) <= Math.abs(upper - unixTime) ? lower : upper;
     };
 
-    const relevant = positions.filter(
-      p => p?.symbol && p.symbol.replace(/[^A-Z0-9]/g, '') === binanceSymbol
-    );
+    const markers = positions
+      .filter((position) => normalizeSymbol(position?.symbol) === normalizedSymbol)
+      .map((position) => {
+        const side = String(position.side || position.type || 'buy').toLowerCase();
+        const isBuy = side === 'buy';
+        const rawTime = position.created_at || position.createdAt || position.entryTime || position.openTime;
+        const unixTime = rawTime
+          ? Math.floor(new Date(rawTime).getTime() / 1000)
+          : Math.floor(Date.now() / 1000);
 
-    const markers = relevant.map(pos => {
-      const side = (pos.side || pos.type || 'buy').toLowerCase();
-      const isBuy = side === 'buy';
-      // Position times are rarely exact candle opens; snap for guaranteed marker visibility.
-      const rawT = pos.created_at || pos.createdAt || pos.entryTime || pos.openTime
-        ? Math.floor(new Date(pos.created_at || pos.createdAt || pos.entryTime || pos.openTime).getTime() / 1000)
-        : Math.floor(Date.now() / 1000);
-      const t = snapToNearestCandleTime(rawT);
-
-      return {
-        time: t,
-        position: isBuy ? 'belowBar' : 'aboveBar',
-        color: isBuy ? '#10b981' : '#ef4444',
-        shape: isBuy ? 'arrowUp' : 'arrowDown',
-        size: 3,
-        text: `${isBuy ? 'BUY' : 'SELL'} @ ${Number(pos.entryPrice || pos.entry_price || 0).toLocaleString()}`,
-      };
-    });
+        return {
+          time: snapToNearestCandleTime(unixTime),
+          position: isBuy ? 'belowBar' : 'aboveBar',
+          color: isBuy ? '#10b981' : '#ef4444',
+          shape: isBuy ? 'arrowUp' : 'arrowDown',
+          size: 3,
+          text: `${isBuy ? 'BUY' : 'SELL'} @ ${Number(position.entryPrice || position.entry_price || 0).toLocaleString()}`,
+        };
+      });
 
     if (activeIntent?.side && candleDataRef.current.length > 0) {
       const latestCandle = candleDataRef.current[candleDataRef.current.length - 1];
@@ -534,41 +361,54 @@ const RealTimeChart = ({
     }
 
     markers.sort((a, b) => a.time - b.time);
-    try { seriesRef.current.setMarkers(markers); } catch (e) {}
-  }, [activeIntent, positions, symbol, interval]);
-// Fullscreen Escape key
+
+    try {
+      seriesRef.current.setMarkers(markers);
+    } catch (error) {}
+  }, [activeIntent, normalizedSymbol, positions]);
+
   useEffect(() => {
-    const onKey = (e) => { if (e.key === 'Escape' && isFullscreen) setIsFullscreen(false); };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [isFullscreen]);
+    if (!lastQuoteAt) {
+      return undefined;
+    }
+
+    const timer = setInterval(() => {
+      const isFresh = Date.now() - lastQuoteAt < 20000;
+      setLiveStatus((previous) => {
+        if (!navigator.onLine) {
+          return 'offline';
+        }
+        if (previous === 'connecting' || previous === 'delayed') {
+          return previous;
+        }
+        return isFresh ? 'live' : 'delayed';
+      });
+    }, 5000);
+
+    return () => clearInterval(timer);
+  }, [lastQuoteAt]);
 
   const isUp = Number(priceChange) >= 0;
   const liveLabel = {
     live: 'LIVE',
     connecting: 'CONNECTING',
-    reconnecting: 'RECONNECTING',
+    delayed: 'SYNCING',
     offline: 'OFFLINE',
-    fallback: 'SIMULATED',
-    idle: 'READY',
   }[liveStatus] || 'LIVE';
   const liveTone = liveStatus === 'live'
     ? 'text-emerald-400'
-    : liveStatus === 'fallback'
-      ? 'text-amber-400'
-      : 'text-slate-400';
+    : liveStatus === 'offline'
+      ? 'text-slate-400'
+      : 'text-amber-400';
   const liveDotTone = liveStatus === 'live'
     ? 'bg-emerald-500 animate-pulse'
-    : liveStatus === 'fallback'
-      ? 'bg-amber-400'
-      : 'bg-slate-500';
+    : liveStatus === 'offline'
+      ? 'bg-slate-500'
+      : 'bg-amber-400';
 
   return (
-    <div className={`flex flex-col h-full w-full ${isDark ? 'bg-[#0a0f1c]' : 'bg-white'} ${isFullscreen ? 'fixed inset-0 z-[100]' : 'relative'}`}>
-      
-      {/* ── Toolbar ── */}
-      <div className={`flex items-center justify-between px-4 py-2 border-b flex-shrink-0 ${isDark ? 'bg-[#0f172a] border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
-        {/* Left: Symbol + Price */}
+    <div className={`flex h-full w-full flex-col ${isDark ? 'bg-[#0a0f1c]' : 'bg-white'} ${isFullscreen ? 'fixed inset-0 z-[100]' : 'relative'}`}>
+      <div className={`flex items-center justify-between border-b px-4 py-2 ${isDark ? 'bg-[#0f172a] border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2">
             <FaChartBar size={12} className="text-gold-500" />
@@ -576,13 +416,16 @@ const RealTimeChart = ({
               {formatExecutionSymbol(symbol)}
             </span>
           </div>
-          {lastPrice && (
+          {lastPrice !== null && (
             <div className="flex items-center gap-2">
               <span className={`text-sm font-black tabular-nums ${isDark ? 'text-white' : 'text-slate-900'}`}>
-                {Number(lastPrice).toLocaleString(undefined, { minimumFractionDigits: pricePrecision, maximumFractionDigits: pricePrecision })}
+                {Number(lastPrice).toLocaleString(undefined, {
+                  minimumFractionDigits: pricePrecision,
+                  maximumFractionDigits: pricePrecision,
+                })}
               </span>
               {priceChange && (
-                <span className={`text-[9px] font-black px-2 py-0.5 rounded-full ${isUp ? 'bg-emerald-500/20 text-emerald-400' : 'bg-rose-500/20 text-rose-400'}`}>
+                <span className={`rounded-full px-2 py-0.5 text-[9px] font-black ${isUp ? 'bg-emerald-500/20 text-emerald-400' : 'bg-rose-500/20 text-rose-400'}`}>
                   {isUp ? '+' : ''}{priceChange}%
                 </span>
               )}
@@ -590,37 +433,35 @@ const RealTimeChart = ({
           )}
         </div>
 
-        {/* Center: Interval buttons */}
         <div className="flex items-center gap-1">
-          {INTERVALS.map(iv => (
+          {INTERVALS.map((item) => (
             <button
-              key={iv.value}
-              onClick={() => setInterval(iv.value)}
-              className={`px-2.5 py-1 rounded-md text-[9px] font-black uppercase tracking-wide transition-all ${
-                interval === iv.value
+              key={item.value}
+              onClick={() => setInterval(item.value)}
+              className={`rounded-md px-2.5 py-1 text-[9px] font-black uppercase tracking-wide transition-all ${
+                interval === item.value
                   ? 'bg-gold-500 text-slate-900'
                   : isDark
-                    ? 'text-slate-400 hover:text-white hover:bg-slate-800'
-                    : 'text-slate-500 hover:text-slate-900 hover:bg-slate-200'
+                    ? 'text-slate-400 hover:bg-slate-800 hover:text-white'
+                    : 'text-slate-500 hover:bg-slate-200 hover:text-slate-900'
               }`}
             >
-              {iv.label}
+              {item.label}
             </button>
           ))}
         </div>
 
-        {/* Right: Controls */}
         <div className="flex items-center gap-2">
           {isLoading && (
-            <span className="text-[8px] text-slate-400 uppercase tracking-widest animate-pulse">Loading...</span>
+            <span className="text-[8px] uppercase tracking-widest text-slate-400 animate-pulse">Loading...</span>
           )}
           <span className={`flex items-center gap-1.5 text-[8px] font-black uppercase tracking-widest ${liveTone}`}>
-            <span className={`w-1.5 h-1.5 rounded-full ${liveDotTone}`} />
+            <span className={`h-1.5 w-1.5 rounded-full ${liveDotTone}`} />
             {liveLabel}
           </span>
           <button
-            onClick={() => setIsFullscreen(f => !f)}
-            className={`p-1.5 rounded-md transition-all ${isDark ? 'text-slate-400 hover:text-white hover:bg-slate-800' : 'text-slate-500 hover:text-slate-900 hover:bg-slate-200'}`}
+            onClick={() => setIsFullscreen((value) => !value)}
+            className={`rounded-md p-1.5 transition-all ${isDark ? 'text-slate-400 hover:bg-slate-800 hover:text-white' : 'text-slate-500 hover:bg-slate-200 hover:text-slate-900'}`}
             title={isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}
           >
             {isFullscreen ? <FaCompress size={11} /> : <FaExpand size={11} />}
@@ -628,12 +469,9 @@ const RealTimeChart = ({
         </div>
       </div>
 
-      {/* ── Chart Canvas ── */}
-      <div ref={containerRef} className="flex-1 relative min-h-0" />
+      <div ref={containerRef} className="flex-1 min-h-0" />
     </div>
   );
 };
 
 export default RealTimeChart;
-
-

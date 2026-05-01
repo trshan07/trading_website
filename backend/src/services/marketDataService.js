@@ -3,7 +3,6 @@ const db = require('../config/database');
 const marketSymbolMap = require('../config/marketSymbolMap.json');
 const { isMissingColumnError, isMissingRelationError } = require('../utils/dbCompat');
 
-const BINANCE_QUOTES = ['USDT', 'BUSD', 'USDC', 'BTC', 'ETH'];
 const FOREX_CODES = ['USD', 'EUR', 'GBP', 'JPY', 'AUD', 'NZD', 'CAD', 'CHF'];
 const DEFAULT_DEPTH_LEVELS = 15;
 const INSTRUMENT_CONFIG_CACHE_MS = 60 * 1000;
@@ -39,8 +38,6 @@ const isForexPair = (symbol = '') => {
     const quote = symbol.slice(3, 6);
     return FOREX_CODES.includes(base) && FOREX_CODES.includes(quote);
 };
-
-const isBinanceSymbol = (symbol = '') => BINANCE_QUOTES.some((quote) => symbol.endsWith(quote));
 
 const toNullableNumber = (value) => {
     const parsed = Number.parseFloat(value);
@@ -220,41 +217,6 @@ const createSyntheticDepth = ({ bid, ask, price, levels = DEFAULT_DEPTH_LEVELS }
         bids,
         synthetic: true,
     };
-};
-
-const fetchBinanceQuotes = async (requests = []) => {
-    if (requests.length === 0) {
-        return {};
-    }
-
-    const symbolMap = Object.fromEntries(
-        requests.map((request) => [normalizeSymbol(request.quoteSymbol || request.symbol), normalizeSymbol(request.symbol)])
-    );
-    const providerSymbols = Object.keys(symbolMap);
-
-    const response = await axios.get('https://api.binance.com/api/v3/ticker/24hr', {
-        params: {
-            symbols: JSON.stringify(providerSymbols),
-        },
-        timeout: 5000,
-    });
-
-    return (response.data || []).reduce((acc, ticker) => {
-        const originalSymbol = symbolMap[normalizeSymbol(ticker?.symbol)];
-        if (!originalSymbol) {
-            return acc;
-        }
-
-        acc[originalSymbol] = {
-            price: parseQuoteNumber(ticker.lastPrice),
-            bid: parseQuoteNumber(ticker.bidPrice),
-            ask: parseQuoteNumber(ticker.askPrice),
-            change: parseQuoteNumber(ticker.priceChangePercent),
-            volume: parseQuoteNumber(ticker.volume),
-            source: 'binance',
-        };
-        return acc;
-    }, {});
 };
 
 const fetchYahooBatchQuotes = async (requests = []) => {
@@ -521,23 +483,14 @@ const fetchMarketQuotes = async (symbols = []) => {
             config: await getMergedInstrumentConfig(symbol),
         }))
     );
-    const binanceRequests = instrumentConfigs.filter(({ symbol, config }) => {
-        if (config.provider) {
-            return config.provider === 'binance';
-        }
-        return isBinanceSymbol(normalizeSymbol(config.quoteSymbol || symbol));
-    });
-    const nonBinanceRequests = instrumentConfigs.filter(({ symbol, config }) => {
-        if (config.provider) {
-            return config.provider !== 'binance';
-        }
-        return !isBinanceSymbol(normalizeSymbol(config.quoteSymbol || symbol));
-    });
-    const twelveDataRequests = nonBinanceRequests.filter(({ config }) => config.provider === 'twelvedata');
-    const legacyYahooRequests = nonBinanceRequests.filter(({ config }) => config.provider !== 'twelvedata');
+    const twelveDataRequests = instrumentConfigs.filter(({ config }) => (
+        config.provider === 'twelvedata' || hasTwelveDataApiKey()
+    ));
+    const legacyYahooRequests = instrumentConfigs.filter(({ config }) => (
+        config.provider !== 'twelvedata' && !hasTwelveDataApiKey()
+    ));
 
-    const [binanceData, twelveDataData, legacyYahooData] = await Promise.all([
-        fetchBinanceQuotes(binanceRequests).catch(() => ({})),
+    const [twelveDataData, legacyYahooData] = await Promise.all([
         fetchTwelveDataQuotes(twelveDataRequests).catch(() => ({})),
         fetchYahooQuotes(legacyYahooRequests).catch(() => ({})),
     ]);
@@ -552,7 +505,6 @@ const fetchMarketQuotes = async (symbols = []) => {
         ...legacyYahooData,
         ...yahooFallbackData,
         ...twelveDataData,
-        ...binanceData,
     };
 };
 
@@ -563,21 +515,7 @@ const fetchMarketHistoryCandles = async (symbol = '', interval = '15m', outputsi
     }
 
     const config = await getMergedInstrumentConfig(normalized);
-    const quoteSymbol = normalizeSymbol(config.quoteSymbol || normalized);
-    const provider = config.provider || (isBinanceSymbol(quoteSymbol) ? 'binance' : 'twelvedata');
-
-    if (provider === 'binance' && isBinanceSymbol(quoteSymbol)) {
-        const response = await axios.get('https://api.binance.com/api/v3/klines', {
-            params: {
-                symbol: quoteSymbol,
-                interval,
-                limit: outputsize,
-            },
-            timeout: 5000,
-        });
-
-        return response.data || [];
-    }
+    const provider = config.provider || 'twelvedata';
 
     try {
         return await fetchTwelveDataHistory(normalized, interval, outputsize, config);
@@ -668,40 +606,6 @@ const fetchOrderBook = async (symbol, levels = DEFAULT_DEPTH_LEVELS) => {
     }
 
     const config = await getMergedInstrumentConfig(normalized);
-    const quoteSymbol = normalizeSymbol(config.quoteSymbol || normalized);
-    const provider = config.provider || (isBinanceSymbol(quoteSymbol) ? 'binance' : 'yahoo');
-
-    if (provider === 'binance' && isBinanceSymbol(quoteSymbol)) {
-        try {
-            const response = await axios.get('https://api.binance.com/api/v3/depth', {
-                params: {
-                    symbol: quoteSymbol,
-                    limit: Math.min(Math.max(levels, 5), 100),
-                },
-                timeout: 5000,
-            });
-
-            const bids = (response.data?.bids || []).map(([price, size]) => ({
-                price: Number(price),
-                size: Number(size),
-            }));
-            const asks = (response.data?.asks || []).map(([price, size]) => ({
-                price: Number(price),
-                size: Number(size),
-            }));
-
-            return {
-                symbol: normalized,
-                bids,
-                asks,
-                synthetic: false,
-                source: 'binance',
-            };
-        } catch (error) {
-            // fall through to synthetic depth
-        }
-    }
-
     const quotes = await fetchMarketQuotes([normalized]);
     const quote = quotes[normalized] || {};
     const depth = createSyntheticDepth({
@@ -740,7 +644,6 @@ module.exports = {
     normalizeSymbol,
     parseQuoteNumber,
     isForexPair,
-    isBinanceSymbol,
     resolveYahooSymbol,
     resolveTwelveDataSymbol,
     fetchMarketQuotes,

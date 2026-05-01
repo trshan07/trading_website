@@ -143,7 +143,12 @@ export const buildInstrumentSnapshot = ({ symbol, instrument = {}, marketData = 
     bid: Number.parseFloat(liveInfo.bid ?? 0) || null,
     ask: Number.parseFloat(liveInfo.ask ?? 0) || null,
     lastDir: liveInfo.lastDir || 'none',
-    useBidAsk: mapping.useBidAsk ?? (mapping.provider === 'binance'),
+    useBidAsk: typeof mapping.useBidAsk === 'boolean'
+      ? mapping.useBidAsk
+      : (
+        Number.isFinite(Number.parseFloat(liveInfo.bid))
+        && Number.isFinite(Number.parseFloat(liveInfo.ask))
+      ),
     precision,
   };
 };

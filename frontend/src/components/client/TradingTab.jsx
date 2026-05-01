@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useMemo } from 'react';
-import TradingViewWidget from '../trading/TradingViewWidget';
+import RealTimeChart from '../trading/RealTimeChart';
 import OrderPanel from '../trading/OrderPanel';
 import PositionsTable from '../trading/PositionsTable';
 import OpenOrders from '../trading/OpenOrders';
@@ -201,13 +201,15 @@ const TradingTab = ({
               }`}>
                 Trading chart, market list, order ticket, and positions are locked to the same selected instrument for {formatInstrumentDisplaySymbol(activeSymbol, { withSlash: true })}.
               </div>
-              <TradingViewWidget
+              <RealTimeChart
                 key={`terminal-${activeSymbol}-${theme}`}
                 symbol={activeSymbol}
                 theme={theme}
                 instrument={selectedInstrument}
                 positions={positions}
-                marketStatus={selectedInstrument?.provider ? `${String(selectedInstrument.provider).toUpperCase()} / BINANCE FEED` : 'LIVE EXTERNAL MARKET FEED'}
+                activeIntent={activeOrderIntent}
+                livePrice={Number(selectedInstrument.price || 0)}
+                initialPrice={Number(selectedInstrument.price || 0)}
               />
             </div>
           </div>
