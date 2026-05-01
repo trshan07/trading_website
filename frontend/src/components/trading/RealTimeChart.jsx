@@ -68,6 +68,7 @@ const RealTimeChart = ({
   activeIntent = null,
   livePrice = 0,
   initialPrice = 100,
+  isVisible = true,
 }) => {
   const containerRef = useRef(null);
   const chartRef = useRef(null);
@@ -76,6 +77,7 @@ const RealTimeChart = ({
   const candleDataRef = useRef([]);
   const historyRefreshRef = useRef(null);
   const priceLinesRef = useRef([]);
+  const syncChartSizeRef = useRef(() => {});
   const [interval, setInterval] = useState('15m');
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [lastPrice, setLastPrice] = useState(null);
@@ -85,6 +87,7 @@ const RealTimeChart = ({
   const [lastQuoteAt, setLastQuoteAt] = useState(0);
   const [historySource, setHistorySource] = useState('market-provider');
   const [historyVersion, setHistoryVersion] = useState(0);
+  const [hasChartData, setHasChartData] = useState(false);
 
   const isDark = theme === 'dark';
   const normalizedSymbol = useMemo(() => normalizeSymbol(symbol), [symbol]);
@@ -241,18 +244,20 @@ const RealTimeChart = ({
         chartRef.current.applyOptions({ width, height });
       }
     };
+    syncChartSizeRef.current = syncChartSize;
 
     const loadHistory = async () => {
+      const fallbackPrice = Number.parseFloat(livePrice || initialPrice || instrumentSnapshot.price || 0);
+      const canUseQuoteFallback = Number.isFinite(fallbackPrice) && fallbackPrice > 0;
+
       try {
         setIsLoading(true);
         const response = await infraService.getMarketHistory(symbol, interval, initialPrice);
         const candles = toCandles(response?.data || []);
-        const canUseQuoteFallback = Boolean(response?.isSynthetic)
-          && Number.isFinite(livePrice || initialPrice || instrumentSnapshot.price || 0);
         const usableCandles = candles.length > 0
           ? candles
           : canUseQuoteFallback
-            ? createFallbackCandles(livePrice || initialPrice || instrumentSnapshot.price || 100, interval)
+            ? createFallbackCandles(fallbackPrice, interval)
             : [];
 
         if (!active || !seriesRef.current) {
@@ -262,8 +267,15 @@ const RealTimeChart = ({
         seriesRef.current.setData(usableCandles);
         candleDataRef.current = usableCandles;
         candleTimesRef.current = usableCandles.map((candle) => candle.time);
+        setHasChartData(usableCandles.length > 0);
         setHistoryVersion((value) => value + 1);
-        setHistorySource(response?.source || (candles.length > 0 ? 'market-provider' : 'unavailable'));
+        setHistorySource(
+          candles.length > 0
+            ? (response?.source || 'market-provider')
+            : canUseQuoteFallback
+              ? 'quote-fallback'
+              : 'unavailable'
+        );
 
         if (usableCandles.length > 0) {
           chartRef.current?.timeScale().fitContent();
@@ -285,8 +297,36 @@ const RealTimeChart = ({
         setLiveStatus(navigator.onLine ? 'delayed' : 'offline');
       } catch (error) {
         if (active) {
-          setHistorySource('unavailable');
-          setLiveStatus(navigator.onLine ? 'delayed' : 'offline');
+          const fallbackPrice = Number.parseFloat(livePrice || initialPrice || instrumentSnapshot.price || 0);
+          const usableCandles = Number.isFinite(fallbackPrice) && fallbackPrice > 0
+            ? createFallbackCandles(fallbackPrice, interval)
+            : [];
+
+          if (seriesRef.current) {
+            seriesRef.current.setData(usableCandles);
+          }
+
+          candleDataRef.current = usableCandles;
+          candleTimesRef.current = usableCandles.map((candle) => candle.time);
+          setHasChartData(usableCandles.length > 0);
+          setHistoryVersion((value) => value + 1);
+          setHistorySource(usableCandles.length > 0 ? 'quote-fallback' : 'unavailable');
+          setLiveStatus(
+            navigator.onLine
+              ? (usableCandles.length > 0 ? 'quote-sync' : 'delayed')
+              : 'offline'
+          );
+
+          if (usableCandles.length > 0) {
+            chartRef.current?.timeScale().fitContent();
+            const first = usableCandles[0];
+            const last = usableCandles[usableCandles.length - 1];
+            setLastPrice(last.close);
+            setPriceChange(first?.open ? (((last.close - first.open) / first.open) * 100).toFixed(2) : null);
+          } else {
+            setLastPrice(null);
+            setPriceChange(null);
+          }
         }
       } finally {
         if (active) {
@@ -313,6 +353,7 @@ const RealTimeChart = ({
         historyRefreshRef.current = null;
       }
       resizeObserver.disconnect();
+      syncChartSizeRef.current = () => {};
 
       const currentChart = chartRef.current;
       clearTradeLines();
@@ -327,7 +368,24 @@ const RealTimeChart = ({
         } catch (error) {}
       }
     };
-  }, [interval, isDark, priceMinMove, pricePrecision, symbol]);
+  }, [initialPrice, interval, isDark, livePrice, priceMinMove, pricePrecision, symbol]);
+
+  useEffect(() => {
+    if (!isVisible) {
+      return undefined;
+    }
+
+    const timers = [
+      setTimeout(() => syncChartSizeRef.current?.(), 0),
+      setTimeout(() => syncChartSizeRef.current?.(), 120),
+      setTimeout(() => {
+        syncChartSizeRef.current?.();
+        chartRef.current?.timeScale().fitContent();
+      }, 320),
+    ];
+
+    return () => timers.forEach((timer) => clearTimeout(timer));
+  }, [isFullscreen, isVisible, interval, symbol]);
 
   useEffect(() => {
     const nextPrice = Number.parseFloat(livePrice);
@@ -609,7 +667,21 @@ const RealTimeChart = ({
         </div>
       </div>
 
-      <div ref={containerRef} className="flex-1 min-h-0" />
+      <div className="relative flex-1 min-h-0">
+        <div ref={containerRef} className="h-full w-full" />
+        {!isLoading && !hasChartData && (
+          <div className={`absolute inset-0 flex items-center justify-center px-6 text-center ${
+            isDark ? 'bg-[#0a0f1c]/80 text-slate-400' : 'bg-white/85 text-slate-500'
+          }`}>
+            <div>
+              <p className="text-[11px] font-black uppercase tracking-widest">Chart data unavailable</p>
+              <p className="mt-2 text-xs font-medium">
+                Live history could not be loaded for {formatExecutionSymbol(symbol)}. Try another symbol or refresh the feed.
+              </p>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 };

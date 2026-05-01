@@ -268,6 +268,7 @@ const TradingTab = ({
                   activeIntent={activeOrderIntent}
                   livePrice={Number(selectedInstrument.price || 0)}
                   initialPrice={Number(selectedInstrument.price || baseInstrument?.price || 100)}
+                  isVisible={!isMobile || activeMobileView === 'chart'}
                 />
               </div>
             </div>
