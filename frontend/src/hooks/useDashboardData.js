@@ -14,8 +14,8 @@ import { buildInstrumentSnapshot } from '../utils/marketSymbols';
 import { calculateLotsFromQuantity, calculateProjectedPnL, calculateUsdFromLots } from '../utils/tradingUtils';
 import { calculateSpreads } from '../utils/spreadCalculator';
 
-const GLOBAL_CHART_QUOTES_REFRESH_MS = 15000;
-const ACTIVE_CHART_SYMBOL_REFRESH_MS = 2000;
+const GLOBAL_CHART_QUOTES_REFRESH_MS = 5000;
+const ACTIVE_CHART_SYMBOL_REFRESH_MS = 1000;
 
 const normalizeInstrument = (instrument = {}) => ({
   symbol: instrument.symbol,

@@ -6,7 +6,7 @@ const {
     fetchChartAlignedMarketQuotes,
 } = require('./marketDataService');
 
-const DEFAULT_MAX_AGE_MS = Number.parseInt(process.env.MARKET_QUOTE_MAX_AGE_MS ?? '5000', 10) || 5000;
+const DEFAULT_MAX_AGE_MS = Number.parseInt(process.env.MARKET_QUOTE_MAX_AGE_MS ?? '2000', 10) || 2000;
 
 const toNullableNumber = (value) => {
     const parsed = Number.parseFloat(value);

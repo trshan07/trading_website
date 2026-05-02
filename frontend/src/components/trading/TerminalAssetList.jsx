@@ -23,6 +23,29 @@ const GROUP_OPTIONS = [
   { id: 'favorites', label: 'Saved Watchlist' },
 ];
 
+const PriceCell = ({ price, label, className = '' }) => {
+  const [flash, setFlash] = useState('');
+  const prevPriceRef = React.useRef(price);
+
+  React.useEffect(() => {
+    if (price > prevPriceRef.current) {
+      setFlash('flash-up');
+    } else if (price < prevPriceRef.current) {
+      setFlash('flash-down');
+    }
+    prevPriceRef.current = price;
+
+    const timer = setTimeout(() => setFlash(''), 1000);
+    return () => clearTimeout(timer);
+  }, [price]);
+
+  return (
+    <div className={`${className} ${flash} rounded px-1 transition-all duration-300`}>
+      <p className="text-[13px] font-semibold tabular-nums text-slate-100">{label}</p>
+    </div>
+  );
+};
+
 const TerminalAssetList = ({
   activeSymbol,
   onSelectSymbol,
@@ -187,11 +210,11 @@ const TerminalAssetList = ({
                       <div className="mt-3 grid grid-cols-3 gap-3 md:hidden">
                         <div>
                           <p className="text-[9px] font-black uppercase tracking-[0.14em] text-slate-500">Sell</p>
-                          <p className="mt-1 text-[13px] font-semibold tabular-nums text-slate-100">{quoteSnapshot.bidLabel}</p>
+                          <PriceCell price={quoteSnapshot.bid} label={quoteSnapshot.bidLabel} />
                         </div>
                         <div>
                           <p className="text-[9px] font-black uppercase tracking-[0.14em] text-slate-500">Buy</p>
-                          <p className="mt-1 text-[13px] font-semibold tabular-nums text-slate-100">{quoteSnapshot.askLabel}</p>
+                          <PriceCell price={quoteSnapshot.ask} label={quoteSnapshot.askLabel} />
                         </div>
                         <div className="flex items-end justify-between">
                           <div>
@@ -223,11 +246,11 @@ const TerminalAssetList = ({
                     </div>
 
                     <div className="hidden text-right md:block">
-                      <p className="text-[13px] font-semibold tabular-nums text-slate-100">{quoteSnapshot.bidLabel}</p>
+                      <PriceCell price={quoteSnapshot.bid} label={quoteSnapshot.bidLabel} className="text-right" />
                     </div>
 
                     <div className="hidden text-right md:block">
-                      <p className="text-[13px] font-semibold tabular-nums text-slate-100">{quoteSnapshot.askLabel}</p>
+                      <PriceCell price={quoteSnapshot.ask} label={quoteSnapshot.askLabel} className="text-right" />
                     </div>
 
                     <div className={`hidden text-right text-[12px] font-semibold tabular-nums md:block ${isPositive ? 'text-emerald-400' : 'text-rose-400'}`}>

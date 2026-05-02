@@ -41,6 +41,42 @@ const normalizeLeverage = (value, fallback = 100) => {
   return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
 };
 
+const SideButton = ({ side, active, price, label, onClick, className = '' }) => {
+  const [flash, setFlash] = useState('');
+  const prevPriceRef = React.useRef(price);
+
+  React.useEffect(() => {
+    if (price > prevPriceRef.current) {
+      setFlash('flash-up');
+    } else if (price < prevPriceRef.current) {
+      setFlash('flash-down');
+    }
+    prevPriceRef.current = price;
+
+    const timer = setTimeout(() => setFlash(''), 800);
+    return () => clearTimeout(timer);
+  }, [price]);
+
+  const baseColors = side === 'sell'
+    ? (active ? 'border-rose-400 bg-[#241b26]' : 'border-slate-700 bg-[#242a3b]')
+    : (active ? 'border-teal-400 bg-[#1f4f53]' : 'border-slate-700 bg-[#242a3b]');
+  
+  const textColors = side === 'sell' ? 'text-rose-400' : 'text-teal-200';
+
+  return (
+    <button
+      onClick={onClick}
+      className={`relative overflow-hidden border px-4 py-3 text-center transition-all duration-300 ${baseColors} ${className}`}
+    >
+      <div className={`absolute inset-0 transition-opacity duration-300 ${flash ? 'opacity-100' : 'opacity-0'} ${flash}`} />
+      <div className="relative z-10">
+        <p className={`text-[11px] font-bold ${textColors}`}>{side.charAt(0).toUpperCase() + side.slice(1)}</p>
+        <p className={`mt-1 text-[1rem] font-semibold tabular-nums ${textColors}`}>{label}</p>
+      </div>
+    </button>
+  );
+};
+
 const OrderPanel = ({
   accountId = null,
   onSubmit,
@@ -265,33 +301,27 @@ const OrderPanel = ({
         </div>
 
         <div className="mt-5 grid grid-cols-[1fr_auto_1fr] items-end gap-1.5">
-          <button
+          <SideButton
+            side="sell"
+            active={selectedSide === 'sell'}
+            price={bidPrice}
+            label={bidLabel}
             onClick={() => setSelectedSide('sell')}
-            className={`rounded-tl-xl rounded-bl-xl border px-4 py-3 text-center transition-all ${
-              selectedSide === 'sell'
-                ? 'border-rose-400 bg-[#241b26]'
-                : 'border-slate-700 bg-[#242a3b]'
-            }`}
-          >
-            <p className="text-[11px] font-bold text-rose-400">Sell</p>
-            <p className="mt-1 text-[1rem] font-semibold tabular-nums text-rose-400">{bidLabel}</p>
-          </button>
+            className="rounded-tl-xl rounded-bl-xl"
+          />
 
           <div className="pb-2 text-center">
             <p className="text-xl font-semibold leading-none text-white">{spreadLabel}</p>
           </div>
 
-          <button
+          <SideButton
+            side="buy"
+            active={selectedSide === 'buy'}
+            price={askPrice}
+            label={askLabel}
             onClick={() => setSelectedSide('buy')}
-            className={`rounded-tr-xl rounded-br-xl border px-4 py-3 text-center transition-all ${
-              selectedSide === 'buy'
-                ? 'border-teal-400 bg-[#1f4f53]'
-                : 'border-slate-700 bg-[#242a3b]'
-            }`}
-          >
-            <p className="text-[11px] font-bold text-teal-200">Buy</p>
-            <p className="mt-1 text-[1rem] font-semibold tabular-nums text-teal-200">{askLabel}</p>
-          </button>
+            className="rounded-tr-xl rounded-br-xl"
+          />
         </div>
 
         <div className="mt-3">
