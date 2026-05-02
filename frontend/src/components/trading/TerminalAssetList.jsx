@@ -1,225 +1,191 @@
-// frontend/src/components/trading/TerminalAssetList.jsx
-import React, { useState } from 'react';
-import { FaSearch, FaStar, FaRegStar, FaChevronDown, FaTimes } from 'react-icons/fa';
+import React, { useMemo, useState } from 'react';
+import { FaChevronDown, FaRegStar, FaSearch, FaStar } from 'react-icons/fa';
 import { getDisplayQuoteSnapshot } from '../../utils/spreadCalculator';
 import { buildInstrumentSnapshot, formatInstrumentDisplaySymbol } from '../../utils/marketSymbols';
 
-const TerminalAssetList = ({ 
-  activeSymbol, 
-  onSelectSymbol, 
-  favorites = [], 
-  onToggleFavorite, 
-  onClose, 
+const popularSymbols = ['BTCUSDT', 'ETHUSDT', 'AAPL', 'TSLA', 'SPX', 'EURUSD', 'XAUUSD'];
+
+const TerminalAssetList = ({
+  activeSymbol,
+  onSelectSymbol,
+  favorites = [],
+  onToggleFavorite,
   marketData = {},
   instruments = [],
-  categories = []
+  categories = [],
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [primaryCategory, setPrimaryCategory] = useState('All');
   const [secondaryFilter, setSecondaryFilter] = useState('All');
 
-  // Filter options
-  const primaryOptions = ['All', ...(categories.length > 0 ? categories : ['Crypto', 'Forex', 'Stocks', 'Indices', 'Commodities', 'Futures', 'Bonds', 'Economy'])];
+  const primaryOptions = ['All', ...(categories.length > 0 ? categories : ['Crypto', 'Forex', 'Stocks', 'Indices', 'Commodities'])];
   const secondaryOptions = ['All', 'Watchlist', 'Popular', 'Top Gainers', 'Top Losers'];
 
-  let filtered = instruments.filter(inst => {
-    let matchesPrimary = primaryCategory === 'All' || inst.category === primaryCategory;
-    const liveChange = marketData[inst.symbol]?.change !== undefined ? marketData[inst.symbol].change : inst.change;
-    
-    let matchesSecondary = true;
-    if (secondaryFilter === 'Watchlist') {
-      matchesSecondary = favorites.includes(inst.symbol);
-    } else if (secondaryFilter === 'Popular') {
-      const popularSymbols = ['BTCUSDT', 'ETHUSDT', 'AAPL', 'TSLA', 'SPX', 'EURUSD', 'XAUUSD'];
-      matchesSecondary = popularSymbols.includes(inst.symbol);
-    } else if (secondaryFilter === 'Top Gainers') {
-      matchesSecondary = liveChange > 0;
+  const filteredInstruments = useMemo(() => {
+    const matches = instruments.filter((instrument) => {
+      const liveChange = marketData[instrument.symbol]?.change !== undefined
+        ? marketData[instrument.symbol].change
+        : instrument.change;
+
+      const matchesPrimary = primaryCategory === 'All' || instrument.category === primaryCategory;
+      const matchesSearch = !searchQuery.trim()
+        || instrument.symbol.toLowerCase().includes(searchQuery.toLowerCase())
+        || instrument.name.toLowerCase().includes(searchQuery.toLowerCase());
+
+      let matchesSecondary = true;
+      if (secondaryFilter === 'Watchlist') {
+        matchesSecondary = favorites.includes(instrument.symbol);
+      } else if (secondaryFilter === 'Popular') {
+        matchesSecondary = popularSymbols.includes(instrument.symbol);
+      } else if (secondaryFilter === 'Top Gainers') {
+        matchesSecondary = Number(liveChange) > 0;
+      } else if (secondaryFilter === 'Top Losers') {
+        matchesSecondary = Number(liveChange) < 0;
+      }
+
+      return matchesPrimary && matchesSecondary && matchesSearch;
+    });
+
+    if (secondaryFilter === 'Top Gainers') {
+      matches.sort((left, right) => (marketData[right.symbol]?.change ?? right.change) - (marketData[left.symbol]?.change ?? left.change));
     } else if (secondaryFilter === 'Top Losers') {
-      matchesSecondary = liveChange < 0;
+      matches.sort((left, right) => (marketData[left.symbol]?.change ?? left.change) - (marketData[right.symbol]?.change ?? right.change));
     }
 
-    const matchesSearch = 
-      !searchQuery.trim() || 
-      inst.symbol.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      inst.name.toLowerCase().includes(searchQuery.toLowerCase());
-    
-    return matchesPrimary && matchesSecondary && matchesSearch;
-  });
-
-  // Apply sorting based on secondary filter if required
-  if (secondaryFilter === 'Top Gainers') {
-    filtered.sort((a, b) => (marketData[b.symbol]?.change ?? b.change) - (marketData[a.symbol]?.change ?? a.change));
-  } else if (secondaryFilter === 'Top Losers') {
-    filtered.sort((a, b) => (marketData[a.symbol]?.change ?? a.change) - (marketData[b.symbol]?.change ?? b.change));
-  }
+    return matches;
+  }, [categories.length, favorites, instruments, marketData, primaryCategory, searchQuery, secondaryFilter]);
 
   return (
-    <div className="flex flex-col h-full bg-white dark:bg-slate-900 border-r border-slate-100 dark:border-slate-800 transition-colors">
-      
-      {/* Search & Filters Header */}
-      <div className="p-4 space-y-3 border-b border-slate-50 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/20">
-        
-        {/* Header with Close Button */}
-        <div className="flex justify-between items-center mb-1">
-          <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">Markets</h3>
-          {onClose && (
-            <button 
-              onClick={onClose} 
-              className="p-1.5 text-slate-400 hover:text-rose-500 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all"
-              title="Close Panel"
-            >
-              <FaTimes size={12} />
-            </button>
-          )}
-        </div>
-
+    <div className="flex h-full flex-col bg-[#1f2230] text-white">
+      <div className="border-b border-slate-700/60 px-4 py-4">
         <div className="relative">
-          <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={12} />
+          <FaSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={14} />
           <input
             type="text"
             placeholder="Search..."
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-8 pr-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-md text-[11px] md:text-[11px] font-medium placeholder-slate-400 text-slate-900 dark:text-white focus:outline-none focus:border-gold-500 transition-colors"
+            onChange={(event) => setSearchQuery(event.target.value)}
+            className="w-full rounded-2xl border border-slate-700 bg-[#171a26] py-3 pl-11 pr-4 text-base font-semibold text-white outline-none placeholder:text-slate-500 focus:border-teal-400"
           />
         </div>
-        
-        <div className="grid grid-cols-2 gap-2">
-          {/* Primary Dropdown */}
+
+        <div className="mt-4 grid grid-cols-2 gap-3">
           <div className="relative">
             <select
               value={primaryCategory}
-              onChange={(e) => setPrimaryCategory(e.target.value)}
-              className="w-full appearance-none bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-[10px] md:text-[11px] font-bold px-2 md:px-3 py-2 rounded-md focus:outline-none focus:border-gold-500 transition-colors"
+              onChange={(event) => setPrimaryCategory(event.target.value)}
+              className="w-full appearance-none rounded-2xl border border-slate-700 bg-[#171a26] px-4 py-3 text-sm font-bold text-white outline-none"
             >
-              {primaryOptions.map(opt => <option key={opt} value={opt}>{opt === 'All' ? 'Classes' : opt}</option>)}
+              {primaryOptions.map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
             </select>
-            <FaChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={8} />
+            <FaChevronDown className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-slate-500" size={11} />
           </div>
 
-          {/* Secondary Dropdown */}
           <div className="relative">
             <select
               value={secondaryFilter}
-              onChange={(e) => setSecondaryFilter(e.target.value)}
-              className="w-full appearance-none bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-[10px] md:text-[11px] font-bold px-2 md:px-3 py-2 rounded-md focus:outline-none focus:border-gold-500 transition-colors"
+              onChange={(event) => setSecondaryFilter(event.target.value)}
+              className="w-full appearance-none rounded-2xl border border-slate-700 bg-[#171a26] px-4 py-3 text-sm font-bold text-white outline-none"
             >
-              {secondaryOptions.map(opt => <option key={opt} value={opt}>{opt === 'All' ? 'Views' : opt}</option>)}
+              {secondaryOptions.map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
             </select>
-            <FaChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={8} />
+            <FaChevronDown className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-slate-500" size={11} />
           </div>
         </div>
       </div>
 
-      {/* List Header */}
-      <div className="grid grid-cols-[1.5fr_1fr_1fr_0.2fr] md:grid-cols-[2fr_1.5fr_1.5fr_1.5fr_1.5fr_auto] gap-2 px-3 md:px-4 py-2 border-b border-slate-100 dark:border-slate-800 text-[7px] md:text-[8px] font-bold text-slate-400 uppercase tracking-widest bg-white dark:bg-slate-900 transition-all">
-        <div>Instrument</div>
-        <div className="text-center">Sell</div>
-        <div className="text-center">Buy</div>
-        <div className="hidden md:block text-right">Change</div>
-        <div className="hidden md:block text-center">24HTrend</div>
-        <div className="w-1 md:w-4"></div>
+      <div className="grid grid-cols-[1.6fr_1fr_1fr_0.9fr_0.9fr_auto] gap-3 border-b border-slate-700/60 px-4 py-3 text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">
+        <span>Instrument</span>
+        <span className="text-right">Sell</span>
+        <span className="text-right">Buy</span>
+        <span className="text-right">Change</span>
+        <span className="text-center">Trend</span>
+        <span />
       </div>
 
-      {/* Asset List */}
-      <div className="flex-1 overflow-y-auto custom-scrollbar bg-white dark:bg-slate-900">
-        {filtered.map(inst => {
-          const isActive = activeSymbol === inst.symbol;
-          const isFav = favorites.includes(inst.symbol);
+      <div className="flex-1 overflow-y-auto custom-scrollbar">
+        {filteredInstruments.map((instrument) => {
+          const instrumentSnapshot = buildInstrumentSnapshot({
+            symbol: instrument.symbol,
+            instrument,
+            marketData,
+          });
+          const quoteSnapshot = getDisplayQuoteSnapshot({
+            symbol: instrument.symbol,
+            instrument: instrumentSnapshot,
+            marketData,
+          });
+          const change = Number(instrumentSnapshot.change || 0);
+          const isPositive = change >= 0;
+          const isActive = activeSymbol === instrument.symbol;
+          const isFavorite = favorites.includes(instrument.symbol);
 
           return (
-            <div
-              key={inst.symbol}
-              onClick={() => onSelectSymbol(inst.symbol)}
-              className={`grid grid-cols-[1.5fr_1fr_1fr_0.2fr] md:grid-cols-[2fr_1.5fr_1.5fr_1.5fr_1.5fr_auto] gap-2 items-center px-3 md:px-4 py-2.5 md:py-2 cursor-pointer border-b border-slate-50 dark:border-slate-800/70 transition-all duration-150 ${
+            <button
+              key={instrument.symbol}
+              onClick={() => onSelectSymbol(instrument.symbol)}
+              className={`grid grid-cols-[1.6fr_1fr_1fr_0.9fr_0.9fr_auto] items-center gap-3 border-b border-slate-800 px-4 py-3 text-left transition-all ${
                 isActive
-                  ? 'bg-gold-50 dark:bg-gold-500/5 border-l-2 border-l-gold-500'
-                  : 'bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800/50'
+                  ? 'bg-white/5'
+                  : 'hover:bg-white/3'
               }`}
             >
-              
-              {/* Instrument Column */}
-              <div className="flex items-center space-x-1 md:space-x-2 min-w-0">
-                <span className="text-[11px] md:text-[10px] font-bold text-slate-900 dark:text-white truncate uppercase">
-                  {formatInstrumentDisplaySymbol(inst.symbol, { withSlash: true })}
-                </span>
-                {isActive && <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse flex-shrink-0"></span>}
+              <div className="min-w-0">
+                <p className="truncate text-lg font-black uppercase leading-none text-white">
+                  {formatInstrumentDisplaySymbol(instrument.symbol, { withSlash: true })}
+                </p>
+                <p className="mt-1 text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">
+                  {instrument.category}
+                </p>
               </div>
 
-              {/* Price Calculation (Live) */}
-              {(() => {
-                const instrumentSnapshot = buildInstrumentSnapshot({
-                  symbol: inst.symbol,
-                  instrument: inst,
-                  marketData,
-                });
-                const currentPrice = instrumentSnapshot.price;
-                const currentChange = instrumentSnapshot.change;
-                const lastDir = instrumentSnapshot.lastDir || 'none';
-                const quoteSnapshot = getDisplayQuoteSnapshot({
-                  symbol: inst.symbol,
-                  instrument: instrumentSnapshot,
-                  marketData,
-                });
-                const sellPrice = quoteSnapshot.bidLabel;
-                const buyPrice = quoteSnapshot.askLabel;
-                const spreadAmt = quoteSnapshot.spread;
-                const spreadDisplay = spreadAmt < 0.01 ? spreadAmt.toFixed(4) : spreadAmt.toFixed(2);
-                
-                const flashClass = lastDir === 'up' ? 'flash-up' : lastDir === 'down' ? 'flash-down' : '';
-                const isPriceUp = currentChange >= 0;
+              <div className="text-right">
+                <p className="text-lg font-black text-white">{quoteSnapshot.bidLabel}</p>
+              </div>
 
-                return (
-                  <>
-                    {/* Sell Column (Solid Red with Flash) */}
-                    <button 
-                      onClick={(e) => e.stopPropagation()}
-                      className={`bg-rose-500 hover:bg-rose-600 text-white py-2 md:py-1.5 px-0.5 md:px-1 rounded-[4px] text-center text-[10px] md:text-[9px] font-black tabular-nums transition-colors shadow-sm ${flashClass}`}
-                    >
-                      {sellPrice}
-                    </button>
+              <div className="text-right">
+                <p className="text-lg font-black text-white">{quoteSnapshot.askLabel}</p>
+              </div>
 
-                    {/* Buy Column (Solid Green with Flash) */}
-                    <button 
-                      onClick={(e) => e.stopPropagation()}
-                      className={`bg-emerald-500 hover:bg-emerald-600 text-white py-2 md:py-1.5 px-0.5 md:px-1 rounded-[4px] text-center text-[10px] md:text-[9px] font-black tabular-nums transition-colors shadow-sm ${flashClass}`}
-                    >
-                      {buyPrice}
-                    </button>
+              <div className={`text-right text-base font-black ${isPositive ? 'text-emerald-400' : 'text-rose-400'}`}>
+                {isPositive ? '+' : ''}{change.toFixed(2)}%
+              </div>
 
-                    {/* Change Column */}
-                    <div className={`hidden md:block text-right text-[10px] font-black tabular-nums ${isPriceUp ? 'text-emerald-500' : 'text-rose-500'} ${lastDir === 'up' ? 'text-flash-up' : lastDir === 'down' ? 'text-flash-down' : ''}`}>
-                      {isPriceUp ? '+' : ''}{currentChange.toFixed(2)}%
-                    </div>
+              <div className="flex justify-center">
+                <svg viewBox="0 0 40 12" className={`h-4 w-12 ${isPositive ? 'stroke-emerald-400' : 'stroke-rose-400'}`} fill="none" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  {isPositive
+                    ? <path d="M0 10 L10 8 L15 12 L25 4 L30 6 L40 0" />
+                    : <path d="M0 2 L10 4 L15 0 L25 8 L30 6 L40 12" />
+                  }
+                </svg>
+              </div>
 
-                    {/* 24HTrend Sparkline */}
-                    <div className="hidden md:flex justify-center items-center h-4">
-                      <svg viewBox="0 0 40 12" className={`w-10 h-3 ${isPriceUp ? 'stroke-emerald-600 dark:stroke-emerald-500' : 'stroke-rose-600 dark:stroke-rose-500'}`} fill="none" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                        {isPriceUp 
-                          ? <path d="M0 10 L10 8 L15 12 L25 4 L30 6 L40 0" /> 
-                          : <path d="M0 2 L10 4 L15 0 L25 8 L30 6 L40 12" />
-                        }
-                      </svg>
-                    </div>
-                  </>
-                );
-              })()}
-
-              {/* Star Column */}
-              <button
-                onClick={(e) => { e.stopPropagation(); onToggleFavorite(inst.symbol); }}
-                className={`hidden md:block transition-colors ${isFav ? 'text-gold-500' : 'text-slate-300 dark:text-slate-600 hover:text-gold-400'}`}
-              >
-                {isFav ? <FaStar size={11} /> : <FaRegStar size={11} />}
-              </button>
-            </div>
+              <div className="flex justify-end">
+                <button
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    onToggleFavorite(instrument.symbol);
+                  }}
+                  className="text-slate-400 transition-colors hover:text-white"
+                >
+                  {isFavorite ? <FaStar className="text-white" size={14} /> : <FaRegStar size={14} />}
+                </button>
+              </div>
+            </button>
           );
         })}
 
-
-        {filtered.length === 0 && (
-          <div className="text-center py-10">
-            <p className="text-[10px] font-medium text-slate-400">No instruments found.</p>
+        {filteredInstruments.length === 0 && (
+          <div className="px-4 py-12 text-center">
+            <p className="text-sm font-black uppercase tracking-[0.18em] text-slate-500">No instruments found</p>
           </div>
         )}
       </div>
@@ -228,4 +194,3 @@ const TerminalAssetList = ({
 };
 
 export default TerminalAssetList;
-

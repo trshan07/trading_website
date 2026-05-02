@@ -1,26 +1,32 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { FaTimes, FaExchangeAlt, FaListUl, FaChartLine, FaShieldAlt, FaCaretUp, FaCaretDown, FaCheckCircle } from 'react-icons/fa';
-import { motion, AnimatePresence } from 'framer-motion';
+import { FaMinus, FaPlus, FaTimes } from 'react-icons/fa';
 import { getDisplayQuoteSnapshot } from '../../utils/spreadCalculator';
 import {
   calculateUsdFromLots,
-  calculateLotsFromUsd,
   calculateMarginRequired,
-  getLotStep,
-  getLotPrecision,
-  calculatePips,
-  calculatePipValue,
-  calculateProjectedPnL,
   calculateQuantityFromLots,
   getInstrumentTradingMeta,
+  getLotPrecision,
+  getLotStep,
   getMinLot,
-  formatLots
+  formatLots,
 } from '../../utils/tradingUtils';
 import { MARKET_INSTRUMENTS } from '../../constants/marketData';
-import { buildInstrumentSnapshot, normalizeSymbol } from '../../utils/marketSymbols';
+import { buildInstrumentSnapshot, formatInstrumentDisplaySymbol, normalizeSymbol } from '../../utils/marketSymbols';
 
-const formatOrderType = (value = '') => value.replace(/_/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase());
-const formatOrderTicketLabel = ({ side, orderType }) => `${String(side || 'buy').toUpperCase()} ${String(orderType || 'market').toUpperCase()}`;
+const clamp = (value, minimum, maximum = Number.POSITIVE_INFINITY) => Math.min(Math.max(value, minimum), maximum);
+
+const getPendingOrderType = ({ side, triggerPrice, referencePrice }) => {
+  if (!Number.isFinite(triggerPrice) || triggerPrice <= 0 || !Number.isFinite(referencePrice) || referencePrice <= 0) {
+    return 'limit';
+  }
+
+  if (side === 'buy') {
+    return triggerPrice <= referencePrice ? 'limit' : 'stop';
+  }
+
+  return triggerPrice >= referencePrice ? 'limit' : 'stop';
+};
 
 const OrderPanel = ({
   onSubmit,
@@ -32,22 +38,22 @@ const OrderPanel = ({
   onIntentChange,
   maxLeverage = 500,
   positions = [],
-  orders = []
+  orders = [],
 }) => {
-  const [orderType, setOrderType] = useState('market');
+  const [mode, setMode] = useState('market');
   const [selectedSide, setSelectedSide] = useState('buy');
-  const [pendingPrice, setPendingPrice] = useState('');
-  const [lots, setLots] = useState(0.01);
-  const [amount, setAmount] = useState(100);
-  const [useLots, setUseLots] = useState(true);
+  const [triggerPrice, setTriggerPrice] = useState('');
+  const [lots, setLots] = useState(1);
   const [tpEnabled, setTpEnabled] = useState(false);
   const [slEnabled, setSlEnabled] = useState(false);
   const [tpValue, setTpValue] = useState('');
   const [slValue, setSlValue] = useState('');
-  const [activeTab, setActiveTab] = useState('trade');
-  const [showConfirmation, setShowConfirmation] = useState(false);
 
-  const fallbackInstrument = useMemo(() => MARKET_INSTRUMENTS.find((item) => item.symbol === symbol) || {}, [symbol]);
+  const fallbackInstrument = useMemo(
+    () => MARKET_INSTRUMENTS.find((item) => item.symbol === symbol) || {},
+    [symbol]
+  );
+
   const instrument = useMemo(
     () => buildInstrumentSnapshot({
       symbol,
@@ -57,34 +63,39 @@ const OrderPanel = ({
     [fallbackInstrument, marketData, selectedInstrument, symbol]
   );
 
-  const category = instrument.category || 'Crypto';
-  const currentPrice = instrument.price || 0;
-  const lastDir = instrument.lastDir || 'none';
-  const tradingMeta = useMemo(() => getInstrumentTradingMeta({ symbol, category, instrument }), [category, instrument, symbol]);
-  const normalizedSymbol = useMemo(() => normalizeSymbol(symbol), [symbol]);
-  const symbolPositions = useMemo(
-    () => positions.filter((position) => normalizeSymbol(position?.symbol) === normalizedSymbol),
-    [normalizedSymbol, positions]
+  const category = instrument.category || 'General';
+  const precision = Number.isInteger(instrument.precision) ? instrument.precision : 2;
+  const tradingMeta = useMemo(
+    () => getInstrumentTradingMeta({ symbol, category, instrument }),
+    [category, instrument, symbol]
   );
-  const symbolOrders = useMemo(
-    () => orders.filter((order) => normalizeSymbol(order?.symbol) === normalizedSymbol),
-    [normalizedSymbol, orders]
-  );
-  const activePnl = symbolPositions.reduce((sum, position) => sum + (Number(position?.pnl) || 0), 0);
+
   const quoteSnapshot = useMemo(() => getDisplayQuoteSnapshot({
     symbol,
     instrument,
     marketData,
   }), [instrument, marketData, symbol]);
-  const hasRealBidAsk = quoteSnapshot.hasRealBidAsk;
-  const bidPrice = quoteSnapshot.bidLabel;
-  const askPrice = quoteSnapshot.askLabel;
-  const spreadAmt = quoteSnapshot.spread;
 
-  const executionPrice = selectedSide === 'buy' ? parseFloat(askPrice) : parseFloat(bidPrice);
-  const isPendingOrder = orderType !== 'market';
-  const pendingEntryPrice = parseFloat(pendingPrice);
-  const finalPrice = isPendingOrder ? pendingEntryPrice : executionPrice;
+  const bidPrice = Number.parseFloat(quoteSnapshot.bid) || 0;
+  const askPrice = Number.parseFloat(quoteSnapshot.ask) || 0;
+  const bidLabel = quoteSnapshot.bidLabel;
+  const askLabel = quoteSnapshot.askLabel;
+  const spreadLabel = Number.isFinite(quoteSnapshot.spread)
+    ? Number(quoteSnapshot.spread).toFixed(precision)
+    : '0.00';
+
+  const isPendingOrder = mode === 'pending';
+  const referencePrice = selectedSide === 'buy' ? askPrice : bidPrice;
+  const normalizedTriggerPrice = Number.parseFloat(triggerPrice);
+  const derivedOrderType = isPendingOrder
+    ? getPendingOrderType({
+        side: selectedSide,
+        triggerPrice: normalizedTriggerPrice,
+        referencePrice,
+      })
+    : 'market';
+  const finalPrice = isPendingOrder ? normalizedTriggerPrice : referencePrice;
+
   const lotStep = getLotStep(category, symbol, instrument);
   const minLot = getMinLot(category, symbol, instrument);
   const lotPrecision = getLotPrecision(category, symbol, instrument);
@@ -99,682 +110,342 @@ const OrderPanel = ({
     price: finalPrice,
     leverage: maxLeverage,
   });
+
   const freeMargin = Number(portfolio?.freeMargin ?? 0);
-  const marginLoaded = portfolio?.freeMargin != null;
-  const projectedFreeMargin = marginLoaded ? freeMargin - requiredMargin : null;
-  const hasMarginLevel = Number(portfolio?.margin || 0) > 0;
-  const marginLevelLabel = hasMarginLevel ? `${Number(portfolio?.marginLevel || 0).toFixed(2)}%` : 'N/A';
-  const formattedLots = formatLots(lots, category, symbol, instrument);
-  const moveValue = calculatePipValue({
-    symbol,
-    category,
-    instrument,
-    quantity,
-    price: finalPrice,
-  });
+  const equity = Number(portfolio?.equity ?? 0);
+  const activePositions = positions.filter((position) => normalizeSymbol(position?.symbol) === normalizeSymbol(symbol));
+  const pendingOrders = orders.filter((order) => normalizeSymbol(order?.symbol) === normalizeSymbol(symbol));
 
-  const tpPrice = tpEnabled ? parseFloat(tpValue) : null;
-  const slPrice = slEnabled ? parseFloat(slValue) : null;
-  const hasValidSize = Number.isFinite(lots) && lots >= minLot && Number.isFinite(amount) && amount > 0 && Number.isFinite(quantity) && quantity > 0;
-  const hasValidPendingPrice = Number.isFinite(finalPrice) && finalPrice > 0;
-  const hasValidPendingDirection = useMemo(() => {
-    if (!isPendingOrder || !hasValidPendingPrice || !Number.isFinite(executionPrice) || executionPrice <= 0) {
-      return true;
-    }
-
-    if (selectedSide === 'buy' && orderType === 'limit') {
-      return finalPrice <= executionPrice;
-    }
-
-    if (selectedSide === 'buy' && orderType === 'stop') {
-      return finalPrice >= executionPrice;
-    }
-
-    if (selectedSide === 'sell' && orderType === 'limit') {
-      return finalPrice >= executionPrice;
-    }
-
-    if (selectedSide === 'sell' && orderType === 'stop') {
-      return finalPrice <= executionPrice;
-    }
-
-    return true;
-  }, [executionPrice, finalPrice, hasValidPendingPrice, isPendingOrder, orderType, selectedSide]);
-  const hasValidTp = !tpEnabled || Number.isFinite(tpPrice);
-  const hasValidSl = !slEnabled || Number.isFinite(slPrice);
-  const hasEnoughMargin = !marginLoaded || requiredMargin <= freeMargin;
-  const canReview = hasValidSize && hasValidPendingPrice && hasValidPendingDirection && hasValidTp && hasValidSl && requiredMargin > 0 && hasEnoughMargin;
-  const orderTicketLabel = formatOrderTicketLabel({ side: selectedSide, orderType });
-  const pendingPriceGuide = useMemo(() => {
-    if (!isPendingOrder) {
-      return 'Market orders execute immediately at the live quote.';
-    }
-
-    if (selectedSide === 'buy' && orderType === 'limit') {
-      return 'Buy limit should sit at or below the current ask to catch a pullback.';
-    }
-
-    if (selectedSide === 'buy' && orderType === 'stop') {
-      return 'Buy stop should sit at or above the current ask to catch a breakout.';
-    }
-
-    if (selectedSide === 'sell' && orderType === 'limit') {
-      return 'Sell limit should sit at or above the current bid to fade into strength.';
-    }
-
-    return 'Sell stop should sit at or below the current bid to catch downside momentum.';
-  }, [isPendingOrder, orderType, selectedSide]);
-
-  const projectedTakeProfit = tpPrice ? calculateProjectedPnL({
-    symbol,
-    category,
-    instrument,
-    side: selectedSide,
-    entryPrice: finalPrice,
-    exitPrice: tpPrice,
-    quantity,
-  }) : null;
-
-  const projectedStopLoss = slPrice ? calculateProjectedPnL({
-    symbol,
-    category,
-    instrument,
-    side: selectedSide,
-    entryPrice: finalPrice,
-    exitPrice: slPrice,
-    quantity,
-  }) : null;
+  const hasLiveReferencePrice = Number.isFinite(referencePrice) && referencePrice > 0;
+  const hasValidTriggerPrice = !isPendingOrder || (Number.isFinite(normalizedTriggerPrice) && normalizedTriggerPrice > 0);
+  const hasEnoughMargin = requiredMargin > 0 && requiredMargin <= freeMargin;
+  const canPlaceMarketOrder = !isPendingOrder && hasLiveReferencePrice;
+  const canPlacePendingOrder = isPendingOrder && hasValidTriggerPrice;
+  const canSubmit = lots >= minLot && quantity > 0 && hasEnoughMargin && (canPlaceMarketOrder || canPlacePendingOrder);
 
   useEffect(() => {
-    if (useLots) {
-      const usd = calculateUsdFromLots(lots, finalPrice, category, symbol, instrument);
-      setAmount(Number.isFinite(usd) ? Number(usd.toFixed(2)) : 0);
-    }
-  }, [lots, useLots, finalPrice, category, symbol, instrument]);
-
-  useEffect(() => {
-    if (!useLots) {
-      const derivedLots = calculateLotsFromUsd(amount, finalPrice, category, symbol, instrument);
-      setLots(Number.isFinite(derivedLots) ? parseFloat(derivedLots.toFixed(lotPrecision)) : minLot);
-    }
-  }, [amount, useLots, finalPrice, category, symbol, instrument, minLot, lotPrecision]);
-
-  useEffect(() => {
-    if (!isPendingOrder) {
-      setPendingPrice('');
+    if (!isPendingOrder || !hasLiveReferencePrice) {
       return;
     }
 
-    setPendingPrice((current) => {
-      if (current && Number.isFinite(parseFloat(current))) {
+    setTriggerPrice((current) => {
+      if (current && Number.isFinite(Number.parseFloat(current))) {
         return current;
       }
-
-      return Number.isFinite(executionPrice)
-        ? executionPrice.toFixed(instrument.precision)
-        : '';
+      return referencePrice.toFixed(precision);
     });
-  }, [executionPrice, instrument.precision, isPendingOrder]);
+  }, [hasLiveReferencePrice, isPendingOrder, precision, referencePrice]);
 
   useEffect(() => {
-    if (onIntentChange) {
-      onIntentChange({
-        side: selectedSide,
-        type: orderType,
-        price: finalPrice,
-        tp: tpEnabled ? parseFloat(tpValue) : null,
-        sl: slEnabled ? parseFloat(slValue) : null,
-      });
-    }
-  }, [selectedSide, orderType, finalPrice, tpEnabled, tpValue, slEnabled, slValue, onIntentChange]);
-
-  const handleSideSelect = (side) => {
-    setSelectedSide(side);
-    setShowConfirmation(false);
-  };
-
-  const handleReview = () => {
-    if (!canReview) {
-      return;
-    }
-    setShowConfirmation(true);
-  };
-
-  const handleExecute = async () => {
-    if (!canReview) {
-      return;
-    }
-
-    const submissionResult = await Promise.resolve(onSubmit({
-      symbol,
-      type: orderType,
+    onIntentChange?.({
       side: selectedSide,
-      amount: parseFloat(amount),
+      type: derivedOrderType,
+      price: finalPrice,
+      tp: tpEnabled ? Number.parseFloat(tpValue) : null,
+      sl: slEnabled ? Number.parseFloat(slValue) : null,
+    });
+  }, [derivedOrderType, finalPrice, onIntentChange, selectedSide, slEnabled, slValue, tpEnabled, tpValue]);
+
+  const nudgeLots = (direction) => {
+    setLots((current) => {
+      const baseValue = Number.isFinite(current) ? current : minLot;
+      const nextValue = baseValue + (direction * lotStep);
+      return Number(clamp(nextValue, minLot).toFixed(lotPrecision));
+    });
+  };
+
+  const nudgeTriggerPrice = (direction) => {
+    const step = 1 / (10 ** precision);
+    setTriggerPrice((current) => {
+      const currentValue = Number.parseFloat(current);
+      const baseValue = Number.isFinite(currentValue) && currentValue > 0
+        ? currentValue
+        : (hasLiveReferencePrice ? referencePrice : step);
+      const nextValue = clamp(baseValue + (direction * step), step);
+      return nextValue.toFixed(precision);
+    });
+  };
+
+  const handleSubmit = async () => {
+    if (!canSubmit) {
+      return;
+    }
+
+    const success = await Promise.resolve(onSubmit({
+      symbol,
+      type: derivedOrderType,
+      side: selectedSide,
+      amount: Number.parseFloat(notionalValue.toFixed(2)),
       lots,
       quantity,
       category,
       leverage: maxLeverage,
-      takeProfit: tpEnabled ? parseFloat(tpValue) : null,
-      stopLoss: slEnabled ? parseFloat(slValue) : null,
+      takeProfit: tpEnabled && tpValue ? Number.parseFloat(tpValue) : null,
+      stopLoss: slEnabled && slValue ? Number.parseFloat(slValue) : null,
       price: finalPrice,
     }));
 
-    if (submissionResult !== false) {
-      setShowConfirmation(false);
+    if (success !== false && isPendingOrder) {
+      setTriggerPrice(referencePrice ? referencePrice.toFixed(precision) : '');
     }
   };
 
+  const orderTitle = formatInstrumentDisplaySymbol(symbol, { withSlash: false });
+  const pendingLabel = `${selectedSide.toUpperCase()} when`;
+  const helperMessage = !hasLiveReferencePrice
+    ? 'Live execution price is unavailable. Pending orders may still be placed when trigger pricing is available.'
+    : isPendingOrder
+      ? `${selectedSide === 'buy' ? 'Buy' : 'Sell'} pending orders automatically switch between limit and stop based on your trigger price.`
+      : 'Market orders execute from the live bid/ask used by your trading backend.';
+
   return (
-    <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[2rem] shadow-2xl overflow-hidden flex flex-col h-full transition-all duration-300">
-      <div className="p-5 border-b border-slate-50 dark:border-slate-800 flex justify-between items-center bg-slate-50/30 dark:bg-slate-800/30 backdrop-blur-md">
-        <div className="flex items-center space-x-3">
-          <div className="w-10 h-10 bg-slate-900 dark:bg-gold-500 rounded-xl flex items-center justify-center shadow-lg transform rotate-3">
-            <span className="text-[11px] font-black text-white dark:text-slate-900 uppercase tracking-tighter">{symbol.slice(0, 3)}</span>
+    <div className="flex h-full flex-col rounded-[1.75rem] border border-slate-700/70 bg-[#1f2230] text-white shadow-[0_24px_60px_rgba(0,0,0,0.35)]">
+      <div className="flex items-start justify-between border-b border-slate-700/60 px-5 py-4">
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 flex-col items-center justify-center rounded-xl bg-[#171a26] text-[9px] font-black uppercase leading-none text-slate-200">
+            <span>{orderTitle.slice(0, 3)}</span>
+            <span>{orderTitle.slice(-3)}</span>
           </div>
           <div>
-            <h3 className="text-xs font-black uppercase text-slate-900 dark:text-white tracking-widest italic leading-none">{symbol}</h3>
-            <p className={`text-[10px] font-black tabular-nums mt-1.5 flex items-center ${lastDir === 'up' ? 'text-emerald-500' : lastDir === 'down' ? 'text-rose-500' : 'text-slate-400'}`}>
-              {lastDir === 'up' ? <FaCaretUp className="mr-0.5" /> : lastDir === 'down' ? <FaCaretDown className="mr-0.5" /> : null}
-              {currentPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 5 })}
+            <p className="text-xl font-black uppercase tracking-tight">{orderTitle}.</p>
+            <p className="mt-1 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">
+              Spread {spreadLabel}
             </p>
           </div>
         </div>
-        <div className="flex items-center space-x-2">
-          <span className="text-[9px] font-black uppercase text-slate-400 tracking-widest bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded-md border border-slate-200 dark:border-slate-700">
-            Spread: <span className="text-gold-500">{spreadAmt.toFixed(instrument.precision)}</span>
-          </span>
-          {!hasRealBidAsk && (
-            <span className="text-[9px] font-black uppercase text-amber-500 tracking-widest bg-amber-500/10 px-2 py-1 rounded-md border border-amber-500/20">
-              Last Price Sync
-            </span>
-          )}
-          {onClose && (
-            <button onClick={onClose} className="p-2 hover:bg-rose-50 dark:hover:bg-rose-500/10 text-slate-300 hover:text-rose-500 rounded-lg transition-all">
-              <FaTimes size={14} />
+
+        {onClose && (
+          <button
+            onClick={onClose}
+            className="rounded-xl p-2 text-slate-400 transition-colors hover:bg-white/5 hover:text-white"
+          >
+            <FaTimes size={14} />
+          </button>
+        )}
+      </div>
+
+      <div className="px-4 pt-4">
+        <div className="grid grid-cols-2 gap-2 rounded-2xl bg-[#2a2d3b] p-1">
+          {[
+            { id: 'market', label: 'Market' },
+            { id: 'pending', label: 'Pending Order' },
+          ].map((item) => (
+            <button
+              key={item.id}
+              onClick={() => setMode(item.id)}
+              className={`rounded-[0.9rem] px-4 py-3 text-sm font-black transition-all ${
+                mode === item.id
+                  ? 'bg-[#1f2230] text-white shadow-sm'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              {item.label}
             </button>
-          )}
+          ))}
         </div>
       </div>
 
-      <div className="flex border-b border-slate-50 dark:border-slate-800 bg-slate-50/20 dark:bg-slate-900/50">
-        {[
-          { id: 'trade', icon: FaExchangeAlt, label: 'Trade' },
-          { id: 'positions', icon: FaChartLine, label: 'Active' },
-          { id: 'orders', icon: FaListUl, label: 'Pending' }
-        ].map((tab) => (
+      <div className="flex-1 space-y-5 px-4 py-5">
+        <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
           <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
-            className={`flex-1 py-3 text-[9px] font-black uppercase tracking-widest flex items-center justify-center space-x-2 transition-all border-b-2 ${
-              activeTab === tab.id
-                ? 'border-gold-500 text-slate-900 dark:text-gold-500 bg-white dark:bg-slate-900'
-                : 'border-transparent text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'
+            onClick={() => setSelectedSide('sell')}
+            className={`rounded-2xl border px-4 py-4 text-left transition-all ${
+              selectedSide === 'sell'
+                ? 'border-rose-500 bg-rose-500/12'
+                : 'border-slate-700 bg-[#2a2d3b] hover:border-rose-500/50'
             }`}
           >
-            <tab.icon size={10} />
-            <span>{tab.label}</span>
+            <p className="text-lg font-black text-rose-400">Sell</p>
+            <p className="mt-2 text-[2rem] font-black leading-none text-rose-400">{bidLabel}</p>
           </button>
-        ))}
-      </div>
 
-      <div className="flex-1 overflow-y-auto custom-scrollbar relative">
-        <AnimatePresence mode="wait">
-          {activeTab === 'trade' && (
-            <motion.div
-              key="trade"
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 10 }}
-              className="p-6 space-y-6"
-            >
-              <div className="grid grid-cols-2 gap-3 p-1.5 bg-slate-100 dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700">
+          <div className="text-center">
+            <p className="text-2xl font-black text-white">{formatLots(lots, category, symbol, instrument)}</p>
+            <p className="mt-1 text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">
+              {tradingMeta.quantityLabel}
+            </p>
+          </div>
+
+          <button
+            onClick={() => setSelectedSide('buy')}
+            className={`rounded-2xl border px-4 py-4 text-left transition-all ${
+              selectedSide === 'buy'
+                ? 'border-teal-400 bg-teal-400/12'
+                : 'border-slate-700 bg-[#2a2d3b] hover:border-teal-400/50'
+            }`}
+          >
+            <p className="text-lg font-black text-teal-300">Buy</p>
+            <p className="mt-2 text-[2rem] font-black leading-none text-teal-300">{askLabel}</p>
+          </button>
+        </div>
+
+        {isPendingOrder && (
+          <div className="space-y-2">
+            <label className="text-sm font-bold text-slate-200">{pendingLabel}</label>
+            <div className="grid grid-cols-[1fr_auto] overflow-hidden rounded-2xl border border-slate-700 bg-[#343847]">
+              <div className="px-4 py-3">
+                <input
+                  type="number"
+                  step={1 / (10 ** precision)}
+                  min="0"
+                  value={triggerPrice}
+                  onChange={(event) => setTriggerPrice(event.target.value)}
+                  className="w-full bg-transparent text-3xl font-black text-white outline-none"
+                />
+                <p className="mt-1 text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">
+                  {derivedOrderType.toUpperCase()} trigger
+                </p>
+              </div>
+              <div className="flex w-14 flex-col border-l border-slate-700">
                 <button
-                  onClick={() => handleSideSelect('buy')}
-                  className={`py-4 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all flex flex-col items-center ${
-                    selectedSide === 'buy'
-                      ? 'bg-emerald-500 text-white shadow-xl shadow-emerald-500/30'
-                      : 'text-slate-400 hover:text-emerald-500'
-                  }`}
+                  onClick={() => nudgeTriggerPrice(1)}
+                  className="flex flex-1 items-center justify-center text-slate-300 transition-colors hover:bg-white/5 hover:text-white"
                 >
-                  <span>BUY / LONG</span>
-                  <span className="text-[8px] opacity-70 mt-1">ASK: {askPrice}</span>
+                  <FaPlus size={12} />
                 </button>
                 <button
-                  onClick={() => handleSideSelect('sell')}
-                  className={`py-4 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all flex flex-col items-center ${
-                    selectedSide === 'sell'
-                      ? 'bg-rose-500 text-white shadow-xl shadow-rose-500/30'
-                      : 'text-slate-400 hover:text-rose-500'
-                  }`}
+                  onClick={() => nudgeTriggerPrice(-1)}
+                  className="flex flex-1 items-center justify-center border-t border-slate-700 text-slate-300 transition-colors hover:bg-white/5 hover:text-white"
                 >
-                  <span>SELL / SHORT</span>
-                  <span className="text-[8px] opacity-70 mt-1">BID: {bidPrice}</span>
+                  <FaMinus size={12} />
                 </button>
               </div>
+            </div>
+          </div>
+        )}
 
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 italic">Order Type</label>
-                  <span className="text-[8px] font-black uppercase tracking-widest text-gold-500">{orderTicketLabel}</span>
-                </div>
-                <div className="grid grid-cols-3 gap-2">
-                  {['market', 'limit', 'stop'].map((type) => (
-                    <button
-                      key={type}
-                      onClick={() => {
-                        setOrderType(type);
-                        setShowConfirmation(false);
-                      }}
-                      className={`rounded-xl border px-3 py-3 text-[9px] font-black uppercase tracking-widest transition-all ${
-                        orderType === type
-                          ? 'border-gold-500 bg-gold-500 text-slate-900 shadow-lg shadow-gold-500/20'
-                          : 'border-slate-200 bg-slate-50 text-slate-500 hover:border-gold-500/40 hover:text-slate-900 dark:border-slate-700 dark:bg-slate-800/50 dark:text-slate-300'
-                      }`}
-                    >
-                      {type}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 px-4 py-3 flex items-center justify-between">
-                <div>
-                  <p className="text-[8px] font-black uppercase tracking-widest text-slate-400">Execution</p>
-                  <p className="text-[11px] font-black uppercase tracking-widest text-slate-900 dark:text-white mt-1">{orderTicketLabel}</p>
-                </div>
-                <div className="text-right">
-                  <p className="text-[8px] font-black uppercase tracking-widest text-slate-400">{isPendingOrder ? 'Trigger Price' : 'Live Entry'}</p>
-                  <p className="text-[11px] font-black tabular-nums text-gold-500 mt-1">
-                    {Number(finalPrice || 0).toLocaleString(undefined, { minimumFractionDigits: instrument.precision, maximumFractionDigits: instrument.precision })}
-                  </p>
-                </div>
-              </div>
-
-              {isPendingOrder && (
-                <div className="space-y-2 rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/40 p-4">
-                  <div className="flex items-center justify-between gap-3">
-                    <label className="text-[9px] font-black uppercase tracking-widest text-slate-400">Pending Entry</label>
-                    <span className="text-[8px] font-black uppercase tracking-widest text-slate-400">
-                      Live {selectedSide === 'buy' ? 'Ask' : 'Bid'} {Number(executionPrice || 0).toFixed(instrument.precision)}
-                    </span>
-                  </div>
-                  <input
-                    type="number"
-                    step={1 / (10 ** instrument.precision)}
-                    min="0"
-                    value={pendingPrice}
-                    onChange={(event) => {
-                      setPendingPrice(event.target.value);
-                      setShowConfirmation(false);
-                    }}
-                    className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl py-3 px-4 text-sm font-black text-slate-900 dark:text-white focus:outline-none focus:border-gold-500 transition-all"
-                  />
-                  <p className="text-[8px] font-bold uppercase tracking-wide text-slate-400">
-                    {pendingPriceGuide}
-                  </p>
-                </div>
-              )}
-
-              <div className="space-y-3">
-                <div className="flex justify-between items-end">
-                  <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 italic">Volume (Lots)</label>
-                  <button
-                    onClick={() => setUseLots(!useLots)}
-                    className="text-[8px] font-black uppercase text-gold-500 hover:underline flex items-center space-x-1"
-                  >
-                    <FaExchangeAlt size={8} />
-                    <span>Switch to {useLots ? 'USD' : 'Lots'}</span>
-                  </button>
-                </div>
-
-                <div className="relative group">
-                  <div className="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none text-slate-300">
-                    {useLots ? 'LOT' : '$'}
-                  </div>
-                  <input
-                    type="number"
-                    step={useLots ? lotStep : 100}
-                    min={useLots ? minLot : 0}
-                    value={useLots ? lots : amount}
-                    onChange={(event) => {
-                      const nextValue = parseFloat(event.target.value) || 0;
-                      if (useLots) {
-                        setLots(nextValue);
-                      } else {
-                        setAmount(nextValue);
-                      }
-                      setShowConfirmation(false);
-                    }}
-                    className="w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl py-4 pl-12 pr-4 text-sm font-black text-slate-900 dark:text-white focus:outline-none focus:border-gold-500 transition-all"
-                  />
-                  <div className="absolute inset-y-0 right-2 flex flex-col justify-center space-y-1">
-                    <button
-                      onClick={() => useLots ? setLots((prev) => +(prev + lotStep).toFixed(lotPrecision)) : setAmount((prev) => prev + 100)}
-                      className="p-1 hover:bg-slate-200 dark:hover:bg-slate-700 rounded text-slate-400"
-                    >
-                      <FaCaretUp size={10} />
-                    </button>
-                    <button
-                      onClick={() => useLots ? setLots((prev) => Math.max(0, +(prev - lotStep).toFixed(lotPrecision))) : setAmount((prev) => Math.max(0, prev - 100))}
-                      className="p-1 hover:bg-slate-200 dark:hover:bg-slate-700 rounded text-slate-400"
-                    >
-                      <FaCaretDown size={10} />
-                    </button>
-                  </div>
-                </div>
-                <div className="flex justify-between text-[8px] font-bold text-slate-400 uppercase tracking-tighter">
-                  <span>~ {useLots ? `$${Number(amount || 0).toFixed(2)}` : `${formattedLots} Lots`}</span>
-                  <span>{quantity.toLocaleString(undefined, { maximumFractionDigits: 4 })} {tradingMeta.quantityLabel}</span>
-                </div>
-              </div>
-
-              <div className="space-y-4 pt-2">
-                <div className="flex items-center space-x-2 text-[9px] font-black uppercase tracking-widest text-slate-900 dark:text-white">
-                  <FaShieldAlt className="text-gold-500" />
-                  <span>Risk Management</span>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <button
-                      onClick={() => { setTpEnabled(!tpEnabled); setShowConfirmation(false); }}
-                      className={`w-full flex items-center justify-between px-3 py-2 rounded-lg border text-[8px] font-black uppercase transition-all ${
-                        tpEnabled ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-500' : 'bg-slate-100 dark:bg-slate-800 border-transparent text-slate-400'
-                      }`}
-                    >
-                      <span>Take Profit</span>
-                      <div className={`w-2 h-2 rounded-full ${tpEnabled ? 'bg-emerald-500 animate-pulse' : 'bg-slate-300'}`} />
-                    </button>
-                    {tpEnabled && (
-                      <div className="space-y-1">
-                        <input
-                          type="number"
-                          placeholder="Price"
-                          value={tpValue}
-                          onChange={(event) => { setTpValue(event.target.value); setShowConfirmation(false); }}
-                          className="w-full bg-emerald-500/5 border border-emerald-500/20 rounded-lg py-2 px-3 text-xs font-black text-emerald-500 focus:outline-none"
-                        />
-                        <div className="text-[7px] text-emerald-500/70 font-bold uppercase text-right">
-                          +{calculatePips({
-                            symbol,
-                            category,
-                            instrument,
-                            entryPrice: finalPrice,
-                            exitPrice: parseFloat(tpValue) || finalPrice,
-                          }).toFixed(1)} {tradingMeta.movementLabel}
-                        </div>
-                        {projectedTakeProfit !== null && (
-                          <div className="text-[7px] text-emerald-500/70 font-bold uppercase text-right">
-                            P/L {projectedTakeProfit >= 0 ? '+' : ''}${projectedTakeProfit.toFixed(2)}
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="space-y-2">
-                    <button
-                      onClick={() => { setSlEnabled(!slEnabled); setShowConfirmation(false); }}
-                      className={`w-full flex items-center justify-between px-3 py-2 rounded-lg border text-[8px] font-black uppercase transition-all ${
-                        slEnabled ? 'bg-rose-500/10 border-rose-500/30 text-rose-500' : 'bg-slate-100 dark:bg-slate-800 border-transparent text-slate-400'
-                      }`}
-                    >
-                      <span>Stop Loss</span>
-                      <div className={`w-2 h-2 rounded-full ${slEnabled ? 'bg-rose-500 animate-pulse' : 'bg-slate-300'}`} />
-                    </button>
-                    {slEnabled && (
-                      <div className="space-y-1">
-                        <input
-                          type="number"
-                          placeholder="Price"
-                          value={slValue}
-                          onChange={(event) => { setSlValue(event.target.value); setShowConfirmation(false); }}
-                          className="w-full bg-rose-500/5 border border-rose-500/20 rounded-lg py-2 px-3 text-xs font-black text-rose-500 focus:outline-none"
-                        />
-                        <div className="text-[7px] text-rose-500/70 font-bold uppercase text-right">
-                          -{calculatePips({
-                            symbol,
-                            category,
-                            instrument,
-                            entryPrice: finalPrice,
-                            exitPrice: parseFloat(slValue) || finalPrice,
-                          }).toFixed(1)} {tradingMeta.movementLabel}
-                        </div>
-                        {projectedStopLoss !== null && (
-                          <div className="text-[7px] text-rose-500/70 font-bold uppercase text-right">
-                            P/L {projectedStopLoss >= 0 ? '+' : ''}${projectedStopLoss.toFixed(2)}
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                {[
-                  { label: 'Notional', value: `$${notionalValue.toFixed(2)}`, tone: 'text-slate-900 dark:text-white' },
-                  { label: 'Required Margin', value: `$${requiredMargin.toFixed(2)}`, tone: freeMargin >= requiredMargin ? 'text-emerald-500' : 'text-rose-500' },
-                  { label: 'Free Margin', value: `$${freeMargin.toFixed(2)}`, tone: 'text-slate-900 dark:text-white' },
-                  { label: 'Post-Trade Free', value: projectedFreeMargin != null ? `$${projectedFreeMargin.toFixed(2)}` : '--', tone: projectedFreeMargin != null && projectedFreeMargin >= 0 ? 'text-emerald-500' : 'text-rose-500' },
-                  { label: 'Leverage', value: `1:${maxLeverage}`, tone: 'text-slate-900 dark:text-white' },
-                  { label: 'Margin Level', value: marginLevelLabel, tone: hasMarginLevel && Number(portfolio?.marginLevel || 0) < 100 ? 'text-rose-500' : 'text-gold-500' },
-                ].map((item) => (
-                  <div key={item.label} className="bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700/50 rounded-xl p-3">
-                    <p className="text-[8px] font-black uppercase tracking-widest text-slate-400 mb-1">{item.label}</p>
-                    <p className={`text-sm font-black ${item.tone}`}>{item.value}</p>
-                  </div>
-                ))}
-              </div>
-
-              <div className="grid grid-cols-3 gap-3">
-                {[
-                  { label: 'Contract Size', value: `${tradingMeta.contractSize.toLocaleString()} ${tradingMeta.quantityLabel}` },
-                  { label: 'Lot Step', value: `${formatLots(lotStep, category, symbol, instrument)} lots` },
-                  { label: 'Min Lot', value: `${formatLots(minLot, category, symbol, instrument)} lots` },
-                  { label: `${tradingMeta.movementLabel} Value`, value: `$${moveValue.toFixed(2)} per ${tradingMeta.movementLabel.toLowerCase()}` },
-                  { label: 'Execution Side', value: selectedSide === 'buy' ? `Buy ref ${askPrice}` : `Sell ref ${bidPrice}` },
-                  { label: 'Mark Source', value: hasRealBidAsk ? 'Bid / Ask' : 'Synthetic Spread' },
-                ].map((item) => (
-                  <div key={item.label} className="bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700/50 rounded-xl p-3">
-                    <p className="text-[8px] font-black uppercase tracking-widest text-slate-400 mb-1">{item.label}</p>
-                    <p className="text-sm font-black text-slate-900 dark:text-white">{item.value}</p>
-                  </div>
-                ))}
-              </div>
-
-              {!hasValidSize && (
-                <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 px-4 py-3 text-[9px] font-black uppercase tracking-widest text-amber-500">
-                  Minimum size is {formatLots(minLot, category, symbol, instrument)} lots and the order quantity must be greater than zero.
-                </div>
-              )}
-
-              {!hasValidPendingPrice && (
-                <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 px-4 py-3 text-[9px] font-black uppercase tracking-widest text-amber-500">
-                  {isPendingOrder ? 'Enter a valid trigger price.' : 'Live market price is unavailable right now.'}
-                </div>
-              )}
-
-              {!hasValidPendingDirection && (
-                <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 px-4 py-3 text-[9px] font-black uppercase tracking-widest text-amber-500">
-                  {pendingPriceGuide}
-                </div>
-              )}
-
-              {(!hasValidTp || !hasValidSl) && (
-                <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 px-4 py-3 text-[9px] font-black uppercase tracking-widest text-amber-500">
-                  Enter valid numeric values for take profit and stop loss.
-                </div>
-              )}
-
-              {!hasEnoughMargin && (
-                <div className="rounded-xl border border-rose-500/20 bg-rose-500/5 px-4 py-3 text-[9px] font-black uppercase tracking-widest text-rose-500">
-                  Required margin exceeds available free margin.
-                </div>
-              )}
-
+        <div className="space-y-2">
+          <label className="text-sm font-bold text-slate-200">Amount</label>
+          <div className="grid grid-cols-[1fr_auto] overflow-hidden rounded-2xl border border-slate-700 bg-[#343847]">
+            <div className="px-4 py-3">
+              <input
+                type="number"
+                step={lotStep}
+                min={minLot}
+                value={lots}
+                onChange={(event) => {
+                  const nextValue = Number.parseFloat(event.target.value);
+                  if (!Number.isFinite(nextValue)) {
+                    setLots(minLot);
+                    return;
+                  }
+                  setLots(Number(clamp(nextValue, minLot).toFixed(lotPrecision)));
+                }}
+                className="w-full bg-transparent text-3xl font-black text-white outline-none"
+              />
+              <p className="mt-1 text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">
+                Min {formatLots(minLot, category, symbol, instrument)} lots
+              </p>
+            </div>
+            <div className="flex w-14 flex-col border-l border-slate-700">
               <button
-                onClick={handleReview}
-                disabled={!canReview}
-                className={`w-full py-5 rounded-2xl shadow-2xl transition-all active:scale-95 flex flex-col items-center group overflow-hidden relative ${
-                  selectedSide === 'buy'
-                    ? 'bg-emerald-500 hover:bg-emerald-600 shadow-emerald-500/30'
-                    : 'bg-rose-500 hover:bg-rose-600 shadow-rose-500/30'
-                } ${!canReview ? 'cursor-not-allowed opacity-50 shadow-none' : ''}`}
+                onClick={() => nudgeLots(1)}
+                className="flex flex-1 items-center justify-center text-slate-300 transition-colors hover:bg-white/5 hover:text-white"
               >
-                <div className="absolute inset-0 bg-white/10 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
-                <span className="text-xs font-black uppercase tracking-[0.3em] text-white relative z-10">
-                  Review Order
-                </span>
-                <span className="text-[9px] font-bold text-white/70 mt-1 relative z-10">
-                  {formattedLots} Lots | {quantity.toLocaleString(undefined, { maximumFractionDigits: 4 })} {tradingMeta.quantityLabel} @ {finalPrice.toLocaleString(undefined, { minimumFractionDigits: instrument.precision, maximumFractionDigits: instrument.precision })}
-                </span>
+                <FaPlus size={12} />
               </button>
+              <button
+                onClick={() => nudgeLots(-1)}
+                className="flex flex-1 items-center justify-center border-t border-slate-700 text-slate-300 transition-colors hover:bg-white/5 hover:text-white"
+              >
+                <FaMinus size={12} />
+              </button>
+            </div>
+          </div>
+        </div>
 
-              {showConfirmation && (
-                <div className="bg-slate-50 dark:bg-slate-800/50 border border-gold-500/20 rounded-2xl p-4 space-y-3">
-                  <div className="flex items-center space-x-2 text-[10px] font-black uppercase tracking-widest text-gold-500">
-                    <FaCheckCircle />
-                    <span>Order Confirmation</span>
-                  </div>
-                  <div className="grid grid-cols-2 gap-3 text-[10px]">
-                    {[ 
-                      { label: 'Instrument', value: symbol },
-                      { label: 'Type', value: formatOrderType(orderTicketLabel) },
-                      { label: 'Side', value: selectedSide.toUpperCase() },
-                      { label: 'Lots', value: formattedLots },
-                      { label: 'Quantity', value: quantity.toLocaleString(undefined, { maximumFractionDigits: 4 }) },
-                      { label: 'Notional', value: `$${notionalValue.toFixed(2)}` },
-                      { label: 'Entry Price', value: finalPrice ? finalPrice.toLocaleString(undefined, { minimumFractionDigits: instrument.precision, maximumFractionDigits: instrument.precision }) : '--' },
-                      { label: 'Stop Loss', value: slEnabled && slValue ? slValue : 'Off' },
-                      { label: 'Take Profit', value: tpEnabled && tpValue ? tpValue : 'Off' },
-                      { label: 'Required Margin', value: `$${requiredMargin.toFixed(2)}` },
-                      { label: 'Free Margin', value: `$${freeMargin.toFixed(2)}` },
-                    ].map((item) => (
-                      <div key={item.label}>
-                        <p className="text-[8px] font-black uppercase tracking-widest text-slate-400 mb-1">{item.label}</p>
-                        <p className="font-black text-slate-900 dark:text-white">{item.value}</p>
-                      </div>
-                    ))}
-                  </div>
-                  <div className="grid grid-cols-2 gap-2 pt-2">
-                    <button
-                      onClick={() => setShowConfirmation(false)}
-                      className="py-3 rounded-xl border border-slate-200 dark:border-slate-700 text-[9px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-300"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      onClick={handleExecute}
-                      className={`py-3 rounded-xl text-[9px] font-black uppercase tracking-widest ${
-                        selectedSide === 'buy'
-                          ? 'bg-emerald-500 text-white'
-                          : 'bg-rose-500 text-white'
-                      }`}
-                    >
-                      Confirm Order
-                    </button>
-                  </div>
-                </div>
-              )}
-            </motion.div>
+        <div className="space-y-3 border-t border-slate-700/60 pt-1">
+          <div className="flex items-center justify-between text-lg font-bold">
+            <span className="text-slate-300">Total value:</span>
+            <span className="text-white">${Number(notionalValue || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+          </div>
+          <div className="flex items-center justify-between text-lg font-bold">
+            <span className="text-slate-300">Required Margin:</span>
+            <span className={hasEnoughMargin ? 'text-cyan-300' : 'text-rose-400'}>
+              ${Number(requiredMargin || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </span>
+          </div>
+        </div>
+
+        <div className="space-y-3 border-t border-slate-700/60 pt-1">
+          <label className="flex items-center gap-3 text-xl font-bold text-white">
+            <input
+              type="checkbox"
+              checked={tpEnabled}
+              onChange={() => setTpEnabled((current) => !current)}
+              className="h-5 w-5 rounded border-slate-500 bg-transparent text-teal-400 focus:ring-teal-400"
+            />
+            <span>Take Profit</span>
+          </label>
+          {tpEnabled && (
+            <input
+              type="number"
+              value={tpValue}
+              onChange={(event) => setTpValue(event.target.value)}
+              placeholder="Target price"
+              className="w-full rounded-2xl border border-slate-700 bg-[#343847] px-4 py-3 text-lg font-bold text-white outline-none focus:border-teal-400"
+            />
           )}
 
-          {activeTab === 'positions' && (
-            <motion.div
-              key="positions"
-              initial={{ opacity: 0, x: 10 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -10 }}
-              className="p-4 space-y-3"
-            >
-              <div className="text-[10px] font-black uppercase tracking-widest text-slate-900 dark:text-white px-2 mb-4">
-                Active Positions ({symbolPositions.length})
-              </div>
-              {symbolPositions.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-20 text-slate-400">
-                  <FaChartLine size={40} className="opacity-10 mb-4" />
-                  <p className="text-[10px] font-black uppercase tracking-widest">No Open Positions For {symbol}</p>
-                </div>
-              ) : (
-                symbolPositions.map((position) => (
-                  <div key={position.id} className="bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700/50 rounded-xl p-3 space-y-2">
-                    <div className="flex justify-between items-center">
-                      <div className="flex items-center space-x-2">
-                        <span className={`text-[8px] font-black px-1.5 py-0.5 rounded ${position.type === 'BUY' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-rose-500/10 text-rose-500'}`}>
-                          {position.type}
-                        </span>
-                        <span className="text-[10px] font-black text-slate-900 dark:text-white">{position.symbol}</span>
-                      </div>
-                      <div className={`text-xs font-black tabular-nums ${position.pnl >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
-                        {position.pnl >= 0 ? '+' : ''}{position.pnl.toFixed(2)}
-                      </div>
-                    </div>
-                    <div className="flex justify-between text-[8px] font-bold text-slate-400 uppercase">
-                      <span>{formatLots(position.lots, position.category, position.symbol, position.instrument)} lots | {Number(position.quantity || 0).toLocaleString(undefined, { maximumFractionDigits: 4 })} {position.instrument?.quantityLabel || tradingMeta.quantityLabel}</span>
-                      <span>SL: {position.stopLoss ?? 'Off'} / TP: {position.takeProfit ?? 'Off'}</span>
-                    </div>
-                  </div>
-                ))
-              )}
-            </motion.div>
+          <label className="flex items-center gap-3 text-xl font-bold text-white">
+            <input
+              type="checkbox"
+              checked={slEnabled}
+              onChange={() => setSlEnabled((current) => !current)}
+              className="h-5 w-5 rounded border-slate-500 bg-transparent text-rose-400 focus:ring-rose-400"
+            />
+            <span>Stop Loss</span>
+          </label>
+          {slEnabled && (
+            <input
+              type="number"
+              value={slValue}
+              onChange={(event) => setSlValue(event.target.value)}
+              placeholder="Protection price"
+              className="w-full rounded-2xl border border-slate-700 bg-[#343847] px-4 py-3 text-lg font-bold text-white outline-none focus:border-rose-400"
+            />
           )}
+        </div>
 
-          {activeTab === 'orders' && (
-            <motion.div
-              key="orders"
-              initial={{ opacity: 0, x: 10 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -10 }}
-              className="p-4 space-y-3"
-            >
-              <div className="text-[10px] font-black uppercase tracking-widest text-slate-900 dark:text-white px-2 mb-4">
-                Pending Orders ({symbolOrders.length})
-              </div>
-              {symbolOrders.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-20 text-slate-400">
-                  <FaListUl size={40} className="opacity-10 mb-4" />
-                  <p className="text-[10px] font-black uppercase tracking-widest">No Pending Orders For {symbol}</p>
-                </div>
-              ) : (
-                symbolOrders.map((order) => (
-                  <div key={order.id} className="bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700/50 rounded-xl p-3 space-y-2">
-                    <div className="flex justify-between items-center">
-                      <div className="flex items-center space-x-2">
-                        <span className="text-[8px] font-black px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-500 uppercase">
-                          {order.type}
-                        </span>
-                        <span className="text-[10px] font-black text-slate-900 dark:text-white">{order.symbol}</span>
-                      </div>
-                      <span className={`text-[8px] font-black ${order.side === 'BUY' ? 'text-emerald-500' : 'text-rose-500'}`}>
-                        {order.side}
-                      </span>
-                    </div>
-                    <div className="flex justify-between text-[8px] font-bold text-slate-400 uppercase">
-                      <span>{formatLots(order.lots, order.category, order.symbol, order.instrument)} lots | {Number(order.quantity || 0).toLocaleString(undefined, { maximumFractionDigits: 4 })} {order.instrument?.quantityLabel || tradingMeta.quantityLabel}</span>
-                      <span className="text-gold-500 italic">WAITING</span>
-                    </div>
-                  </div>
-                ))
-              )}
-            </motion.div>
-          )}
-        </AnimatePresence>
+        <div className="rounded-2xl border border-slate-700/60 bg-[#252938] px-4 py-3 text-sm font-medium text-slate-300">
+          <div className="flex items-center justify-between">
+            <span>Free margin</span>
+            <span className="font-black text-white">${freeMargin.toFixed(2)}</span>
+          </div>
+          <div className="mt-2 flex items-center justify-between">
+            <span>Equity</span>
+            <span className="font-black text-white">${equity.toFixed(2)}</span>
+          </div>
+          <div className="mt-2 flex items-center justify-between">
+            <span>Open positions</span>
+            <span className="font-black text-white">{activePositions.length}</span>
+          </div>
+          <div className="mt-2 flex items-center justify-between">
+            <span>Pending orders</span>
+            <span className="font-black text-white">{pendingOrders.length}</span>
+          </div>
+        </div>
+
+        <p className="text-sm leading-6 text-slate-400">{helperMessage}</p>
       </div>
 
-      <div className="p-4 border-t border-slate-50 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/80 grid grid-cols-2 gap-4">
-        <div className="flex flex-col">
-          <span className="text-[7px] font-black uppercase tracking-widest text-slate-400 mb-0.5">Active P&L</span>
-          <span className={`text-xs font-black tabular-nums ${activePnl >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
-            ${activePnl.toFixed(2)}
-          </span>
-        </div>
-        <div className="flex flex-col text-right">
-          <span className="text-[7px] font-black uppercase tracking-widest text-slate-400 mb-0.5">Account Equity</span>
-          <span className="text-xs font-black text-slate-900 dark:text-white tabular-nums">
-            ${(Number(portfolio?.equity) || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-          </span>
-        </div>
+      <div className="border-t border-slate-700/60 px-4 py-4">
+        {!hasEnoughMargin && (
+          <p className="mb-3 text-sm font-bold text-rose-400">
+            Required margin exceeds available free margin.
+          </p>
+        )}
+        <button
+          onClick={handleSubmit}
+          disabled={!canSubmit}
+          className={`w-full rounded-2xl px-4 py-5 text-xl font-black transition-all ${
+            canSubmit
+              ? 'bg-teal-500 text-white hover:bg-teal-400'
+              : 'cursor-not-allowed bg-slate-700 text-slate-400'
+          }`}
+        >
+          Place Order
+        </button>
       </div>
     </div>
   );
