@@ -80,6 +80,14 @@ const TradingTab = ({
     () => positions.filter((position) => normalizeSymbol(position?.symbol) === normalizedActiveSymbol),
     [normalizedActiveSymbol, positions]
   );
+  const filteredOrders = useMemo(
+    () => orders.filter((order) => normalizeSymbol(order?.symbol) === normalizedActiveSymbol),
+    [normalizedActiveSymbol, orders]
+  );
+  const showMarkets = !isMobile || activeMobileView === 'markets';
+  const showChartWorkspace = !isMobile || activeMobileView === 'chart' || activeMobileView === 'portfolio';
+  const showTradePanel = !isMobile || activeMobileView === 'trade';
+  const showPortfolioPanel = !isMobile || activeMobileView === 'portfolio';
 
   const summaryMetrics = [
     { key: 'credit', label: 'Credit', value: portfolio.credit },
@@ -136,41 +144,74 @@ const TradingTab = ({
 
   return (
     <div className="-mx-4 flex min-h-[calc(100vh-10rem)] flex-col bg-[#171a26] px-4 pb-6 pt-4 text-white md:-mx-10 md:px-10">
-      <div className="mb-4 grid gap-3 rounded-[1.5rem] border border-slate-700/70 bg-[#1f2230] px-4 py-3 lg:grid-cols-7">
+      <div className="mb-4 rounded-[1.5rem] border border-slate-700/70 bg-[#1f2230] px-3 py-3 sm:px-4">
+        <div className="flex gap-3 overflow-x-auto pb-1 lg:grid lg:grid-cols-7 lg:overflow-visible lg:pb-0">
         {summaryMetrics.map((metric) => (
-          <div key={metric.key} className="rounded-2xl border border-transparent px-2 py-1.5 transition-colors hover:border-slate-700/70">
+            <div
+              key={metric.key}
+              className="min-w-[9.5rem] rounded-2xl border border-slate-700/40 bg-[#171a26] px-3 py-2.5 transition-colors hover:border-slate-600/70 lg:min-w-0 lg:border-transparent lg:bg-transparent lg:px-2 lg:py-1.5"
+            >
             <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">{metric.label}</p>
-            <p className="mt-1 text-2xl font-black tracking-tight text-white">
+              <p className="mt-1 text-xl font-black tracking-tight text-white sm:text-2xl">
               {metric.key === 'marginLevel' ? formatMetricValue(metric.key, metric.value) : `$${formatMetricValue(metric.key, metric.value)}`}
             </p>
           </div>
         ))}
+        </div>
       </div>
 
-      <div className="mb-3 flex gap-2 lg:hidden">
+      <div className="mb-3 rounded-[1.5rem] border border-slate-700/70 bg-[#1f2230] px-4 py-4 lg:hidden">
+        <div className="mb-4 flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Active Instrument</p>
+            <div className="mt-1 flex items-center gap-3">
+              <p className="truncate text-2xl font-black uppercase tracking-tight text-white">{activeSymbolLabel}.</p>
+              <span className={`text-lg font-black ${chartTone}`}>
+                {chartChange >= 0 ? '+' : ''}{chartChange.toFixed(2)}%
+              </span>
+            </div>
+            <p className="mt-1 text-xs font-bold text-slate-400">
+              {filteredPositions.length} open position{filteredPositions.length === 1 ? '' : 's'} and {filteredOrders.length} pending order{filteredOrders.length === 1 ? '' : 's'}
+            </p>
+          </div>
+
+          <div className="grid min-w-[8.5rem] grid-cols-2 gap-2">
+            <div className="rounded-2xl bg-rose-500 px-3 py-2 text-center">
+              <p className="text-[10px] font-black uppercase tracking-[0.18em] text-rose-100">Sell</p>
+              <p className="mt-1 text-lg font-black leading-none text-white">{bidPrice}</p>
+            </div>
+            <div className="rounded-2xl bg-teal-500 px-3 py-2 text-center">
+              <p className="text-[10px] font-black uppercase tracking-[0.18em] text-teal-100">Buy</p>
+              <p className="mt-1 text-lg font-black leading-none text-white">{askPrice}</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="-mx-1 flex gap-2 overflow-x-auto px-1">
         {[
           { id: 'markets', label: 'Markets', icon: FaListUl },
           { id: 'chart', label: 'Chart', icon: FaChartLine },
           { id: 'trade', label: 'Trade', icon: FaBolt },
-          { id: 'portfolio', label: 'Orders', icon: FaHistory },
+            { id: 'portfolio', label: 'Activity', icon: FaHistory },
         ].map((view) => (
           <button
             key={view.id}
             onClick={() => setActiveMobileView(view.id)}
-            className={`flex flex-1 items-center justify-center gap-2 rounded-2xl px-3 py-3 text-[10px] font-black uppercase tracking-[0.18em] transition-all ${
+              className={`flex min-w-[7.25rem] flex-1 items-center justify-center gap-2 rounded-2xl px-3 py-3 text-[10px] font-black uppercase tracking-[0.18em] transition-all ${
               activeMobileView === view.id
                 ? 'bg-teal-500 text-white'
-                : 'bg-[#1f2230] text-slate-400'
+                  : 'bg-[#171a26] text-slate-400'
             }`}
           >
             <view.icon size={11} />
             <span>{view.label}</span>
           </button>
         ))}
+        </div>
       </div>
 
-      <div className="grid flex-1 gap-4 lg:grid-cols-[28rem_minmax(0,1fr)_20rem]">
-        <div className={`${activeMobileView === 'markets' || !isMobile ? 'block' : 'hidden'} min-h-[28rem] overflow-hidden rounded-[1.5rem] border border-slate-700/70 bg-[#1f2230]`}>
+      <div className="grid flex-1 gap-4 xl:grid-cols-[minmax(20rem,26rem)_minmax(0,1fr)_minmax(19rem,21rem)]">
+        <div className={`${showMarkets ? 'block' : 'hidden'} min-h-[28rem] overflow-hidden rounded-[1.5rem] border border-slate-700/70 bg-[#1f2230]`}>
           <TerminalAssetList
             activeSymbol={activeSymbol}
             onSelectSymbol={(nextSymbol) => {
@@ -187,21 +228,21 @@ const TradingTab = ({
           />
         </div>
 
-        <div className={`${activeMobileView === 'chart' || activeMobileView === 'portfolio' || !isMobile ? 'flex' : 'hidden'} min-h-[30rem] flex-col gap-4`}>
+        <div className={`${showChartWorkspace ? 'flex' : 'hidden'} min-h-[30rem] flex-col gap-4`}>
           <div className="overflow-hidden rounded-[1.5rem] border border-slate-700/70 bg-[#1f2230]">
-            <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-700/60 px-4 py-3">
-              <div className="flex items-center gap-3">
+            <div className="hidden flex-wrap items-center justify-between gap-4 border-b border-slate-700/60 px-4 py-3 lg:flex">
+              <div className="flex min-w-0 items-center gap-3">
                 <div className="flex h-11 w-11 flex-col items-center justify-center rounded-xl bg-[#171a26] text-[9px] font-black uppercase leading-none text-slate-200">
                   <span>{activeSymbolLabel.slice(0, 3)}</span>
                   <span>{activeSymbolLabel.slice(-3)}</span>
                 </div>
-                <div>
-                  <div className="flex items-center gap-4">
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-3">
                     <p className="text-2xl font-black uppercase tracking-tight">{activeSymbolLabel}.</p>
                     <p className={`text-2xl font-black ${chartTone}`}>{chartChange >= 0 ? '+' : ''}{chartChange.toFixed(2)}%</p>
                   </div>
                   <p className="mt-1 text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">
-                    {filteredPositions.length} open position{filteredPositions.length === 1 ? '' : 's'} on this symbol
+                    {filteredPositions.length} open position{filteredPositions.length === 1 ? '' : 's'} and {filteredOrders.length} pending order{filteredOrders.length === 1 ? '' : 's'}
                   </p>
                 </div>
               </div>
@@ -224,7 +265,7 @@ const TradingTab = ({
               </div>
             </div>
 
-            <div className="h-[27rem] lg:h-[32rem]">
+            <div className="h-[22rem] sm:h-[25rem] lg:h-[32rem]">
               <TradingViewWidget
                 key={`terminal-${activeSymbol}-${theme}`}
                 symbol={activeSymbol}
@@ -236,13 +277,13 @@ const TradingTab = ({
             </div>
           </div>
 
-          <div className={`${activeMobileView === 'portfolio' || !isMobile ? 'flex' : 'hidden'} min-h-[24rem] flex-col overflow-hidden rounded-[1.5rem] border border-slate-700/70 bg-[#1f2230]`}>
-            <div className="flex flex-wrap items-center gap-2 border-b border-slate-700/60 px-3 py-3">
+          <div className={`${showPortfolioPanel ? 'flex' : 'hidden'} min-h-[24rem] flex-col overflow-hidden rounded-[1.5rem] border border-slate-700/70 bg-[#1f2230]`}>
+            <div className="flex items-center gap-2 overflow-x-auto border-b border-slate-700/60 px-3 py-3">
               {deskTabs.map((tab) => (
                 <button
                   key={tab.id}
                   onClick={() => setDeskTab(tab.id)}
-                  className={`rounded-2xl px-4 py-2.5 text-sm font-black transition-all ${
+                    className={`whitespace-nowrap rounded-2xl px-4 py-2.5 text-sm font-black transition-all ${
                     deskTab === tab.id
                       ? 'bg-white text-[#171a26]'
                       : 'text-slate-300 hover:bg-white/5 hover:text-white'
@@ -259,7 +300,7 @@ const TradingTab = ({
           </div>
         </div>
 
-        <div className={`${activeMobileView === 'trade' || !isMobile ? 'block' : 'hidden'} min-h-[30rem]`}>
+        <div className={`${showTradePanel ? 'block' : 'hidden'} min-h-[30rem] xl:sticky xl:top-4 xl:self-start`}>
           <OrderPanel
             onSubmit={onPlaceOrder}
             symbol={activeSymbol}

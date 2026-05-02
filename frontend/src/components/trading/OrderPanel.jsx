@@ -197,6 +197,11 @@ const OrderPanel = ({
     : isPendingOrder
       ? `${selectedSide === 'buy' ? 'Buy' : 'Sell'} pending orders automatically switch between limit and stop based on your trigger price.`
       : 'Market orders execute from the live bid/ask used by your trading backend.';
+  const quickLotOptions = Array.from(new Set([
+    minLot,
+    Math.max(minLot, Number((minLot * 5).toFixed(lotPrecision))),
+    Math.max(minLot, Number((minLot * 10).toFixed(lotPrecision))),
+  ])).slice(0, 3);
 
   return (
     <div className="flex h-full flex-col rounded-[1.75rem] border border-slate-700/70 bg-[#1f2230] text-white shadow-[0_24px_60px_rgba(0,0,0,0.35)]">
@@ -246,7 +251,7 @@ const OrderPanel = ({
       </div>
 
       <div className="flex-1 space-y-5 px-4 py-5">
-        <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
+        <div className="grid gap-3 sm:grid-cols-[1fr_auto_1fr] sm:items-center">
           <button
             onClick={() => setSelectedSide('sell')}
             className={`rounded-2xl border px-4 py-4 text-left transition-all ${
@@ -256,10 +261,11 @@ const OrderPanel = ({
             }`}
           >
             <p className="text-lg font-black text-rose-400">Sell</p>
-            <p className="mt-2 text-[2rem] font-black leading-none text-rose-400">{bidLabel}</p>
+            <p className="mt-2 text-[1.75rem] font-black leading-none text-rose-400 sm:text-[2rem]">{bidLabel}</p>
           </button>
 
-          <div className="text-center">
+          <div className="rounded-2xl border border-slate-700/60 bg-[#171a26] px-4 py-3 text-center">
+            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">Position Size</p>
             <p className="text-2xl font-black text-white">{formatLots(lots, category, symbol, instrument)}</p>
             <p className="mt-1 text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">
               {tradingMeta.quantityLabel}
@@ -275,7 +281,7 @@ const OrderPanel = ({
             }`}
           >
             <p className="text-lg font-black text-teal-300">Buy</p>
-            <p className="mt-2 text-[2rem] font-black leading-none text-teal-300">{askLabel}</p>
+            <p className="mt-2 text-[1.75rem] font-black leading-none text-teal-300 sm:text-[2rem]">{askLabel}</p>
           </button>
         </div>
 
@@ -352,56 +358,80 @@ const OrderPanel = ({
               </button>
             </div>
           </div>
+
+          <div className="grid grid-cols-3 gap-2">
+            {quickLotOptions.map((option) => (
+              <button
+                key={option}
+                onClick={() => setLots(Number(option.toFixed(lotPrecision)))}
+                className={`rounded-xl border px-3 py-2 text-sm font-black transition-colors ${
+                  Number(lots) === Number(option)
+                    ? 'border-teal-400 bg-teal-400/12 text-teal-300'
+                    : 'border-slate-700 bg-[#252938] text-slate-300 hover:border-slate-500 hover:text-white'
+                }`}
+              >
+                {formatLots(option, category, symbol, instrument)}
+              </button>
+            ))}
+          </div>
         </div>
 
-        <div className="space-y-3 border-t border-slate-700/60 pt-1">
-          <div className="flex items-center justify-between text-lg font-bold">
-            <span className="text-slate-300">Total value:</span>
-            <span className="text-white">${Number(notionalValue || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+        <div className="grid gap-3 border-t border-slate-700/60 pt-1 sm:grid-cols-2">
+          <div className="rounded-2xl border border-slate-700/60 bg-[#252938] px-4 py-3">
+            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">Total value</p>
+            <p className="mt-2 text-xl font-black text-white">
+              ${Number(notionalValue || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </p>
           </div>
-          <div className="flex items-center justify-between text-lg font-bold">
-            <span className="text-slate-300">Required Margin:</span>
-            <span className={hasEnoughMargin ? 'text-cyan-300' : 'text-rose-400'}>
+          <div className="rounded-2xl border border-slate-700/60 bg-[#252938] px-4 py-3">
+            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">Required Margin</p>
+            <p className={`mt-2 text-xl font-black ${hasEnoughMargin ? 'text-cyan-300' : 'text-rose-400'}`}>
               ${Number(requiredMargin || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-            </span>
+            </p>
           </div>
         </div>
 
         <div className="space-y-3 border-t border-slate-700/60 pt-1">
-          <label className="flex items-center gap-3 text-xl font-bold text-white">
-            <input
-              type="checkbox"
-              checked={tpEnabled}
-              onChange={() => setTpEnabled((current) => !current)}
-              className="h-5 w-5 rounded border-slate-500 bg-transparent text-teal-400 focus:ring-teal-400"
-            />
-            <span>Take Profit</span>
-          </label>
+          <div className="flex items-center justify-between text-sm font-bold text-slate-400">
+            <span>Risk controls</span>
+            <span>{tpEnabled || slEnabled ? 'Enabled' : 'Optional'}</span>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <label className="flex items-center gap-3 rounded-2xl border border-slate-700 bg-[#252938] px-4 py-3 text-base font-bold text-white">
+              <input
+                type="checkbox"
+                checked={tpEnabled}
+                onChange={() => setTpEnabled((current) => !current)}
+                className="h-5 w-5 rounded border-slate-500 bg-transparent text-teal-400 focus:ring-teal-400"
+              />
+              <span>Take Profit</span>
+            </label>
+            <label className="flex items-center gap-3 rounded-2xl border border-slate-700 bg-[#252938] px-4 py-3 text-base font-bold text-white">
+              <input
+                type="checkbox"
+                checked={slEnabled}
+                onChange={() => setSlEnabled((current) => !current)}
+                className="h-5 w-5 rounded border-slate-500 bg-transparent text-rose-400 focus:ring-rose-400"
+              />
+              <span>Stop Loss</span>
+            </label>
+          </div>
           {tpEnabled && (
             <input
               type="number"
               value={tpValue}
               onChange={(event) => setTpValue(event.target.value)}
-              placeholder="Target price"
+              placeholder="Take profit target price"
               className="w-full rounded-2xl border border-slate-700 bg-[#343847] px-4 py-3 text-lg font-bold text-white outline-none focus:border-teal-400"
             />
           )}
 
-          <label className="flex items-center gap-3 text-xl font-bold text-white">
-            <input
-              type="checkbox"
-              checked={slEnabled}
-              onChange={() => setSlEnabled((current) => !current)}
-              className="h-5 w-5 rounded border-slate-500 bg-transparent text-rose-400 focus:ring-rose-400"
-            />
-            <span>Stop Loss</span>
-          </label>
           {slEnabled && (
             <input
               type="number"
               value={slValue}
               onChange={(event) => setSlValue(event.target.value)}
-              placeholder="Protection price"
+              placeholder="Stop loss protection price"
               className="w-full rounded-2xl border border-slate-700 bg-[#343847] px-4 py-3 text-lg font-bold text-white outline-none focus:border-rose-400"
             />
           )}
