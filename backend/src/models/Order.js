@@ -1,6 +1,6 @@
 // backend/src/models/Order.js
 const db = require('../config/database');
-const { isMissingRelationError, isMissingColumnError } = require('../utils/dbCompat');
+const { isMissingRelationError, isMissingColumnError, getMissingColumnName } = require('../utils/dbCompat');
 
 class Order {
     static async findById(id) {
@@ -25,6 +25,11 @@ class Order {
             if (isMissingRelationError(error)) {
                 return [];
             }
+            if (isMissingColumnError(error) && getMissingColumnName(error) === 'created_at') {
+                const legacyQuery = 'SELECT * FROM orders WHERE user_id = $1 ORDER BY id DESC LIMIT $2';
+                const { rows } = await db.query(legacyQuery, [userId, limit]);
+                return rows;
+            }
             throw error;
         }
     }
@@ -45,6 +50,19 @@ class Order {
         } catch (error) {
             if (isMissingRelationError(error)) {
                 return [];
+            }
+            if (isMissingColumnError(error) && getMissingColumnName(error) === 'created_at') {
+                let legacyQuery = 'SELECT * FROM orders WHERE account_id = $1';
+                const legacyValues = [accountId];
+
+                if (status) {
+                    legacyQuery += ' AND status = $2';
+                    legacyValues.push(status);
+                }
+
+                legacyQuery += ' ORDER BY id DESC';
+                const { rows } = await db.query(legacyQuery, legacyValues);
+                return rows;
             }
             throw error;
         }

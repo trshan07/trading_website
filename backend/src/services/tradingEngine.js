@@ -3,6 +3,7 @@ const Account = require('../models/Account');
 const Order = require('../models/Order');
 const Position = require('../models/Position');
 const Transaction = require('../models/Transaction');
+const { isMissingColumnError, getMissingColumnName } = require('../utils/dbCompat');
 const { createActivityLog } = require('../client/controllers/activityController');
 const { createNotification } = require('../client/controllers/notificationController');
 const {
@@ -426,8 +427,22 @@ const listPendingOrders = async ({ accountId = null, userId = null } = {}) => {
         ORDER BY created_at ASC
     `;
 
-    const { rows } = await db.query(query, values);
-    return rows;
+    try {
+        const { rows } = await db.query(query, values);
+        return rows;
+    } catch (error) {
+        if (isMissingColumnError(error) && getMissingColumnName(error) === 'created_at') {
+            const legacyQuery = `
+                SELECT *
+                FROM orders
+                WHERE ${clauses.join(' AND ')}
+                ORDER BY id ASC
+            `;
+            const { rows } = await db.query(legacyQuery, values);
+            return rows;
+        }
+        throw error;
+    }
 };
 
 const processPendingOrders = async ({ accountId = null, userId = null, symbols = [] } = {}) => {
