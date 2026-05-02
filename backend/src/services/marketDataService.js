@@ -796,27 +796,38 @@ const fetchChartAlignedMarketQuotes = async (symbols = []) => {
         }))
     );
 
-    const metals = instrumentConfigs.filter(({ symbol, config }) => isMetalSymbol(symbol, config));
-    const nonMetals = instrumentConfigs.filter(({ symbol, config }) => !isMetalSymbol(symbol, config));
-    const biquoteQuotes = await fetchBiquotePublicQuotes(nonMetals).catch(() => ({}));
-    const unresolvedNonMetals = nonMetals.filter(({ symbol }) => !biquoteQuotes[normalizeSymbol(symbol)]?.price);
-    const binanceRequests = unresolvedNonMetals.filter(({ symbol, config }) => (
+    const twelveDataRequests = instrumentConfigs.filter(({ config }) => (
+        config.provider === 'twelvedata' || hasTwelveDataApiKey()
+    ));
+    const otherRequests = instrumentConfigs.filter(({ config }) => (
+        !(config.provider === 'twelvedata' || hasTwelveDataApiKey())
+    ));
+
+    const twelveDataQuotes = await fetchTwelveDataQuotes(twelveDataRequests).catch(() => ({}));
+    const unresolvedOtherRequests = otherRequests.filter(({ symbol }) => !twelveDataQuotes[normalizeSymbol(symbol)]?.price);
+    const biquoteQuotes = await fetchBiquotePublicQuotes(unresolvedOtherRequests).catch(() => ({}));
+    const unresolvedPublicRequests = unresolvedOtherRequests.filter(({ symbol }) => !biquoteQuotes[normalizeSymbol(symbol)]?.price);
+    const binanceRequests = unresolvedPublicRequests.filter(({ symbol, config }) => (
         isCryptoSymbol(symbol, config) && supportsBinanceSymbol(symbol)
     ));
-    const yahooRequests = unresolvedNonMetals.filter(({ symbol }) => !binanceRequests.some((request) => request.symbol === symbol));
+    const yahooRequests = unresolvedPublicRequests.filter(({ symbol }) => !binanceRequests.some((request) => request.symbol === symbol));
+    const unresolvedTwelveDataRequests = twelveDataRequests.filter(({ symbol }) => !twelveDataQuotes[normalizeSymbol(symbol)]?.price);
 
-    const [binanceQuotes, yahooQuotes, metalQuotes] = await Promise.all([
+    const [binanceQuotes, yahooQuotes, yahooFallbackForTwelveData] = await Promise.all([
         fetchBinancePublicQuotes(binanceRequests).catch(() => ({})),
         fetchYahooPublicQuotes(yahooRequests).catch(() => ({})),
-        fetchYahooPublicQuotes(metals).catch(() => ({})),
+        unresolvedTwelveDataRequests.length > 0
+            ? fetchYahooPublicQuotes(unresolvedTwelveDataRequests).catch(() => ({}))
+            : Promise.resolve({}),
     ]);
 
-    return {
-        ...biquoteQuotes,
+    return mergeWithSyntheticQuotes(instrumentConfigs, {
         ...yahooQuotes,
-        ...metalQuotes,
+        ...yahooFallbackForTwelveData,
+        ...biquoteQuotes,
         ...binanceQuotes,
-    };
+        ...twelveDataQuotes,
+    });
 };
 
 const fetchMarketQuotes = async (symbols = []) => {
@@ -831,21 +842,16 @@ const fetchMarketQuotes = async (symbols = []) => {
             config: await getMergedInstrumentConfig(symbol),
         }))
     );
-    const twelveDataRequests = instrumentConfigs.filter(({ symbol, config }) => (
-        !isMetalSymbol(symbol, config)
-        && (config.provider === 'twelvedata' || hasTwelveDataApiKey())
+    const twelveDataRequests = instrumentConfigs.filter(({ config }) => (
+        config.provider === 'twelvedata' || hasTwelveDataApiKey()
     ));
     const legacyYahooRequests = instrumentConfigs.filter(({ config }) => (
         config.provider !== 'twelvedata' && !hasTwelveDataApiKey()
     ));
-    const metalYahooRequests = instrumentConfigs.filter(({ symbol, config }) => (
-        isMetalSymbol(symbol, config)
-    ));
 
-    const [twelveDataData, legacyYahooData, metalYahooData] = await Promise.all([
+    const [twelveDataData, legacyYahooData] = await Promise.all([
         fetchTwelveDataQuotes(twelveDataRequests).catch(() => ({})),
         fetchYahooQuotes(legacyYahooRequests).catch(() => ({})),
-        fetchYahooQuotes(metalYahooRequests).catch(() => ({})),
     ]);
     const unresolvedTwelveDataRequests = twelveDataRequests.filter(
         ({ symbol }) => !twelveDataData[normalizeSymbol(symbol)]?.price
@@ -856,7 +862,6 @@ const fetchMarketQuotes = async (symbols = []) => {
 
     return mergeWithSyntheticQuotes(instrumentConfigs, {
         ...legacyYahooData,
-        ...metalYahooData,
         ...yahooFallbackData,
         ...twelveDataData,
     });

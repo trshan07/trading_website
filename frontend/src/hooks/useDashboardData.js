@@ -49,26 +49,25 @@ const normalizeInstrument = (instrument = {}) => ({
 const fallbackInstruments = MARKET_INSTRUMENTS.map(normalizeInstrument);
 
 const mergeInstrumentSources = (primary = [], secondary = []) => {
-  const merged = new Map();
-
-  secondary
+  const normalizedPrimary = primary
     .map(normalizeInstrument)
-    .filter((instrument) => instrument.symbol)
-    .forEach((instrument) => {
-      merged.set(instrument.symbol, instrument);
-    });
-
-  primary
+    .filter((instrument) => instrument.symbol);
+  const normalizedSecondary = secondary
     .map(normalizeInstrument)
-    .filter((instrument) => instrument.symbol)
-    .forEach((instrument) => {
-      merged.set(instrument.symbol, {
-        ...merged.get(instrument.symbol),
-        ...instrument,
-      });
-    });
+    .filter((instrument) => instrument.symbol);
 
-  return Array.from(merged.values());
+  if (normalizedPrimary.length === 0) {
+    return normalizedSecondary;
+  }
+
+  const secondaryBySymbol = new Map(
+    normalizedSecondary.map((instrument) => [instrument.symbol, instrument])
+  );
+
+  return normalizedPrimary.map((instrument) => ({
+    ...secondaryBySymbol.get(instrument.symbol),
+    ...instrument,
+  }));
 };
 
 const deriveCategories = (instrumentList = []) => Array.from(
