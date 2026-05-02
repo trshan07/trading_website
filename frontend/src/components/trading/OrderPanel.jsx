@@ -21,6 +21,26 @@ const formatMoney = (value, digits = 2) => `$${Number(value || 0).toLocaleString
   maximumFractionDigits: digits,
 })}`;
 
+const normalizeLeverage = (value, fallback = 100) => {
+  if (typeof value === 'number' && Number.isFinite(value) && value > 0) {
+    return value;
+  }
+
+  const raw = String(value ?? '').trim();
+  if (!raw) {
+    return fallback;
+  }
+
+  if (raw.includes(':')) {
+    const [, rhs] = raw.split(':');
+    const parsedRatio = Number.parseFloat(rhs);
+    return Number.isFinite(parsedRatio) && parsedRatio > 0 ? parsedRatio : fallback;
+  }
+
+  const parsed = Number.parseFloat(raw);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+};
+
 const OrderPanel = ({
   accountId = null,
   onSubmit,
@@ -74,6 +94,7 @@ const OrderPanel = ({
   const askLabel = quoteSnapshot.askLabel;
   const spreadValue = Number.isFinite(quoteSnapshot.spread) ? quoteSnapshot.spread : askPrice - bidPrice;
   const spreadLabel = Number.isFinite(spreadValue) ? Number(spreadValue).toFixed(precision) : '0.00';
+  const resolvedLeverage = normalizeLeverage(maxLeverage, 100);
 
   const referencePrice = selectedSide === 'buy' ? askPrice : bidPrice;
   const finalPrice = referencePrice;
@@ -90,7 +111,7 @@ const OrderPanel = ({
     quantity,
     lots,
     price: finalPrice,
-    leverage: maxLeverage,
+    leverage: resolvedLeverage,
   });
 
   const freeMargin = Number(portfolio?.freeMargin ?? 0);
@@ -99,8 +120,9 @@ const OrderPanel = ({
   const effectiveRequiredMargin = Number.isFinite(previewMargin) && previewMargin > 0
     ? previewMargin
     : requiredMargin;
-  const hasEnoughMargin = effectiveRequiredMargin > 0 && effectiveRequiredMargin <= freeMargin;
-  const canSubmit = lots >= minLot && quantity > 0 && hasLiveReferencePrice && hasEnoughMargin && !previewError;
+  const previewHasEnoughMargin = typeof preview?.hasEnoughMargin === 'boolean' ? preview.hasEnoughMargin : null;
+  const hasEnoughMargin = previewHasEnoughMargin ?? (effectiveRequiredMargin > 0 && effectiveRequiredMargin <= freeMargin);
+  const canSubmit = Boolean(accountId) && lots >= minLot && quantity > 0 && hasLiveReferencePrice && hasEnoughMargin && !previewError;
 
   useEffect(() => {
     onIntentChange?.({
@@ -130,7 +152,7 @@ const OrderPanel = ({
           lots,
           quantity,
           category,
-          leverage: maxLeverage,
+          leverage: resolvedLeverage,
           takeProfit: tpEnabled && tpValue ? Number.parseFloat(tpValue) : null,
           stopLoss: slEnabled && slValue ? Number.parseFloat(slValue) : null,
         });
@@ -167,6 +189,7 @@ const OrderPanel = ({
     maxLeverage,
     minLot,
     quantity,
+    resolvedLeverage,
     selectedSide,
     slEnabled,
     slValue,
@@ -196,7 +219,7 @@ const OrderPanel = ({
       lots,
       quantity,
       category,
-      leverage: maxLeverage,
+      leverage: resolvedLeverage,
       takeProfit: tpEnabled && tpValue ? Number.parseFloat(tpValue) : null,
       stopLoss: slEnabled && slValue ? Number.parseFloat(slValue) : null,
     }));
@@ -321,6 +344,10 @@ const OrderPanel = ({
             </span>
           </div>
           <div className="flex items-center justify-between gap-4">
+            <span className="font-semibold text-white">Leverage:</span>
+            <span className="font-semibold tabular-nums text-white">1:{resolvedLeverage}</span>
+          </div>
+          <div className="flex items-center justify-between gap-4">
             <span className="font-semibold text-white">{movementLabel} value:</span>
             <span className="font-semibold tabular-nums text-white">
               {Number.isFinite(displayPipValue) ? formatMoney(displayPipValue) : '--'}
@@ -344,6 +371,12 @@ const OrderPanel = ({
           )}
           {previewError && (
             <p className="text-xs font-semibold text-amber-300">{previewError}</p>
+          )}
+          {!accountId && (
+            <p className="text-xs font-semibold text-amber-300">No active trading account selected.</p>
+          )}
+          {accountId && !previewError && !hasEnoughMargin && (
+            <p className="text-xs font-semibold text-amber-300">Insufficient free margin for this position size.</p>
           )}
         </div>
 

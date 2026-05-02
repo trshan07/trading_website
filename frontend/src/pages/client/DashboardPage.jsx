@@ -28,6 +28,26 @@ import UploadDocumentModal from '../../components/ui/UploadDocumentModal';
 import MobileBottomNav from '../../components/client/MobileBottomNav';
 
 const DashboardPage = () => {
+  const normalizeLeverage = (value, fallback = 100) => {
+    if (typeof value === 'number' && Number.isFinite(value) && value > 0) {
+      return value;
+    }
+
+    const raw = String(value ?? '').trim();
+    if (!raw) {
+      return fallback;
+    }
+
+    if (raw.includes(':')) {
+      const [, rhs] = raw.split(':');
+      const parsedRatio = Number.parseFloat(rhs);
+      return Number.isFinite(parsedRatio) && parsedRatio > 0 ? parsedRatio : fallback;
+    }
+
+    const parsed = Number.parseFloat(raw);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+  };
+
   const { user, logout, loading: authLoading, selectedAccountType, switchAccountType } = useContext(AuthContext);
   const navigate = useNavigate();
 
@@ -374,7 +394,7 @@ const DashboardPage = () => {
                   priceAlerts={priceAlerts}
                   onCreateAlert={handleCreateAlert}
                   onDeleteAlert={handleDeleteAlert}
-                  maxLeverage={parseInt(activeAccount?.leverage, 10) || 100}
+                  maxLeverage={normalizeLeverage(activeAccount?.leverage, 100)}
                 />
               )}
 

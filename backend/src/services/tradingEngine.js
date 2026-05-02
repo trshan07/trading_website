@@ -27,6 +27,26 @@ const MARGIN_CALL_LEVEL = Number.parseFloat(process.env.MARGIN_CALL_LEVEL ?? '10
 const STOP_OUT_LEVEL = Number.parseFloat(process.env.STOP_OUT_LEVEL ?? '50') || 50;
 const ENGINE_INTERVAL_MS = Number.parseInt(process.env.TRADING_ENGINE_INTERVAL_MS ?? '5000', 10) || 5000;
 
+const parseLeverageValue = (value, fallback = 100) => {
+    if (typeof value === 'number' && Number.isFinite(value) && value > 0) {
+        return value;
+    }
+
+    const raw = String(value ?? '').trim();
+    if (!raw) {
+        return fallback;
+    }
+
+    if (raw.includes(':')) {
+        const [, rhs] = raw.split(':');
+        const parsedRatio = Number.parseFloat(rhs);
+        return Number.isFinite(parsedRatio) && parsedRatio > 0 ? parsedRatio : fallback;
+    }
+
+    const parsed = Number.parseFloat(raw);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+};
+
 const normalizeSide = (side = '') => {
     const value = String(side).toLowerCase();
     return value === 'sell' ? 'sell' : 'buy';
@@ -103,7 +123,7 @@ const parseTradeInputs = async (payload = {}) => {
     const side = normalizeSide(payload.side);
     const type = normalizeOrderType(payload.type, side);
     const symbol = normalizeSymbol(payload.symbol || '');
-    const leverage = Number.parseFloat(payload.leverage) || 100;
+    const leverage = parseLeverageValue(payload.leverage, 100);
     const entryPrice = Number.parseFloat(payload.entryPrice ?? payload.price) || 0;
     const lotsInput = Number.parseFloat(payload.lots);
     const quantityInput = Number.parseFloat(payload.quantity);
@@ -300,7 +320,7 @@ const buildTradePreview = async ({ account = null, payload = {}, side = null }) 
 
 const getOrderMargin = (order = {}) => {
     const amount = Number.parseFloat(order.amount) || 0;
-    const leverage = Number.parseFloat(order.leverage) || 100;
+    const leverage = parseLeverageValue(order.leverage, 100);
     if (!amount || !leverage) {
         return 0;
     }
@@ -477,7 +497,7 @@ const placeTrade = async ({ userId, accountId, payload }) => {
         amount: preview.amount,
         quantity: preview.quantity,
         entryPrice: preview.executionPrice,
-        leverage: Number.parseFloat(payload.leverage) || 100,
+        leverage: parseLeverageValue(payload.leverage, 100),
         takeProfit: preview.takeProfit,
         stopLoss: preview.stopLoss,
         margin: preview.requiredMargin,
