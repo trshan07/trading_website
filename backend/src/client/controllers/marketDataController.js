@@ -53,7 +53,13 @@ exports.getMarketQuotes = async (req, res) => {
       asOf: new Date().toISOString(),
     });
   } catch (error) {
-    return res.status(500).json({ success: false, message: 'Failed to fetch live quotes' });
+    console.error('[MarketProxy] Quote fetch failed:', error.message);
+    return res.status(200).json({
+      success: true,
+      data: {},
+      asOf: new Date().toISOString(),
+      degraded: true,
+    });
   }
 };
 

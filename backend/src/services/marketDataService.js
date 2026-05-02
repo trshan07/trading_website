@@ -539,6 +539,54 @@ const fetchTwelveDataHistory = async (symbol = '', interval = '15m', outputsize 
     }, []);
 };
 
+const buildSyntheticQuote = ({ config = {}, existingQuote = {} }) => {
+    const price = parseQuoteNumber(existingQuote.price)
+        ?? parseQuoteNumber(config.defaultPrice)
+        ?? 0;
+
+    if (!price) {
+        return null;
+    }
+
+    const configuredSpread = parseQuoteNumber(config.spread);
+    const halfSpread = configuredSpread !== null && configuredSpread > 0
+        ? configuredSpread / 2
+        : null;
+
+    const bid = parseQuoteNumber(existingQuote.bid)
+        ?? (halfSpread !== null ? Math.max(price - halfSpread, 0) : null);
+    const ask = parseQuoteNumber(existingQuote.ask)
+        ?? (halfSpread !== null ? price + halfSpread : null);
+
+    return {
+        price,
+        bid,
+        ask,
+        change: parseQuoteNumber(existingQuote.change) ?? parseQuoteNumber(config.defaultChange) ?? 0,
+        volume: parseQuoteNumber(existingQuote.volume) ?? parseQuoteNumber(config.defaultVolume),
+        updatedAt: existingQuote.updatedAt || Date.now(),
+        source: existingQuote.source || 'synthetic',
+    };
+};
+
+const mergeWithSyntheticQuotes = (requests = [], quotes = {}) => requests.reduce((acc, request) => {
+    const normalizedSymbol = normalizeSymbol(request.symbol);
+    if (!normalizedSymbol) {
+        return acc;
+    }
+
+    const syntheticQuote = buildSyntheticQuote({
+        config: request.config,
+        existingQuote: acc[normalizedSymbol],
+    });
+
+    if (syntheticQuote) {
+        acc[normalizedSymbol] = syntheticQuote;
+    }
+
+    return acc;
+}, { ...quotes });
+
 const fetchMarketQuotes = async (symbols = []) => {
     const requestedSymbols = Array.from(new Set(symbols.map(normalizeSymbol).filter(Boolean)));
     if (requestedSymbols.length === 0) {
@@ -574,12 +622,12 @@ const fetchMarketQuotes = async (symbols = []) => {
         ? await fetchYahooQuotes(unresolvedTwelveDataRequests).catch(() => ({}))
         : {};
 
-    return {
+    return mergeWithSyntheticQuotes(instrumentConfigs, {
         ...legacyYahooData,
         ...metalYahooData,
         ...yahooFallbackData,
         ...twelveDataData,
-    };
+    });
 };
 
 const fetchMarketHistoryCandles = async (symbol = '', interval = '15m', outputsize = 300) => {
