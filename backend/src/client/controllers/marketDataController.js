@@ -1,5 +1,6 @@
 const {
   fetchMarketHistoryCandles,
+  fetchChartAlignedMarketQuotes,
   fetchMarketQuotes,
   fetchOrderBook,
   normalizeSymbol,
@@ -54,6 +55,34 @@ exports.getMarketQuotes = async (req, res) => {
     });
   } catch (error) {
     console.error('[MarketProxy] Quote fetch failed:', error.message);
+    return res.status(200).json({
+      success: true,
+      data: {},
+      asOf: new Date().toISOString(),
+      degraded: true,
+    });
+  }
+};
+
+exports.getChartAlignedQuotes = async (req, res) => {
+  const requestedSymbols = String(req.query.symbols || '')
+    .split(',')
+    .map((symbol) => normalizeSymbol(symbol))
+    .filter(Boolean);
+
+  if (requestedSymbols.length === 0) {
+    return res.status(400).json({ success: false, message: 'No symbols provided' });
+  }
+
+  try {
+    const data = await fetchChartAlignedMarketQuotes(Array.from(new Set(requestedSymbols)));
+    return res.status(200).json({
+      success: true,
+      data,
+      asOf: new Date().toISOString(),
+    });
+  } catch (error) {
+    console.error('[MarketProxy] Chart-aligned quote fetch failed:', error.message);
     return res.status(200).json({
       success: true,
       data: {},

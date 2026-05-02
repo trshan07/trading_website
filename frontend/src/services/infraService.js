@@ -26,6 +26,13 @@ const infraService = {
     return response.data;
   },
 
+  getChartAlignedQuotes: async (symbols = []) => {
+    const response = await api.get('/infra/market-data/chart-quotes', {
+      params: { symbols: symbols.join(',') }
+    });
+    return response.data;
+  },
+
   getOrderBook: async (symbol, levels = 15) => {
     const response = await api.get('/infra/market-data/order-book', {
       params: { symbol, levels }

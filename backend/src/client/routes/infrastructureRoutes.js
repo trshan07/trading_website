@@ -11,6 +11,7 @@ router.use(protect);
 
 // --- Market Data Proxy ---
 router.get('/market-data/quotes', marketDataController.getMarketQuotes);
+router.get('/market-data/chart-quotes', marketDataController.getChartAlignedQuotes);
 router.get('/market-data/history', marketDataController.getMarketHistory);
 router.get('/market-data/order-book', marketDataController.getOrderBook);
 

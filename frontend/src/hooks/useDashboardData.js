@@ -16,6 +16,8 @@ import { calculateSpreads } from '../utils/spreadCalculator';
 
 const GLOBAL_QUOTES_REFRESH_MS = 2500;
 const ACTIVE_SYMBOL_REFRESH_MS = 1000;
+const GLOBAL_CHART_QUOTES_REFRESH_MS = 5000;
+const ACTIVE_CHART_SYMBOL_REFRESH_MS = 1500;
 
 const normalizeInstrument = (instrument = {}) => ({
   symbol: instrument.symbol,
@@ -691,6 +693,38 @@ export const useDashboardData = (accountType = 'demo', activeSymbol = null) => {
     }
   }, []);
 
+  const fetchChartAlignedQuotes = useCallback(async (symbols = []) => {
+    const filteredSymbols = Array.from(new Set(symbols.filter(Boolean)));
+    if (filteredSymbols.length === 0) {
+      return;
+    }
+
+    try {
+      const response = await infraService.getChartAlignedQuotes(filteredSymbols);
+      if (response.success && response.data) {
+        const responseStamp = response.asOf || Date.now();
+        const stampedQuotes = Object.fromEntries(
+          Object.entries(response.data).map(([symbol, quote]) => [
+            symbol,
+            {
+              ...quote,
+              updatedAt: quote?.updatedAt || quote?.updated_at || responseStamp,
+            },
+          ])
+        );
+
+        if (Object.keys(stampedQuotes).length === 0) {
+          return;
+        }
+
+        setMarketData((prev) => mergeQuoteSnapshot(prev, stampedQuotes));
+        setInstruments((prev) => syncInstrumentsWithQuotes(prev, stampedQuotes));
+      }
+    } catch (error) {
+      console.error('Chart-aligned quote sync failed:', error);
+    }
+  }, []);
+
   const fetchPositions = useCallback(async () => {
     if (!accountId) return; // No account = nothing to fetch
     const token = localStorage.getItem('token');
@@ -809,6 +843,72 @@ export const useDashboardData = (accountType = 'demo', activeSymbol = null) => {
 
     return () => clearInterval(activeSymbolInterval);
   }, [activeSymbol, fetchLiveQuotes, user]);
+
+  useEffect(() => {
+    if (!user || !instrumentSymbolKey) {
+      return undefined;
+    }
+
+    const instrumentSymbols = instrumentSymbolKey.split(',').filter(Boolean);
+    let inFlight = false;
+
+    const pollChartAlignedQuotes = async () => {
+      if (inFlight) {
+        return;
+      }
+
+      inFlight = true;
+      try {
+        await fetchChartAlignedQuotes(instrumentSymbols);
+      } finally {
+        inFlight = false;
+      }
+    };
+
+    pollChartAlignedQuotes();
+
+    const chartAlignedQuoteInterval = setInterval(
+      pollChartAlignedQuotes,
+      GLOBAL_CHART_QUOTES_REFRESH_MS
+    );
+
+    return () => clearInterval(chartAlignedQuoteInterval);
+  }, [fetchChartAlignedQuotes, instrumentSymbolKey, user]);
+
+  useEffect(() => {
+    if (!user || !activeSymbol) {
+      return undefined;
+    }
+
+    const normalizedActiveSymbol = String(activeSymbol).trim().toUpperCase();
+    if (!normalizedActiveSymbol) {
+      return undefined;
+    }
+
+    let inFlight = false;
+
+    const pollActiveChartAlignedQuote = async () => {
+      if (inFlight) {
+        return;
+      }
+
+      inFlight = true;
+      try {
+        await fetchChartAlignedQuotes([normalizedActiveSymbol]);
+      } finally {
+        inFlight = false;
+      }
+    };
+
+    pollActiveChartAlignedQuote();
+
+    const activeChartAlignedQuoteInterval = setInterval(
+      pollActiveChartAlignedQuote,
+      ACTIVE_CHART_SYMBOL_REFRESH_MS
+    );
+
+    return () => clearInterval(activeChartAlignedQuoteInterval);
+  }, [activeSymbol, fetchChartAlignedQuotes, user]);
 
   useEffect(() => {
     if (!accountId) return; // Don't start polling at all without an account

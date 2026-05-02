@@ -5,9 +5,13 @@ const { isMissingColumnError, isMissingRelationError } = require('../utils/dbCom
 
 const FOREX_CODES = ['USD', 'EUR', 'GBP', 'JPY', 'AUD', 'NZD', 'CAD', 'CHF'];
 const METAL_SYMBOLS = new Set(['XAUUSD', 'XAGUSD']);
+const CRYPTO_QUOTES = ['USDT', 'BUSD', 'USDC', 'BTC', 'ETH'];
+const BINANCE_QUOTES = ['USDT', 'BUSD', 'USDC'];
 const DEFAULT_DEPTH_LEVELS = 15;
 const INSTRUMENT_CONFIG_CACHE_MS = 60 * 1000;
 const TWELVE_DATA_API_BASE = 'https://api.twelvedata.com';
+const BIQUOTE_API_BASE = 'https://biquote.io/api';
+const REQUEST_TIMEOUT_MS = 5000;
 const TWELVE_DATA_INTERVAL_MAP = {
     '1m': '1min',
     '5m': '5min',
@@ -48,6 +52,17 @@ const isMetalSymbol = (symbol = '', config = {}) => {
 
     const category = String(config.category || '').toLowerCase();
     return category.includes('metal');
+};
+
+const isCryptoSymbol = (symbol = '', config = {}) => {
+    const normalized = normalizeSymbol(symbol);
+    const category = String(config.category || '').toLowerCase();
+    return category.includes('crypto') || CRYPTO_QUOTES.some((quote) => normalized.endsWith(quote));
+};
+
+const supportsBinanceSymbol = (symbol = '') => {
+    const normalized = normalizeSymbol(symbol);
+    return BINANCE_QUOTES.some((quote) => normalized.endsWith(quote));
 };
 
 const toNullableNumber = (value) => {
@@ -193,6 +208,26 @@ const resolveYahooSymbol = (symbol = '', config = {}) => {
 
     if (isForexPair(normalized)) {
         return `${normalized}=X`;
+    }
+
+    return normalized;
+};
+
+const resolveBiquoteSymbol = (symbol = '', config = {}) => {
+    const normalized = normalizeSymbol(symbol);
+    const explicitDataSymbol = String(config.dataSymbol || '').trim();
+    const compactDataSymbol = explicitDataSymbol.replace('/', '').toUpperCase();
+
+    if (compactDataSymbol) {
+        if (compactDataSymbol.endsWith('USDT')) {
+            return `${compactDataSymbol.slice(0, -4)}USD`;
+        }
+
+        return compactDataSymbol;
+    }
+
+    if (normalized.endsWith('USDT')) {
+        return `${normalized.slice(0, -4)}USD`;
     }
 
     return normalized;
@@ -539,6 +574,167 @@ const fetchTwelveDataHistory = async (symbol = '', interval = '15m', outputsize 
     }, []);
 };
 
+const fetchBiquotePublicQuotes = async (requests = []) => {
+    if (requests.length === 0) {
+        return {};
+    }
+
+    const providerToOriginalSymbols = requests.reduce((acc, request) => {
+        const providerSymbol = resolveBiquoteSymbol(request.symbol, request.config);
+        if (!acc[providerSymbol]) {
+            acc[providerSymbol] = [];
+        }
+        acc[providerSymbol].push(normalizeSymbol(request.symbol));
+        return acc;
+    }, {});
+
+    const query = new URLSearchParams();
+    requests.forEach((request) => {
+        query.append('symbols', resolveBiquoteSymbol(request.symbol, request.config));
+    });
+
+    const response = await axios.get(`${BIQUOTE_API_BASE}/latest?${query.toString()}`, {
+        timeout: REQUEST_TIMEOUT_MS,
+    });
+
+    const payload = response.data;
+    const ticks = Array.isArray(payload)
+        ? payload
+        : Array.isArray(payload?.items)
+            ? payload.items
+            : Array.isArray(payload?.data)
+                ? payload.data
+                : [];
+
+    return ticks.reduce((acc, tick) => {
+        const providerSymbol = normalizeSymbol(tick?.symbol || tick?.name || '');
+        const originalSymbols = providerToOriginalSymbols[providerSymbol] || [];
+        if (originalSymbols.length === 0) {
+            return acc;
+        }
+
+        const last = parseQuoteNumber(tick.last ?? tick.price ?? tick.close);
+        if (last === null) {
+            return acc;
+        }
+
+        const isoTime = tick.time || tick.timestamp || null;
+        const updatedAt = isoTime ? Date.parse(isoTime) || Date.now() : Date.now();
+
+        originalSymbols.forEach((originalSymbol) => {
+            acc[originalSymbol] = {
+                price: last,
+                bid: parseQuoteNumber(tick.bid),
+                ask: parseQuoteNumber(tick.ask),
+                change: parseQuoteNumber(tick.changePercent ?? tick.change_percent ?? tick.change) ?? 0,
+                volume: parseQuoteNumber(tick.volume),
+                updatedAt,
+                source: 'biquote-public',
+            };
+        });
+
+        return acc;
+    }, {});
+};
+
+const fetchBinancePublicQuotes = async (requests = []) => {
+    const supportedRequests = requests.filter((request) => supportsBinanceSymbol(request.symbol));
+    if (supportedRequests.length === 0) {
+        return {};
+    }
+
+    const symbolMap = Object.fromEntries(
+        supportedRequests.map((request) => [normalizeSymbol(request.symbol), normalizeSymbol(request.symbol)])
+    );
+    const providerSymbols = Object.keys(symbolMap);
+
+    const response = await axios.get('https://api.binance.com/api/v3/ticker/24hr', {
+        params: {
+            symbols: JSON.stringify(providerSymbols),
+        },
+        timeout: REQUEST_TIMEOUT_MS,
+    });
+
+    const payload = Array.isArray(response.data) ? response.data : [];
+    const updatedAt = Date.now();
+
+    return payload.reduce((acc, ticker) => {
+        const originalSymbol = symbolMap[normalizeSymbol(ticker?.symbol)];
+        if (!originalSymbol) {
+            return acc;
+        }
+
+        acc[originalSymbol] = {
+            price: parseQuoteNumber(ticker.lastPrice),
+            bid: parseQuoteNumber(ticker.bidPrice),
+            ask: parseQuoteNumber(ticker.askPrice),
+            change: parseQuoteNumber(ticker.priceChangePercent) ?? 0,
+            volume: parseQuoteNumber(ticker.volume),
+            updatedAt,
+            source: 'binance-public',
+        };
+        return acc;
+    }, {});
+};
+
+const fetchYahooPublicQuotes = async (requests = []) => {
+    if (requests.length === 0) {
+        return {};
+    }
+
+    const symbolsByYahoo = requests.reduce((acc, request) => {
+        const yahooSymbol = resolveYahooSymbol(request.symbol, request.config);
+        if (!acc[yahooSymbol]) {
+            acc[yahooSymbol] = [];
+        }
+        acc[yahooSymbol].push(normalizeSymbol(request.symbol));
+        return acc;
+    }, {});
+
+    const response = await axios.get('https://query1.finance.yahoo.com/v7/finance/quote', {
+        params: {
+            symbols: Object.keys(symbolsByYahoo).join(','),
+        },
+        timeout: REQUEST_TIMEOUT_MS,
+    });
+
+    const updatedAt = Date.now();
+    const rawResults = response.data?.quoteResponse?.result || [];
+
+    return rawResults.reduce((acc, item) => {
+        const originalSymbols = symbolsByYahoo[item?.symbol] || [];
+        if (originalSymbols.length === 0) {
+            return acc;
+        }
+
+        const price = parseQuoteNumber(
+            item.regularMarketPrice
+            ?? item.postMarketPrice
+            ?? item.preMarketPrice
+            ?? item.ask
+            ?? item.bid
+        );
+
+        if (price === null) {
+            return acc;
+        }
+
+        originalSymbols.forEach((originalSymbol) => {
+            acc[originalSymbol] = {
+                price,
+                bid: parseQuoteNumber(item.bid),
+                ask: parseQuoteNumber(item.ask),
+                change: parseQuoteNumber(item.regularMarketChangePercent) ?? 0,
+                volume: parseQuoteNumber(item.regularMarketVolume),
+                updatedAt,
+                source: 'yahoo-public',
+            };
+        });
+
+        return acc;
+    }, {});
+};
+
 const buildSyntheticQuote = ({ config = {}, existingQuote = {} }) => {
     const price = parseQuoteNumber(existingQuote.price)
         ?? parseQuoteNumber(config.defaultPrice)
@@ -586,6 +782,42 @@ const mergeWithSyntheticQuotes = (requests = [], quotes = {}) => requests.reduce
 
     return acc;
 }, { ...quotes });
+
+const fetchChartAlignedMarketQuotes = async (symbols = []) => {
+    const requestedSymbols = Array.from(new Set(symbols.map(normalizeSymbol).filter(Boolean)));
+    if (requestedSymbols.length === 0) {
+        return {};
+    }
+
+    const instrumentConfigs = await Promise.all(
+        requestedSymbols.map(async (symbol) => ({
+            symbol,
+            config: await getMergedInstrumentConfig(symbol),
+        }))
+    );
+
+    const metals = instrumentConfigs.filter(({ symbol, config }) => isMetalSymbol(symbol, config));
+    const nonMetals = instrumentConfigs.filter(({ symbol, config }) => !isMetalSymbol(symbol, config));
+    const biquoteQuotes = await fetchBiquotePublicQuotes(nonMetals).catch(() => ({}));
+    const unresolvedNonMetals = nonMetals.filter(({ symbol }) => !biquoteQuotes[normalizeSymbol(symbol)]?.price);
+    const binanceRequests = unresolvedNonMetals.filter(({ symbol, config }) => (
+        isCryptoSymbol(symbol, config) && supportsBinanceSymbol(symbol)
+    ));
+    const yahooRequests = unresolvedNonMetals.filter(({ symbol }) => !binanceRequests.some((request) => request.symbol === symbol));
+
+    const [binanceQuotes, yahooQuotes, metalQuotes] = await Promise.all([
+        fetchBinancePublicQuotes(binanceRequests).catch(() => ({})),
+        fetchYahooPublicQuotes(yahooRequests).catch(() => ({})),
+        fetchYahooPublicQuotes(metals).catch(() => ({})),
+    ]);
+
+    return {
+        ...biquoteQuotes,
+        ...yahooQuotes,
+        ...metalQuotes,
+        ...binanceQuotes,
+    };
+};
 
 const fetchMarketQuotes = async (symbols = []) => {
     const requestedSymbols = Array.from(new Set(symbols.map(normalizeSymbol).filter(Boolean)));
@@ -768,6 +1000,7 @@ module.exports = {
     isForexPair,
     resolveYahooSymbol,
     resolveTwelveDataSymbol,
+    fetchChartAlignedMarketQuotes,
     fetchMarketQuotes,
     fetchMarketHistoryCandles,
     fetchOrderBook,
