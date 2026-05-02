@@ -180,6 +180,20 @@ ADD COLUMN IF NOT EXISTS min_lot NUMERIC(18, 8);
 ALTER TABLE instruments
 ADD COLUMN IF NOT EXISTS quantity_label VARCHAR(50);
 
+CREATE TABLE IF NOT EXISTS market_quotes (
+    symbol VARCHAR(20) PRIMARY KEY,
+    price NUMERIC(18, 8) NOT NULL,
+    bid NUMERIC(18, 8),
+    ask NUMERIC(18, 8),
+    change NUMERIC(18, 8) DEFAULT 0,
+    volume TEXT,
+    source VARCHAR(50),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_market_quotes_updated_at ON market_quotes(updated_at DESC);
+
 DO $$ 
 BEGIN
     -- Migrate positions data if legacy columns exist

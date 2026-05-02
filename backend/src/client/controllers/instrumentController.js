@@ -6,9 +6,13 @@ const mapInstrumentRow = (row) => ({
     symbol: row.symbol,
     name: row.name,
     category: row.category_name || row.category || row.type || 'General',
-    price: parseFloat(row.default_price ?? row.price ?? 0),
-    change: parseFloat(row.default_change ?? row.change ?? 0),
-    volume: row.default_volume ?? row.volume ?? null,
+    price: parseFloat(row.price ?? row.default_price ?? 0),
+    change: parseFloat(row.change ?? row.default_change ?? 0),
+    volume: row.volume ?? row.default_volume ?? null,
+    bid: row.bid != null ? parseFloat(row.bid) : null,
+    ask: row.ask != null ? parseFloat(row.ask) : null,
+    quoteUpdatedAt: row.quote_updated_at || null,
+    quoteSource: row.quote_source || null,
     provider: marketSymbolMap[row.symbol]?.provider || row.provider || null,
     quoteSymbol: marketSymbolMap[row.symbol]?.quote || row.quote_symbol || null,
     dataSymbol: marketSymbolMap[row.symbol]?.dataSymbol || row.data_symbol || null,
@@ -39,10 +43,18 @@ exports.getAllInstruments = async (req, res) => {
             result = await pool.query(`
                 SELECT 
                     i.*, 
+                    mq.price,
+                    mq.bid,
+                    mq.ask,
+                    mq.change,
+                    mq.volume,
+                    mq.updated_at AS quote_updated_at,
+                    mq.source AS quote_source,
                     c.text_color, 
                     c.bg_color, 
                     c.border_color
                 FROM instruments i
+                LEFT JOIN market_quotes mq ON mq.symbol = i.symbol
                 LEFT JOIN instrument_categories c ON i.category_name = c.name
                 WHERE i.is_active = TRUE
                 ORDER BY i.category_name, i.symbol
@@ -53,10 +65,18 @@ exports.getAllInstruments = async (req, res) => {
                     result = await pool.query(`
                         SELECT 
                             i.*,
+                            mq.price,
+                            mq.bid,
+                            mq.ask,
+                            mq.change,
+                            mq.volume,
+                            mq.updated_at AS quote_updated_at,
+                            mq.source AS quote_source,
                             c.text_color,
                             c.bg_color,
                             c.border_color
                         FROM instruments i
+                        LEFT JOIN market_quotes mq ON mq.symbol = i.symbol
                         LEFT JOIN instrument_categories c ON i.category = c.name
                         WHERE i.is_active = TRUE
                         ORDER BY i.category, i.symbol
@@ -68,6 +88,13 @@ exports.getAllInstruments = async (req, res) => {
                     result = await pool.query(`
                         SELECT 
                             i.*,
+                            NULL AS price,
+                            NULL AS bid,
+                            NULL AS ask,
+                            NULL AS change,
+                            NULL AS volume,
+                            NULL AS quote_updated_at,
+                            NULL AS quote_source,
                             NULL AS text_color,
                             NULL AS bg_color,
                             NULL AS border_color
@@ -83,6 +110,13 @@ exports.getAllInstruments = async (req, res) => {
                     result = await pool.query(`
                         SELECT 
                             i.*,
+                            NULL AS price,
+                            NULL AS bid,
+                            NULL AS ask,
+                            NULL AS change,
+                            NULL AS volume,
+                            NULL AS quote_updated_at,
+                            NULL AS quote_source,
                             NULL AS text_color,
                             NULL AS bg_color,
                             NULL AS border_color
@@ -97,6 +131,13 @@ exports.getAllInstruments = async (req, res) => {
                     result = await pool.query(`
                         SELECT 
                             i.*,
+                            NULL AS price,
+                            NULL AS bid,
+                            NULL AS ask,
+                            NULL AS change,
+                            NULL AS volume,
+                            NULL AS quote_updated_at,
+                            NULL AS quote_source,
                             NULL AS text_color,
                             NULL AS bg_color,
                             NULL AS border_color

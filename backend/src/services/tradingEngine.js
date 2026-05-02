@@ -7,14 +7,13 @@ const { isMissingColumnError, getMissingColumnName } = require('../utils/dbCompa
 const { createActivityLog } = require('../client/controllers/activityController');
 const { createNotification } = require('../client/controllers/notificationController');
 const {
-    fetchMarketQuotes,
-    fetchChartAlignedMarketQuotes,
     getExecutionPriceForSide,
     getMarkPriceForSide,
     normalizeSymbol,
     getMergedInstrumentConfig,
 } = require('./marketDataService');
 const marketStreamService = require('./marketStreamService');
+const { getCanonicalMarketQuotes, getCanonicalQuote } = require('./marketSnapshotService');
 const {
     calculateMarginRequired,
     calculatePipValue,
@@ -189,14 +188,10 @@ const fetchPreferredQuote = async (symbol = '') => {
         return streamQuote;
     }
 
-    const chartAlignedQuotes = await fetchChartAlignedMarketQuotes([normalized]).catch(() => ({}));
-    const chartAlignedQuote = chartAlignedQuotes[normalized];
-    if (chartAlignedQuote?.price) {
-        return chartAlignedQuote;
-    }
-
-    const marketQuotes = await fetchMarketQuotes([normalized]).catch(() => ({}));
-    return marketQuotes[normalized] || null;
+    return getCanonicalQuote(normalized, {
+        preferChartAligned: true,
+        refresh: true,
+    }).catch(() => null);
 };
 
 const getMarketExecutionContext = async ({ symbol, side }) => {
@@ -569,7 +564,10 @@ const processPendingOrders = async ({ accountId = null, userId = null, symbols =
         ? symbols.map(normalizeSymbol)
         : pendingOrders.map((order) => order.symbol);
     const uniqueSymbols = Array.from(new Set(requestedSymbols));
-    const quotes = await fetchMarketQuotes(uniqueSymbols);
+    const quotes = await getCanonicalMarketQuotes(uniqueSymbols, {
+        preferChartAligned: false,
+        refresh: true,
+    });
     const executed = [];
 
     for (const order of pendingOrders) {
@@ -815,7 +813,10 @@ const evaluateAccountRisk = async (accountId, userId = null) => {
     }
 
     const symbols = Array.from(new Set(positions.map((position) => position.symbol)));
-    const quotes = await fetchMarketQuotes(symbols);
+    const quotes = await getCanonicalMarketQuotes(symbols, {
+        preferChartAligned: false,
+        refresh: true,
+    });
     const risk = calculateAccountRisk({ account, positions, quotes });
     const liquidations = [];
 

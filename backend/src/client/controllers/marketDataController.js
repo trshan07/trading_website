@@ -1,11 +1,10 @@
 const {
   fetchMarketHistoryCandles,
-  fetchChartAlignedMarketQuotes,
-  fetchMarketQuotes,
   fetchOrderBook,
   normalizeSymbol,
   parseQuoteNumber,
 } = require('../../services/marketDataService');
+const { getCanonicalMarketQuotes, getCanonicalQuote } = require('../../services/marketSnapshotService');
 
 const createFlatData = (basePrice, interval = '15m', count = 300) => {
   const anchor = parseFloat(basePrice) || 100;
@@ -47,7 +46,10 @@ exports.getMarketQuotes = async (req, res) => {
   }
 
   try {
-    const data = await fetchMarketQuotes(Array.from(new Set(requestedSymbols)));
+    const data = await getCanonicalMarketQuotes(Array.from(new Set(requestedSymbols)), {
+      preferChartAligned: false,
+      refresh: true,
+    });
     return res.status(200).json({
       success: true,
       data,
@@ -75,7 +77,10 @@ exports.getChartAlignedQuotes = async (req, res) => {
   }
 
   try {
-    const data = await fetchChartAlignedMarketQuotes(Array.from(new Set(requestedSymbols)));
+    const data = await getCanonicalMarketQuotes(Array.from(new Set(requestedSymbols)), {
+      preferChartAligned: true,
+      refresh: true,
+    });
     return res.status(200).json({
       success: true,
       data,
@@ -105,8 +110,11 @@ exports.getMarketHistory = async (req, res) => {
     });
   } catch (error) {
     console.log(`[MarketProxy] History fallback for ${sym} due to: ${error.message}`);
-    const liveQuote = await fetchMarketQuotes([sym]).catch(() => ({}));
-    const quotePrice = parseQuoteNumber(liveQuote?.[sym]?.price);
+    const liveQuote = await getCanonicalQuote(sym, {
+      preferChartAligned: true,
+      refresh: true,
+    }).catch(() => null);
+    const quotePrice = parseQuoteNumber(liveQuote?.price);
     const fallbackData = quotePrice ? createFlatData(quotePrice, iv) : [];
 
     return res.status(200).json({

@@ -5,6 +5,7 @@ const {
   normalizeSymbol,
   resolveTwelveDataSymbol,
 } = require('./marketDataService');
+const { writeQuotes } = require('./marketSnapshotService');
 
 const TWELVE_DATA_STREAM_URL = 'wss://ws.twelvedata.com/v1/quotes/price';
 const MAX_RECONNECT_DELAY_MS = 15000;
@@ -118,6 +119,7 @@ class MarketStreamService {
     }
 
     Object.assign(this.latestQuotes, quotes);
+    writeQuotes(quotes).catch(() => null);
     this.broadcast({
       type: 'market-quotes',
       data: quotes,
