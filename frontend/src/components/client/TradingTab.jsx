@@ -3,9 +3,9 @@ import { FaBolt, FaChartLine, FaHistory, FaListUl } from 'react-icons/fa';
 import OrderPanel from '../trading/OrderPanel';
 import PositionsTable from '../trading/PositionsTable';
 import TerminalAssetList from '../trading/TerminalAssetList';
-import TradingViewWidget from '../trading/TradingViewWidget';
+import RealTimeChart from '../trading/RealTimeChart';
 import { useTheme } from '../../context/ThemeContext';
-import { buildInstrumentSnapshot, formatInstrumentDisplaySymbol, normalizeSymbol } from '../../utils/marketSymbols';
+import { buildInstrumentSnapshot, formatInstrumentDisplaySymbol } from '../../utils/marketSymbols';
 import { getDisplayQuoteSnapshot } from '../../utils/spreadCalculator';
 
 const TradingTab = ({
@@ -44,7 +44,6 @@ const TradingTab = ({
   }, []);
 
   const isMobile = windowWidth < 1024;
-  const normalizedActiveSymbol = useMemo(() => normalizeSymbol(activeSymbol), [activeSymbol]);
   const baseInstrument = instruments.find((instrument) => instrument.symbol === activeSymbol);
   const selectedInstrument = useMemo(() => buildInstrumentSnapshot({
     symbol: activeSymbol,
@@ -52,10 +51,6 @@ const TradingTab = ({
     marketData,
   }), [activeSymbol, baseInstrument, marketData]);
   const handleIntentChange = useCallback((intent) => setActiveOrderIntent(intent), []);
-  const selectedSymbolPositions = useMemo(
-    () => positions.filter((position) => normalizeSymbol(position?.symbol) === normalizedActiveSymbol),
-    [normalizedActiveSymbol, positions]
-  );
   const quoteSnapshot = useMemo(() => getDisplayQuoteSnapshot({
     symbol: activeSymbol,
     instrument: selectedInstrument,
@@ -64,6 +59,7 @@ const TradingTab = ({
   const bidPrice = quoteSnapshot.bidLabel;
   const askPrice = quoteSnapshot.askLabel;
   const activeSymbolLabel = formatInstrumentDisplaySymbol(activeSymbol, { withSlash: true });
+  const livePrice = Number.parseFloat(selectedInstrument.price ?? marketData[activeSymbol]?.price ?? 0) || 0;
 
   return (
     <div className="flex flex-col h-[calc(100vh-10rem)] min-h-[500px] lg:min-h-[1220px] -mx-4 md:-mx-10 border-t border-slate-100 dark:border-slate-800 animate-in fade-in duration-500">
@@ -136,13 +132,17 @@ const TradingTab = ({
                   ? 'border-slate-800 bg-slate-900'
                   : 'border-slate-200 bg-white'
               }`}>
-                <TradingViewWidget
+                <RealTimeChart
                   key={`terminal-${activeSymbol}-${theme}`}
                   symbol={activeSymbol}
                   theme={theme}
                   instrument={selectedInstrument}
                   positions={positions}
-                  marketStatus="LIVE MARKET DATA"
+                  closedTrades={closedTrades}
+                  activeIntent={activeOrderIntent}
+                  livePrice={livePrice}
+                  initialPrice={livePrice || selectedInstrument.price || 100}
+                  isVisible={activeMobileView === 'chart' || !isMobile}
                 />
               </div>
             </div>
