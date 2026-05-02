@@ -11,11 +11,6 @@ import { useTheme } from '../../context/ThemeContext';
 import { buildInstrumentSnapshot, formatInstrumentDisplaySymbol, normalizeSymbol } from '../../utils/marketSymbols';
 import { getDisplayQuoteSnapshot } from '../../utils/spreadCalculator';
 
-const formatCurrency = (value = 0) => Number(value || 0).toLocaleString(undefined, {
-  minimumFractionDigits: 2,
-  maximumFractionDigits: 2,
-});
-
 const SlidingPanel = ({
   open = false,
   title,
@@ -144,13 +139,6 @@ const TradingTab = ({
     { id: 'alerts', label: 'Price Alerts', count: priceAlerts.length },
   ];
 
-  const accountCards = [
-    { label: 'Balance', value: `$${formatCurrency(portfolio.totalBalance)}` },
-    { label: 'Equity', value: `$${formatCurrency(portfolio.equity)}` },
-    { label: 'Free Margin', value: `$${formatCurrency(portfolio.freeMargin)}` },
-    { label: 'Used Margin', value: `$${formatCurrency(portfolio.margin)}` },
-  ];
-
   const openWatchlist = () => {
     setShowOrderPanel(false);
     setShowWatchlistPanel(true);
@@ -199,11 +187,10 @@ const TradingTab = ({
 
   return (
     <div className="-mx-4 flex min-h-[calc(100vh-10rem)] flex-col bg-[#171a26] px-4 pb-6 pt-4 text-white md:-mx-10 md:px-10 font-sans">
-      <section className="mb-4 rounded-[1.5rem] border border-slate-700/70 bg-gradient-to-r from-[#1d2231] to-[#181d29] px-4 py-4 shadow-[0_20px_60px_rgba(0,0,0,0.28)]">
-        <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+      <section className="overflow-hidden rounded-[1.75rem] border border-slate-700/70 bg-gradient-to-b from-[#1f2434] to-[#171b28] shadow-[0_24px_60px_rgba(0,0,0,0.32)]">
+        <div className="flex flex-col gap-4 border-b border-slate-700/60 px-4 py-4 xl:flex-row xl:items-center xl:justify-between">
           <div className="min-w-0">
-            <p className="text-[10px] font-black uppercase tracking-[0.22em] text-sky-300/70">Trading Desk</p>
-            <div className="mt-2 flex flex-wrap items-center gap-3">
+            <div className="mt-1 flex flex-wrap items-center gap-3">
               <p className="font-display text-2xl font-semibold uppercase tracking-tight text-white sm:text-3xl">{activeSymbolLabel}.</p>
               <p className={`text-lg font-semibold tabular-nums ${chartTone}`}>{chartChange >= 0 ? '+' : ''}{chartChange.toFixed(2)}%</p>
               <span className="rounded-full border border-slate-700 bg-[#111620] px-3 py-1 text-xs font-semibold text-slate-300">
@@ -231,33 +218,6 @@ const TradingTab = ({
             >
               Open Order Ticket
             </button>
-            <button className="rounded-2xl border border-slate-700 bg-[#111620] px-3 py-3 text-slate-300 transition-colors hover:border-slate-500 hover:text-white">
-              <FaRegStar size={15} />
-            </button>
-            <button className="rounded-2xl border border-slate-700 bg-[#111620] px-3 py-3 text-slate-300 transition-colors hover:border-slate-500 hover:text-white">
-              <FaBell size={15} />
-            </button>
-          </div>
-        </div>
-
-        <div className="mt-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
-          {accountCards.map((card) => (
-            <div key={card.label} className="rounded-2xl border border-slate-700/60 bg-[#111620] px-4 py-3">
-              <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">{card.label}</p>
-              <p className="mt-2 text-lg font-semibold tabular-nums text-slate-100">{card.value}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      <section className="overflow-hidden rounded-[1.75rem] border border-slate-700/70 bg-gradient-to-b from-[#1f2434] to-[#171b28] shadow-[0_24px_60px_rgba(0,0,0,0.32)]">
-        <div className="flex flex-col gap-4 border-b border-slate-700/60 px-4 py-4 xl:flex-row xl:items-center xl:justify-between">
-          <div className="min-w-0">
-            <p className="text-[10px] font-black uppercase tracking-[0.22em] text-sky-300/70">Chart Workspace</p>
-            <p className="mt-1 text-sm text-slate-400">The chart is the main workspace. Watchlist and order entry are opened in slide-over panels for a cleaner view.</p>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2">
             <div className="rounded-2xl border border-rose-400/30 bg-rose-500/12 px-4 py-3">
               <p className="text-[10px] font-black uppercase tracking-[0.18em] text-rose-200/80">Sell</p>
               <p className="mt-1 text-xl font-semibold leading-none tabular-nums text-rose-300 sm:text-2xl">{bidPrice}</p>
