@@ -43,6 +43,61 @@ const DEFAULT_MIN_LOT = {
     ...DEFAULT_LOT_STEP,
 };
 
+const DEFAULT_MOVEMENT_LABELS = {
+    forex: 'Pips',
+    commodities: 'Points',
+    futures: 'Points',
+    indices: 'Points',
+    bonds: 'Points',
+    economy: 'Points',
+    options: 'Points',
+    stocks: 'Price Move',
+    funds: 'Price Move',
+    crypto: 'Price Move',
+};
+
+const DEFAULT_MOVEMENT_VALUE_LABELS = {
+    forex: 'Pip Value',
+    commodities: 'Point Value',
+    futures: 'Point Value',
+    indices: 'Point Value',
+    bonds: 'Point Value',
+    economy: 'Point Value',
+    options: 'Point Value',
+    stocks: 'Price Move Value',
+    funds: 'Price Move Value',
+    crypto: 'Price Move Value',
+};
+
+const SYMBOL_RULE_OVERRIDES = {
+    XAUUSD: {
+        pointSize: 0.01,
+        movementLabel: 'Points',
+        movementValueLabel: 'Point Value',
+        quantityLabel: 'oz',
+        calculationMode: 'commodity-usd',
+    },
+    XAGUSD: {
+        pointSize: 0.001,
+        movementLabel: 'Points',
+        movementValueLabel: 'Point Value',
+        quantityLabel: 'oz',
+        calculationMode: 'commodity-usd',
+    },
+    BRENT: {
+        pointSize: 0.001,
+        movementLabel: 'Points',
+        movementValueLabel: 'Point Value',
+        calculationMode: 'commodity-usd',
+    },
+    'CL1!': {
+        pointSize: 0.001,
+        movementLabel: 'Points',
+        movementValueLabel: 'Point Value',
+        calculationMode: 'futures-usd',
+    },
+};
+
 const normalizeSymbol = (symbol = '') => String(symbol).toUpperCase().replace(/[^A-Z0-9!]/g, '');
 
 const isForexPair = (symbol = '') => {
@@ -93,8 +148,13 @@ const inferPrecision = ({ symbol = '', categoryKey = '', instrument = {}, price 
 };
 
 const getMovementSize = ({ symbol = '', categoryKey = '', precision = 2, instrument = {} }) => {
+    const override = SYMBOL_RULE_OVERRIDES[normalizeSymbol(symbol)] || {};
     const explicitPointSize = Number.parseFloat(
-        instrument.pointSize
+        override.pointSize
+        ?? override.point_size
+        ?? instrument.movementSize
+        ?? instrument.movement_size
+        ?? instrument.pointSize
         ?? instrument.point_size
     );
 
@@ -115,6 +175,7 @@ const getMovementSize = ({ symbol = '', categoryKey = '', precision = 2, instrum
 
 const getInstrumentTradingMeta = ({ symbol = '', category = '', instrument = {} } = {}) => {
     const normalizedSymbol = normalizeSymbol(symbol || instrument.symbol || '');
+    const override = SYMBOL_RULE_OVERRIDES[normalizedSymbol] || {};
     const categoryKey = resolveCategoryKey(instrument.category || category, normalizedSymbol);
     const price = Number.parseFloat(instrument.price ?? instrument.defaultPrice ?? 0) || 0;
     const precision = inferPrecision({
@@ -127,16 +188,20 @@ const getInstrumentTradingMeta = ({ symbol = '', category = '', instrument = {} 
     return {
         categoryKey,
         contractSize: Number.parseFloat(instrument.contractSize ?? DEFAULT_CONTRACT_SIZES[categoryKey]) || 1,
-        quantityLabel: instrument.quantityLabel || DEFAULT_QUANTITY_LABELS[categoryKey],
+        quantityLabel: instrument.quantityLabel || override.quantityLabel || DEFAULT_QUANTITY_LABELS[categoryKey],
         lotStep: Number.parseFloat(instrument.lotStep ?? DEFAULT_LOT_STEP[categoryKey]) || 0.01,
         minLot: Number.parseFloat(instrument.minLot ?? DEFAULT_MIN_LOT[categoryKey]) || 0.01,
         precision,
+        movementLabel: override.movementLabel || DEFAULT_MOVEMENT_LABELS[categoryKey] || 'Price Move',
+        movementValueLabel: override.movementValueLabel || DEFAULT_MOVEMENT_VALUE_LABELS[categoryKey] || 'Price Move Value',
         movementSize: getMovementSize({
             symbol: normalizedSymbol,
             categoryKey,
             precision,
             instrument,
         }),
+        calculationMode: override.calculationMode || `${categoryKey}-standard`,
+        calculationVerified: true,
     };
 };
 

@@ -231,7 +231,10 @@ const OrderPanel = ({
   const displayPipValue = Number(preview?.pipValue);
   const tpPreview = Number(preview?.projectedTakeProfitPnl);
   const slPreview = Number(preview?.projectedStopLossPnl);
-  const movementLabel = tradingMeta.movementLabel || 'Move';
+  const tpMovement = Number(preview?.projectedTakeProfitMovement);
+  const slMovement = Number(preview?.projectedStopLossMovement);
+  const movementLabel = preview?.movementLabel || tradingMeta.movementLabel || 'Move';
+  const movementValueLabel = preview?.movementValueLabel || tradingMeta.movementValueLabel || `${movementLabel} Value`;
 
   return (
     <div className="flex h-full flex-col overflow-hidden rounded-[1.3rem] border border-slate-700/70 bg-[#1b2030] font-sans text-white">
@@ -348,7 +351,7 @@ const OrderPanel = ({
             <span className="font-semibold tabular-nums text-white">1:{resolvedLeverage}</span>
           </div>
           <div className="flex items-center justify-between gap-4">
-            <span className="font-semibold text-white">{movementLabel} value:</span>
+            <span className="font-semibold text-white">{movementValueLabel}:</span>
             <span className="font-semibold tabular-nums text-white">
               {Number.isFinite(displayPipValue) ? formatMoney(displayPipValue) : '--'}
             </span>
@@ -357,7 +360,9 @@ const OrderPanel = ({
             <div className="flex items-center justify-between gap-4">
               <span className="font-semibold text-white">TP preview:</span>
               <span className={`font-semibold tabular-nums ${Number.isFinite(tpPreview) && tpPreview >= 0 ? 'text-emerald-300' : 'text-slate-300'}`}>
-                {Number.isFinite(tpPreview) ? formatMoney(tpPreview) : '--'}
+                {Number.isFinite(tpPreview)
+                  ? `${formatMoney(tpPreview)}${Number.isFinite(tpMovement) ? ` • ${tpMovement.toFixed(2)} ${movementLabel}` : ''}`
+                  : '--'}
               </span>
             </div>
           )}
@@ -365,7 +370,9 @@ const OrderPanel = ({
             <div className="flex items-center justify-between gap-4">
               <span className="font-semibold text-white">SL preview:</span>
               <span className={`font-semibold tabular-nums ${Number.isFinite(slPreview) && slPreview < 0 ? 'text-rose-300' : 'text-slate-300'}`}>
-                {Number.isFinite(slPreview) ? formatMoney(slPreview) : '--'}
+                {Number.isFinite(slPreview)
+                  ? `${formatMoney(slPreview)}${Number.isFinite(slMovement) ? ` • ${slMovement.toFixed(2)} ${movementLabel}` : ''}`
+                  : '--'}
               </span>
             </div>
           )}

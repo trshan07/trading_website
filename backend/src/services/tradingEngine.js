@@ -302,19 +302,37 @@ const buildTradePreview = async ({ account = null, payload = {}, side = null }) 
         minLot: meta.minLot,
         quantityLabel: meta.quantityLabel,
         pricePrecision: meta.precision,
+        movementLabel: meta.movementLabel,
+        movementValueLabel: meta.movementValueLabel,
         movementSize: meta.movementSize,
-        movementValue: calculateMovementValue({
+        movementCountPerUnit: calculateMovementValue({
             symbol: trade.symbol,
             category: trade.category,
             instrument: marketContext.instrumentConfig,
             entryPrice: marketContext.executionPrice,
             exitPrice: marketContext.executionPrice + meta.movementSize,
         }),
+        calculationMode: meta.calculationMode,
+        calculationVerified: meta.calculationVerified,
         pipValue,
         takeProfit: trade.takeProfit,
         stopLoss: trade.stopLoss,
         projectedTakeProfitPnl: tpPnl,
         projectedStopLossPnl: slPnl,
+        projectedTakeProfitMovement: trade.takeProfit == null ? null : calculateMovementValue({
+            symbol: trade.symbol,
+            category: trade.category,
+            instrument: marketContext.instrumentConfig,
+            entryPrice: marketContext.executionPrice,
+            exitPrice: trade.takeProfit,
+        }),
+        projectedStopLossMovement: trade.stopLoss == null ? null : calculateMovementValue({
+            symbol: trade.symbol,
+            category: trade.category,
+            instrument: marketContext.instrumentConfig,
+            entryPrice: marketContext.executionPrice,
+            exitPrice: trade.stopLoss,
+        }),
     };
 };
 
