@@ -14,10 +14,8 @@ import { buildInstrumentSnapshot } from '../utils/marketSymbols';
 import { calculateLotsFromQuantity, calculateProjectedPnL, calculateUsdFromLots } from '../utils/tradingUtils';
 import { calculateSpreads } from '../utils/spreadCalculator';
 
-const GLOBAL_QUOTES_REFRESH_MS = 2500;
-const ACTIVE_SYMBOL_REFRESH_MS = 1000;
-const GLOBAL_CHART_QUOTES_REFRESH_MS = 5000;
-const ACTIVE_CHART_SYMBOL_REFRESH_MS = 1500;
+const GLOBAL_CHART_QUOTES_REFRESH_MS = 15000;
+const ACTIVE_CHART_SYMBOL_REFRESH_MS = 2000;
 
 const normalizeInstrument = (instrument = {}) => ({
   symbol: instrument.symbol,
@@ -665,34 +663,6 @@ export const useDashboardData = (accountType = 'demo', activeSymbol = null) => {
     }
   }, []);
 
-  const fetchLiveQuotes = useCallback(async (symbols = []) => {
-    const filteredSymbols = Array.from(new Set(symbols.filter(Boolean)));
-    if (filteredSymbols.length === 0) {
-      return;
-    }
-
-    try {
-      const response = await infraService.getMarketQuotes(filteredSymbols);
-      if (response.success && response.data) {
-        const responseStamp = response.asOf || Date.now();
-        const stampedQuotes = Object.fromEntries(
-          Object.entries(response.data).map(([symbol, quote]) => [
-            symbol,
-            {
-              ...quote,
-              updatedAt: quote?.updatedAt || quote?.updated_at || responseStamp,
-            },
-          ])
-        );
-
-        setMarketData((prev) => mergeQuoteSnapshot(prev, stampedQuotes));
-        setInstruments((prev) => syncInstrumentsWithQuotes(prev, stampedQuotes));
-      }
-    } catch (error) {
-      console.error('Live Quotes Fetch Failed:', error);
-    }
-  }, []);
-
   const fetchChartAlignedQuotes = useCallback(async (symbols = []) => {
     const filteredSymbols = Array.from(new Set(symbols.filter(Boolean)));
     if (filteredSymbols.length === 0) {
@@ -790,68 +760,6 @@ export const useDashboardData = (accountType = 'demo', activeSymbol = null) => {
     const instrumentSymbols = instrumentSymbolKey.split(',').filter(Boolean);
     let inFlight = false;
 
-    const pollQuotes = async () => {
-      if (inFlight) {
-        return;
-      }
-
-      inFlight = true;
-      try {
-        await fetchLiveQuotes(instrumentSymbols);
-      } finally {
-        inFlight = false;
-      }
-    };
-
-    pollQuotes();
-
-    const quoteInterval = setInterval(pollQuotes, GLOBAL_QUOTES_REFRESH_MS);
-
-    return () => clearInterval(quoteInterval);
-  }, [fetchLiveQuotes, instrumentSymbolKey, user]);
-
-  useEffect(() => {
-    if (!user || !activeSymbol) {
-      return undefined;
-    }
-
-    const normalizedActiveSymbol = String(activeSymbol).trim().toUpperCase();
-    if (!normalizedActiveSymbol) {
-      return undefined;
-    }
-
-    let inFlight = false;
-
-    const pollActiveSymbol = async () => {
-      if (inFlight) {
-        return;
-      }
-
-      inFlight = true;
-      try {
-        await fetchLiveQuotes([normalizedActiveSymbol]);
-      } finally {
-        inFlight = false;
-      }
-    };
-
-    pollActiveSymbol();
-
-    // Keep the selected symbol tightly synced so the order panel and instrument
-    // list continue moving with the chart even in advanced analysis mode.
-    const activeSymbolInterval = setInterval(pollActiveSymbol, ACTIVE_SYMBOL_REFRESH_MS);
-
-    return () => clearInterval(activeSymbolInterval);
-  }, [activeSymbol, fetchLiveQuotes, user]);
-
-  useEffect(() => {
-    if (!user || !instrumentSymbolKey) {
-      return undefined;
-    }
-
-    const instrumentSymbols = instrumentSymbolKey.split(',').filter(Boolean);
-    let inFlight = false;
-
     const pollChartAlignedQuotes = async () => {
       if (inFlight) {
         return;
@@ -865,6 +773,9 @@ export const useDashboardData = (accountType = 'demo', activeSymbol = null) => {
       }
     };
 
+    // Use the chart-aligned backend feed as the canonical polling source for the
+    // watchlist, instruments, and order panel. Websocket ticks can still refine
+    // prices between polls, but we avoid double-polling separate quote APIs.
     pollChartAlignedQuotes();
 
     const chartAlignedQuoteInterval = setInterval(
@@ -900,6 +811,8 @@ export const useDashboardData = (accountType = 'demo', activeSymbol = null) => {
       }
     };
 
+    // Keep the actively viewed chart symbol fresher than the global list so the
+    // order panel tracks the current chart without hammering every symbol.
     pollActiveChartAlignedQuote();
 
     const activeChartAlignedQuoteInterval = setInterval(

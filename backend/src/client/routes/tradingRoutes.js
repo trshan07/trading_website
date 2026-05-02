@@ -4,6 +4,7 @@ const router = express.Router();
 const { 
     executeTrade, 
     previewTrade,
+    previewTradeAudit,
     getOpenOrders,
     getOpenPositions, 
     getClosedTradeHistory,
@@ -21,6 +22,7 @@ const { protect } = require('../../middleware/authMiddleware');
 router.use(protect);
 
 // Trades and Positions
+router.post('/preview-audit', previewTradeAudit);
 router.post('/preview', previewTrade);
 router.post('/execute', executeTrade);
 router.get('/orders', getOpenOrders);

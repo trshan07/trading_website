@@ -280,6 +280,35 @@ const buildTradePreview = async ({ account = null, payload = {}, side = null }) 
     const freeMargin = account
         ? ((Number.parseFloat(account.balance) || 0) + (Number.parseFloat(account.credit) || 0))
         : null;
+    const tradeSide = String(trade.side).toLowerCase();
+    const pnlFormula = meta.categoryKey === 'forex'
+        ? 'profit = movement * pip_value'
+        : 'profit = price_difference * quantity';
+    const marginFormula = 'margin = notional / leverage';
+    const tpMovement = trade.takeProfit == null ? null : calculateMovementValue({
+        symbol: trade.symbol,
+        category: trade.category,
+        instrument: marketContext.instrumentConfig,
+        entryPrice: marketContext.executionPrice,
+        exitPrice: trade.takeProfit,
+    });
+    const slMovement = trade.stopLoss == null ? null : calculateMovementValue({
+        symbol: trade.symbol,
+        category: trade.category,
+        instrument: marketContext.instrumentConfig,
+        entryPrice: marketContext.executionPrice,
+        exitPrice: trade.stopLoss,
+    });
+    const priceDeltaToTp = trade.takeProfit == null
+        ? null
+        : (tradeSide === 'sell'
+            ? marketContext.executionPrice - trade.takeProfit
+            : trade.takeProfit - marketContext.executionPrice);
+    const priceDeltaToSl = trade.stopLoss == null
+        ? null
+        : (tradeSide === 'sell'
+            ? marketContext.executionPrice - trade.stopLoss
+            : trade.stopLoss - marketContext.executionPrice);
 
     return {
         symbol: trade.symbol,
@@ -319,20 +348,61 @@ const buildTradePreview = async ({ account = null, payload = {}, side = null }) 
         stopLoss: trade.stopLoss,
         projectedTakeProfitPnl: tpPnl,
         projectedStopLossPnl: slPnl,
-        projectedTakeProfitMovement: trade.takeProfit == null ? null : calculateMovementValue({
+        projectedTakeProfitMovement: tpMovement,
+        projectedStopLossMovement: slMovement,
+        audit: {
             symbol: trade.symbol,
             category: trade.category,
-            instrument: marketContext.instrumentConfig,
-            entryPrice: marketContext.executionPrice,
-            exitPrice: trade.takeProfit,
-        }),
-        projectedStopLossMovement: trade.stopLoss == null ? null : calculateMovementValue({
-            symbol: trade.symbol,
-            category: trade.category,
-            instrument: marketContext.instrumentConfig,
-            entryPrice: marketContext.executionPrice,
-            exitPrice: trade.stopLoss,
-        }),
+            side: trade.side,
+            accountCurrency: 'USD',
+            calculationMode: meta.calculationMode,
+            calculationVerified: meta.calculationVerified,
+            formulas: {
+                margin: marginFormula,
+                pnl: pnlFormula,
+            },
+            contract: {
+                lots: trade.lots,
+                quantity: trade.quantity,
+                contractSize: meta.contractSize,
+                quantityLabel: meta.quantityLabel,
+                lotStep: meta.lotStep,
+                minLot: meta.minLot,
+                leverage: trade.leverage,
+            },
+            pricing: {
+                executionPrice: marketContext.executionPrice,
+                markPrice: marketContext.markPrice,
+                bid: Number.parseFloat(marketContext.quote?.bid) || null,
+                ask: Number.parseFloat(marketContext.quote?.ask) || null,
+                source: marketContext.quote?.source || null,
+                precision: meta.precision,
+            },
+            movement: {
+                label: meta.movementLabel,
+                valueLabel: meta.movementValueLabel,
+                size: meta.movementSize,
+                valuePerMovement: pipValue,
+            },
+            margin: {
+                notional: trade.amount,
+                required: trade.margin,
+                freeMargin,
+                hasEnoughMargin: freeMargin == null ? true : trade.margin <= freeMargin,
+            },
+            takeProfit: trade.takeProfit == null ? null : {
+                targetPrice: trade.takeProfit,
+                priceDelta: priceDeltaToTp,
+                movement: tpMovement,
+                projectedPnl: tpPnl,
+            },
+            stopLoss: trade.stopLoss == null ? null : {
+                targetPrice: trade.stopLoss,
+                priceDelta: priceDeltaToSl,
+                movement: slMovement,
+                projectedPnl: slPnl,
+            },
+        },
     };
 };
 

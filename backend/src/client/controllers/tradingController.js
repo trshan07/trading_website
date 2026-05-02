@@ -90,6 +90,40 @@ const previewTrade = async (req, res) => {
     }
 };
 
+const previewTradeAudit = async (req, res) => {
+    const { accountId } = req.body;
+    const userId = req.user.id;
+
+    if (!accountId) {
+        return res.status(400).json({ success: false, message: 'Account is required' });
+    }
+
+    try {
+        const accounts = await Account.findByUserId(userId);
+        const account = accounts.find((item) => item.id == accountId);
+        if (!account) {
+            return res.status(404).json({ success: false, message: 'Account not found for this user' });
+        }
+
+        const preview = await buildTradePreview({
+            account,
+            payload: req.body,
+            side: req.body.side,
+        });
+
+        return res.json({
+            success: true,
+            data: preview.audit,
+            preview,
+        });
+    } catch (error) {
+        return res.status(400).json({
+            success: false,
+            message: error.message || 'Preview audit failed',
+        });
+    }
+};
+
 const getOpenPositions = async (req, res) => {
     const { accountId } = req.query;
     if (!accountId) {
@@ -262,6 +296,7 @@ const deleteAlert = async (req, res) => {
 module.exports = {
     executeTrade,
     previewTrade,
+    previewTradeAudit,
     getOpenOrders,
     getOpenPositions,
     getClosedTradeHistory,

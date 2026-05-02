@@ -7,6 +7,11 @@ const tradingService = {
     return response.data;
   },
 
+  previewTradeAudit: async (tradeData) => {
+    const response = await api.post('/trading/preview-audit', tradeData);
+    return response.data;
+  },
+
   // Execute / Place a trade
   executeTrade: async (tradeData) => {
     const response = await api.post('/trading/execute', tradeData);
