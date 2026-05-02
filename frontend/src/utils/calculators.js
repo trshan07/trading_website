@@ -91,6 +91,12 @@ const SYMBOL_RULE_OVERRIDES = {
     movementValueLabel: 'Point Value',
     calculationMode: 'commodity-usd',
   },
+  WTI: {
+    pointSize: 0.001,
+    movementLabel: 'Points',
+    movementValueLabel: 'Point Value',
+    calculationMode: 'commodity-usd',
+  },
   'CL1!': {
     pointSize: 0.001,
     movementLabel: 'Points',
@@ -107,7 +113,7 @@ export const resolveCategoryKey = (category = '', symbol = '') => {
   if (cat.includes('crypto') || normalizedSymbol.endsWith('USDT')) return 'crypto';
   if (cat.includes('stock') || cat.includes('share')) return 'stocks';
   if (cat.includes('fund') || cat.includes('etf')) return 'funds';
-  if (cat.includes('commod') || normalizedSymbol.startsWith('XAU') || normalizedSymbol.startsWith('XAG') || ['BRENT', 'CL1!'].includes(normalizedSymbol)) return 'commodities';
+  if (cat.includes('commod') || normalizedSymbol.startsWith('XAU') || normalizedSymbol.startsWith('XAG') || ['WTI', 'BRENT', 'CL1!'].includes(normalizedSymbol)) return 'commodities';
   if (cat.includes('future')) return 'futures';
   if (cat.includes('indice') || cat.includes('index') || cat.includes('brazilian')) return 'indices';
   if (cat.includes('bond')) return 'bonds';

@@ -39,6 +39,16 @@
     "lotStep": 0.001,
     "minLot": 0.001
   },
+  "XRPUSD": {
+    "tradingView": "BITSTAMP:XRPUSD",
+    "quote": "XRP-USD",
+    "provider": "twelvedata",
+    "dataSymbol": "XRP/USD",
+    "contractSize": 1,
+    "quantityLabel": "XRP",
+    "lotStep": 0.001,
+    "minLot": 0.001
+  },
   "BNBUSDT": {
     "tradingView": "BINANCE:BNBUSDT",
     "quote": "BNBUSDT",
@@ -122,6 +132,17 @@
     "minLot": 0.01,
     "spread": 0.018
   },
+  "USDCHF": {
+    "tradingView": "FX:USDCHF",
+    "quote": "USDCHF=X",
+    "provider": "twelvedata",
+    "dataSymbol": "USD/CHF",
+    "contractSize": 100000,
+    "quantityLabel": "USD",
+    "lotStep": 0.01,
+    "minLot": 0.01,
+    "spread": 0.00014
+  },
   "AUDUSD": {
     "tradingView": "FX:AUDUSD",
     "quote": "AUDUSD=X",
@@ -144,16 +165,60 @@
     "minLot": 0.01,
     "spread": 0.00016
   },
-  "USDCHF": {
-    "tradingView": "FX:USDCHF",
-    "quote": "USDCHF=X",
+  "EURGBP": {
+    "tradingView": "FX:EURGBP",
+    "quote": "EURGBP=X",
     "provider": "twelvedata",
-    "dataSymbol": "USD/CHF",
+    "dataSymbol": "EUR/GBP",
+    "contractSize": 100000,
+    "quantityLabel": "EUR",
+    "lotStep": 0.01,
+    "minLot": 0.01,
+    "spread": 0.00014
+  },
+  "EURJPY": {
+    "tradingView": "FX:EURJPY",
+    "quote": "EURJPY=X",
+    "provider": "twelvedata",
+    "dataSymbol": "EUR/JPY",
+    "contractSize": 100000,
+    "quantityLabel": "EUR",
+    "lotStep": 0.01,
+    "minLot": 0.01,
+    "spread": 0.022
+  },
+  "GBPJPY": {
+    "tradingView": "FX:GBPJPY",
+    "quote": "GBPJPY=X",
+    "provider": "twelvedata",
+    "dataSymbol": "GBP/JPY",
+    "contractSize": 100000,
+    "quantityLabel": "GBP",
+    "lotStep": 0.01,
+    "minLot": 0.01,
+    "spread": 0.028
+  },
+  "USDSGD": {
+    "tradingView": "FX:USDSGD",
+    "quote": "USDSGD=X",
+    "provider": "twelvedata",
+    "dataSymbol": "USD/SGD",
     "contractSize": 100000,
     "quantityLabel": "USD",
     "lotStep": 0.01,
     "minLot": 0.01,
-    "spread": 0.00014
+    "spread": 0.00028
+  },
+  "USDTRY": {
+    "tradingView": "FX:USDTRY",
+    "quote": "USDTRY=X",
+    "provider": "twelvedata",
+    "dataSymbol": "USD/TRY",
+    "contractSize": 100000,
+    "quantityLabel": "USD",
+    "lotStep": 0.01,
+    "minLot": 0.01,
+    "spread": 0.025
   },
   "NZDUSD": {
     "tradingView": "FX:NZDUSD",
@@ -192,10 +257,24 @@
     "minLot": 0.01,
     "spread": 0.094
   },
+  "WTI": {
+    "tradingView": "TVC:USOIL",
+    "quote": "CL=F",
+    "provider": "twelvedata",
+    "dataSymbol": "CL1!",
+    "useBidAsk": false,
+    "precision": 3,
+    "contractSize": 1000,
+    "quantityLabel": "bbl",
+    "lotStep": 0.01,
+    "minLot": 0.01,
+    "spread": 0.04
+  },
   "BRENT": {
     "tradingView": "TVC:UKOIL",
     "quote": "BZ=F",
     "provider": "twelvedata",
+    "dataSymbol": "BRN1!",
     "useBidAsk": false,
     "precision": 3,
     "contractSize": 1000,
@@ -203,6 +282,84 @@
     "lotStep": 0.01,
     "minLot": 0.01,
     "spread": 0.08
+  },
+  "US500": {
+    "tradingView": "OANDA:SPX500USD",
+    "quote": "^GSPC",
+    "provider": "twelvedata",
+    "dataSymbol": "SPX",
+    "useBidAsk": false,
+    "precision": 2,
+    "contractSize": 10,
+    "quantityLabel": "index units",
+    "lotStep": 0.01,
+    "minLot": 0.01,
+    "spread": 0.8
+  },
+  "NAS100": {
+    "tradingView": "OANDA:NAS100USD",
+    "quote": "^NDX",
+    "provider": "twelvedata",
+    "dataSymbol": "NDX",
+    "useBidAsk": false,
+    "precision": 2,
+    "contractSize": 10,
+    "quantityLabel": "index units",
+    "lotStep": 0.01,
+    "minLot": 0.01,
+    "spread": 1.2
+  },
+  "US30": {
+    "tradingView": "OANDA:US30USD",
+    "quote": "^DJI",
+    "provider": "twelvedata",
+    "dataSymbol": "DJI",
+    "useBidAsk": false,
+    "precision": 2,
+    "contractSize": 10,
+    "quantityLabel": "index units",
+    "lotStep": 0.01,
+    "minLot": 0.01,
+    "spread": 3
+  },
+  "UK100": {
+    "tradingView": "OANDA:UK100GBP",
+    "quote": "^FTSE",
+    "provider": "twelvedata",
+    "dataSymbol": "UKX",
+    "useBidAsk": false,
+    "precision": 2,
+    "contractSize": 10,
+    "quantityLabel": "index units",
+    "lotStep": 0.01,
+    "minLot": 0.01,
+    "spread": 1.5
+  },
+  "DE40": {
+    "tradingView": "XETR:DAX",
+    "quote": "^GDAXI",
+    "provider": "twelvedata",
+    "dataSymbol": "DAX",
+    "useBidAsk": false,
+    "precision": 2,
+    "contractSize": 10,
+    "quantityLabel": "index units",
+    "lotStep": 0.01,
+    "minLot": 0.01,
+    "spread": 1.8
+  },
+  "JP225": {
+    "tradingView": "TVC:NI225",
+    "quote": "^N225",
+    "provider": "twelvedata",
+    "dataSymbol": "N225",
+    "useBidAsk": false,
+    "precision": 2,
+    "contractSize": 10,
+    "quantityLabel": "index units",
+    "lotStep": 0.01,
+    "minLot": 0.01,
+    "spread": 8
   },
   "US10Y": {
     "tradingView": "TVC:US10Y",
@@ -244,6 +401,7 @@
     "tradingView": "TVC:SPX",
     "quote": "^GSPC",
     "provider": "twelvedata",
+    "dataSymbol": "SPX",
     "useBidAsk": false,
     "precision": 2,
     "contractSize": 10,
@@ -256,6 +414,7 @@
     "tradingView": "TVC:NDQ",
     "quote": "^NDX",
     "provider": "twelvedata",
+    "dataSymbol": "NDX",
     "useBidAsk": false,
     "precision": 2,
     "contractSize": 10,
@@ -268,6 +427,7 @@
     "tradingView": "TVC:DJI",
     "quote": "^DJI",
     "provider": "twelvedata",
+    "dataSymbol": "DJI",
     "contractSize": 10,
     "quantityLabel": "index units",
     "lotStep": 0.01,
@@ -324,6 +484,17 @@
     "minLot": 0.01,
     "spread": 0.05
   },
+  "AMZN": {
+    "tradingView": "NASDAQ:AMZN",
+    "quote": "AMZN",
+    "provider": "twelvedata",
+    "dataSymbol": "AMZN",
+    "contractSize": 1,
+    "quantityLabel": "shares",
+    "lotStep": 0.01,
+    "minLot": 0.01,
+    "spread": 0.04
+  },
   "MSFT": {
     "tradingView": "NASDAQ:MSFT",
     "quote": "MSFT",
@@ -368,6 +539,7 @@
     "tradingView": "TVC:USOIL",
     "quote": "CL=F",
     "provider": "twelvedata",
+    "dataSymbol": "CL1!",
     "contractSize": 1000,
     "quantityLabel": "bbl",
     "lotStep": 0.01,

@@ -3,7 +3,7 @@ const db = require('../config/database');
 const marketSymbolMap = require('../config/marketSymbolMap.json');
 const { isMissingColumnError, isMissingRelationError } = require('../utils/dbCompat');
 
-const FOREX_CODES = ['USD', 'EUR', 'GBP', 'JPY', 'AUD', 'NZD', 'CAD', 'CHF'];
+const FOREX_CODES = ['USD', 'EUR', 'GBP', 'JPY', 'AUD', 'NZD', 'CAD', 'CHF', 'SGD', 'TRY'];
 const METAL_SYMBOLS = new Set(['XAUUSD', 'XAGUSD']);
 const CRYPTO_QUOTES = ['USDT', 'BUSD', 'USDC', 'BTC', 'ETH'];
 const BINANCE_QUOTES = ['USDT', 'BUSD', 'USDC'];

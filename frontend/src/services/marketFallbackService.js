@@ -1,7 +1,7 @@
 import { normalizeSymbol } from '../utils/marketSymbols';
 
 const CRYPTO_QUOTES = ['USDT', 'BUSD', 'USDC', 'BTC', 'ETH'];
-const FOREX_CODES = ['USD', 'EUR', 'GBP', 'JPY', 'AUD', 'NZD', 'CAD', 'CHF'];
+const FOREX_CODES = ['USD', 'EUR', 'GBP', 'JPY', 'AUD', 'NZD', 'CAD', 'CHF', 'SGD', 'TRY'];
 const BIQUOTE_BASE_URL = 'https://biquote.io/api';
 const METAL_SYMBOLS = new Set(['XAUUSD', 'XAGUSD']);
 
