@@ -173,7 +173,7 @@ const TradingTab = ({
     }
 
     if (deskTab === 'history') {
-      return <TradeHistory trades={closedTrades} />;
+      return <TradeHistory trades={closedTrades} compact={compactTables} />;
     }
 
     return (

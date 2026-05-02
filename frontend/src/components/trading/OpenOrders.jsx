@@ -1,10 +1,17 @@
-// frontend/src/components/trading/OpenOrders.jsx
-import React, { useState } from 'react';
-import { FaTimes, FaClock, FaExchangeAlt, FaArrowUp, FaArrowDown, FaChartBar, FaHourglass } from 'react-icons/fa';
+import React from 'react';
+import { FaArrowDown, FaArrowUp, FaChartBar, FaExchangeAlt, FaHourglass, FaTimes } from 'react-icons/fa';
 import { formatLots } from '../../utils/tradingUtils';
 
+const formatMoney = (value, digits = 2) => `$${Number(value || 0).toLocaleString(undefined, {
+  minimumFractionDigits: digits,
+  maximumFractionDigits: digits,
+})}`;
+
+const formatUnits = (value) => Number(value || 0).toLocaleString(undefined, {
+  maximumFractionDigits: 4,
+});
+
 const OpenOrders = ({ orders = [], onCancel, onModify = () => {}, compact = false }) => {
-  const [hoveredRow, setHoveredRow] = useState(null);
   const getLotText = (order) => formatLots(
     order.lots,
     order.category,
@@ -28,266 +35,183 @@ const OpenOrders = ({ orders = [], onCancel, onModify = () => {}, compact = fals
     });
   };
 
-  if (compact) {
+  if (!orders.length) {
     return (
-      <div className="space-y-4">
-        {orders.map(order => (
-          <div key={order.id}
-            className="relative overflow-hidden bg-slate-50 dark:bg-slate-800/60 rounded-3xl p-5 border border-slate-100 dark:border-slate-700/50 hover:border-gold-500/30 transition-all"
-          >
-            <div className={`absolute left-0 top-3 bottom-3 w-1 rounded-r-full ${order.side === 'BUY' ? 'bg-emerald-500' : 'bg-rose-500'}`} />
-            <div className="flex justify-between items-start mb-4 pl-3">
-              <div>
-                <p className="text-sm font-black text-slate-900 dark:text-white italic uppercase tracking-tight">{order.symbol}</p>
-                <div className="flex items-center space-x-2 mt-1">
-                  <span className={`text-[9px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-widest border ${
-                    order.side === 'BUY'
-                      ? 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-500/30'
-                      : 'bg-rose-100 dark:bg-rose-500/20 text-rose-600 dark:text-rose-400 border-rose-200 dark:border-rose-500/30'
-                  }`}>{order.side}</span>
-                  <span className="text-[9px] font-black px-2.5 py-0.5 rounded-full bg-gold-50 dark:bg-gold-500/10 text-gold-600 dark:text-gold-400 border border-gold-100 dark:border-gold-500/20 uppercase tracking-widest">{order.type}</span>
-                </div>
-              </div>
-              <span className="text-[9px] font-black px-3 py-1.5 bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 rounded-full uppercase tracking-widest border border-slate-200 dark:border-slate-600">
-                {order.status}
-              </span>
-            </div>
-            <div className="grid grid-cols-3 gap-3 mb-4 pl-3">
-              {[
-                { label: 'Size', value: `${getLotText(order)} lots` },
-                { label: 'Price', value: `$${Number(order.entryPrice || order.price || 0).toLocaleString()}` },
-                { label: 'Time', value: new Date(order.createdAt || order.created).toLocaleTimeString() },
-              ].map(({ label, value }) => (
-                <div key={label} className="bg-white dark:bg-slate-900 p-3 rounded-2xl border border-slate-50 dark:border-slate-800">
-                  <p className="text-[7px] uppercase font-black text-slate-400 dark:text-slate-500 mb-1 tracking-widest">{label}</p>
-                  <p className="text-[11px] font-black text-slate-900 dark:text-white italic">{value}</p>
-                </div>
-              ))}
-            </div>
-            <div className="flex flex-col space-y-2 mb-4 pl-3">
-              <div className="flex justify-between items-center text-[9px] uppercase font-black text-slate-400">
-                <span>Units:</span>
-                <span className="text-slate-900 dark:text-white">{Number(order.quantity || 0).toLocaleString(undefined, { maximumFractionDigits: 4 })} {getQuantityLabel(order)}</span>
-              </div>
-              <div className="flex justify-between items-center text-[9px] uppercase font-black text-slate-400">
-                <span>Leverage:</span>
-                <span className="text-slate-900 dark:text-white">1:{order.leverage || 1}</span>
-              </div>
-              <div className="flex justify-between items-center text-[9px] uppercase font-black text-slate-400">
-                <span>Take Profit:</span>
-                <span className="text-emerald-500">{order.takeProfit ? `$${order.takeProfit.toLocaleString()}` : 'Off'}</span>
-              </div>
-              <div className="flex justify-between items-center text-[9px] uppercase font-black text-slate-400">
-                <span>Stop Loss:</span>
-                <span className="text-rose-500">{order.stopLoss ? `$${order.stopLoss.toLocaleString()}` : 'Off'}</span>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                onClick={() => handleProtectionEdit(order)}
-                className="py-3 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 font-black rounded-2xl text-[9px] uppercase tracking-[0.15em] border border-slate-200 dark:border-slate-700 hover:border-gold-500 transition-all"
-              >
-                Edit
-              </button>
-              <button
-                onClick={() => onCancel(order.id)}
-                className="py-3 bg-slate-900 dark:bg-slate-700 text-white font-black rounded-2xl text-[9px] uppercase tracking-[0.15em] hover:bg-rose-600 dark:hover:bg-rose-500 transition-all flex items-center justify-center space-x-2 group/btn"
-              >
-                <FaTimes className="text-gold-500 group-hover/btn:text-white transition-colors" />
-                <span>Cancel</span>
-              </button>
-            </div>
-          </div>
-        ))}
+      <div className="rounded-3xl border border-slate-700/60 bg-[#131925] px-6 py-14 text-center text-slate-400">
+        <FaChartBar className="mx-auto mb-4 text-slate-600" size={24} />
+        <p className="font-display text-lg font-semibold text-white">No pending orders</p>
+        <p className="mt-2 text-sm">Limit and stop orders will appear here after you place them.</p>
       </div>
     );
   }
 
-  return (
-    <div className="w-full">
-      {/* Column Headers */}
-      <div
-        className="grid items-center text-[9px] uppercase font-black text-slate-400 dark:text-slate-500 tracking-[0.2em] px-6 pb-4 border-b border-slate-100 dark:border-slate-800 mb-2"
-        style={{ gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr 1fr 1.2fr 1.2fr 1.2fr 1fr 1fr' }}
-      >
-        <span>Instrument</span>
-        <span>Type</span>
-        <span>Side</span>
-        <span className="text-right">Size</span>
-        <span className="text-right">Limit Price</span>
-        <span className="text-right">Lev</span>
-        <span className="text-right">TP</span>
-        <span className="text-right">SL</span>
-        <span className="text-right">Placed At</span>
-        <span className="text-center">Status</span>
-        <span className="text-right">Action</span>
-      </div>
-
-      {/* Rows */}
-      <div className="space-y-2">
-        {orders.map((order, idx) => {
+  if (compact) {
+    return (
+      <div className="space-y-3">
+        {orders.map((order) => {
           const isBuy = order.side === 'BUY';
-          const isHovered = hoveredRow === idx;
 
           return (
-            <div
-              key={order.id}
-              onMouseEnter={() => setHoveredRow(idx)}
-              onMouseLeave={() => setHoveredRow(null)}
-              className={`relative grid items-center rounded-2xl px-6 py-4 transition-all duration-300 cursor-default border overflow-hidden ${
-                isHovered
-                  ? 'bg-white dark:bg-slate-800 border-gold-500/20 shadow-xl shadow-slate-200/50 dark:shadow-black/30 -translate-y-0.5'
-                  : 'bg-slate-50/50 dark:bg-slate-800/20 border-transparent'
-              }`}
-              style={{ gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr 1fr 1.2fr 1.2fr 1.2fr 1fr 1fr' }}
-            >
-              {/* Left Accent */}
-              <div className={`absolute left-0 top-3 bottom-3 w-1 rounded-full transition-all duration-300 ${
-                isHovered ? 'opacity-100' : 'opacity-0'
-              } ${isBuy ? 'bg-emerald-500' : 'bg-rose-500'}`} />
-
-              {/* Instrument */}
-              <div className="flex items-center space-x-3 pl-3">
-                <div className="w-9 h-9 bg-slate-100 dark:bg-slate-700 rounded-xl flex items-center justify-center border border-slate-200 dark:border-slate-600">
-                  <FaExchangeAlt size={11} className="text-gold-500" />
+            <div key={order.id} className="rounded-3xl border border-slate-700/60 bg-[#131925] p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-sky-400/10 text-sky-200">
+                      <FaExchangeAlt size={12} />
+                    </span>
+                    <div>
+                      <p className="font-display text-lg font-semibold uppercase tracking-tight text-white">{order.symbol}</p>
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">{order.type}</p>
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-sm font-black text-slate-900 dark:text-white italic uppercase tracking-tight leading-none">{order.symbol}</p>
-                  <p className="text-[8px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mt-0.5">Pending</p>
+                <div className="text-right">
+                  <span className="inline-flex rounded-full bg-amber-400/12 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-amber-200">
+                    {order.status}
+                  </span>
                 </div>
               </div>
 
-              {/* Order Type */}
-              <div>
-                <span className="inline-flex items-center text-[9px] font-black px-3 py-1.5 rounded-lg uppercase tracking-widest bg-gold-50 dark:bg-gold-500/10 text-gold-600 dark:text-gold-400 border border-gold-100 dark:border-gold-500/20">
-                  {order.type}
-                </span>
+              <div className="mt-4 grid grid-cols-2 gap-3">
+                {[
+                  ['Side', order.side],
+                  ['Size', `${getLotText(order)} lots`],
+                  ['Units', `${formatUnits(order.quantity)} ${getQuantityLabel(order)}`],
+                  ['Trigger', formatMoney(order.entryPrice || order.price)],
+                  ['TP', order.takeProfit ? formatMoney(order.takeProfit) : 'Off'],
+                  ['SL', order.stopLoss ? formatMoney(order.stopLoss) : 'Off'],
+                ].map(([label, value]) => (
+                  <div key={label} className="rounded-2xl border border-slate-800 bg-[#0e1420] px-3 py-2.5">
+                    <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">{label}</p>
+                    <p className="mt-1 text-sm font-semibold text-slate-100">{value}</p>
+                  </div>
+                ))}
               </div>
 
-              {/* Side */}
-              <div>
-                <span className={`inline-flex items-center space-x-1.5 text-[9px] font-black px-3 py-1.5 rounded-lg uppercase tracking-widest border ${
-                  isBuy
-                    ? 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-100 dark:border-emerald-500/20'
-                    : 'bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-100 dark:border-rose-500/20'
-                }`}>
-                  {isBuy ? <FaArrowUp size={7} /> : <FaArrowDown size={7} />}
-                  <span>{order.side}</span>
-                </span>
-              </div>
-
-              {/* Quantity */}
-              <div className="text-right">
-                <p className="text-sm font-black text-slate-800 dark:text-slate-200 italic tabular-nums">{getLotText(order)}</p>
-                <p className="text-[8px] text-slate-400 dark:text-slate-600 font-bold tracking-widest uppercase">
-                  {Number(order.quantity || 0).toLocaleString(undefined, { maximumFractionDigits: 4 })} {getQuantityLabel(order)}
-                </p>
-              </div>
-
-              {/* Limit Price */}
-              <div className="text-right">
-                <p className="text-sm font-bold text-slate-600 dark:text-slate-300 tabular-nums">${Number(order.entryPrice || order.price || 0).toLocaleString()}</p>
-                <p className="text-[8px] text-slate-400 dark:text-slate-600 font-bold tracking-widest uppercase">limit</p>
-              </div>
-
-              <div className="text-right">
-                <p className="text-sm font-bold text-slate-600 dark:text-slate-300 tabular-nums">1:{order.leverage || 1}</p>
-                <p className="text-[8px] text-slate-400 dark:text-slate-600 font-bold tracking-widest uppercase">lev</p>
-              </div>
-
-              <div className="text-right">
-                <p className="text-sm font-bold text-emerald-500 tabular-nums">{order.takeProfit ? `$${order.takeProfit.toLocaleString()}` : 'Off'}</p>
-                <p className="text-[8px] text-slate-400 dark:text-slate-600 font-bold tracking-widest uppercase">tp</p>
-              </div>
-
-              <div className="text-right">
-                <p className="text-sm font-bold text-rose-500 tabular-nums">{order.stopLoss ? `$${order.stopLoss.toLocaleString()}` : 'Off'}</p>
-                <p className="text-[8px] text-slate-400 dark:text-slate-600 font-bold tracking-widest uppercase">sl</p>
-              </div>
-
-              {/* Time */}
-              <div className="text-right">
-                <p className="text-[11px] font-bold text-slate-500 dark:text-slate-400 tabular-nums">
-                  {new Date(order.createdAt || order.created).toLocaleTimeString()}
-                </p>
-                <div className="flex items-center justify-end space-x-1 mt-0.5">
-                  <FaClock size={7} className="text-slate-300 dark:text-slate-600" />
-                  <p className="text-[8px] text-slate-400 dark:text-slate-600 font-bold tracking-widest uppercase">placed</p>
-                </div>
-              </div>
-
-              {/* Status */}
-              <div className="flex justify-center">
-                <span className="inline-flex items-center space-x-1.5 text-[9px] font-black px-3 py-1.5 bg-gold-50 dark:bg-gold-500/10 text-gold-600 dark:text-gold-400 border border-gold-100 dark:border-gold-500/20 rounded-lg uppercase tracking-widest">
-                  <FaHourglass size={7} />
-                  <span>{order.status}</span>
-                </span>
-              </div>
-
-              {/* Cancel */}
-              <div className="flex justify-end">
-                <div className="flex justify-end gap-2">
-                  <button
-                    onClick={() => handleProtectionEdit(order)}
-                    className="px-3 py-2 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-xl text-[8px] font-black uppercase tracking-widest border border-slate-200 dark:border-slate-700 hover:border-gold-500 transition-all duration-200"
-                  >
-                    Edit
-                  </button>
-                  <button
-                    onClick={() => onCancel(order.id)}
-                    className="group/btn flex items-center space-x-1.5 px-4 py-2 bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 rounded-xl text-[9px] font-black uppercase tracking-widest border border-slate-200 dark:border-slate-600 hover:bg-rose-500 hover:text-white hover:border-rose-500 dark:hover:bg-rose-500 dark:hover:border-rose-500 transition-all duration-200 active:scale-95"
-                  >
-                    <FaTimes size={8} />
-                    <span>Cancel</span>
-                  </button>
-                </div>
+              <div className="mt-4 flex gap-2">
+                <button
+                  onClick={() => handleProtectionEdit(order)}
+                  className="flex-1 rounded-2xl border border-slate-700 bg-[#0e1420] px-3 py-3 text-xs font-semibold uppercase tracking-[0.18em] text-slate-200 transition-colors hover:border-slate-500"
+                >
+                  Edit
+                </button>
+                <button
+                  onClick={() => onCancel(order.id)}
+                  className="flex-1 rounded-2xl bg-rose-500/14 px-3 py-3 text-xs font-semibold uppercase tracking-[0.18em] text-rose-300 transition-colors hover:bg-rose-500/24"
+                >
+                  Cancel
+                </button>
               </div>
             </div>
           );
         })}
       </div>
+    );
+  }
 
-      {/* Footer Summary */}
-      {orders.length > 0 && (
-        <div className="mt-6 pt-5 border-t border-slate-100 dark:border-slate-800 grid grid-cols-3 gap-4">
-          {[
-            {
-              icon: FaChartBar,
-              label: 'Pending Orders',
-              value: orders.length,
-              color: 'text-gold-500',
-              bg: 'bg-gold-50 dark:bg-gold-500/10',
-              border: 'border-gold-100 dark:border-gold-500/20'
-            },
-            {
-              icon: FaArrowUp,
-              label: 'Buy Orders',
-              value: orders.filter(o => o.side === 'BUY').length,
-              color: 'text-emerald-500',
-              bg: 'bg-emerald-50 dark:bg-emerald-500/10',
-              border: 'border-emerald-100 dark:border-emerald-500/20'
-            },
-            {
-              icon: FaArrowDown,
-              label: 'Sell Orders',
-              value: orders.filter(o => o.side === 'SELL').length,
-              color: 'text-rose-500',
-              bg: 'bg-rose-50 dark:bg-rose-500/10',
-              border: 'border-rose-100 dark:border-rose-500/20'
-            },
-          ].map(({ icon: Icon, label, value, color, bg, border }) => (
-            <div key={label} className={`flex items-center space-x-4 p-4 rounded-2xl border ${bg} ${border}`}>
-              <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${bg} border ${border}`}>
-                <Icon size={12} className={color} />
-              </div>
-              <div>
-                <p className="text-[8px] uppercase font-black text-slate-400 dark:text-slate-500 tracking-widest mb-0.5">{label}</p>
-                <p className={`text-sm font-black italic tracking-tight ${color}`}>{value}</p>
-              </div>
-            </div>
-          ))}
+  return (
+    <div className="overflow-hidden rounded-3xl border border-slate-700/60 bg-[#131925]">
+      <div className="overflow-x-auto custom-scrollbar">
+        <table className="min-w-[1020px] w-full table-fixed">
+          <thead className="bg-[#0f1521]">
+            <tr className="border-b border-slate-700/60 text-left">
+              {['Instrument', 'Type', 'Side', 'Size', 'Trigger', 'Leverage', 'TP', 'SL', 'Placed', 'Status', 'Actions'].map((heading) => (
+                <th key={heading} className="px-4 py-4 text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">
+                  {heading}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {orders.map((order) => {
+              const isBuy = order.side === 'BUY';
+
+              return (
+                <tr key={order.id} className="border-b border-slate-800/80 align-top transition-colors hover:bg-white/[0.03]">
+                  <td className="px-4 py-4">
+                    <div className="flex items-center gap-3">
+                      <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-sky-400/10 text-sky-200">
+                        <FaExchangeAlt size={12} />
+                      </span>
+                      <div>
+                        <p className="font-display text-base font-semibold uppercase tracking-tight text-white">{order.symbol}</p>
+                        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Pending order</p>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-4 py-4">
+                    <span className="inline-flex rounded-full bg-sky-400/12 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-sky-100">
+                      {order.type}
+                    </span>
+                  </td>
+                  <td className="px-4 py-4">
+                    <span className={`inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] ${
+                      isBuy ? 'bg-emerald-500/12 text-emerald-300' : 'bg-rose-500/12 text-rose-300'
+                    }`}>
+                      {isBuy ? <FaArrowUp size={10} /> : <FaArrowDown size={10} />}
+                      {order.side}
+                    </span>
+                  </td>
+                  <td className="px-4 py-4">
+                    <p className="text-sm font-semibold tabular-nums text-slate-100">{getLotText(order)} lots</p>
+                    <p className="mt-1 text-xs text-slate-500">{formatUnits(order.quantity)} {getQuantityLabel(order)}</p>
+                  </td>
+                  <td className="px-4 py-4 text-sm font-semibold tabular-nums text-slate-100">{formatMoney(order.entryPrice || order.price)}</td>
+                  <td className="px-4 py-4 text-sm font-semibold text-slate-100">1:{order.leverage || 1}</td>
+                  <td className="px-4 py-4 text-sm font-semibold tabular-nums text-slate-100">{order.takeProfit ? formatMoney(order.takeProfit) : 'Off'}</td>
+                  <td className="px-4 py-4 text-sm font-semibold tabular-nums text-slate-100">{order.stopLoss ? formatMoney(order.stopLoss) : 'Off'}</td>
+                  <td className="px-4 py-4">
+                    <p className="text-sm font-semibold text-slate-100">
+                      {new Date(order.createdAt || order.created).toLocaleTimeString()}
+                    </p>
+                    <p className="mt-1 text-xs text-slate-500">
+                      {new Date(order.createdAt || order.created).toLocaleDateString()}
+                    </p>
+                  </td>
+                  <td className="px-4 py-4">
+                    <span className="inline-flex items-center gap-1 rounded-full bg-amber-400/12 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-amber-200">
+                      <FaHourglass size={10} />
+                      {order.status}
+                    </span>
+                  </td>
+                  <td className="px-4 py-4">
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        onClick={() => handleProtectionEdit(order)}
+                        className="rounded-xl border border-slate-700 bg-[#0e1420] px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-200 transition-colors hover:border-slate-500"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => onCancel(order.id)}
+                        className="inline-flex items-center gap-1 rounded-xl bg-rose-500/14 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-rose-300 transition-colors hover:bg-rose-500/24"
+                      >
+                        <FaTimes size={10} />
+                        Cancel
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="grid gap-3 border-t border-slate-700/60 bg-[#0f1521] px-4 py-4 md:grid-cols-3">
+        <div className="rounded-2xl border border-slate-700/60 bg-[#111823] px-4 py-3">
+          <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">Pending Orders</p>
+          <p className="mt-2 text-lg font-semibold text-white">{orders.length}</p>
         </div>
-      )}
+        <div className="rounded-2xl border border-slate-700/60 bg-[#111823] px-4 py-3">
+          <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">Buy Orders</p>
+          <p className="mt-2 text-lg font-semibold text-white">{orders.filter((order) => order.side === 'BUY').length}</p>
+        </div>
+        <div className="rounded-2xl border border-slate-700/60 bg-[#111823] px-4 py-3">
+          <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">Sell Orders</p>
+          <p className="mt-2 text-lg font-semibold text-white">{orders.filter((order) => order.side === 'SELL').length}</p>
+        </div>
+      </div>
     </div>
   );
 };
