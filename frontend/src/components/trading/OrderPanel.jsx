@@ -204,33 +204,44 @@ const OrderPanel = ({
   ])).slice(0, 3);
 
   return (
-    <div className="flex h-full flex-col rounded-[1.75rem] border border-slate-700/70 bg-[#1f2230] text-white shadow-[0_24px_60px_rgba(0,0,0,0.35)]">
-      <div className="flex items-start justify-between border-b border-slate-700/60 px-5 py-4">
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 flex-col items-center justify-center rounded-xl bg-[#171a26] text-[9px] font-black uppercase leading-none text-slate-200">
+    <div className="flex h-full flex-col overflow-hidden rounded-[1.75rem] border border-slate-700/70 bg-gradient-to-b from-[#202536] to-[#171b28] text-white shadow-[0_28px_70px_rgba(0,0,0,0.38)] font-sans">
+      <div className="border-b border-slate-700/60 bg-[#161b27]/70 px-5 py-4 backdrop-blur">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="flex h-11 w-11 flex-col items-center justify-center rounded-2xl border border-slate-700/70 bg-[#111620] text-[9px] font-black uppercase leading-none text-slate-200">
             <span>{orderTitle.slice(0, 3)}</span>
             <span>{orderTitle.slice(-3)}</span>
           </div>
-          <div>
-            <p className="text-xl font-black uppercase tracking-tight">{orderTitle}.</p>
-            <p className="mt-1 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">
+            <div>
+              <p className="font-display text-2xl font-semibold uppercase tracking-tight">{orderTitle}.</p>
+              <p className="mt-1 text-[10px] font-black uppercase tracking-[0.2em] text-sky-300/70">
               Spread {spreadLabel}
             </p>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            <div className="rounded-full border border-slate-700 bg-[#111620] px-3 py-1 text-xs font-semibold text-slate-300">
+              1:{maxLeverage}
+            </div>
+            <div className="rounded-full border border-slate-700 bg-[#111620] px-3 py-1 text-xs font-semibold text-slate-300">
+              {activePositions.length} open
+            </div>
+
+            {onClose && (
+              <button
+                onClick={onClose}
+                className="rounded-xl p-2 text-slate-400 transition-colors hover:bg-white/5 hover:text-white"
+              >
+                <FaTimes size={14} />
+              </button>
+            )}
           </div>
         </div>
-
-        {onClose && (
-          <button
-            onClick={onClose}
-            className="rounded-xl p-2 text-slate-400 transition-colors hover:bg-white/5 hover:text-white"
-          >
-            <FaTimes size={14} />
-          </button>
-        )}
       </div>
 
       <div className="px-4 pt-4">
-        <div className="grid grid-cols-2 gap-2 rounded-2xl bg-[#2a2d3b] p-1">
+        <div className="grid grid-cols-2 gap-2 rounded-2xl border border-slate-700/60 bg-[#161b27] p-1">
           {[
             { id: 'market', label: 'Market' },
             { id: 'pending', label: 'Pending Order' },
@@ -238,9 +249,9 @@ const OrderPanel = ({
             <button
               key={item.id}
               onClick={() => setMode(item.id)}
-              className={`rounded-[0.9rem] px-4 py-3 text-sm font-black transition-all ${
+              className={`rounded-[0.9rem] px-4 py-3 text-sm font-semibold transition-all ${
                 mode === item.id
-                  ? 'bg-[#1f2230] text-white shadow-sm'
+                  ? 'bg-gradient-to-r from-slate-100 to-white text-[#171a26] shadow-sm'
                   : 'text-slate-400 hover:text-white'
               }`}
             >
@@ -251,54 +262,67 @@ const OrderPanel = ({
       </div>
 
       <div className="flex-1 space-y-5 px-4 py-5">
-        <div className="grid gap-3 sm:grid-cols-[1fr_auto_1fr] sm:items-center">
+        <div className="grid gap-3 sm:grid-cols-2">
           <button
             onClick={() => setSelectedSide('sell')}
-            className={`rounded-2xl border px-4 py-4 text-left transition-all ${
+            className={`rounded-[1.35rem] border px-4 py-4 text-left transition-all ${
               selectedSide === 'sell'
-                ? 'border-rose-500 bg-rose-500/12'
-                : 'border-slate-700 bg-[#2a2d3b] hover:border-rose-500/50'
+                ? 'border-rose-400/50 bg-gradient-to-br from-rose-500/18 to-rose-500/8 shadow-[0_18px_40px_rgba(244,63,94,0.12)]'
+                : 'border-slate-700 bg-[#1a2030] hover:border-rose-500/40'
             }`}
           >
-            <p className="text-lg font-black text-rose-400">Sell</p>
-            <p className="mt-2 text-[1.75rem] font-black leading-none text-rose-400 sm:text-[2rem]">{bidLabel}</p>
+            <p className="text-xs font-black uppercase tracking-[0.22em] text-rose-200/80">Sell</p>
+            <p className="mt-3 text-[2rem] font-semibold leading-none tabular-nums text-rose-300 sm:text-[2.2rem]">{bidLabel}</p>
+            <p className="mt-2 text-xs text-slate-400">Sell at the current bid price.</p>
           </button>
-
-          <div className="rounded-2xl border border-slate-700/60 bg-[#171a26] px-4 py-3 text-center">
-            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">Position Size</p>
-            <p className="text-2xl font-black text-white">{formatLots(lots, category, symbol, instrument)}</p>
-            <p className="mt-1 text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">
-              {tradingMeta.quantityLabel}
-            </p>
-          </div>
 
           <button
             onClick={() => setSelectedSide('buy')}
-            className={`rounded-2xl border px-4 py-4 text-left transition-all ${
+            className={`rounded-[1.35rem] border px-4 py-4 text-left transition-all ${
               selectedSide === 'buy'
-                ? 'border-teal-400 bg-teal-400/12'
-                : 'border-slate-700 bg-[#2a2d3b] hover:border-teal-400/50'
+                ? 'border-teal-300/50 bg-gradient-to-br from-teal-400/18 to-teal-400/8 shadow-[0_18px_40px_rgba(45,212,191,0.12)]'
+                : 'border-slate-700 bg-[#1a2030] hover:border-teal-400/40'
             }`}
           >
-            <p className="text-lg font-black text-teal-300">Buy</p>
-            <p className="mt-2 text-[1.75rem] font-black leading-none text-teal-300 sm:text-[2rem]">{askLabel}</p>
+            <p className="text-xs font-black uppercase tracking-[0.22em] text-teal-100/80">Buy</p>
+            <p className="mt-3 text-[2rem] font-semibold leading-none tabular-nums text-teal-200 sm:text-[2.2rem]">{askLabel}</p>
+            <p className="mt-2 text-xs text-slate-400">Buy at the current ask price.</p>
           </button>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          <div className="rounded-2xl border border-slate-700/60 bg-[#151a26] px-4 py-3">
+            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">Order Side</p>
+            <p className={`mt-2 text-base font-semibold uppercase ${selectedSide === 'buy' ? 'text-teal-200' : 'text-rose-300'}`}>{selectedSide}</p>
+          </div>
+          <div className="rounded-2xl border border-slate-700/60 bg-[#151a26] px-4 py-3">
+            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">Execution</p>
+            <p className="mt-2 text-base font-semibold text-white">{isPendingOrder ? derivedOrderType.toUpperCase() : 'MARKET'}</p>
+          </div>
+          <div className="rounded-2xl border border-slate-700/60 bg-[#151a26] px-4 py-3">
+            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">Position Size</p>
+            <p className="mt-2 text-base font-semibold text-white">{formatLots(lots, category, symbol, instrument)}</p>
+          </div>
+          <div className="rounded-2xl border border-slate-700/60 bg-[#151a26] px-4 py-3">
+            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">Units</p>
+            <p className="mt-2 text-base font-semibold text-white">{tradingMeta.quantityLabel}</p>
+          </div>
         </div>
 
         {isPendingOrder && (
           <div className="space-y-2">
-            <label className="text-sm font-bold text-slate-200">{pendingLabel}</label>
-            <div className="grid grid-cols-[1fr_auto] overflow-hidden rounded-2xl border border-slate-700 bg-[#343847]">
-              <div className="px-4 py-3">
+            <label className="text-sm font-semibold text-slate-200">{pendingLabel}</label>
+            <div className="grid grid-cols-[1fr_auto] overflow-hidden rounded-2xl border border-slate-700/70 bg-[#151a26]">
+              <div className="px-4 py-3.5">
                 <input
                   type="number"
                   step={1 / (10 ** precision)}
                   min="0"
                   value={triggerPrice}
                   onChange={(event) => setTriggerPrice(event.target.value)}
-                  className="w-full bg-transparent text-3xl font-black text-white outline-none"
+                  className="w-full bg-transparent text-2xl font-semibold tabular-nums text-white outline-none"
                 />
-                <p className="mt-1 text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">
+                <p className="mt-1 text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">
                   {derivedOrderType.toUpperCase()} trigger
                 </p>
               </div>
@@ -321,9 +345,9 @@ const OrderPanel = ({
         )}
 
         <div className="space-y-2">
-          <label className="text-sm font-bold text-slate-200">Amount</label>
-          <div className="grid grid-cols-[1fr_auto] overflow-hidden rounded-2xl border border-slate-700 bg-[#343847]">
-            <div className="px-4 py-3">
+          <label className="text-sm font-semibold text-slate-200">Amount</label>
+          <div className="grid grid-cols-[1fr_auto] overflow-hidden rounded-2xl border border-slate-700/70 bg-[#151a26]">
+            <div className="px-4 py-3.5">
               <input
                 type="number"
                 step={lotStep}
@@ -337,9 +361,9 @@ const OrderPanel = ({
                   }
                   setLots(Number(clamp(nextValue, minLot).toFixed(lotPrecision)));
                 }}
-                className="w-full bg-transparent text-3xl font-black text-white outline-none"
+                className="w-full bg-transparent text-2xl font-semibold tabular-nums text-white outline-none"
               />
-              <p className="mt-1 text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">
+              <p className="mt-1 text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">
                 Min {formatLots(minLot, category, symbol, instrument)} lots
               </p>
             </div>
@@ -364,10 +388,10 @@ const OrderPanel = ({
               <button
                 key={option}
                 onClick={() => setLots(Number(option.toFixed(lotPrecision)))}
-                className={`rounded-xl border px-3 py-2 text-sm font-black transition-colors ${
+                className={`rounded-xl border px-3 py-2 text-sm font-semibold transition-colors ${
                   Number(lots) === Number(option)
-                    ? 'border-teal-400 bg-teal-400/12 text-teal-300'
-                    : 'border-slate-700 bg-[#252938] text-slate-300 hover:border-slate-500 hover:text-white'
+                    ? 'border-sky-400/50 bg-sky-400/12 text-sky-100'
+                    : 'border-slate-700 bg-[#151a26] text-slate-300 hover:border-slate-500 hover:text-white'
                 }`}
               >
                 {formatLots(option, category, symbol, instrument)}
@@ -377,27 +401,27 @@ const OrderPanel = ({
         </div>
 
         <div className="grid gap-3 border-t border-slate-700/60 pt-1 sm:grid-cols-2">
-          <div className="rounded-2xl border border-slate-700/60 bg-[#252938] px-4 py-3">
-            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">Total value</p>
-            <p className="mt-2 text-xl font-black text-white">
+          <div className="rounded-2xl border border-slate-700/60 bg-[#151a26] px-4 py-3">
+            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">Estimated value</p>
+            <p className="mt-2 text-xl font-semibold tabular-nums text-white">
               ${Number(notionalValue || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </p>
           </div>
-          <div className="rounded-2xl border border-slate-700/60 bg-[#252938] px-4 py-3">
+          <div className="rounded-2xl border border-slate-700/60 bg-[#151a26] px-4 py-3">
             <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">Required Margin</p>
-            <p className={`mt-2 text-xl font-black ${hasEnoughMargin ? 'text-cyan-300' : 'text-rose-400'}`}>
+            <p className={`mt-2 text-xl font-semibold tabular-nums ${hasEnoughMargin ? 'text-cyan-300' : 'text-rose-400'}`}>
               ${Number(requiredMargin || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </p>
           </div>
         </div>
 
         <div className="space-y-3 border-t border-slate-700/60 pt-1">
-          <div className="flex items-center justify-between text-sm font-bold text-slate-400">
+          <div className="flex items-center justify-between text-sm font-semibold text-slate-400">
             <span>Risk controls</span>
             <span>{tpEnabled || slEnabled ? 'Enabled' : 'Optional'}</span>
           </div>
           <div className="grid gap-3 sm:grid-cols-2">
-            <label className="flex items-center gap-3 rounded-2xl border border-slate-700 bg-[#252938] px-4 py-3 text-base font-bold text-white">
+            <label className="flex items-center gap-3 rounded-2xl border border-slate-700/60 bg-[#151a26] px-4 py-3 text-base font-semibold text-white">
               <input
                 type="checkbox"
                 checked={tpEnabled}
@@ -406,7 +430,7 @@ const OrderPanel = ({
               />
               <span>Take Profit</span>
             </label>
-            <label className="flex items-center gap-3 rounded-2xl border border-slate-700 bg-[#252938] px-4 py-3 text-base font-bold text-white">
+            <label className="flex items-center gap-3 rounded-2xl border border-slate-700/60 bg-[#151a26] px-4 py-3 text-base font-semibold text-white">
               <input
                 type="checkbox"
                 checked={slEnabled}
@@ -422,7 +446,7 @@ const OrderPanel = ({
               value={tpValue}
               onChange={(event) => setTpValue(event.target.value)}
               placeholder="Take profit target price"
-              className="w-full rounded-2xl border border-slate-700 bg-[#343847] px-4 py-3 text-lg font-bold text-white outline-none focus:border-teal-400"
+              className="w-full rounded-2xl border border-slate-700/70 bg-[#151a26] px-4 py-3 text-lg font-semibold tabular-nums text-white outline-none focus:border-teal-400"
             />
           )}
 
@@ -432,45 +456,50 @@ const OrderPanel = ({
               value={slValue}
               onChange={(event) => setSlValue(event.target.value)}
               placeholder="Stop loss protection price"
-              className="w-full rounded-2xl border border-slate-700 bg-[#343847] px-4 py-3 text-lg font-bold text-white outline-none focus:border-rose-400"
+              className="w-full rounded-2xl border border-slate-700/70 bg-[#151a26] px-4 py-3 text-lg font-semibold tabular-nums text-white outline-none focus:border-rose-400"
             />
           )}
         </div>
 
-        <div className="rounded-2xl border border-slate-700/60 bg-[#252938] px-4 py-3 text-sm font-medium text-slate-300">
-          <div className="flex items-center justify-between">
-            <span>Free margin</span>
-            <span className="font-black text-white">${freeMargin.toFixed(2)}</span>
-          </div>
-          <div className="mt-2 flex items-center justify-between">
-            <span>Equity</span>
-            <span className="font-black text-white">${equity.toFixed(2)}</span>
-          </div>
-          <div className="mt-2 flex items-center justify-between">
-            <span>Open positions</span>
-            <span className="font-black text-white">{activePositions.length}</span>
-          </div>
-          <div className="mt-2 flex items-center justify-between">
-            <span>Pending orders</span>
-            <span className="font-black text-white">{pendingOrders.length}</span>
+        <div className="rounded-2xl border border-slate-700/60 bg-[#151a26] px-4 py-3 text-sm font-medium text-slate-300">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="rounded-xl border border-slate-800 bg-[#111620] px-3 py-2.5">
+              <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">Free margin</p>
+              <p className="mt-1 text-base font-semibold tabular-nums text-white">${freeMargin.toFixed(2)}</p>
+            </div>
+            <div className="rounded-xl border border-slate-800 bg-[#111620] px-3 py-2.5">
+              <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">Equity</p>
+              <p className="mt-1 text-base font-semibold tabular-nums text-white">${equity.toFixed(2)}</p>
+            </div>
+            <div className="rounded-xl border border-slate-800 bg-[#111620] px-3 py-2.5">
+              <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">Open positions</p>
+              <p className="mt-1 text-base font-semibold text-white">{activePositions.length}</p>
+            </div>
+            <div className="rounded-xl border border-slate-800 bg-[#111620] px-3 py-2.5">
+              <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">Pending orders</p>
+              <p className="mt-1 text-base font-semibold text-white">{pendingOrders.length}</p>
+            </div>
           </div>
         </div>
 
-        <p className="text-sm leading-6 text-slate-400">{helperMessage}</p>
+        <div className="rounded-2xl border border-slate-700/60 bg-[#111620] px-4 py-3">
+          <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">Execution note</p>
+          <p className="mt-2 text-sm leading-6 text-slate-400">{helperMessage}</p>
+        </div>
       </div>
 
-      <div className="border-t border-slate-700/60 px-4 py-4">
+      <div className="border-t border-slate-700/60 bg-[#161b27]/80 px-4 py-4 backdrop-blur">
         {!hasEnoughMargin && (
-          <p className="mb-3 text-sm font-bold text-rose-400">
+          <p className="mb-3 text-sm font-semibold text-rose-400">
             Required margin exceeds available free margin.
           </p>
         )}
         <button
           onClick={handleSubmit}
           disabled={!canSubmit}
-          className={`w-full rounded-2xl px-4 py-5 text-xl font-black transition-all ${
+          className={`w-full rounded-2xl px-4 py-4 text-lg font-semibold transition-all ${
             canSubmit
-              ? 'bg-teal-500 text-white hover:bg-teal-400'
+              ? 'bg-gradient-to-r from-[#3bc7bd] via-[#34d399] to-[#58d8b7] text-slate-950 shadow-[0_18px_45px_rgba(52,211,153,0.22)] hover:brightness-105'
               : 'cursor-not-allowed bg-slate-700 text-slate-400'
           }`}
         >

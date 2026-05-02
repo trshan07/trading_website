@@ -16,15 +16,6 @@ const formatCurrency = (value = 0) => Number(value || 0).toLocaleString(undefine
   maximumFractionDigits: 2,
 });
 
-const formatMetricValue = (metric) => {
-  if (metric.type === 'percent') {
-    return `${Number(metric.value || 0).toFixed(2)}%`;
-  }
-
-  const prefix = metric.currency === false ? '' : '$';
-  return `${prefix}${formatCurrency(metric.value)}`;
-};
-
 const TradingTab = ({
   portfolio = {},
   positions = [],
@@ -89,22 +80,6 @@ const TradingTab = ({
     [normalizedActiveSymbol, orders]
   );
 
-  const summaryMetrics = [
-    { key: 'balance', label: 'Balance', value: portfolio.totalBalance },
-    { key: 'equity', label: 'Equity', value: portfolio.equity },
-    { key: 'freeMargin', label: 'Free Margin', value: portfolio.freeMargin },
-    { key: 'usedMargin', label: 'Used Margin', value: portfolio.margin },
-    { key: 'openPnl', label: 'Open P/L', value: portfolio.dailyPnL },
-    { key: 'marginLevel', label: 'Margin Level', value: portfolio.marginLevel, type: 'percent' },
-  ];
-
-  const quickCards = [
-    { key: 'symbol', label: 'Instrument', value: `${activeSymbolLabel}.`, tone: 'text-white' },
-    { key: 'sell', label: 'Sell', value: bidPrice, tone: 'text-rose-300' },
-    { key: 'buy', label: 'Buy', value: askPrice, tone: 'text-teal-300' },
-    { key: 'spread', label: 'Spread', value: spreadLabel, tone: 'text-slate-200' },
-  ];
-
   const deskTabs = [
     { id: 'positions', label: 'Positions', count: positions.length },
     { id: 'orders', label: 'Pending Orders', count: orders.length },
@@ -149,57 +124,22 @@ const TradingTab = ({
   };
 
   return (
-    <div className="-mx-4 flex min-h-[calc(100vh-10rem)] flex-col bg-[#171a26] px-4 pb-6 pt-4 text-white md:-mx-10 md:px-10">
-      <section className="mb-4 rounded-[1.75rem] border border-slate-700/70 bg-[#1f2230] p-4 sm:p-5">
-        <div className="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
-          <div className="max-w-2xl">
-            <p className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-400">Trading Workspace</p>
-            <h1 className="mt-2 text-2xl font-black tracking-tight text-white sm:text-3xl">
-              Trade faster with one clean screen
-            </h1>
-            <p className="mt-2 max-w-xl text-sm leading-6 text-slate-400 sm:text-base">
-              Pick an instrument, follow the live chart, place an order, and review your activity without jumping between crowded panels.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-            {quickCards.map((card) => (
-              <div key={card.key} className="rounded-2xl border border-slate-700/60 bg-[#171a26] px-4 py-3">
-                <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">{card.label}</p>
-                <p className={`mt-2 truncate text-lg font-black sm:text-xl ${card.tone}`}>{card.value}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="mt-5 flex gap-3 overflow-x-auto pb-1">
-          {summaryMetrics.map((metric) => (
-            <div
-              key={metric.key}
-              className="min-w-[10.5rem] rounded-2xl border border-slate-700/50 bg-[#171a26] px-4 py-3"
-            >
-              <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">{metric.label}</p>
-              <p className="mt-2 text-xl font-black text-white">{formatMetricValue(metric)}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
+    <div className="-mx-4 flex min-h-[calc(100vh-10rem)] flex-col bg-[#171a26] px-4 pb-6 pt-4 text-white md:-mx-10 md:px-10 font-sans">
       {isMobile && (
-        <section className="mb-4 rounded-[1.5rem] border border-slate-700/70 bg-[#1f2230] p-4">
+        <section className="mb-4 rounded-[1.5rem] border border-slate-700/70 bg-gradient-to-br from-[#202537] to-[#181d2a] p-4 shadow-[0_18px_50px_rgba(0,0,0,0.28)]">
           <button
             onClick={() => setShowMobileMarkets((current) => !current)}
-            className="flex w-full items-center justify-between rounded-2xl border border-slate-700/60 bg-[#171a26] px-4 py-3 text-left"
+            className="flex w-full items-center justify-between rounded-2xl border border-slate-700/60 bg-[#161b27] px-4 py-3 text-left"
           >
             <div>
-              <p className="text-sm font-black text-white">Browse Markets</p>
-              <p className="mt-1 text-xs text-slate-400">Open the instruments list and switch the active symbol.</p>
+              <p className="font-display text-base font-bold tracking-tight text-white">Watchlist</p>
+              <p className="mt-1 text-xs text-slate-400">Open markets and switch the active chart symbol.</p>
             </div>
             {showMobileMarkets ? <FaChevronUp className="text-slate-400" /> : <FaChevronDown className="text-slate-400" />}
           </button>
 
           {showMobileMarkets && (
-            <div className="mt-4 overflow-hidden rounded-[1.25rem] border border-slate-700/60 bg-[#171a26]">
+            <div className="mt-4 overflow-hidden rounded-[1.25rem] border border-slate-700/60 bg-[#161b27]">
               <TerminalAssetList
                 activeSymbol={activeSymbol}
                 onSelectSymbol={(nextSymbol) => {
@@ -218,12 +158,7 @@ const TradingTab = ({
       )}
 
       <div className="grid flex-1 gap-4 lg:grid-cols-[minmax(20rem,24rem)_minmax(0,1fr)] xl:grid-cols-[minmax(20rem,24rem)_minmax(0,1fr)_minmax(19rem,22rem)]">
-        <aside className="hidden min-h-[28rem] overflow-hidden rounded-[1.5rem] border border-slate-700/70 bg-[#1f2230] lg:block">
-          <div className="border-b border-slate-700/60 px-4 py-4">
-            <p className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-400">Market Watch</p>
-            <p className="mt-2 text-lg font-black text-white">Choose a symbol</p>
-            <p className="mt-1 text-sm text-slate-400">The chart and order ticket update together when you switch instruments.</p>
-          </div>
+        <aside className="hidden min-h-[28rem] overflow-hidden rounded-[1.5rem] border border-slate-700/70 bg-gradient-to-b from-[#1f2433] to-[#171b28] shadow-[0_24px_60px_rgba(0,0,0,0.32)] lg:block">
           <TerminalAssetList
             activeSymbol={activeSymbol}
             onSelectSymbol={onSymbolChange}
@@ -236,13 +171,13 @@ const TradingTab = ({
         </aside>
 
         <div className="flex min-h-[30rem] flex-col gap-4">
-          <section className="overflow-hidden rounded-[1.5rem] border border-slate-700/70 bg-[#1f2230]">
+          <section className="overflow-hidden rounded-[1.75rem] border border-slate-700/70 bg-gradient-to-b from-[#1f2434] to-[#171b28] shadow-[0_24px_60px_rgba(0,0,0,0.32)]">
             <div className="flex flex-col gap-4 border-b border-slate-700/60 px-4 py-4 lg:flex-row lg:items-center lg:justify-between">
               <div className="min-w-0">
-                <p className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-400">Live Chart</p>
+                <p className="text-[10px] font-black uppercase tracking-[0.22em] text-sky-300/70">Live Chart</p>
                 <div className="mt-2 flex flex-wrap items-center gap-3">
-                  <p className="text-2xl font-black uppercase tracking-tight text-white">{activeSymbolLabel}.</p>
-                  <p className={`text-xl font-black ${chartTone}`}>{chartChange >= 0 ? '+' : ''}{chartChange.toFixed(2)}%</p>
+                  <p className="font-display text-2xl font-semibold uppercase tracking-tight text-white">{activeSymbolLabel}.</p>
+                  <p className={`text-lg font-semibold tabular-nums ${chartTone}`}>{chartChange >= 0 ? '+' : ''}{chartChange.toFixed(2)}%</p>
                 </div>
                 <p className="mt-1 text-sm text-slate-400">
                   {filteredPositions.length} open position{filteredPositions.length === 1 ? '' : 's'} and {filteredOrders.length} pending order{filteredOrders.length === 1 ? '' : 's'} on this symbol.
@@ -250,18 +185,22 @@ const TradingTab = ({
               </div>
 
               <div className="flex flex-wrap items-center gap-2">
-                <div className="rounded-2xl bg-rose-500 px-4 py-3 text-white shadow-lg shadow-rose-500/20">
-                  <p className="text-[10px] font-black uppercase tracking-[0.18em] text-rose-100">Sell</p>
-                  <p className="mt-1 text-2xl font-black leading-none">{bidPrice}</p>
+                <div className="rounded-2xl border border-rose-400/30 bg-rose-500/12 px-4 py-3 text-white shadow-lg shadow-rose-500/10">
+                  <p className="text-[10px] font-black uppercase tracking-[0.18em] text-rose-200/80">Sell</p>
+                  <p className="mt-1 text-2xl font-semibold leading-none tabular-nums text-rose-300">{bidPrice}</p>
                 </div>
-                <div className="rounded-2xl bg-teal-500 px-4 py-3 text-white shadow-lg shadow-teal-500/20">
-                  <p className="text-[10px] font-black uppercase tracking-[0.18em] text-teal-100">Buy</p>
-                  <p className="mt-1 text-2xl font-black leading-none">{askPrice}</p>
+                <div className="rounded-2xl border border-teal-400/30 bg-teal-400/12 px-4 py-3 text-white shadow-lg shadow-teal-500/10">
+                  <p className="text-[10px] font-black uppercase tracking-[0.18em] text-teal-100/80">Buy</p>
+                  <p className="mt-1 text-2xl font-semibold leading-none tabular-nums text-teal-200">{askPrice}</p>
                 </div>
-                <button className="rounded-2xl border border-slate-700 px-3 py-3 text-slate-300 transition-colors hover:border-slate-500 hover:text-white">
+                <div className="rounded-2xl border border-slate-700 bg-[#161b27] px-4 py-3">
+                  <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">Spread</p>
+                  <p className="mt-1 text-xl font-semibold tabular-nums text-slate-100">{spreadLabel}</p>
+                </div>
+                <button className="rounded-2xl border border-slate-700 bg-[#161b27] px-3 py-3 text-slate-300 transition-colors hover:border-slate-500 hover:text-white">
                   <FaRegStar size={16} />
                 </button>
-                <button className="rounded-2xl border border-slate-700 px-3 py-3 text-slate-300 transition-colors hover:border-slate-500 hover:text-white">
+                <button className="rounded-2xl border border-slate-700 bg-[#161b27] px-3 py-3 text-slate-300 transition-colors hover:border-slate-500 hover:text-white">
                   <FaBell size={16} />
                 </button>
               </div>
@@ -279,9 +218,17 @@ const TradingTab = ({
             </div>
           </section>
 
-          <section className="flex min-h-[24rem] flex-col overflow-hidden rounded-[1.5rem] border border-slate-700/70 bg-[#1f2230]">
+          <section className="flex min-h-[24rem] flex-col overflow-hidden rounded-[1.75rem] border border-slate-700/70 bg-gradient-to-b from-[#1f2434] to-[#171b28] shadow-[0_24px_60px_rgba(0,0,0,0.32)]">
             <div className="border-b border-slate-700/60 px-4 py-4">
-              <p className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-400">Activity</p>
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-[10px] font-black uppercase tracking-[0.22em] text-sky-300/70">Activity</p>
+                  <p className="mt-1 font-display text-xl font-semibold text-white">Orders and trade history</p>
+                </div>
+                <div className="hidden rounded-full border border-slate-700 bg-[#161b27] px-3 py-1 text-xs font-semibold text-slate-400 sm:block">
+                  Balance {formatCurrency(portfolio.totalBalance)}
+                </div>
+              </div>
               <div className="mt-3 flex gap-2 overflow-x-auto">
                 {deskTabs.map((tab) => (
                   <button
@@ -289,8 +236,8 @@ const TradingTab = ({
                     onClick={() => setDeskTab(tab.id)}
                     className={`whitespace-nowrap rounded-2xl px-4 py-2.5 text-sm font-black transition-all ${
                       deskTab === tab.id
-                        ? 'bg-white text-[#171a26]'
-                        : 'bg-[#171a26] text-slate-300 hover:bg-white/5 hover:text-white'
+                        ? 'bg-gradient-to-r from-slate-100 to-white text-[#171a26] shadow-lg'
+                        : 'bg-[#161b27] text-slate-300 hover:bg-white/5 hover:text-white'
                     }`}
                   >
                     {tab.label}
@@ -309,12 +256,6 @@ const TradingTab = ({
         </div>
 
         <aside className="min-h-[30rem] lg:col-span-2 xl:col-span-1 xl:col-start-3">
-          <div className="mb-4 rounded-[1.5rem] border border-slate-700/70 bg-[#1f2230] px-4 py-4">
-            <p className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-400">Order Ticket</p>
-            <p className="mt-2 text-lg font-black text-white">Place a trade with fewer steps</p>
-            <p className="mt-1 text-sm text-slate-400">Execution price, margin, and order type stay in sync with the selected instrument.</p>
-          </div>
-
           <div className="xl:sticky xl:top-4">
             <OrderPanel
               onSubmit={onPlaceOrder}
