@@ -1079,35 +1079,24 @@ export const useDashboardData = (accountType = 'demo', activeSymbol = null) => {
     }
 
     try {
-        const usdInvestment = parseFloat(order.amount);
-        const instrumentPrice = instruments.find((instrument) => instrument.symbol === order.symbol)?.price;
-        const entryPrice = order.price || marketData[order.symbol]?.price || instrumentPrice || 43000;
-        
         const response = await tradingService.executeTrade({
             accountId,
             symbol: order.symbol || 'BTCUSDT',
             side: order.side.toLowerCase(),
-            amount: usdInvestment,
+            amount: parseFloat(order.amount),
             lots: order.lots,
             quantity: order.quantity,
             category: order.category,
-            entryPrice: entryPrice,
-            type: order.type.toLowerCase(),
+            type: 'market',
             leverage: order.leverage,
             takeProfit: order.takeProfit,
             stopLoss: order.stopLoss
         });
 
         if (response.success) {
-            const normalizedType = order.type.toLowerCase();
-            if (normalizedType.includes('limit') || normalizedType.includes('stop')) {
-              await fetchOrders();
-              toast.success(`${order.side} ${order.type.replace(/_/g, ' ')} order placed`);
-            } else {
-              await fetchPositions();
-              await fetchClosedTrades();
-              toast.success(`${order.side} order executed`);
-            }
+            await fetchPositions();
+            await fetchClosedTrades();
+            toast.success(`${order.side} order executed`);
             refreshUser();
             return true;
         }

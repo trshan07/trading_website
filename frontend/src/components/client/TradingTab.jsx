@@ -60,6 +60,7 @@ const SlidingPanel = ({
 };
 
 const TradingTab = ({
+  accountId = null,
   portfolio = {},
   positions = [],
   orders = [],
@@ -304,6 +305,7 @@ const TradingTab = ({
       >
         <div className="h-full overflow-y-auto p-4 custom-scrollbar">
           <OrderPanel
+            accountId={accountId}
             onSubmit={onPlaceOrder}
             symbol={activeSymbol}
             marketData={marketData}

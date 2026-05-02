@@ -285,6 +285,53 @@ const calculateProjectedPnl = ({
     });
 };
 
+const calculateMovementValue = ({
+    symbol = '',
+    category = '',
+    instrument = {},
+    entryPrice = 0,
+    exitPrice = 0,
+}) => {
+    const meta = getInstrumentTradingMeta({ symbol, category, instrument });
+    const parsedEntry = Number.parseFloat(entryPrice) || 0;
+    const parsedExit = Number.parseFloat(exitPrice) || 0;
+
+    if (!parsedEntry || !parsedExit || !meta.movementSize) {
+        return 0;
+    }
+
+    return Math.abs(parsedExit - parsedEntry) / meta.movementSize;
+};
+
+const calculatePipValue = ({
+    symbol = '',
+    category = '',
+    instrument = {},
+    lots = null,
+    quantity = 0,
+    price = 0,
+}) => {
+    const meta = getInstrumentTradingMeta({ symbol, category, instrument });
+    const referencePrice = Number.parseFloat(price) || Number.parseFloat(instrument.price) || 1;
+    const resolvedQuantity = Number.isFinite(Number.parseFloat(quantity)) && Number.parseFloat(quantity) > 0
+        ? Number.parseFloat(quantity)
+        : calculateQuantityFromLots(lots ?? 1, symbol, category, instrument);
+
+    if (!resolvedQuantity || !meta.movementSize) {
+        return 0;
+    }
+
+    return calculateProjectedPnl({
+        symbol,
+        category,
+        instrument,
+        side: 'buy',
+        entryPrice: referencePrice,
+        exitPrice: referencePrice + meta.movementSize,
+        quantity: resolvedQuantity,
+    });
+};
+
 module.exports = {
     normalizeSymbol,
     isForexPair,
@@ -294,4 +341,6 @@ module.exports = {
     calculateNotionalValue,
     calculateMarginRequired,
     calculateProjectedPnl,
+    calculateMovementValue,
+    calculatePipValue,
 };

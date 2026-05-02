@@ -2,6 +2,11 @@
 import api from './api';
 
 const tradingService = {
+  previewTrade: async (tradeData) => {
+    const response = await api.post('/trading/preview', tradeData);
+    return response.data;
+  },
+
   // Execute / Place a trade
   executeTrade: async (tradeData) => {
     const response = await api.post('/trading/execute', tradeData);

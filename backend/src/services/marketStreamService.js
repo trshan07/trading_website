@@ -125,6 +125,26 @@ class MarketStreamService {
     });
   }
 
+  getLatestQuote(symbol = '') {
+    const normalized = normalizeSymbol(symbol);
+    return this.latestQuotes[normalized] || null;
+  }
+
+  getLatestQuotes(symbols = []) {
+    return symbols.reduce((acc, symbol) => {
+      const normalized = normalizeSymbol(symbol);
+      if (!normalized) {
+        return acc;
+      }
+
+      const quote = this.latestQuotes[normalized];
+      if (quote) {
+        acc[normalized] = quote;
+      }
+      return acc;
+    }, {});
+  }
+
   scheduleReconnect() {
     const delay = Math.min(
       1000 * (2 ** Math.min(this.twelveDataReconnectAttempts, 4)),

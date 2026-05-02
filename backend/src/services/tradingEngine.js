@@ -8,15 +8,19 @@ const { createActivityLog } = require('../client/controllers/activityController'
 const { createNotification } = require('../client/controllers/notificationController');
 const {
     fetchMarketQuotes,
+    fetchChartAlignedMarketQuotes,
     getExecutionPriceForSide,
     getMarkPriceForSide,
     normalizeSymbol,
     getMergedInstrumentConfig,
 } = require('./marketDataService');
+const marketStreamService = require('./marketStreamService');
 const {
     calculateMarginRequired,
+    calculatePipValue,
     calculateProjectedPnl,
     calculateQuantityFromLots,
+    calculateMovementValue,
     getInstrumentTradingMeta,
 } = require('../utils/calculators');
 
@@ -174,6 +178,131 @@ const parseTradeInputs = async (payload = {}) => {
     };
 };
 
+const fetchPreferredQuote = async (symbol = '') => {
+    const normalized = normalizeSymbol(symbol);
+    if (!normalized) {
+        return null;
+    }
+
+    const streamQuote = marketStreamService.getLatestQuote(normalized);
+    if (streamQuote?.price) {
+        return streamQuote;
+    }
+
+    const chartAlignedQuotes = await fetchChartAlignedMarketQuotes([normalized]).catch(() => ({}));
+    const chartAlignedQuote = chartAlignedQuotes[normalized];
+    if (chartAlignedQuote?.price) {
+        return chartAlignedQuote;
+    }
+
+    const marketQuotes = await fetchMarketQuotes([normalized]).catch(() => ({}));
+    return marketQuotes[normalized] || null;
+};
+
+const getMarketExecutionContext = async ({ symbol, side }) => {
+    const normalizedSymbol = normalizeSymbol(symbol);
+    const instrumentConfig = await getMergedInstrumentConfig(normalizedSymbol);
+    const quote = await fetchPreferredQuote(normalizedSymbol);
+    const executionPrice = getExecutionPriceForSide(quote || {}, side);
+    const markPrice = getMarkPriceForSide(quote || {}, side);
+
+    if (!Number.isFinite(executionPrice) || executionPrice <= 0) {
+        throw new Error(`Live market price is unavailable for ${normalizedSymbol}`);
+    }
+
+    return {
+        symbol: normalizedSymbol,
+        instrumentConfig,
+        quote,
+        executionPrice,
+        markPrice: Number.isFinite(markPrice) && markPrice > 0 ? markPrice : executionPrice,
+    };
+};
+
+const buildTradePreview = async ({ account = null, payload = {}, side = null }) => {
+    const normalizedSide = normalizeSide(side || payload.side);
+    const marketContext = await getMarketExecutionContext({
+        symbol: payload.symbol,
+        side: normalizedSide,
+    });
+    const trade = await parseTradeInputs({
+        ...payload,
+        side: normalizedSide,
+        type: 'market',
+        entryPrice: marketContext.executionPrice,
+        price: marketContext.executionPrice,
+    });
+    const meta = getInstrumentTradingMeta({
+        symbol: trade.symbol,
+        category: trade.category,
+        instrument: marketContext.instrumentConfig,
+    });
+    const pipValue = calculatePipValue({
+        symbol: trade.symbol,
+        category: trade.category,
+        instrument: marketContext.instrumentConfig,
+        quantity: trade.quantity,
+        price: marketContext.executionPrice,
+    });
+    const tpPnl = trade.takeProfit == null ? null : calculateProjectedPnl({
+        symbol: trade.symbol,
+        category: trade.category,
+        instrument: marketContext.instrumentConfig,
+        side: trade.side,
+        entryPrice: marketContext.executionPrice,
+        exitPrice: trade.takeProfit,
+        quantity: trade.quantity,
+    });
+    const slPnl = trade.stopLoss == null ? null : calculateProjectedPnl({
+        symbol: trade.symbol,
+        category: trade.category,
+        instrument: marketContext.instrumentConfig,
+        side: trade.side,
+        entryPrice: marketContext.executionPrice,
+        exitPrice: trade.stopLoss,
+        quantity: trade.quantity,
+    });
+    const freeMargin = account
+        ? ((Number.parseFloat(account.balance) || 0) + (Number.parseFloat(account.credit) || 0))
+        : null;
+
+    return {
+        symbol: trade.symbol,
+        side: trade.side,
+        type: 'market',
+        category: trade.category,
+        executionPrice: marketContext.executionPrice,
+        markPrice: marketContext.markPrice,
+        bid: Number.parseFloat(marketContext.quote?.bid) || null,
+        ask: Number.parseFloat(marketContext.quote?.ask) || null,
+        quoteSource: marketContext.quote?.source || null,
+        lots: trade.lots,
+        quantity: trade.quantity,
+        amount: trade.amount,
+        requiredMargin: trade.margin,
+        freeMargin,
+        hasEnoughMargin: freeMargin == null ? true : trade.margin <= freeMargin,
+        contractSize: meta.contractSize,
+        lotStep: meta.lotStep,
+        minLot: meta.minLot,
+        quantityLabel: meta.quantityLabel,
+        pricePrecision: meta.precision,
+        movementSize: meta.movementSize,
+        movementValue: calculateMovementValue({
+            symbol: trade.symbol,
+            category: trade.category,
+            instrument: marketContext.instrumentConfig,
+            entryPrice: marketContext.executionPrice,
+            exitPrice: marketContext.executionPrice + meta.movementSize,
+        }),
+        pipValue,
+        takeProfit: trade.takeProfit,
+        stopLoss: trade.stopLoss,
+        projectedTakeProfitPnl: tpPnl,
+        projectedStopLossPnl: slPnl,
+    };
+};
+
 const getOrderMargin = (order = {}) => {
     const amount = Number.parseFloat(order.amount) || 0;
     const leverage = Number.parseFloat(order.leverage) || 100;
@@ -323,63 +452,48 @@ const createExecutedPosition = async ({ userId, accountId, symbol, side, amount,
 };
 
 const placeTrade = async ({ userId, accountId, payload }) => {
-    const trade = await parseTradeInputs(payload);
-    const pendingType = getTriggerKind(trade.type);
-
-    if (pendingType !== 'market') {
-        const accounts = await Account.findByUserId(userId);
-        const account = accounts.find((item) => item.id == accountId);
-        if (!account) {
-            throw new Error('Account not found for this user');
-        }
-
-        if (getAccountAvailableFunds(account) < trade.margin) {
-            throw new Error(`Insufficient funds for margin ($${trade.margin.toFixed(2)} required, ${getAccountAvailableFunds(account).toFixed(2)} available)`);
-        }
-
-        const order = await Order.create(userId, {
-            accountId,
-            symbol: trade.symbol,
-            side: trade.side,
-            type: trade.type,
-            amount: trade.amount,
-            quantity: trade.quantity,
-            entryPrice: trade.entryPrice,
-            leverage: trade.leverage,
-            takeProfit: trade.takeProfit,
-            stopLoss: trade.stopLoss,
-            status: 'pending',
-        });
-
-        await createActivityLog(userId, 'EXECUTION', `Placed ${trade.type.toUpperCase()} ${trade.symbol} order`);
-        await createNotification(userId, 'info', `Pending ${trade.type.replace('_', ' ')} order placed for ${trade.symbol}`);
-
-        return {
-            mode: 'pending',
-            order,
-            requiredMargin: trade.margin,
-        };
+    const normalizedSide = normalizeSide(payload.side);
+    const requestedType = normalizeOrderType(payload.type, normalizedSide);
+    if (getTriggerKind(requestedType) !== 'market') {
+        throw new Error('Only market buy and sell orders are supported');
     }
+
+    const accounts = await Account.findByUserId(userId);
+    const account = accounts.find((item) => item.id == accountId);
+    if (!account) {
+        throw new Error('Account not found for this user');
+    }
+
+    const preview = await buildTradePreview({
+        account,
+        payload: {
+            ...payload,
+            side: normalizedSide,
+            type: 'market',
+        },
+        side: normalizedSide,
+    });
 
     const result = await createExecutedPosition({
         userId,
         accountId,
-        symbol: trade.symbol,
-        side: trade.side,
-        amount: trade.amount,
-        quantity: trade.quantity,
-        entryPrice: trade.entryPrice,
-        leverage: trade.leverage,
-        takeProfit: trade.takeProfit,
-        stopLoss: trade.stopLoss,
-        margin: trade.margin,
-        orderType: trade.type,
+        symbol: preview.symbol,
+        side: preview.side,
+        amount: preview.amount,
+        quantity: preview.quantity,
+        entryPrice: preview.executionPrice,
+        leverage: Number.parseFloat(payload.leverage) || 100,
+        takeProfit: preview.takeProfit,
+        stopLoss: preview.stopLoss,
+        margin: preview.requiredMargin,
+        orderType: 'market',
     });
 
     return {
         mode: 'market',
         ...result,
-        requiredMargin: trade.margin,
+        requiredMargin: preview.requiredMargin,
+        preview,
     };
 };
 
@@ -565,9 +679,13 @@ const closePosition = async ({ positionId, userId, exitPrice, quantity = null })
         throw new Error('Open position not found');
     }
 
-    const closePrice = Number.parseFloat(exitPrice);
+    let closePrice = Number.parseFloat(exitPrice);
     if (!Number.isFinite(closePrice) || closePrice <= 0) {
-        throw new Error('Invalid exit price');
+        const quote = await fetchPreferredQuote(position.symbol);
+        closePrice = getExecutionPriceForSide(quote || {}, position.side === 'buy' ? 'sell' : 'buy');
+    }
+    if (!Number.isFinite(closePrice) || closePrice <= 0) {
+        throw new Error('Live exit price is unavailable');
     }
 
     const positionQuantity = Number.parseFloat(position.quantity) || 0;
@@ -813,4 +931,5 @@ module.exports = {
     getClosedPositions,
     evaluateAccountRisk,
     startTradingEngine,
+    buildTradePreview,
 };

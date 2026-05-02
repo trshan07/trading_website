@@ -350,6 +350,7 @@ const DashboardPage = () => {
             <div className="transition-all duration-300">
               {activeMainTab === 'trading' && (
                 <TradingTab
+                  accountId={activeAccount?.id}
                   portfolio={livePortfolio}
                   showBalance={showBalance}
                   onToggleBalance={() => setShowBalance(!showBalance)}

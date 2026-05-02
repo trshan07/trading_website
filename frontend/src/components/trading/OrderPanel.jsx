@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { FaMinus, FaPlus, FaTimes } from 'react-icons/fa';
 import { getDisplayQuoteSnapshot } from '../../utils/spreadCalculator';
+import tradingService from '../../services/tradingService';
 import {
   calculateUsdFromLots,
   calculateMarginRequired,
@@ -20,19 +21,8 @@ const formatMoney = (value, digits = 2) => `$${Number(value || 0).toLocaleString
   maximumFractionDigits: digits,
 })}`;
 
-const getPendingOrderType = ({ side, triggerPrice, referencePrice }) => {
-  if (!Number.isFinite(triggerPrice) || triggerPrice <= 0 || !Number.isFinite(referencePrice) || referencePrice <= 0) {
-    return 'limit';
-  }
-
-  if (side === 'buy') {
-    return triggerPrice <= referencePrice ? 'limit' : 'stop';
-  }
-
-  return triggerPrice >= referencePrice ? 'limit' : 'stop';
-};
-
 const OrderPanel = ({
+  accountId = null,
   onSubmit,
   symbol = 'BTCUSDT',
   onClose,
@@ -42,14 +32,14 @@ const OrderPanel = ({
   onIntentChange,
   maxLeverage = 500,
 }) => {
-  const [mode, setMode] = useState('market');
   const [selectedSide, setSelectedSide] = useState('buy');
-  const [triggerPrice, setTriggerPrice] = useState('');
   const [lots, setLots] = useState(1);
   const [tpEnabled, setTpEnabled] = useState(false);
   const [slEnabled, setSlEnabled] = useState(false);
   const [tpValue, setTpValue] = useState('');
   const [slValue, setSlValue] = useState('');
+  const [preview, setPreview] = useState(null);
+  const [previewError, setPreviewError] = useState('');
 
   const fallbackInstrument = useMemo(
     () => MARKET_INSTRUMENTS.find((item) => item.symbol === symbol) || {},
@@ -85,17 +75,8 @@ const OrderPanel = ({
   const spreadValue = Number.isFinite(quoteSnapshot.spread) ? quoteSnapshot.spread : askPrice - bidPrice;
   const spreadLabel = Number.isFinite(spreadValue) ? Number(spreadValue).toFixed(precision) : '0.00';
 
-  const isPendingOrder = mode === 'pending';
   const referencePrice = selectedSide === 'buy' ? askPrice : bidPrice;
-  const normalizedTriggerPrice = Number.parseFloat(triggerPrice);
-  const derivedOrderType = isPendingOrder
-    ? getPendingOrderType({
-        side: selectedSide,
-        triggerPrice: normalizedTriggerPrice,
-        referencePrice,
-      })
-    : 'market';
-  const finalPrice = isPendingOrder ? normalizedTriggerPrice : referencePrice;
+  const finalPrice = referencePrice;
 
   const lotStep = getLotStep(category, symbol, instrument);
   const minLot = getMinLot(category, symbol, instrument);
@@ -114,52 +95,91 @@ const OrderPanel = ({
 
   const freeMargin = Number(portfolio?.freeMargin ?? 0);
   const hasLiveReferencePrice = Number.isFinite(referencePrice) && referencePrice > 0;
-  const hasValidTriggerPrice = !isPendingOrder || (Number.isFinite(normalizedTriggerPrice) && normalizedTriggerPrice > 0);
-  const hasEnoughMargin = requiredMargin > 0 && requiredMargin <= freeMargin;
-  const canPlaceMarketOrder = !isPendingOrder && hasLiveReferencePrice;
-  const canPlacePendingOrder = isPendingOrder && hasValidTriggerPrice;
-  const canSubmit = lots >= minLot && quantity > 0 && hasEnoughMargin && (canPlaceMarketOrder || canPlacePendingOrder);
-
-  useEffect(() => {
-    if (!isPendingOrder || !hasLiveReferencePrice) {
-      return;
-    }
-
-    setTriggerPrice((current) => {
-      if (current && Number.isFinite(Number.parseFloat(current))) {
-        return current;
-      }
-      return referencePrice.toFixed(precision);
-    });
-  }, [hasLiveReferencePrice, isPendingOrder, precision, referencePrice]);
+  const previewMargin = Number(preview?.requiredMargin);
+  const effectiveRequiredMargin = Number.isFinite(previewMargin) && previewMargin > 0
+    ? previewMargin
+    : requiredMargin;
+  const hasEnoughMargin = effectiveRequiredMargin > 0 && effectiveRequiredMargin <= freeMargin;
+  const canSubmit = lots >= minLot && quantity > 0 && hasLiveReferencePrice && hasEnoughMargin && !previewError;
 
   useEffect(() => {
     onIntentChange?.({
       side: selectedSide,
-      type: derivedOrderType,
+      type: 'market',
       price: finalPrice,
       tp: tpEnabled ? Number.parseFloat(tpValue) : null,
       sl: slEnabled ? Number.parseFloat(slValue) : null,
     });
-  }, [derivedOrderType, finalPrice, onIntentChange, selectedSide, slEnabled, slValue, tpEnabled, tpValue]);
+  }, [finalPrice, onIntentChange, selectedSide, slEnabled, slValue, tpEnabled, tpValue]);
+
+  useEffect(() => {
+    if (!accountId || !hasLiveReferencePrice || lots < minLot || quantity <= 0) {
+      setPreview(null);
+      setPreviewError('');
+      return undefined;
+    }
+
+    let active = true;
+    const timer = setTimeout(async () => {
+      try {
+        const response = await tradingService.previewTrade({
+          accountId,
+          symbol,
+          side: selectedSide,
+          type: 'market',
+          lots,
+          quantity,
+          category,
+          leverage: maxLeverage,
+          takeProfit: tpEnabled && tpValue ? Number.parseFloat(tpValue) : null,
+          stopLoss: slEnabled && slValue ? Number.parseFloat(slValue) : null,
+        });
+
+        if (!active) {
+          return;
+        }
+
+        if (response.success) {
+          setPreview(response.data || null);
+          setPreviewError('');
+        } else {
+          setPreview(null);
+          setPreviewError(response.message || 'Preview unavailable');
+        }
+      } catch (error) {
+        if (!active) {
+          return;
+        }
+        setPreview(null);
+        setPreviewError(error.response?.data?.message || 'Preview unavailable');
+      }
+    }, 200);
+
+    return () => {
+      active = false;
+      clearTimeout(timer);
+    };
+  }, [
+    accountId,
+    category,
+    hasLiveReferencePrice,
+    lots,
+    maxLeverage,
+    minLot,
+    quantity,
+    selectedSide,
+    slEnabled,
+    slValue,
+    symbol,
+    tpEnabled,
+    tpValue,
+  ]);
 
   const nudgeLots = (direction) => {
     setLots((current) => {
       const baseValue = Number.isFinite(current) ? current : minLot;
       const nextValue = baseValue + (direction * lotStep);
       return Number(clamp(nextValue, minLot).toFixed(lotPrecision));
-    });
-  };
-
-  const nudgeTriggerPrice = (direction) => {
-    const step = 1 / (10 ** precision);
-    setTriggerPrice((current) => {
-      const currentValue = Number.parseFloat(current);
-      const baseValue = Number.isFinite(currentValue) && currentValue > 0
-        ? currentValue
-        : (hasLiveReferencePrice ? referencePrice : step);
-      const nextValue = clamp(baseValue + (direction * step), step);
-      return nextValue.toFixed(precision);
     });
   };
 
@@ -170,7 +190,7 @@ const OrderPanel = ({
 
     await Promise.resolve(onSubmit({
       symbol,
-      type: derivedOrderType,
+      type: 'market',
       side: selectedSide,
       amount: Number.parseFloat(notionalValue.toFixed(2)),
       lots,
@@ -179,13 +199,16 @@ const OrderPanel = ({
       leverage: maxLeverage,
       takeProfit: tpEnabled && tpValue ? Number.parseFloat(tpValue) : null,
       stopLoss: slEnabled && slValue ? Number.parseFloat(slValue) : null,
-      price: finalPrice,
     }));
   };
 
   const orderTitle = formatInstrumentDisplaySymbol(symbol, { withSlash: false });
-  const submitLabel = isPendingOrder ? 'Place Order' : 'Place Order';
-  const priceFieldLabel = selectedSide === 'buy' ? 'BUY when' : 'SELL when';
+  const submitLabel = 'Place Order';
+  const displayExecutionPrice = Number(preview?.executionPrice) || finalPrice;
+  const displayPipValue = Number(preview?.pipValue);
+  const tpPreview = Number(preview?.projectedTakeProfitPnl);
+  const slPreview = Number(preview?.projectedStopLossPnl);
+  const movementLabel = tradingMeta.movementLabel || 'Move';
 
   return (
     <div className="flex h-full flex-col overflow-hidden rounded-[1.3rem] border border-slate-700/70 bg-[#1b2030] font-sans text-white">
@@ -211,23 +234,8 @@ const OrderPanel = ({
       </div>
 
       <div className="flex-1 overflow-y-auto px-4 py-4 custom-scrollbar">
-        <div className="grid grid-cols-2 gap-1.5 rounded-xl border border-slate-700/60 bg-[#242a3b] p-1">
-          {[
-            { id: 'market', label: 'Market' },
-            { id: 'pending', label: 'Pending Order' },
-          ].map((item) => (
-            <button
-              key={item.id}
-              onClick={() => setMode(item.id)}
-              className={`rounded-lg px-3 py-2.5 text-sm font-semibold transition-all ${
-                mode === item.id
-                  ? 'bg-[#1b2030] text-white'
-                  : 'text-slate-300 hover:text-white'
-              }`}
-            >
-              {item.label}
-            </button>
-          ))}
+        <div className="rounded-xl border border-slate-700/60 bg-[#242a3b] px-3 py-2.5 text-center">
+          <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-300">Market Execution Only</p>
         </div>
 
         <div className="mt-5 grid grid-cols-[1fr_auto_1fr] items-end gap-1.5">
@@ -259,38 +267,6 @@ const OrderPanel = ({
             <p className="mt-1 text-[1rem] font-semibold tabular-nums text-teal-200">{askLabel}</p>
           </button>
         </div>
-
-        {isPendingOrder && (
-          <div className="mt-4">
-            <div className="grid grid-cols-[1fr_3.25rem] overflow-hidden rounded-lg border border-slate-700/70 bg-[#3a3f50]">
-              <div className="px-3 py-2.5">
-                <p className="text-xs uppercase text-white">{priceFieldLabel}</p>
-                <input
-                  type="number"
-                  step={1 / (10 ** precision)}
-                  min="0"
-                  value={triggerPrice}
-                  onChange={(event) => setTriggerPrice(event.target.value)}
-                  className="mt-1 w-full bg-transparent text-[1rem] font-semibold tabular-nums text-white outline-none"
-                />
-              </div>
-              <div className="flex flex-col border-l border-slate-600">
-                <button
-                  onClick={() => nudgeTriggerPrice(1)}
-                  className="flex flex-1 items-center justify-center text-slate-200 transition-colors hover:bg-white/5"
-                >
-                  <FaPlus size={12} />
-                </button>
-                <button
-                  onClick={() => nudgeTriggerPrice(-1)}
-                  className="flex flex-1 items-center justify-center border-t border-slate-600 text-slate-200 transition-colors hover:bg-white/5"
-                >
-                  <FaMinus size={12} />
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
 
         <div className="mt-3">
           <div className="grid grid-cols-[1fr_3.25rem] overflow-hidden rounded-lg border border-slate-700/70 bg-[#3a3f50]">
@@ -331,15 +307,44 @@ const OrderPanel = ({
 
         <div className="mt-5 space-y-2 text-sm">
           <div className="flex items-center justify-between gap-4">
+            <span className="font-semibold text-white">Est. fill:</span>
+            <span className="font-semibold tabular-nums text-white">{formatMoney(displayExecutionPrice, precision)}</span>
+          </div>
+          <div className="flex items-center justify-between gap-4">
             <span className="font-semibold text-white">Total value:</span>
             <span className="font-semibold tabular-nums text-white">{formatMoney(notionalValue)}</span>
           </div>
           <div className="flex items-center justify-between gap-4">
             <span className="font-semibold text-white">Required Margin:</span>
             <span className={`font-semibold tabular-nums ${hasEnoughMargin ? 'text-white' : 'text-rose-400'}`}>
-              {formatMoney(requiredMargin)}
+              {formatMoney(effectiveRequiredMargin)}
             </span>
           </div>
+          <div className="flex items-center justify-between gap-4">
+            <span className="font-semibold text-white">{movementLabel} value:</span>
+            <span className="font-semibold tabular-nums text-white">
+              {Number.isFinite(displayPipValue) ? formatMoney(displayPipValue) : '--'}
+            </span>
+          </div>
+          {tpEnabled && (
+            <div className="flex items-center justify-between gap-4">
+              <span className="font-semibold text-white">TP preview:</span>
+              <span className={`font-semibold tabular-nums ${Number.isFinite(tpPreview) && tpPreview >= 0 ? 'text-emerald-300' : 'text-slate-300'}`}>
+                {Number.isFinite(tpPreview) ? formatMoney(tpPreview) : '--'}
+              </span>
+            </div>
+          )}
+          {slEnabled && (
+            <div className="flex items-center justify-between gap-4">
+              <span className="font-semibold text-white">SL preview:</span>
+              <span className={`font-semibold tabular-nums ${Number.isFinite(slPreview) && slPreview < 0 ? 'text-rose-300' : 'text-slate-300'}`}>
+                {Number.isFinite(slPreview) ? formatMoney(slPreview) : '--'}
+              </span>
+            </div>
+          )}
+          {previewError && (
+            <p className="text-xs font-semibold text-amber-300">{previewError}</p>
+          )}
         </div>
 
         <div className="mt-4 border-t border-slate-700/60">
