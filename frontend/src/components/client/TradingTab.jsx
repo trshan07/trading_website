@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { FaBell, FaBolt, FaChartLine, FaHistory, FaListUl, FaRegStar } from 'react-icons/fa';
+import { FaBell, FaChevronDown, FaChevronUp, FaRegStar } from 'react-icons/fa';
 import OrderPanel from '../trading/OrderPanel';
 import PositionsTable from '../trading/PositionsTable';
 import TerminalAssetList from '../trading/TerminalAssetList';
@@ -16,12 +16,13 @@ const formatCurrency = (value = 0) => Number(value || 0).toLocaleString(undefine
   maximumFractionDigits: 2,
 });
 
-const formatMetricValue = (key, value) => {
-  if (key === 'marginLevel') {
-    return `${Number(value || 0).toFixed(2)}%`;
+const formatMetricValue = (metric) => {
+  if (metric.type === 'percent') {
+    return `${Number(metric.value || 0).toFixed(2)}%`;
   }
 
-  return formatCurrency(value);
+  const prefix = metric.currency === false ? '' : '$';
+  return `${prefix}${formatCurrency(metric.value)}`;
 };
 
 const TradingTab = ({
@@ -46,9 +47,9 @@ const TradingTab = ({
   categories = [],
   maxLeverage = 100,
 }) => {
-  const [activeMobileView, setActiveMobileView] = useState('chart');
   const [deskTab, setDeskTab] = useState('positions');
-  const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1200);
+  const [showMobileMarkets, setShowMobileMarkets] = useState(false);
+  const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1280);
   const { theme } = useTheme();
 
   React.useEffect(() => {
@@ -73,6 +74,9 @@ const TradingTab = ({
 
   const bidPrice = quoteSnapshot.bidLabel;
   const askPrice = quoteSnapshot.askLabel;
+  const spreadLabel = Number.isFinite(quoteSnapshot.spread)
+    ? Number(quoteSnapshot.spread).toFixed(selectedInstrument.precision || 2)
+    : '0.00';
   const activeSymbolLabel = formatInstrumentDisplaySymbol(activeSymbol, { withSlash: true });
   const chartChange = Number(selectedInstrument.change || 0);
   const chartTone = chartChange >= 0 ? 'text-emerald-400' : 'text-rose-400';
@@ -84,26 +88,28 @@ const TradingTab = ({
     () => orders.filter((order) => normalizeSymbol(order?.symbol) === normalizedActiveSymbol),
     [normalizedActiveSymbol, orders]
   );
-  const showMarkets = !isMobile || activeMobileView === 'markets';
-  const showChartWorkspace = !isMobile || activeMobileView === 'chart' || activeMobileView === 'portfolio';
-  const showTradePanel = !isMobile || activeMobileView === 'trade';
-  const showPortfolioPanel = !isMobile || activeMobileView === 'portfolio';
 
   const summaryMetrics = [
-    { key: 'credit', label: 'Credit', value: portfolio.credit },
+    { key: 'balance', label: 'Balance', value: portfolio.totalBalance },
     { key: 'equity', label: 'Equity', value: portfolio.equity },
-    { key: 'dailyPnL', label: 'P/L', value: portfolio.dailyPnL },
-    { key: 'freeMargin', label: 'Free margin', value: portfolio.freeMargin },
-    { key: 'margin', label: 'Used Margin', value: portfolio.margin },
-    { key: 'marginLevel', label: 'Margin level', value: portfolio.marginLevel },
-    { key: 'totalBalance', label: 'Balance', value: portfolio.totalBalance },
+    { key: 'freeMargin', label: 'Free Margin', value: portfolio.freeMargin },
+    { key: 'usedMargin', label: 'Used Margin', value: portfolio.margin },
+    { key: 'openPnl', label: 'Open P/L', value: portfolio.dailyPnL },
+    { key: 'marginLevel', label: 'Margin Level', value: portfolio.marginLevel, type: 'percent' },
+  ];
+
+  const quickCards = [
+    { key: 'symbol', label: 'Instrument', value: `${activeSymbolLabel}.`, tone: 'text-white' },
+    { key: 'sell', label: 'Sell', value: bidPrice, tone: 'text-rose-300' },
+    { key: 'buy', label: 'Buy', value: askPrice, tone: 'text-teal-300' },
+    { key: 'spread', label: 'Spread', value: spreadLabel, tone: 'text-slate-200' },
   ];
 
   const deskTabs = [
-    { id: 'positions', label: `Positions ${positions.length ? positions.length : ''}`.trim() },
-    { id: 'orders', label: 'Pending Orders' },
-    { id: 'history', label: 'Positions History' },
-    { id: 'alerts', label: 'Price Alerts' },
+    { id: 'positions', label: 'Positions', count: positions.length },
+    { id: 'orders', label: 'Pending Orders', count: orders.length },
+    { id: 'history', label: 'Trade History', count: closedTrades.length },
+    { id: 'alerts', label: 'Price Alerts', count: priceAlerts.length },
   ];
 
   const renderDeskContent = () => {
@@ -144,117 +150,113 @@ const TradingTab = ({
 
   return (
     <div className="-mx-4 flex min-h-[calc(100vh-10rem)] flex-col bg-[#171a26] px-4 pb-6 pt-4 text-white md:-mx-10 md:px-10">
-      <div className="mb-4 rounded-[1.5rem] border border-slate-700/70 bg-[#1f2230] px-3 py-3 sm:px-4">
-        <div className="flex gap-3 overflow-x-auto pb-1 lg:grid lg:grid-cols-7 lg:overflow-visible lg:pb-0">
-        {summaryMetrics.map((metric) => (
+      <section className="mb-4 rounded-[1.75rem] border border-slate-700/70 bg-[#1f2230] p-4 sm:p-5">
+        <div className="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
+          <div className="max-w-2xl">
+            <p className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-400">Trading Workspace</p>
+            <h1 className="mt-2 text-2xl font-black tracking-tight text-white sm:text-3xl">
+              Trade faster with one clean screen
+            </h1>
+            <p className="mt-2 max-w-xl text-sm leading-6 text-slate-400 sm:text-base">
+              Pick an instrument, follow the live chart, place an order, and review your activity without jumping between crowded panels.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            {quickCards.map((card) => (
+              <div key={card.key} className="rounded-2xl border border-slate-700/60 bg-[#171a26] px-4 py-3">
+                <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">{card.label}</p>
+                <p className={`mt-2 truncate text-lg font-black sm:text-xl ${card.tone}`}>{card.value}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="mt-5 flex gap-3 overflow-x-auto pb-1">
+          {summaryMetrics.map((metric) => (
             <div
               key={metric.key}
-              className="min-w-[9.5rem] rounded-2xl border border-slate-700/40 bg-[#171a26] px-3 py-2.5 transition-colors hover:border-slate-600/70 lg:min-w-0 lg:border-transparent lg:bg-transparent lg:px-2 lg:py-1.5"
+              className="min-w-[10.5rem] rounded-2xl border border-slate-700/50 bg-[#171a26] px-4 py-3"
             >
-            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">{metric.label}</p>
-              <p className="mt-1 text-xl font-black tracking-tight text-white sm:text-2xl">
-              {metric.key === 'marginLevel' ? formatMetricValue(metric.key, metric.value) : `$${formatMetricValue(metric.key, metric.value)}`}
-            </p>
-          </div>
-        ))}
+              <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">{metric.label}</p>
+              <p className="mt-2 text-xl font-black text-white">{formatMetricValue(metric)}</p>
+            </div>
+          ))}
         </div>
-      </div>
+      </section>
 
-      <div className="mb-3 rounded-[1.5rem] border border-slate-700/70 bg-[#1f2230] px-4 py-4 lg:hidden">
-        <div className="mb-4 flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Active Instrument</p>
-            <div className="mt-1 flex items-center gap-3">
-              <p className="truncate text-2xl font-black uppercase tracking-tight text-white">{activeSymbolLabel}.</p>
-              <span className={`text-lg font-black ${chartTone}`}>
-                {chartChange >= 0 ? '+' : ''}{chartChange.toFixed(2)}%
-              </span>
-            </div>
-            <p className="mt-1 text-xs font-bold text-slate-400">
-              {filteredPositions.length} open position{filteredPositions.length === 1 ? '' : 's'} and {filteredOrders.length} pending order{filteredOrders.length === 1 ? '' : 's'}
-            </p>
-          </div>
-
-          <div className="grid min-w-[8.5rem] grid-cols-2 gap-2">
-            <div className="rounded-2xl bg-rose-500 px-3 py-2 text-center">
-              <p className="text-[10px] font-black uppercase tracking-[0.18em] text-rose-100">Sell</p>
-              <p className="mt-1 text-lg font-black leading-none text-white">{bidPrice}</p>
-            </div>
-            <div className="rounded-2xl bg-teal-500 px-3 py-2 text-center">
-              <p className="text-[10px] font-black uppercase tracking-[0.18em] text-teal-100">Buy</p>
-              <p className="mt-1 text-lg font-black leading-none text-white">{askPrice}</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="-mx-1 flex gap-2 overflow-x-auto px-1">
-        {[
-          { id: 'markets', label: 'Markets', icon: FaListUl },
-          { id: 'chart', label: 'Chart', icon: FaChartLine },
-          { id: 'trade', label: 'Trade', icon: FaBolt },
-            { id: 'portfolio', label: 'Activity', icon: FaHistory },
-        ].map((view) => (
+      {isMobile && (
+        <section className="mb-4 rounded-[1.5rem] border border-slate-700/70 bg-[#1f2230] p-4">
           <button
-            key={view.id}
-            onClick={() => setActiveMobileView(view.id)}
-              className={`flex min-w-[7.25rem] flex-1 items-center justify-center gap-2 rounded-2xl px-3 py-3 text-[10px] font-black uppercase tracking-[0.18em] transition-all ${
-              activeMobileView === view.id
-                ? 'bg-teal-500 text-white'
-                  : 'bg-[#171a26] text-slate-400'
-            }`}
+            onClick={() => setShowMobileMarkets((current) => !current)}
+            className="flex w-full items-center justify-between rounded-2xl border border-slate-700/60 bg-[#171a26] px-4 py-3 text-left"
           >
-            <view.icon size={11} />
-            <span>{view.label}</span>
+            <div>
+              <p className="text-sm font-black text-white">Browse Markets</p>
+              <p className="mt-1 text-xs text-slate-400">Open the instruments list and switch the active symbol.</p>
+            </div>
+            {showMobileMarkets ? <FaChevronUp className="text-slate-400" /> : <FaChevronDown className="text-slate-400" />}
           </button>
-        ))}
-        </div>
-      </div>
 
-      <div className="grid flex-1 gap-4 xl:grid-cols-[minmax(20rem,26rem)_minmax(0,1fr)_minmax(19rem,21rem)]">
-        <div className={`${showMarkets ? 'block' : 'hidden'} min-h-[28rem] overflow-hidden rounded-[1.5rem] border border-slate-700/70 bg-[#1f2230]`}>
+          {showMobileMarkets && (
+            <div className="mt-4 overflow-hidden rounded-[1.25rem] border border-slate-700/60 bg-[#171a26]">
+              <TerminalAssetList
+                activeSymbol={activeSymbol}
+                onSelectSymbol={(nextSymbol) => {
+                  onSymbolChange(nextSymbol);
+                  setShowMobileMarkets(false);
+                }}
+                favorites={favorites}
+                onToggleFavorite={onToggleFavorite}
+                marketData={marketData}
+                instruments={instruments}
+                categories={categories}
+              />
+            </div>
+          )}
+        </section>
+      )}
+
+      <div className="grid flex-1 gap-4 lg:grid-cols-[minmax(20rem,24rem)_minmax(0,1fr)] xl:grid-cols-[minmax(20rem,24rem)_minmax(0,1fr)_minmax(19rem,22rem)]">
+        <aside className="hidden min-h-[28rem] overflow-hidden rounded-[1.5rem] border border-slate-700/70 bg-[#1f2230] lg:block">
+          <div className="border-b border-slate-700/60 px-4 py-4">
+            <p className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-400">Market Watch</p>
+            <p className="mt-2 text-lg font-black text-white">Choose a symbol</p>
+            <p className="mt-1 text-sm text-slate-400">The chart and order ticket update together when you switch instruments.</p>
+          </div>
           <TerminalAssetList
             activeSymbol={activeSymbol}
-            onSelectSymbol={(nextSymbol) => {
-              onSymbolChange(nextSymbol);
-              if (isMobile) {
-                setActiveMobileView('chart');
-              }
-            }}
+            onSelectSymbol={onSymbolChange}
             favorites={favorites}
             onToggleFavorite={onToggleFavorite}
             marketData={marketData}
             instruments={instruments}
             categories={categories}
           />
-        </div>
+        </aside>
 
-        <div className={`${showChartWorkspace ? 'flex' : 'hidden'} min-h-[30rem] flex-col gap-4`}>
-          <div className="overflow-hidden rounded-[1.5rem] border border-slate-700/70 bg-[#1f2230]">
-            <div className="hidden flex-wrap items-center justify-between gap-4 border-b border-slate-700/60 px-4 py-3 lg:flex">
-              <div className="flex min-w-0 items-center gap-3">
-                <div className="flex h-11 w-11 flex-col items-center justify-center rounded-xl bg-[#171a26] text-[9px] font-black uppercase leading-none text-slate-200">
-                  <span>{activeSymbolLabel.slice(0, 3)}</span>
-                  <span>{activeSymbolLabel.slice(-3)}</span>
+        <div className="flex min-h-[30rem] flex-col gap-4">
+          <section className="overflow-hidden rounded-[1.5rem] border border-slate-700/70 bg-[#1f2230]">
+            <div className="flex flex-col gap-4 border-b border-slate-700/60 px-4 py-4 lg:flex-row lg:items-center lg:justify-between">
+              <div className="min-w-0">
+                <p className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-400">Live Chart</p>
+                <div className="mt-2 flex flex-wrap items-center gap-3">
+                  <p className="text-2xl font-black uppercase tracking-tight text-white">{activeSymbolLabel}.</p>
+                  <p className={`text-xl font-black ${chartTone}`}>{chartChange >= 0 ? '+' : ''}{chartChange.toFixed(2)}%</p>
                 </div>
-                <div className="min-w-0">
-                  <div className="flex flex-wrap items-center gap-3">
-                    <p className="text-2xl font-black uppercase tracking-tight">{activeSymbolLabel}.</p>
-                    <p className={`text-2xl font-black ${chartTone}`}>{chartChange >= 0 ? '+' : ''}{chartChange.toFixed(2)}%</p>
-                  </div>
-                  <p className="mt-1 text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">
-                    {filteredPositions.length} open position{filteredPositions.length === 1 ? '' : 's'} and {filteredOrders.length} pending order{filteredOrders.length === 1 ? '' : 's'}
-                  </p>
-                </div>
+                <p className="mt-1 text-sm text-slate-400">
+                  {filteredPositions.length} open position{filteredPositions.length === 1 ? '' : 's'} and {filteredOrders.length} pending order{filteredOrders.length === 1 ? '' : 's'} on this symbol.
+                </p>
               </div>
 
               <div className="flex flex-wrap items-center gap-2">
                 <div className="rounded-2xl bg-rose-500 px-4 py-3 text-white shadow-lg shadow-rose-500/20">
-                  <p className="text-xs font-black uppercase tracking-[0.18em]">Sell</p>
-                  <p className="text-3xl font-black leading-none">{bidPrice}</p>
+                  <p className="text-[10px] font-black uppercase tracking-[0.18em] text-rose-100">Sell</p>
+                  <p className="mt-1 text-2xl font-black leading-none">{bidPrice}</p>
                 </div>
                 <div className="rounded-2xl bg-teal-500 px-4 py-3 text-white shadow-lg shadow-teal-500/20">
-                  <p className="text-xs font-black uppercase tracking-[0.18em]">Buy</p>
-                  <p className="text-3xl font-black leading-none">{askPrice}</p>
+                  <p className="text-[10px] font-black uppercase tracking-[0.18em] text-teal-100">Buy</p>
+                  <p className="mt-1 text-2xl font-black leading-none">{askPrice}</p>
                 </div>
                 <button className="rounded-2xl border border-slate-700 px-3 py-3 text-slate-300 transition-colors hover:border-slate-500 hover:text-white">
                   <FaRegStar size={16} />
@@ -265,7 +267,7 @@ const TradingTab = ({
               </div>
             </div>
 
-            <div className="h-[22rem] sm:h-[25rem] lg:h-[32rem]">
+            <div className="h-[22rem] sm:h-[28rem] xl:h-[34rem]">
               <TradingViewWidget
                 key={`terminal-${activeSymbol}-${theme}`}
                 symbol={activeSymbol}
@@ -275,43 +277,57 @@ const TradingTab = ({
                 marketStatus="LIVE MARKET DATA"
               />
             </div>
-          </div>
+          </section>
 
-          <div className={`${showPortfolioPanel ? 'flex' : 'hidden'} min-h-[24rem] flex-col overflow-hidden rounded-[1.5rem] border border-slate-700/70 bg-[#1f2230]`}>
-            <div className="flex items-center gap-2 overflow-x-auto border-b border-slate-700/60 px-3 py-3">
-              {deskTabs.map((tab) => (
-                <button
-                  key={tab.id}
-                  onClick={() => setDeskTab(tab.id)}
+          <section className="flex min-h-[24rem] flex-col overflow-hidden rounded-[1.5rem] border border-slate-700/70 bg-[#1f2230]">
+            <div className="border-b border-slate-700/60 px-4 py-4">
+              <p className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-400">Activity</p>
+              <div className="mt-3 flex gap-2 overflow-x-auto">
+                {deskTabs.map((tab) => (
+                  <button
+                    key={tab.id}
+                    onClick={() => setDeskTab(tab.id)}
                     className={`whitespace-nowrap rounded-2xl px-4 py-2.5 text-sm font-black transition-all ${
-                    deskTab === tab.id
-                      ? 'bg-white text-[#171a26]'
-                      : 'text-slate-300 hover:bg-white/5 hover:text-white'
-                  }`}
-                >
-                  {tab.label}
-                </button>
-              ))}
+                      deskTab === tab.id
+                        ? 'bg-white text-[#171a26]'
+                        : 'bg-[#171a26] text-slate-300 hover:bg-white/5 hover:text-white'
+                    }`}
+                  >
+                    {tab.label}
+                    <span className={`ml-2 rounded-full px-2 py-0.5 text-[11px] ${deskTab === tab.id ? 'bg-slate-200 text-slate-700' : 'bg-slate-800 text-slate-400'}`}>
+                      {tab.count}
+                    </span>
+                  </button>
+                ))}
+              </div>
             </div>
 
             <div className="flex-1 overflow-y-auto px-4 py-4 custom-scrollbar">
               {renderDeskContent()}
             </div>
-          </div>
+          </section>
         </div>
 
-        <div className={`${showTradePanel ? 'block' : 'hidden'} min-h-[30rem] xl:sticky xl:top-4 xl:self-start`}>
-          <OrderPanel
-            onSubmit={onPlaceOrder}
-            symbol={activeSymbol}
-            marketData={marketData}
-            instrument={selectedInstrument}
-            portfolio={portfolio}
-            maxLeverage={maxLeverage}
-            positions={positions}
-            orders={orders}
-          />
-        </div>
+        <aside className="min-h-[30rem] lg:col-span-2 xl:col-span-1 xl:col-start-3">
+          <div className="mb-4 rounded-[1.5rem] border border-slate-700/70 bg-[#1f2230] px-4 py-4">
+            <p className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-400">Order Ticket</p>
+            <p className="mt-2 text-lg font-black text-white">Place a trade with fewer steps</p>
+            <p className="mt-1 text-sm text-slate-400">Execution price, margin, and order type stay in sync with the selected instrument.</p>
+          </div>
+
+          <div className="xl:sticky xl:top-4">
+            <OrderPanel
+              onSubmit={onPlaceOrder}
+              symbol={activeSymbol}
+              marketData={marketData}
+              instrument={selectedInstrument}
+              portfolio={portfolio}
+              maxLeverage={maxLeverage}
+              positions={positions}
+              orders={orders}
+            />
+          </div>
+        </aside>
       </div>
     </div>
   );

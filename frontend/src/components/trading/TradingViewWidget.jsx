@@ -149,27 +149,27 @@ const TradingViewWidget = ({
       </div>
 
       <div
-        className={`flex items-center justify-between border-t px-4 py-2 text-xs font-medium ${
+        className={`flex flex-col gap-3 border-t px-4 py-3 text-xs font-medium sm:flex-row sm:items-center sm:justify-between ${
           isDark
             ? 'border-slate-800 bg-slate-900 text-slate-400'
             : 'border-slate-200 bg-slate-50 text-slate-500'
         }`}
       >
-        <div className="flex items-center gap-4">
+        <div className="flex flex-wrap items-center gap-3">
           <span className="flex items-center gap-1.5">
             <span className={`h-2 w-2 rounded-full ${isOnline ? 'bg-emerald-500 animate-pulse' : 'bg-slate-500'}`} />
             {isOnline ? marketStatus : 'OFFLINE MODE'}
           </span>
-          <span className="opacity-40">|</span>
-          <span>POWERED BY TRADINGVIEW</span>
           {symbolPositions.length > 0 && (
             <>
               <span className="opacity-40">|</span>
               <span>{symbolPositions.length} OPEN POSITION{symbolPositions.length > 1 ? 'S' : ''}</span>
             </>
           )}
+          <span className="hidden opacity-40 sm:inline">|</span>
+          <span className="hidden sm:inline">POWERED BY TRADINGVIEW</span>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2 sm:justify-end">
           <button
             onClick={() => setIsFullscreen(!isFullscreen)}
             className={`flex items-center gap-2 rounded border px-3 py-1 transition-all hover:scale-105 active:scale-95 ${
@@ -185,13 +185,13 @@ const TradingViewWidget = ({
             </span>
           </button>
           <div
-            className={`rounded border px-2 py-0.5 ${
+            className={`hidden rounded border px-2 py-0.5 md:block ${
               isDark
                 ? 'border-slate-700 bg-slate-800 text-gold-500'
                 : 'border-slate-200 bg-white text-gold-600'
             }`}
           >
-            TERMINAL CHART | LIVE EXTERNAL MARKET FEED
+            LIVE EXTERNAL MARKET FEED
           </div>
         </div>
       </div>
