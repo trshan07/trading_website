@@ -71,6 +71,43 @@ const toNullableNumber = (value) => {
     return Number.isFinite(parsed) ? parsed : null;
 };
 
+const withConfiguredBidAsk = (quote = {}, config = {}) => {
+    const price = parseQuoteNumber(quote.price);
+    if (price === null || price <= 0) {
+        return quote;
+    }
+
+    const configuredSpread = parseQuoteNumber(config.spread);
+    const bid = parseQuoteNumber(quote.bid);
+    const ask = parseQuoteNumber(quote.ask);
+
+    if (bid !== null && ask !== null && bid > 0 && ask > 0) {
+        return {
+            ...quote,
+            price,
+            bid,
+            ask,
+        };
+    }
+
+    if (configuredSpread !== null && configuredSpread > 0) {
+        const halfSpread = configuredSpread / 2;
+        return {
+            ...quote,
+            price,
+            bid: bid ?? Math.max(price - halfSpread, 0),
+            ask: ask ?? (price + halfSpread),
+        };
+    }
+
+    return {
+        ...quote,
+        price,
+        bid,
+        ask,
+    };
+};
+
 const chunkArray = (items = [], size = PROVIDER_BATCH_SIZE) => {
     if (!Array.isArray(items) || items.length === 0) {
         return [];
@@ -209,6 +246,11 @@ const getCachedInstrumentConfigs = async () => {
     }
 
     return instrumentConfigCache.data;
+};
+
+const getActiveInstrumentConfigs = async () => {
+    const cachedConfigs = await getCachedInstrumentConfigs();
+    return Array.from(cachedConfigs.values()).filter((config) => config?.symbol);
 };
 
 const getMergedInstrumentConfig = async (symbol = '') => {
@@ -396,15 +438,14 @@ const fetchYahooBatchQuotes = async (requests = []) => {
         originalSymbols.forEach((originalSymbol) => {
             const matchingRequest = requests.find((request) => normalizeSymbol(request.symbol) === originalSymbol);
             const allowBidAsk = matchingRequest?.config?.useBidAsk !== false;
-
-            acc[originalSymbol] = {
+            acc[originalSymbol] = withConfiguredBidAsk({
                 price,
                 bid: allowBidAsk ? parseQuoteNumber(item.bid) : null,
                 ask: allowBidAsk ? parseQuoteNumber(item.ask) : null,
                 change: parseQuoteNumber(item.regularMarketChangePercent) ?? 0,
                 volume: parseQuoteNumber(item.regularMarketVolume),
                 source: 'yahoo-quote',
-            };
+            }, matchingRequest?.config || {});
         });
         return acc;
     }, {});
@@ -455,14 +496,14 @@ const fetchYahooQuotes = async (requests = []) => {
                 ? ((latestClose - previousClose) / previousClose) * 100
                 : 0;
 
-            return [normalizedSymbol, {
+            return [normalizedSymbol, withConfiguredBidAsk({
                 price: latestClose,
                 bid: null,
                 ask: null,
                 change,
                 volume: latestVolume,
                 source: 'yahoo-chart',
-            }];
+            }, request.config)];
         } catch (error) {
             return [normalizedSymbol, null];
         }
@@ -554,7 +595,8 @@ const fetchTwelveDataQuotes = async (requests = []) => {
 
         const timestamp = Number.parseInt(item.timestamp ?? item.time ?? 0, 10);
         originalSymbols.forEach((originalSymbol) => {
-            acc[originalSymbol] = {
+            const matchingRequest = requests.find((request) => normalizeSymbol(request.symbol) === originalSymbol);
+            acc[originalSymbol] = withConfiguredBidAsk({
                 price,
                 bid: parseQuoteNumber(item.bid),
                 ask: parseQuoteNumber(item.ask),
@@ -562,7 +604,7 @@ const fetchTwelveDataQuotes = async (requests = []) => {
                 volume: parseQuoteNumber(item.volume ?? item.day_volume),
                 updatedAt: Number.isFinite(timestamp) && timestamp > 0 ? timestamp * 1000 : Date.now(),
                 source: 'twelvedata',
-            };
+            }, matchingRequest?.config || {});
         });
         return acc;
     }, {});
@@ -665,7 +707,8 @@ const fetchBiquotePublicQuotes = async (requests = []) => {
         const updatedAt = isoTime ? Date.parse(isoTime) || Date.now() : Date.now();
 
         originalSymbols.forEach((originalSymbol) => {
-            acc[originalSymbol] = {
+            const matchingRequest = requests.find((request) => normalizeSymbol(request.symbol) === originalSymbol);
+            acc[originalSymbol] = withConfiguredBidAsk({
                 price: last,
                 bid: parseQuoteNumber(tick.bid),
                 ask: parseQuoteNumber(tick.ask),
@@ -673,7 +716,7 @@ const fetchBiquotePublicQuotes = async (requests = []) => {
                 volume: parseQuoteNumber(tick.volume),
                 updatedAt,
                 source: 'biquote-public',
-            };
+            }, matchingRequest?.config || {});
         });
 
         return acc;
@@ -707,7 +750,8 @@ const fetchBinancePublicQuotes = async (requests = []) => {
             return acc;
         }
 
-        acc[originalSymbol] = {
+        const matchingRequest = supportedRequests.find((request) => normalizeSymbol(request.symbol) === originalSymbol);
+        acc[originalSymbol] = withConfiguredBidAsk({
             price: parseQuoteNumber(ticker.lastPrice),
             bid: parseQuoteNumber(ticker.bidPrice),
             ask: parseQuoteNumber(ticker.askPrice),
@@ -715,7 +759,7 @@ const fetchBinancePublicQuotes = async (requests = []) => {
             volume: parseQuoteNumber(ticker.volume),
             updatedAt,
             source: 'binance-public',
-        };
+        }, matchingRequest?.config || {});
         return acc;
     }, {});
 };
@@ -763,7 +807,8 @@ const fetchYahooPublicQuotes = async (requests = []) => {
         }
 
         originalSymbols.forEach((originalSymbol) => {
-            acc[originalSymbol] = {
+            const matchingRequest = requests.find((request) => normalizeSymbol(request.symbol) === originalSymbol);
+            acc[originalSymbol] = withConfiguredBidAsk({
                 price,
                 bid: parseQuoteNumber(item.bid),
                 ask: parseQuoteNumber(item.ask),
@@ -771,7 +816,7 @@ const fetchYahooPublicQuotes = async (requests = []) => {
                 volume: parseQuoteNumber(item.regularMarketVolume),
                 updatedAt,
                 source: 'yahoo-public',
-            };
+            }, matchingRequest?.config || {});
         });
 
         return acc;
@@ -1084,6 +1129,7 @@ module.exports = {
     isForexPair,
     resolveYahooSymbol,
     resolveTwelveDataSymbol,
+    withConfiguredBidAsk,
     fetchChartAlignedMarketQuotes,
     fetchMarketQuotes,
     fetchMarketHistoryCandles,
@@ -1092,5 +1138,6 @@ module.exports = {
     getExecutionPriceForSide,
     createSyntheticDepth,
     getMergedInstrumentConfig,
+    getActiveInstrumentConfigs,
     hasTwelveDataApiKey,
 };

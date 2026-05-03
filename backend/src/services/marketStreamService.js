@@ -3,7 +3,9 @@ const marketSymbolMap = require('../config/marketSymbolMap.json');
 const {
   hasTwelveDataApiKey,
   normalizeSymbol,
+  getActiveInstrumentConfigs,
   resolveTwelveDataSymbol,
+  withConfiguredBidAsk,
 } = require('./marketDataService');
 const { writeQuotes } = require('./marketSnapshotService');
 
@@ -21,37 +23,62 @@ class MarketStreamService {
     this.started = false;
   }
 
-  getTwelveDataSymbolMap() {
-    return Object.entries(marketSymbolMap).reduce((acc, [symbol, config]) => {
-      if (config?.provider !== 'twelvedata') {
+  async getTwelveDataSubscriptions() {
+    const dbConfigs = await getActiveInstrumentConfigs().catch(() => []);
+    const mergedConfigs = new Map(
+      Object.entries(marketSymbolMap).map(([symbol, config]) => [normalizeSymbol(symbol), {
+        symbol: normalizeSymbol(symbol),
+        ...config,
+      }])
+    );
+
+    dbConfigs.forEach((config) => {
+      mergedConfigs.set(normalizeSymbol(config.symbol), {
+        ...(mergedConfigs.get(normalizeSymbol(config.symbol)) || {}),
+        ...config,
+        symbol: normalizeSymbol(config.symbol),
+      });
+    });
+
+    const symbolMap = Array.from(mergedConfigs.values()).reduce((acc, config) => {
+      if (config?.provider !== 'twelvedata' || !config?.symbol) {
         return acc;
       }
 
-      const providerSymbol = String(resolveTwelveDataSymbol(symbol, config) || '').trim();
+      const providerSymbol = String(resolveTwelveDataSymbol(config.symbol, config) || '').trim();
       if (!providerSymbol) {
         return acc;
       }
 
-      const normalizedInternalSymbol = normalizeSymbol(symbol);
+      const normalizedInternalSymbol = normalizeSymbol(config.symbol);
+      const payload = {
+        symbol: normalizedInternalSymbol,
+        config,
+      };
+
       if (!acc[providerSymbol]) {
         acc[providerSymbol] = [];
       }
       if (!acc[normalizeSymbol(providerSymbol)]) {
         acc[normalizeSymbol(providerSymbol)] = [];
       }
-      acc[providerSymbol].push(normalizedInternalSymbol);
-      acc[normalizeSymbol(providerSymbol)].push(normalizedInternalSymbol);
+
+      acc[providerSymbol].push(payload);
+      acc[normalizeSymbol(providerSymbol)].push(payload);
       return acc;
     }, {});
-  }
 
-  getTwelveDataSymbols() {
-    return Array.from(new Set(
-      Object.entries(marketSymbolMap)
-        .filter(([, config]) => config?.provider === 'twelvedata')
-        .map(([symbol, config]) => resolveTwelveDataSymbol(symbol, config))
+    const symbols = Array.from(new Set(
+      Array.from(mergedConfigs.values())
+        .filter((config) => config?.provider === 'twelvedata' && config?.symbol)
+        .map((config) => String(resolveTwelveDataSymbol(config.symbol, config) || '').trim())
         .filter(Boolean)
     ));
+
+    return {
+      symbolMap,
+      symbols,
+    };
   }
 
   attachWebSocketServer(wss) {
@@ -159,17 +186,16 @@ class MarketStreamService {
 
     this.twelveDataReconnectTimer = setTimeout(() => {
       this.twelveDataReconnectTimer = null;
-      this.connectTwelveData();
+      this.connectTwelveData().catch(() => null);
     }, delay);
   }
 
-  connectTwelveData() {
+  async connectTwelveData() {
     if (!this.started || this.twelveDataSocket || !hasTwelveDataApiKey()) {
       return;
     }
 
-    const symbols = this.getTwelveDataSymbols();
-    const symbolMap = this.getTwelveDataSymbolMap();
+    const { symbolMap, symbols } = await this.getTwelveDataSubscriptions();
     if (symbols.length === 0) {
       return;
     }
@@ -206,7 +232,7 @@ class MarketStreamService {
         const payload = JSON.parse(rawMessage.toString());
         const providerSymbol = String(payload?.symbol || '').trim();
         const normalizedProviderSymbol = normalizeSymbol(providerSymbol);
-        const internalSymbols = symbolMap[providerSymbol] || symbolMap[normalizedProviderSymbol] || [normalizedProviderSymbol];
+        const internalSymbols = symbolMap[providerSymbol] || symbolMap[normalizedProviderSymbol] || [];
         const price = Number.parseFloat(payload?.price ?? payload?.close);
 
         if (internalSymbols.length === 0 || !Number.isFinite(price)) {
@@ -214,8 +240,8 @@ class MarketStreamService {
         }
 
         const timestamp = Number.parseInt(payload.timestamp ?? payload.time ?? 0, 10);
-        const quotePayload = internalSymbols.reduce((acc, internalSymbol) => {
-          acc[internalSymbol] = {
+        const quotePayload = internalSymbols.reduce((acc, item) => {
+          acc[item.symbol] = withConfiguredBidAsk({
             price,
             bid: Number.parseFloat(payload.bid) || null,
             ask: Number.parseFloat(payload.ask) || null,
@@ -223,7 +249,7 @@ class MarketStreamService {
             volume: Number.parseFloat(payload.day_volume ?? payload.volume ?? 0) || null,
             updatedAt: Number.isFinite(timestamp) && timestamp > 0 ? timestamp * 1000 : Date.now(),
             source: 'twelvedata-stream',
-          };
+          }, item.config || {});
           return acc;
         }, {});
         this.publishQuotes(quotePayload);
@@ -261,7 +287,7 @@ class MarketStreamService {
     }
 
     this.started = true;
-    this.connectTwelveData();
+    this.connectTwelveData().catch(() => null);
   }
 }
 

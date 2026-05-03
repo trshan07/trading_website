@@ -1,6 +1,7 @@
 const pool = require('../../config/database');
 const { isMissingRelationError, isMissingColumnError, getMissingColumnName } = require('../../utils/dbCompat');
 const marketSymbolMap = require('../../config/marketSymbolMap.json');
+const { getCanonicalMarketQuotes } = require('../../services/marketSnapshotService');
 
 const mapInstrumentRow = (row) => ({
     symbol: row.symbol,
@@ -149,7 +150,38 @@ exports.getAllInstruments = async (req, res) => {
             }
         }
 
-        const instruments = result.rows.map(mapInstrumentRow);
+        let instruments = result.rows.map(mapInstrumentRow);
+
+        const symbolsNeedingQuotes = instruments
+            .map((instrument) => instrument.symbol)
+            .filter(Boolean);
+
+        if (symbolsNeedingQuotes.length > 0) {
+            const refreshedQuotes = await getCanonicalMarketQuotes(symbolsNeedingQuotes, {
+                preferChartAligned: true,
+                refresh: true,
+            }).catch(() => ({}));
+
+            if (Object.keys(refreshedQuotes).length > 0) {
+                instruments = instruments.map((instrument) => {
+                    const quote = refreshedQuotes[instrument.symbol];
+                    if (!quote) {
+                        return instrument;
+                    }
+
+                    return {
+                        ...instrument,
+                        price: parseFloat(quote.price ?? instrument.price ?? 0),
+                        bid: quote.bid != null ? parseFloat(quote.bid) : instrument.bid,
+                        ask: quote.ask != null ? parseFloat(quote.ask) : instrument.ask,
+                        change: parseFloat(quote.change ?? instrument.change ?? 0),
+                        volume: quote.volume ?? instrument.volume ?? null,
+                        quoteUpdatedAt: quote.updatedAt || instrument.quoteUpdatedAt || null,
+                        quoteSource: quote.source || instrument.quoteSource || null,
+                    };
+                });
+            }
+        }
 
         res.json({ success: true, data: instruments });
     } catch (error) {

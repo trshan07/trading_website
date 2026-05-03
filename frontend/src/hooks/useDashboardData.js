@@ -120,15 +120,15 @@ const getQuoteSourcePriority = (source = '') => {
     return 6;
   }
 
-  if (normalizedSource === 'biquote-public') {
+  if (normalizedSource === 'twelvedata-stream') {
     return 5;
   }
 
-  if (normalizedSource === 'binance-public' || normalizedSource === 'yahoo-public') {
+  if (normalizedSource === 'biquote-public') {
     return 4;
   }
 
-  if (normalizedSource === 'twelvedata-stream') {
+  if (normalizedSource === 'binance-public' || normalizedSource === 'yahoo-public') {
     return 3;
   }
 
