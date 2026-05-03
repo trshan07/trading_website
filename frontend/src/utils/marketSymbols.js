@@ -122,8 +122,8 @@ export const getSymbolPrecision = ({ symbol = '', category = '', price = 0 }) =>
 export const buildInstrumentSnapshot = ({ symbol, instrument = {}, marketData = {} }) => {
   const normalizedSymbol = normalizeSymbol(symbol || instrument.symbol);
   const mapping = marketSymbolMap[normalizedSymbol] || {};
-  const lookupSymbol = symbol || instrument.symbol;
-  const liveInfo = marketData[lookupSymbol] || {};
+  const lookupSymbol = symbol || instrument.symbol || normalizedSymbol;
+  const liveInfo = marketData[lookupSymbol] || marketData[normalizedSymbol] || {};
   const price = Number.parseFloat(liveInfo.price ?? instrument.price ?? instrument.default_price ?? 0) || 0;
   const change = Number.parseFloat(liveInfo.change ?? instrument.change ?? instrument.default_change ?? 0) || 0;
   const category = instrument.category || 'General';
@@ -141,15 +141,19 @@ export const buildInstrumentSnapshot = ({ symbol, instrument = {}, marketData = 
     price,
     change,
     volume: liveInfo.volume ?? instrument.volume ?? instrument.default_volume ?? null,
-    bid: Number.parseFloat(liveInfo.bid ?? 0) || null,
-    ask: Number.parseFloat(liveInfo.ask ?? 0) || null,
+    bid: Number.parseFloat(liveInfo.bid ?? instrument.bid ?? 0) || null,
+    ask: Number.parseFloat(liveInfo.ask ?? instrument.ask ?? 0) || null,
+    updatedAt: liveInfo.updatedAt || liveInfo.updated_at || instrument.updatedAt || instrument.updated_at || null,
+    source: liveInfo.source || instrument.source || null,
     lastDir: liveInfo.lastDir || 'none',
     useBidAsk: typeof mapping.useBidAsk === 'boolean'
       ? mapping.useBidAsk
-      : (
+      : (typeof instrument.useBidAsk === 'boolean'
+        ? instrument.useBidAsk
+        : (
         Number.isFinite(Number.parseFloat(liveInfo.bid))
         && Number.isFinite(Number.parseFloat(liveInfo.ask))
-      ),
+      )),
     precision,
   };
 };

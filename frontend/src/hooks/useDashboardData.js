@@ -24,10 +24,14 @@ const normalizeInstrument = (instrument = {}) => ({
   price: Number.parseFloat(instrument.price ?? instrument.default_price ?? 0) || 0,
   change: Number.parseFloat(instrument.change ?? instrument.default_change ?? 0) || 0,
   volume: instrument.volume ?? instrument.default_volume ?? null,
+  bid: Number.parseFloat(instrument.bid ?? 0) || null,
+  ask: Number.parseFloat(instrument.ask ?? 0) || null,
   provider: instrument.provider || null,
   quoteSymbol: instrument.quoteSymbol || instrument.quote_symbol || null,
   dataSymbol: instrument.dataSymbol || instrument.data_symbol || null,
   tradingViewSymbol: instrument.tradingViewSymbol || instrument.trading_view_symbol || null,
+  updatedAt: instrument.updatedAt || instrument.updated_at || instrument.quoteUpdatedAt || instrument.quote_updated_at || null,
+  source: instrument.source || instrument.quoteSource || instrument.quote_source || null,
   useBidAsk: typeof instrument.useBidAsk === 'boolean'
     ? instrument.useBidAsk
     : (typeof instrument.use_bid_ask === 'boolean' ? instrument.use_bid_ask : null),
@@ -87,6 +91,10 @@ const buildMarketSnapshot = (instrumentList = []) => instrumentList.reduce((acc,
     price: instrument.price,
     change: instrument.change,
     volume: instrument.volume,
+    bid: instrument.bid,
+    ask: instrument.ask,
+    updatedAt: instrument.updatedAt || null,
+    source: instrument.source || null,
     lastDir: 'none',
   };
   return acc;
@@ -145,15 +153,19 @@ const shouldApplyIncomingQuote = ({ previous = {}, incoming = {} }) => {
     return true;
   }
 
-  if (incomingPriority < previousPriority && incomingUpdatedAt <= (previousUpdatedAt + 30000)) {
+  if (!incomingUpdatedAt) {
+    return incomingPriority >= previousPriority;
+  }
+
+  if (incomingUpdatedAt > previousUpdatedAt + 250) {
+    return true;
+  }
+
+  if (incomingUpdatedAt < previousUpdatedAt - 250 && incomingPriority <= previousPriority) {
     return false;
   }
 
-  if (previousUpdatedAt && incomingUpdatedAt && incomingUpdatedAt < previousUpdatedAt && incomingPriority <= previousPriority) {
-    return false;
-  }
-
-  return true;
+  return incomingPriority >= previousPriority;
 };
 
 const mergeQuoteSnapshot = (current = {}, incoming = {}) => {
@@ -209,6 +221,7 @@ const syncInstrumentsWithQuotes = (current = [], incoming = {}) => current.map((
     bid: Number.parseFloat(quote.bid ?? instrument.bid ?? 0) || null,
     ask: Number.parseFloat(quote.ask ?? instrument.ask ?? 0) || null,
     updatedAt: incomingUpdatedAt || previousUpdatedAt || Date.now(),
+    source: quote.source || instrument.source || null,
     lastDir: nextPrice > prevPrice ? 'up' : nextPrice < prevPrice ? 'down' : (instrument.lastDir || 'none'),
   };
 });
