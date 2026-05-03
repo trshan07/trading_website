@@ -12,6 +12,7 @@ const INSTRUMENT_CONFIG_CACHE_MS = 60 * 1000;
 const TWELVE_DATA_API_BASE = 'https://api.twelvedata.com';
 const BIQUOTE_API_BASE = 'https://biquote.io/api';
 const REQUEST_TIMEOUT_MS = 5000;
+const PROVIDER_BATCH_SIZE = Number.parseInt(process.env.MARKET_PROVIDER_BATCH_SIZE ?? '8', 10) || 8;
 const TWELVE_DATA_INTERVAL_MAP = {
     '1m': '1min',
     '5m': '5min',
@@ -68,6 +69,48 @@ const supportsBinanceSymbol = (symbol = '') => {
 const toNullableNumber = (value) => {
     const parsed = Number.parseFloat(value);
     return Number.isFinite(parsed) ? parsed : null;
+};
+
+const chunkArray = (items = [], size = PROVIDER_BATCH_SIZE) => {
+    if (!Array.isArray(items) || items.length === 0) {
+        return [];
+    }
+
+    const normalizedSize = Math.max(1, Number.parseInt(size, 10) || PROVIDER_BATCH_SIZE);
+    const chunks = [];
+
+    for (let index = 0; index < items.length; index += normalizedSize) {
+        chunks.push(items.slice(index, index + normalizedSize));
+    }
+
+    return chunks;
+};
+
+const mergeQuoteMaps = (...sources) => sources.reduce((acc, source) => ({
+    ...acc,
+    ...(source || {}),
+}), {});
+
+const fetchQuoteBatches = async (requests = [], fetcher) => {
+    const batches = chunkArray(requests);
+    if (batches.length === 0) {
+        return {};
+    }
+
+    const results = await Promise.allSettled(
+        batches.map((batch) => fetcher(batch))
+    );
+
+    return results.reduce((acc, result) => {
+        if (result.status === 'fulfilled' && result.value && typeof result.value === 'object') {
+            return {
+                ...acc,
+                ...result.value,
+            };
+        }
+
+        return acc;
+    }, {});
 };
 
 const mapInstrumentConfigRow = (row = {}) => ({
@@ -765,24 +808,6 @@ const buildSyntheticQuote = ({ config = {}, existingQuote = {} }) => {
     };
 };
 
-const mergeWithSyntheticQuotes = (requests = [], quotes = {}) => requests.reduce((acc, request) => {
-    const normalizedSymbol = normalizeSymbol(request.symbol);
-    if (!normalizedSymbol) {
-        return acc;
-    }
-
-    const syntheticQuote = buildSyntheticQuote({
-        config: request.config,
-        existingQuote: acc[normalizedSymbol],
-    });
-
-    if (syntheticQuote) {
-        acc[normalizedSymbol] = syntheticQuote;
-    }
-
-    return acc;
-}, { ...quotes });
-
 const fetchChartAlignedMarketQuotes = async (symbols = []) => {
     const requestedSymbols = Array.from(new Set(symbols.map(normalizeSymbol).filter(Boolean)));
     if (requestedSymbols.length === 0) {
@@ -803,9 +828,9 @@ const fetchChartAlignedMarketQuotes = async (symbols = []) => {
         !(config.provider === 'twelvedata' || hasTwelveDataApiKey())
     ));
 
-    const twelveDataQuotes = await fetchTwelveDataQuotes(twelveDataRequests).catch(() => ({}));
+    const twelveDataQuotes = await fetchQuoteBatches(twelveDataRequests, fetchTwelveDataQuotes);
     const unresolvedOtherRequests = otherRequests.filter(({ symbol }) => !twelveDataQuotes[normalizeSymbol(symbol)]?.price);
-    const biquoteQuotes = await fetchBiquotePublicQuotes(unresolvedOtherRequests).catch(() => ({}));
+    const biquoteQuotes = await fetchQuoteBatches(unresolvedOtherRequests, fetchBiquotePublicQuotes);
     const unresolvedPublicRequests = unresolvedOtherRequests.filter(({ symbol }) => !biquoteQuotes[normalizeSymbol(symbol)]?.price);
     const binanceRequests = unresolvedPublicRequests.filter(({ symbol, config }) => (
         isCryptoSymbol(symbol, config) && supportsBinanceSymbol(symbol)
@@ -814,20 +839,20 @@ const fetchChartAlignedMarketQuotes = async (symbols = []) => {
     const unresolvedTwelveDataRequests = twelveDataRequests.filter(({ symbol }) => !twelveDataQuotes[normalizeSymbol(symbol)]?.price);
 
     const [binanceQuotes, yahooQuotes, yahooFallbackForTwelveData] = await Promise.all([
-        fetchBinancePublicQuotes(binanceRequests).catch(() => ({})),
-        fetchYahooPublicQuotes(yahooRequests).catch(() => ({})),
+        fetchQuoteBatches(binanceRequests, fetchBinancePublicQuotes),
+        fetchQuoteBatches(yahooRequests, fetchYahooPublicQuotes),
         unresolvedTwelveDataRequests.length > 0
-            ? fetchYahooPublicQuotes(unresolvedTwelveDataRequests).catch(() => ({}))
+            ? fetchQuoteBatches(unresolvedTwelveDataRequests, fetchYahooPublicQuotes)
             : Promise.resolve({}),
     ]);
 
-    return mergeWithSyntheticQuotes(instrumentConfigs, {
-        ...yahooQuotes,
-        ...yahooFallbackForTwelveData,
-        ...biquoteQuotes,
-        ...binanceQuotes,
-        ...twelveDataQuotes,
-    });
+    return mergeQuoteMaps(
+        yahooQuotes,
+        yahooFallbackForTwelveData,
+        biquoteQuotes,
+        binanceQuotes,
+        twelveDataQuotes
+    );
 };
 
 const fetchMarketQuotes = async (symbols = []) => {
@@ -850,21 +875,21 @@ const fetchMarketQuotes = async (symbols = []) => {
     ));
 
     const [twelveDataData, legacyYahooData] = await Promise.all([
-        fetchTwelveDataQuotes(twelveDataRequests).catch(() => ({})),
-        fetchYahooQuotes(legacyYahooRequests).catch(() => ({})),
+        fetchQuoteBatches(twelveDataRequests, fetchTwelveDataQuotes),
+        fetchQuoteBatches(legacyYahooRequests, fetchYahooQuotes),
     ]);
     const unresolvedTwelveDataRequests = twelveDataRequests.filter(
         ({ symbol }) => !twelveDataData[normalizeSymbol(symbol)]?.price
     );
     const yahooFallbackData = unresolvedTwelveDataRequests.length > 0
-        ? await fetchYahooQuotes(unresolvedTwelveDataRequests).catch(() => ({}))
+        ? await fetchQuoteBatches(unresolvedTwelveDataRequests, fetchYahooQuotes)
         : {};
 
-    return mergeWithSyntheticQuotes(instrumentConfigs, {
-        ...legacyYahooData,
-        ...yahooFallbackData,
-        ...twelveDataData,
-    });
+    return mergeQuoteMaps(
+        legacyYahooData,
+        yahooFallbackData,
+        twelveDataData
+    );
 };
 
 const fetchMarketHistoryCandles = async (symbol = '', interval = '15m', outputsize = 300) => {
@@ -966,7 +991,7 @@ const fetchOrderBook = async (symbol, levels = DEFAULT_DEPTH_LEVELS) => {
 
     const config = await getMergedInstrumentConfig(normalized);
     const quotes = await fetchMarketQuotes([normalized]);
-    const quote = quotes[normalized] || {};
+    const quote = quotes[normalized] || buildSyntheticQuote({ config }) || {};
     const depth = createSyntheticDepth({
         bid: quote.bid,
         ask: quote.ask,
