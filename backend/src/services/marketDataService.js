@@ -808,6 +808,49 @@ const buildSyntheticQuote = ({ config = {}, existingQuote = {} }) => {
     };
 };
 
+const fetchLatestHistoryQuotes = async (requests = []) => {
+    if (requests.length === 0) {
+        return {};
+    }
+
+    const results = await Promise.allSettled(
+        requests.map(async ({ symbol, config }) => {
+            const candles = await fetchMarketHistoryCandles(symbol, '1m', 2);
+            const latestCandle = Array.isArray(candles) && candles.length > 0
+                ? candles[candles.length - 1]
+                : null;
+            const latestClose = parseQuoteNumber(latestCandle?.[4]);
+
+            if (latestClose === null) {
+                return [normalizeSymbol(symbol), null];
+            }
+
+            const syntheticFromLiveClose = buildSyntheticQuote({
+                config,
+                existingQuote: {
+                    price: latestClose,
+                    source: 'history-close',
+                    updatedAt: latestCandle?.[0] || Date.now(),
+                },
+            });
+
+            return [normalizeSymbol(symbol), syntheticFromLiveClose];
+        })
+    );
+
+    return results.reduce((acc, result) => {
+        if (result.status !== 'fulfilled') {
+            return acc;
+        }
+
+        const [symbol, quote] = result.value || [];
+        if (symbol && quote?.price) {
+            acc[symbol] = quote;
+        }
+        return acc;
+    }, {});
+};
+
 const fetchChartAlignedMarketQuotes = async (symbols = []) => {
     const requestedSymbols = Array.from(new Set(symbols.map(normalizeSymbol).filter(Boolean)));
     if (requestedSymbols.length === 0) {
@@ -846,13 +889,17 @@ const fetchChartAlignedMarketQuotes = async (symbols = []) => {
             : Promise.resolve({}),
     ]);
 
-    return mergeQuoteMaps(
+    const providerMerged = mergeQuoteMaps(
         yahooQuotes,
         yahooFallbackForTwelveData,
         biquoteQuotes,
         binanceQuotes,
         twelveDataQuotes
     );
+    const unresolvedAfterProviders = instrumentConfigs.filter(({ symbol }) => !providerMerged[normalizeSymbol(symbol)]?.price);
+    const historyFallbackQuotes = await fetchLatestHistoryQuotes(unresolvedAfterProviders);
+
+    return mergeQuoteMaps(providerMerged, historyFallbackQuotes);
 };
 
 const fetchMarketQuotes = async (symbols = []) => {
@@ -885,10 +932,17 @@ const fetchMarketQuotes = async (symbols = []) => {
         ? await fetchQuoteBatches(unresolvedTwelveDataRequests, fetchYahooQuotes)
         : {};
 
-    return mergeQuoteMaps(
+    const providerMerged = mergeQuoteMaps(
         legacyYahooData,
         yahooFallbackData,
         twelveDataData
+    );
+    const unresolvedAfterProviders = instrumentConfigs.filter(({ symbol }) => !providerMerged[normalizeSymbol(symbol)]?.price);
+    const historyFallbackQuotes = await fetchLatestHistoryQuotes(unresolvedAfterProviders);
+
+    return mergeQuoteMaps(
+        providerMerged,
+        historyFallbackQuotes
     );
 };
 
