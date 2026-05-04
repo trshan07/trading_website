@@ -588,16 +588,16 @@ export const useDashboardData = (accountType = 'demo', activeSymbol = null) => {
           : deriveCategories(mergedInstruments)
       );
       setMarketData((prev) => ({
-        ...buildMarketSnapshot(mergedInstruments),
         ...prev,
+        ...buildMarketSnapshot(mergedInstruments),
       }));
     } catch (error) {
       console.error('Fetch Instruments Error:', error);
       setInstruments(fallbackInstruments);
       setCategories(deriveCategories(fallbackInstruments));
       setMarketData((prev) => ({
-        ...buildMarketSnapshot(fallbackInstruments),
         ...prev,
+        ...buildMarketSnapshot(fallbackInstruments),
       }));
     }
   }, []);
@@ -653,8 +653,8 @@ export const useDashboardData = (accountType = 'demo', activeSymbol = null) => {
           : deriveCategories(mergedInstruments)
       );
       setMarketData((prev) => ({
-        ...buildMarketSnapshot(mergedInstruments),
         ...prev,
+        ...buildMarketSnapshot(mergedInstruments),
       }));
 
       if (notifRes.success) setNotifications(notifRes.data);
@@ -669,8 +669,8 @@ export const useDashboardData = (accountType = 'demo', activeSymbol = null) => {
       setInstruments(fallbackInstruments);
       setCategories(deriveCategories(fallbackInstruments));
       setMarketData((prev) => ({
-        ...buildMarketSnapshot(fallbackInstruments),
         ...prev,
+        ...buildMarketSnapshot(fallbackInstruments),
       }));
     }
   }, []);
