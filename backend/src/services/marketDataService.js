@@ -646,9 +646,9 @@ const fetchTwelveDataQuotes = async (requests = []) => {
     const response = await axios.get(`${TWELVE_DATA_API_BASE}/quote`, {
         params,
         timeout: 5000,
-    });
+    }).catch(() => null);
 
-    return normalizeTwelveDataQuotePayload(response.data).reduce((acc, item) => {
+    const quoteResults = normalizeTwelveDataQuotePayload(response?.data).reduce((acc, item) => {
         const lookupKey = String(item.symbol || '').trim();
         const originalSymbols = symbolsByProvider[lookupKey] || symbolsByProvider[normalizeSymbol(lookupKey)] || [];
         if (originalSymbols.length === 0) {
@@ -682,6 +682,62 @@ const fetchTwelveDataQuotes = async (requests = []) => {
         });
         return acc;
     }, {});
+
+    const unresolvedRequests = requests.filter(
+        ({ symbol }) => !quoteResults[normalizeSymbol(symbol)]?.price
+    );
+
+    if (unresolvedRequests.length === 0) {
+        return quoteResults;
+    }
+
+    const timeSeriesFallbacks = await Promise.allSettled(
+        unresolvedRequests.map(async (request) => {
+            const normalizedSymbol = normalizeSymbol(request.symbol);
+            const candles = await fetchTwelveDataHistory(
+                normalizedSymbol,
+                '1m',
+                2,
+                request.config,
+                {
+                    ...request.options,
+                    preferChartAligned: false,
+                }
+            );
+            const latestCandle = Array.isArray(candles) && candles.length > 0
+                ? candles[candles.length - 1]
+                : null;
+            const latestClose = parseQuoteNumber(latestCandle?.[4]);
+
+            if (latestClose === null) {
+                return [normalizedSymbol, null];
+            }
+
+            return [normalizedSymbol, withConfiguredBidAsk({
+                price: latestClose,
+                bid: null,
+                ask: null,
+                change: 0,
+                volume: parseQuoteNumber(latestCandle?.[5]),
+                updatedAt: latestCandle?.[0] || Date.now(),
+                source: 'twelvedata-timeseries',
+            }, request.config || {})];
+        })
+    );
+
+    const timeSeriesQuotes = timeSeriesFallbacks.reduce((acc, result) => {
+        if (result.status !== 'fulfilled') {
+            return acc;
+        }
+
+        const [symbol, quote] = result.value || [];
+        if (symbol && quote?.price) {
+            acc[symbol] = quote;
+        }
+        return acc;
+    }, {});
+
+    return mergeQuoteMaps(quoteResults, timeSeriesQuotes);
 };
 
 const fetchTwelveDataHistory = async (symbol = '', interval = '15m', outputsize = 300, config = {}, options = {}) => {
