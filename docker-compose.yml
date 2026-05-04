@@ -31,6 +31,7 @@ services:
       JWT_SECRET: ${JWT_SECRET}
       CLIENT_URL: ${CLIENT_URL}
       API_URL: ${API_URL}
+      TWELVEDATA_API_KEY: ${TWELVEDATA_API_KEY}
     ports:
       - "5000:5000"
     depends_on:
