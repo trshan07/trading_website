@@ -421,6 +421,22 @@ const resolveTwelveDataSymbol = (symbol = '', config = {}, options = {}) => {
     return normalized;
 };
 
+const resolveTwelveDataQuoteSymbol = (symbol = '', config = {}, options = {}) => {
+    const chartAlignedSymbol = resolveTwelveDataSymbol(symbol, config, options);
+
+    // TradingView-style venue prefixes are useful for chart/history alignment,
+    // but the Twelve Data quote endpoint is more reliable with canonical quote
+    // symbols such as BTC/USD, EUR/USD, XAU/USD, etc.
+    if (String(chartAlignedSymbol || '').includes(':')) {
+        return resolveTwelveDataSymbol(symbol, config, {
+            ...options,
+            preferChartAligned: false,
+        });
+    }
+
+    return chartAlignedSymbol;
+};
+
 const createSyntheticDepth = ({ bid, ask, price, levels = DEFAULT_DEPTH_LEVELS }) => {
     const referencePrice = parseQuoteNumber(price) || parseQuoteNumber(ask) || parseQuoteNumber(bid) || 0;
     const bidPrice = parseQuoteNumber(bid) || referencePrice;
@@ -613,7 +629,7 @@ const fetchTwelveDataQuotes = async (requests = []) => {
     }
 
     const symbolsByProvider = requests.reduce((acc, request) => {
-        const providerSymbol = resolveTwelveDataSymbol(request.symbol, request.config, request.options);
+        const providerSymbol = resolveTwelveDataQuoteSymbol(request.symbol, request.config, request.options);
         if (!acc[providerSymbol]) {
             acc[providerSymbol] = [];
         }
