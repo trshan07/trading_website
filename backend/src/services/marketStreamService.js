@@ -5,6 +5,7 @@ const {
   normalizeSymbol,
   getActiveInstrumentConfigs,
   resolveTwelveDataSymbol,
+  resolveTwelveDataQuoteSymbol,
   withConfiguredBidAsk,
 } = require('./marketDataService');
 const { writeQuotes } = require('./marketSnapshotService');
@@ -45,7 +46,7 @@ class MarketStreamService {
         return acc;
       }
 
-      const providerSymbol = String(resolveTwelveDataSymbol(config.symbol, config, {
+      const providerSymbol = String(resolveTwelveDataQuoteSymbol(config.symbol, config, {
         preferChartAligned: true,
       }) || '').trim();
       if (!providerSymbol) {
@@ -73,7 +74,7 @@ class MarketStreamService {
     const symbols = Array.from(new Set(
       Array.from(mergedConfigs.values())
         .filter((config) => config?.provider === 'twelvedata' && config?.symbol)
-        .map((config) => String(resolveTwelveDataSymbol(config.symbol, config, {
+        .map((config) => String(resolveTwelveDataQuoteSymbol(config.symbol, config, {
           preferChartAligned: true,
         }) || '').trim())
         .filter(Boolean)
@@ -209,6 +210,7 @@ class MarketStreamService {
 
     socket.on('open', () => {
       this.twelveDataReconnectAttempts = 0;
+      console.log(`[TwelveDataStream] Connected. Subscribing to: ${symbols.join(', ')}`);
       socket.send(JSON.stringify({
         action: 'subscribe',
         params: {
@@ -234,12 +236,27 @@ class MarketStreamService {
     socket.on('message', (rawMessage) => {
       try {
         const payload = JSON.parse(rawMessage.toString());
+        
+        if (payload?.event === 'heartbeat') return;
+        
+        if (payload?.event === 'subscribe-status') {
+          console.log(`[TwelveDataStream] Subscription status:`, payload.status === 'ok' ? '✅ Success' : '❌ Failed', payload);
+          return;
+        }
+
+        if (payload?.status === 'error') {
+          console.error(`[TwelveDataStream] API Error:`, payload.message, payload);
+          return;
+        }
+
         const providerSymbol = String(payload?.symbol || '').trim();
         const normalizedProviderSymbol = normalizeSymbol(providerSymbol);
         const internalSymbols = symbolMap[providerSymbol] || symbolMap[normalizedProviderSymbol] || [];
         const price = Number.parseFloat(payload?.price ?? payload?.close);
 
         if (internalSymbols.length === 0 || !Number.isFinite(price)) {
+          if (payload?.event) return;
+          console.log(`[TwelveDataStream] Unmapped or invalid price for ${providerSymbol}:`, payload);
           return;
         }
 

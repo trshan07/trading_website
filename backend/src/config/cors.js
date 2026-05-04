@@ -6,6 +6,8 @@ const DEFAULT_ALLOWED_ORIGINS = [
     'https://tiktrades.com',
     'https://www.tiktrades.com',
     'https://api.tiktrades.com',
+    'http://localhost:3001',
+    'http://127.0.0.1:3001',
 ];
 
 const splitOrigins = (value = '') =>

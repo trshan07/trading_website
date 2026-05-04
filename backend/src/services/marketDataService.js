@@ -1263,6 +1263,7 @@ module.exports = {
     isForexPair,
     resolveYahooSymbol,
     resolveTwelveDataSymbol,
+    resolveTwelveDataQuoteSymbol,
     withConfiguredBidAsk,
     fetchChartAlignedMarketQuotes,
     fetchMarketQuotes,

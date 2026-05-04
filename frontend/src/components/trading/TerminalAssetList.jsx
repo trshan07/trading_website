@@ -196,9 +196,17 @@ const TerminalAssetList = ({
                           <p className="truncate text-[14px] font-semibold uppercase leading-none tracking-tight text-white">
                             {formatInstrumentDisplaySymbol(instrument.symbol, { withSlash: false })}
                           </p>
-                          <p className="mt-1 truncate text-[10px] font-medium uppercase tracking-[0.14em] text-slate-500">
-                            {instrument.name || instrument.category}
-                          </p>
+                          <div className="flex items-center gap-1.5 mt-1">
+                            <p className="truncate text-[10px] font-medium uppercase tracking-[0.14em] text-slate-500">
+                              {instrument.name || instrument.category}
+                            </p>
+                            {String(instrumentSnapshot.source || '').includes('twelvedata') && (
+                              <span className="flex items-center gap-1 rounded bg-teal-400/10 px-1 py-0.5 text-[8px] font-black uppercase tracking-widest text-teal-400 border border-teal-400/20">
+                                <span className="h-1 w-1 animate-pulse rounded-full bg-teal-400" />
+                                Live
+                              </span>
+                            )}
+                          </div>
                         </div>
                         <div className={`shrink-0 text-[12px] font-semibold tabular-nums md:hidden ${isPositive ? 'text-emerald-400' : 'text-rose-400'}`}>
                           {isPositive ? '+' : ''}{change.toFixed(2)}%

@@ -296,8 +296,14 @@ const OrderPanel = ({
       </div>
 
       <div className="flex-1 overflow-y-auto px-4 py-4 custom-scrollbar">
-        <div className="rounded-xl border border-slate-700/60 bg-[#242a3b] px-3 py-2.5 text-center">
+        <div className="flex flex-col items-center gap-1.5 rounded-xl border border-slate-700/60 bg-[#242a3b] px-3 py-2.5">
           <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-300">Market Execution Only</p>
+          {String(instrument.source || '').includes('twelvedata') && (
+            <div className="flex items-center gap-1.5 rounded-full bg-teal-400/10 px-2 py-0.5 text-[9px] font-black uppercase tracking-widest text-teal-400 border border-teal-400/20">
+              <span className="h-1 w-1 animate-pulse rounded-full bg-teal-400" />
+              Direct Feed
+            </div>
+          )}
         </div>
 
         <div className="mt-5 grid grid-cols-[1fr_auto_1fr] items-end gap-1.5">
