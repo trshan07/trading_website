@@ -45,7 +45,9 @@ class MarketStreamService {
         return acc;
       }
 
-      const providerSymbol = String(resolveTwelveDataSymbol(config.symbol, config) || '').trim();
+      const providerSymbol = String(resolveTwelveDataSymbol(config.symbol, config, {
+        preferChartAligned: true,
+      }) || '').trim();
       if (!providerSymbol) {
         return acc;
       }
@@ -71,7 +73,9 @@ class MarketStreamService {
     const symbols = Array.from(new Set(
       Array.from(mergedConfigs.values())
         .filter((config) => config?.provider === 'twelvedata' && config?.symbol)
-        .map((config) => String(resolveTwelveDataSymbol(config.symbol, config) || '').trim())
+        .map((config) => String(resolveTwelveDataSymbol(config.symbol, config, {
+          preferChartAligned: true,
+        }) || '').trim())
         .filter(Boolean)
     ));
 

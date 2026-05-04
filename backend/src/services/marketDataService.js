@@ -320,7 +320,65 @@ const resolveBiquoteSymbol = (symbol = '', config = {}) => {
 
 const hasTwelveDataApiKey = () => Boolean(process.env.TWELVEDATA_API_KEY);
 
-const resolveTwelveDataSymbol = (symbol = '', config = {}) => {
+const CHART_ALIGNED_TWELVEDATA_PREFIXES = new Set([
+    'AMEX',
+    'BINANCE',
+    'BITSTAMP',
+    'BMFBOVESPA',
+    'CBOE',
+    'COINBASE',
+    'NASDAQ',
+    'NYSE',
+    'OANDA',
+    'XETR',
+]);
+
+const resolveTradingVenueSymbol = (symbol = '', config = {}) => {
+    const normalized = normalizeSymbol(symbol);
+    const tradingViewSymbol = String(config.tradingViewSymbol || '').trim();
+    if (!tradingViewSymbol || !tradingViewSymbol.includes(':')) {
+        return null;
+    }
+
+    const [prefix, rawBase] = tradingViewSymbol.split(':');
+    const exchange = String(prefix || '').trim().toUpperCase();
+    const baseSymbol = String(rawBase || '').trim();
+
+    if (!exchange || !baseSymbol) {
+        return null;
+    }
+
+    if (CHART_ALIGNED_TWELVEDATA_PREFIXES.has(exchange)) {
+        return tradingViewSymbol;
+    }
+
+    if (exchange === 'FX' && isForexPair(normalized)) {
+        return `${normalized.slice(0, 3)}/${normalized.slice(3, 6)}`;
+    }
+
+    if (exchange === 'TVC') {
+        if (baseSymbol === 'USOIL' || baseSymbol === 'UKOIL') {
+            return baseSymbol;
+        }
+
+        return normalized.endsWith('!') ? normalized : baseSymbol;
+    }
+
+    if (['CME_MINI', 'CBOT_MINI', 'NYMEX', 'DJ', 'SP'].includes(exchange)) {
+        return baseSymbol;
+    }
+
+    return null;
+};
+
+const resolveTwelveDataSymbol = (symbol = '', config = {}, options = {}) => {
+    if (options.preferChartAligned) {
+        const venueSymbol = resolveTradingVenueSymbol(symbol, config);
+        if (venueSymbol) {
+            return venueSymbol;
+        }
+    }
+
     const explicitSymbol = String(
         config.dataSymbol
         || config.marketDataSymbol
@@ -555,7 +613,7 @@ const fetchTwelveDataQuotes = async (requests = []) => {
     }
 
     const symbolsByProvider = requests.reduce((acc, request) => {
-        const providerSymbol = resolveTwelveDataSymbol(request.symbol, request.config);
+        const providerSymbol = resolveTwelveDataSymbol(request.symbol, request.config, request.options);
         if (!acc[providerSymbol]) {
             acc[providerSymbol] = [];
         }
@@ -610,14 +668,14 @@ const fetchTwelveDataQuotes = async (requests = []) => {
     }, {});
 };
 
-const fetchTwelveDataHistory = async (symbol = '', interval = '15m', outputsize = 300, config = {}) => {
+const fetchTwelveDataHistory = async (symbol = '', interval = '15m', outputsize = 300, config = {}, options = {}) => {
     if (!hasTwelveDataApiKey()) {
         throw new Error('Twelve Data API key not configured');
     }
 
     const response = await axios.get(`${TWELVE_DATA_API_BASE}/time_series`, {
         params: {
-            symbol: resolveTwelveDataSymbol(symbol, config),
+            symbol: resolveTwelveDataSymbol(symbol, config, options),
             interval: TWELVE_DATA_INTERVAL_MAP[interval] || '15min',
             outputsize,
             order: 'asc',
@@ -906,6 +964,7 @@ const fetchChartAlignedMarketQuotes = async (symbols = []) => {
         requestedSymbols.map(async (symbol) => ({
             symbol,
             config: await getMergedInstrumentConfig(symbol),
+            options: { preferChartAligned: true },
         }))
     );
 
@@ -957,6 +1016,7 @@ const fetchMarketQuotes = async (symbols = []) => {
         requestedSymbols.map(async (symbol) => ({
             symbol,
             config: await getMergedInstrumentConfig(symbol),
+            options: { preferChartAligned: false },
         }))
     );
     const twelveDataRequests = instrumentConfigs.filter(({ config }) => (
@@ -1001,7 +1061,9 @@ const fetchMarketHistoryCandles = async (symbol = '', interval = '15m', outputsi
     const provider = config.provider || 'twelvedata';
 
     try {
-        return await fetchTwelveDataHistory(normalized, interval, outputsize, config);
+        return await fetchTwelveDataHistory(normalized, interval, outputsize, config, {
+            preferChartAligned: true,
+        });
     } catch (error) {
         if (provider !== 'twelvedata') {
             throw error;
