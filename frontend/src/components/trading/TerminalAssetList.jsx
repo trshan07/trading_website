@@ -66,11 +66,9 @@ const TerminalAssetList = ({
     const normalizedQuery = searchQuery.trim().toLowerCase();
 
     if (selectedGroup === 'favorites') {
-      const favoriteRows = WATCHLIST_SECTIONS
-        .flatMap((section) => section.symbols)
+      const favoriteRows = favorites
         .map((symbol) => instrumentMap.get(symbol))
         .filter(Boolean)
-        .filter((instrument) => favorites.includes(instrument.symbol))
         .filter((instrument) => {
           if (!normalizedQuery) {
             return true;

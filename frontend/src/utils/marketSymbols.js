@@ -119,11 +119,67 @@ export const getSymbolPrecision = ({ symbol = '', category = '', price = 0 }) =>
   return 2;
 };
 
+const pushCandidate = (target, seen, value) => {
+  const normalizedValue = String(value || '').trim();
+  if (!normalizedValue || seen.has(normalizedValue)) {
+    return;
+  }
+
+  seen.add(normalizedValue);
+  target.push(normalizedValue);
+};
+
+export const getMarketDataCandidates = ({ symbol, instrument = {}, mapping = {} } = {}) => {
+  const candidates = [];
+  const seen = new Set();
+  const rawSymbol = symbol || instrument.symbol || '';
+  const normalizedSymbol = normalizeSymbol(rawSymbol);
+  const quoteSymbol = mapping.quote || instrument.quoteSymbol || instrument.quote_symbol || '';
+  const dataSymbol = mapping.dataSymbol || instrument.dataSymbol || instrument.data_symbol || '';
+
+  pushCandidate(candidates, seen, rawSymbol);
+  pushCandidate(candidates, seen, normalizedSymbol);
+  pushCandidate(candidates, seen, quoteSymbol);
+  pushCandidate(candidates, seen, normalizeSymbol(quoteSymbol));
+  pushCandidate(candidates, seen, dataSymbol);
+  pushCandidate(candidates, seen, normalizeSymbol(dataSymbol));
+
+  if (normalizedSymbol.endsWith('USDT')) {
+    pushCandidate(candidates, seen, `${normalizedSymbol.slice(0, -4)}USD`);
+  } else if (normalizedSymbol.endsWith('USD') && normalizedSymbol.length > 3) {
+    pushCandidate(candidates, seen, `${normalizedSymbol.slice(0, -3)}USDT`);
+  }
+
+  return candidates;
+};
+
+export const getLiveMarketEntry = ({ symbol, instrument = {}, marketData = {} } = {}) => {
+  const normalizedSymbol = normalizeSymbol(symbol || instrument.symbol);
+  const mapping = marketSymbolMap[normalizedSymbol] || {};
+  const candidates = getMarketDataCandidates({
+    symbol,
+    instrument,
+    mapping,
+  });
+
+  for (const candidate of candidates) {
+    if (marketData[candidate]) {
+      return marketData[candidate];
+    }
+  }
+
+  return {};
+};
+
 export const buildInstrumentSnapshot = ({ symbol, instrument = {}, marketData = {} }) => {
   const normalizedSymbol = normalizeSymbol(symbol || instrument.symbol);
   const mapping = marketSymbolMap[normalizedSymbol] || {};
   const lookupSymbol = symbol || instrument.symbol || normalizedSymbol;
-  const liveInfo = marketData[lookupSymbol] || marketData[normalizedSymbol] || {};
+  const liveInfo = getLiveMarketEntry({
+    symbol: lookupSymbol,
+    instrument,
+    marketData,
+  });
   const price = Number.parseFloat(liveInfo.price ?? instrument.price ?? instrument.default_price ?? 0) || 0;
   const change = Number.parseFloat(liveInfo.change ?? instrument.change ?? instrument.default_change ?? 0) || 0;
   const category = instrument.category || 'General';
