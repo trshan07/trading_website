@@ -180,10 +180,17 @@ const TerminalAssetList = ({
               const isFavorite = favorites.includes(instrument.symbol);
 
               return (
-                <button
+                <div
                   key={instrument.symbol}
                   onClick={() => onSelectSymbol(instrument.symbol)}
-                  className={`w-full border-b border-slate-800 px-4 py-3 text-left transition-all ${
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      onSelectSymbol(instrument.symbol);
+                    }
+                  }}
+                  className={`w-full border-b border-slate-800 px-4 py-3 text-left transition-all cursor-pointer ${
                     isActive
                       ? 'bg-sky-400/8 shadow-[inset_2px_0_0_0_rgba(56,189,248,0.9)]'
                       : 'hover:bg-white/[0.03]'
@@ -288,7 +295,7 @@ const TerminalAssetList = ({
                       </button>
                     </div>
                   </div>
-                </button>
+                </div>
               );
             })}
           </div>

@@ -7,11 +7,13 @@ const {
   resolveTwelveDataSymbol,
   resolveTwelveDataQuoteSymbol,
   withConfiguredBidAsk,
+  fetchMarketQuotes,
 } = require('./marketDataService');
 const { writeQuotes } = require('./marketSnapshotService');
 
 const TWELVE_DATA_STREAM_URL = 'wss://ws.twelvedata.com/v1/quotes/price';
 const MAX_RECONNECT_DELAY_MS = 15000;
+const REST_POLLING_INTERVAL_MS = 8000;
 
 class MarketStreamService {
   constructor() {
@@ -21,6 +23,7 @@ class MarketStreamService {
     this.twelveDataReconnectAttempts = 0;
     this.twelveDataReconnectTimer = null;
     this.twelveDataHeartbeatTimer = null;
+    this.restPollingTimer = null;
     this.started = false;
   }
 
@@ -302,6 +305,28 @@ class MarketStreamService {
     });
   }
 
+  startRestPollingFallback() {
+    if (this.restPollingTimer) {
+      clearInterval(this.restPollingTimer);
+    }
+    
+    this.restPollingTimer = setInterval(async () => {
+      try {
+        const dbConfigs = await getActiveInstrumentConfigs().catch(() => []);
+        if (dbConfigs.length === 0) return;
+        
+        const symbols = dbConfigs.map(config => config.symbol);
+        
+        const quotes = await fetchMarketQuotes(symbols);
+        if (quotes && Object.keys(quotes).length > 0) {
+          this.publishQuotes(quotes);
+        }
+      } catch (error) {
+        console.error('[MarketStreamService] REST Polling error:', error.message);
+      }
+    }, REST_POLLING_INTERVAL_MS);
+  }
+
   start() {
     if (this.started) {
       return;
@@ -309,6 +334,7 @@ class MarketStreamService {
 
     this.started = true;
     this.connectTwelveData().catch(() => null);
+    this.startRestPollingFallback();
   }
 }
 
