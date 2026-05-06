@@ -92,10 +92,10 @@ const SideButton = ({ side, active, price, label, onClick, className = '' }) => 
   }, [price]);
 
   const baseColors = side === 'sell'
-    ? (active ? 'border-rose-400 bg-[#241b26]' : 'border-slate-700 bg-[#242a3b]')
-    : (active ? 'border-teal-400 bg-[#1f4f53]' : 'border-slate-700 bg-[#242a3b]');
+    ? (active ? 'border-rose-400 bg-rose-50 dark:bg-[#241b26]' : 'border-slate-300 bg-white dark:border-slate-700 dark:bg-[#242a3b]')
+    : (active ? 'border-teal-400 bg-teal-50 dark:bg-[#1f4f53]' : 'border-slate-300 bg-white dark:border-slate-700 dark:bg-[#242a3b]');
   
-  const textColors = side === 'sell' ? 'text-rose-400' : 'text-teal-200';
+  const textColors = side === 'sell' ? 'text-rose-600 dark:text-rose-400' : 'text-teal-700 dark:text-teal-200';
 
   return (
     <button
@@ -320,22 +320,22 @@ const OrderPanel = ({
   const movementValueLabel = preview?.movementValueLabel || tradingMeta.movementValueLabel || `${movementLabel} Value`;
 
   return (
-    <div className="flex h-full flex-col overflow-hidden rounded-[1.3rem] border border-slate-700/70 bg-[#1b2030] font-sans text-white">
-      <div className="flex items-start justify-between border-b border-slate-700/60 px-4 py-4">
+    <div className="flex h-full flex-col overflow-hidden rounded-[1.3rem] border border-slate-200 bg-white font-sans text-slate-900 dark:border-slate-700/70 dark:bg-[#1b2030] dark:text-white">
+      <div className="flex items-start justify-between border-b border-slate-200 px-4 py-4 dark:border-slate-700/60">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 flex-col items-center justify-center rounded-lg bg-[#252b3c] text-[8px] font-bold uppercase leading-none text-slate-100">
+          <div className="flex h-10 w-10 flex-col items-center justify-center rounded-lg bg-slate-100 text-[8px] font-bold uppercase leading-none text-slate-700 dark:bg-[#252b3c] dark:text-slate-100">
             <span>{orderTitle.slice(0, 3)}</span>
             <span>{orderTitle.slice(-3)}</span>
           </div>
           <div>
-            <p className="text-xl font-semibold uppercase tracking-tight text-white">{orderTitle}.</p>
+            <p className="text-xl font-semibold uppercase tracking-tight text-slate-900 dark:text-white">{orderTitle}.</p>
           </div>
         </div>
 
         {onClose && (
           <button
             onClick={onClose}
-            className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-white/5 hover:text-white"
+            className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-900 dark:hover:bg-white/5 dark:hover:text-white"
           >
             <FaTimes size={14} />
           </button>
@@ -343,8 +343,8 @@ const OrderPanel = ({
       </div>
 
       <div className="flex-1 overflow-y-auto px-4 py-4 custom-scrollbar">
-        <div className="flex flex-col items-center gap-1.5 rounded-xl border border-slate-700/60 bg-[#242a3b] px-3 py-2.5">
-          <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-300">Market Execution Only</p>
+        <div className="flex flex-col items-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 dark:border-slate-700/60 dark:bg-[#242a3b]">
+          <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-600 dark:text-slate-300">Market Execution Only</p>
           {String(instrument.source || '').includes('twelvedata') && (
             <div className="flex items-center gap-1.5 rounded-full bg-teal-400/10 px-2 py-0.5 text-[9px] font-black uppercase tracking-widest text-teal-400 border border-teal-400/20">
               <span className="h-1 w-1 animate-pulse rounded-full bg-teal-400" />
@@ -364,7 +364,7 @@ const OrderPanel = ({
           />
 
           <div className="pb-2 text-center">
-            <p className="text-xl font-semibold leading-none text-white">{spreadLabel}</p>
+            <p className="text-xl font-semibold leading-none text-slate-900 dark:text-white">{spreadLabel}</p>
           </div>
 
           <SideButton
@@ -378,9 +378,9 @@ const OrderPanel = ({
         </div>
 
         <div className="mt-3">
-          <div className="grid grid-cols-[1fr_3.25rem] overflow-hidden rounded-lg border border-slate-700/70 bg-[#3a3f50]">
+          <div className="grid grid-cols-[1fr_3.25rem] overflow-hidden rounded-lg border border-slate-200 bg-slate-50 dark:border-slate-700/70 dark:bg-[#3a3f50]">
             <div className="px-3 py-2.5">
-              <p className="text-xs uppercase text-white">Amount</p>
+              <p className="text-xs uppercase text-slate-700 dark:text-white">Amount</p>
               <input
                 type="number"
                 step={lotStep}
@@ -394,19 +394,19 @@ const OrderPanel = ({
                   }
                   setLots(Number(clamp(nextValue, minLot).toFixed(lotPrecision)));
                 }}
-                className="mt-1 w-full bg-transparent text-[1rem] font-semibold tabular-nums text-white outline-none"
+                className="mt-1 w-full bg-transparent text-[1rem] font-semibold tabular-nums text-slate-900 outline-none dark:text-white"
               />
             </div>
             <div className="flex flex-col border-l border-slate-600">
               <button
                 onClick={() => nudgeLots(1)}
-                className="flex flex-1 items-center justify-center text-slate-200 transition-colors hover:bg-white/5"
+                className="flex flex-1 items-center justify-center text-slate-600 transition-colors hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-white/5"
               >
                 <FaPlus size={12} />
               </button>
               <button
                 onClick={() => nudgeLots(-1)}
-                className="flex flex-1 items-center justify-center border-t border-slate-600 text-slate-200 transition-colors hover:bg-white/5"
+                className="flex flex-1 items-center justify-center border-t border-slate-200 text-slate-600 transition-colors hover:bg-slate-100 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-white/5"
               >
                 <FaMinus size={12} />
               </button>
@@ -416,32 +416,32 @@ const OrderPanel = ({
 
         <div className="mt-5 space-y-2 text-sm">
           <div className="flex items-center justify-between gap-4">
-            <span className="font-semibold text-white">Est. fill:</span>
-            <span className="font-semibold tabular-nums text-white">{formatMoney(displayExecutionPrice, precision)}</span>
+            <span className="font-semibold text-slate-700 dark:text-white">Est. fill:</span>
+            <span className="font-semibold tabular-nums text-slate-900 dark:text-white">{formatMoney(displayExecutionPrice, precision)}</span>
           </div>
           <div className="flex items-center justify-between gap-4">
-            <span className="font-semibold text-white">Total value:</span>
-            <span className="font-semibold tabular-nums text-white">{formatMoney(notionalValue)}</span>
+            <span className="font-semibold text-slate-700 dark:text-white">Total value:</span>
+            <span className="font-semibold tabular-nums text-slate-900 dark:text-white">{formatMoney(notionalValue)}</span>
           </div>
           <div className="flex items-center justify-between gap-4">
-            <span className="font-semibold text-white">Required Margin:</span>
-            <span className={`font-semibold tabular-nums ${hasEnoughMargin ? 'text-white' : 'text-rose-400'}`}>
+            <span className="font-semibold text-slate-700 dark:text-white">Required Margin:</span>
+            <span className={`font-semibold tabular-nums ${hasEnoughMargin ? 'text-slate-900 dark:text-white' : 'text-rose-400'}`}>
               {formatMoney(effectiveRequiredMargin)}
             </span>
           </div>
           <div className="flex items-center justify-between gap-4">
-            <span className="font-semibold text-white">Leverage:</span>
-            <span className="font-semibold tabular-nums text-white">1:{resolvedLeverage}</span>
+            <span className="font-semibold text-slate-700 dark:text-white">Leverage:</span>
+            <span className="font-semibold tabular-nums text-slate-900 dark:text-white">1:{resolvedLeverage}</span>
           </div>
           <div className="flex items-center justify-between gap-4">
-            <span className="font-semibold text-white">{movementValueLabel}:</span>
-            <span className="font-semibold tabular-nums text-white">
+            <span className="font-semibold text-slate-700 dark:text-white">{movementValueLabel}:</span>
+            <span className="font-semibold tabular-nums text-slate-900 dark:text-white">
               {Number.isFinite(displayPipValue) ? formatMoney(displayPipValue) : '--'}
             </span>
           </div>
           {tpEnabled && (
             <div className="flex items-center justify-between gap-4">
-              <span className="font-semibold text-white">TP preview:</span>
+              <span className="font-semibold text-slate-700 dark:text-white">TP preview:</span>
               <span className={`font-semibold tabular-nums ${Number.isFinite(tpPreview) && tpPreview >= 0 ? 'text-emerald-300' : 'text-slate-300'}`}>
                 {Number.isFinite(tpPreview)
                   ? `${formatMoney(tpPreview)}${Number.isFinite(tpMovement) ? ` • ${tpMovement.toFixed(2)} ${movementLabel}` : ''}`
@@ -451,7 +451,7 @@ const OrderPanel = ({
           )}
           {slEnabled && (
             <div className="flex items-center justify-between gap-4">
-              <span className="font-semibold text-white">SL preview:</span>
+              <span className="font-semibold text-slate-700 dark:text-white">SL preview:</span>
               <span className={`font-semibold tabular-nums ${Number.isFinite(slPreview) && slPreview < 0 ? 'text-rose-300' : 'text-slate-300'}`}>
                 {Number.isFinite(slPreview)
                   ? `${formatMoney(slPreview)}${Number.isFinite(slMovement) ? ` • ${slMovement.toFixed(2)} ${movementLabel}` : ''}`
@@ -470,8 +470,8 @@ const OrderPanel = ({
           )}
         </div>
 
-        <div className="mt-4 border-t border-slate-700/60">
-          <label className="flex items-center gap-3 border-b border-slate-700/60 py-4 text-sm font-semibold text-white">
+        <div className="mt-4 border-t border-slate-200 dark:border-slate-700/60">
+          <label className="flex items-center gap-3 border-b border-slate-200 py-4 text-sm font-semibold text-slate-800 dark:border-slate-700/60 dark:text-white">
             <input
               type="checkbox"
               checked={tpEnabled}
@@ -486,11 +486,11 @@ const OrderPanel = ({
               value={tpValue}
               onChange={(event) => setTpValue(event.target.value)}
               placeholder="Take profit price"
-              className="mt-3 w-full rounded-lg border border-slate-700 bg-[#242a3b] px-3 py-2.5 text-sm font-semibold tabular-nums text-white outline-none"
+              className="mt-3 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm font-semibold tabular-nums text-slate-900 outline-none dark:border-slate-700 dark:bg-[#242a3b] dark:text-white"
             />
           )}
 
-          <label className="flex items-center gap-3 border-b border-slate-700/60 py-4 text-sm font-semibold text-white">
+          <label className="flex items-center gap-3 border-b border-slate-200 py-4 text-sm font-semibold text-slate-800 dark:border-slate-700/60 dark:text-white">
             <input
               type="checkbox"
               checked={slEnabled}
@@ -505,7 +505,7 @@ const OrderPanel = ({
               value={slValue}
               onChange={(event) => setSlValue(event.target.value)}
               placeholder="Stop loss price"
-              className="mt-3 w-full rounded-lg border border-slate-700 bg-[#242a3b] px-3 py-2.5 text-sm font-semibold tabular-nums text-white outline-none"
+              className="mt-3 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm font-semibold tabular-nums text-slate-900 outline-none dark:border-slate-700 dark:bg-[#242a3b] dark:text-white"
             />
           )}
         </div>

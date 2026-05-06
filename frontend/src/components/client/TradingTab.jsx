@@ -187,17 +187,17 @@ const TradingTab = ({
   };
 
   return (
-    <div className="-mx-4 flex min-h-[calc(100vh-10rem)] flex-col bg-[#171a26] px-4 pb-6 pt-4 text-white md:-mx-10 md:px-10 font-sans">
-      <section className="overflow-hidden rounded-[1.75rem] border border-slate-700/70 bg-gradient-to-b from-[#1f2434] to-[#171b28] shadow-[0_24px_60px_rgba(0,0,0,0.32)]">
-        <div className="flex flex-col gap-4 border-b border-slate-700/60 px-4 py-4 xl:flex-row xl:items-center xl:justify-between">
+    <div className="-mx-4 flex min-h-[calc(100vh-10rem)] flex-col bg-slate-100 text-slate-900 dark:bg-[#171a26] dark:text-white px-4 pb-6 pt-4 md:-mx-10 md:px-10 font-sans transition-colors">
+      <section className="overflow-hidden rounded-[1.75rem] border border-slate-200 bg-gradient-to-b from-white to-slate-100 shadow-[0_20px_50px_rgba(15,23,42,0.08)] dark:border-slate-700/70 dark:from-[#1f2434] dark:to-[#171b28] dark:shadow-[0_24px_60px_rgba(0,0,0,0.32)]">
+        <div className="flex flex-col gap-4 border-b border-slate-200 px-4 py-4 xl:flex-row xl:items-center xl:justify-between dark:border-slate-700/60">
           <div className="min-w-0">
             <div className="mt-1 flex flex-wrap items-center gap-3">
-              <p className="font-display text-2xl font-semibold uppercase tracking-tight text-white sm:text-3xl">{activeSymbolLabel}.</p>
+              <p className="font-display text-2xl font-semibold uppercase tracking-tight text-slate-900 dark:text-white sm:text-3xl">{activeSymbolLabel}.</p>
               <p className={`text-lg font-semibold tabular-nums ${chartTone}`}>{chartChange >= 0 ? '+' : ''}{chartChange.toFixed(2)}%</p>
-              <span className="rounded-full border border-slate-700 bg-[#111620] px-3 py-1 text-xs font-semibold text-slate-300">
+              <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-600 dark:border-slate-700 dark:bg-[#111620] dark:text-slate-300">
                 Spread {spreadLabel}
               </span>
-              <span className="rounded-full border border-slate-700 bg-[#111620] px-3 py-1 text-xs font-semibold text-slate-300">
+              <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-600 dark:border-slate-700 dark:bg-[#111620] dark:text-slate-300">
                 {filteredPositions.length} open
               </span>
             </div>
@@ -206,7 +206,7 @@ const TradingTab = ({
           <div className="flex flex-wrap items-center gap-2">
             <button
               onClick={openWatchlist}
-              className="rounded-2xl border border-slate-700 bg-[#111620] px-4 py-3 text-sm font-semibold text-slate-200 transition-colors hover:border-slate-500 hover:text-white"
+              className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition-colors hover:border-slate-400 hover:text-slate-900 dark:border-slate-700 dark:bg-[#111620] dark:text-slate-200 dark:hover:border-slate-500 dark:hover:text-white"
             >
               <span className="inline-flex items-center gap-2">
                 <FaListUl size={14} />
@@ -219,13 +219,13 @@ const TradingTab = ({
             >
               Open Order Ticket
             </button>
-            <div className="rounded-2xl border border-rose-400/30 bg-rose-500/12 px-4 py-3">
-              <p className="text-[10px] font-black uppercase tracking-[0.18em] text-rose-200/80">Sell</p>
-              <p className="mt-1 text-xl font-semibold leading-none tabular-nums text-rose-300 sm:text-2xl">{bidPrice}</p>
+            <div className="rounded-2xl border border-rose-300/60 bg-rose-50 px-4 py-3 dark:border-rose-400/30 dark:bg-rose-500/12">
+              <p className="text-[10px] font-black uppercase tracking-[0.18em] text-rose-600 dark:text-rose-200/80">Sell</p>
+              <p className="mt-1 text-xl font-semibold leading-none tabular-nums text-rose-600 dark:text-rose-300 sm:text-2xl">{bidPrice}</p>
             </div>
-            <div className="rounded-2xl border border-teal-400/30 bg-teal-400/12 px-4 py-3">
-              <p className="text-[10px] font-black uppercase tracking-[0.18em] text-teal-100/80">Buy</p>
-              <p className="mt-1 text-xl font-semibold leading-none tabular-nums text-teal-200 sm:text-2xl">{askPrice}</p>
+            <div className="rounded-2xl border border-teal-300/60 bg-teal-50 px-4 py-3 dark:border-teal-400/30 dark:bg-teal-400/12">
+              <p className="text-[10px] font-black uppercase tracking-[0.18em] text-teal-700 dark:text-teal-100/80">Buy</p>
+              <p className="mt-1 text-xl font-semibold leading-none tabular-nums text-teal-700 dark:text-teal-200 sm:text-2xl">{askPrice}</p>
             </div>
           </div>
         </div>
@@ -242,12 +242,12 @@ const TradingTab = ({
         </div>
       </section>
 
-      <section className="mt-4 flex min-h-[24rem] flex-col overflow-hidden rounded-[1.75rem] border border-slate-700/70 bg-gradient-to-b from-[#1f2434] to-[#171b28] shadow-[0_24px_60px_rgba(0,0,0,0.32)]">
-        <div className="border-b border-slate-700/60 px-4 py-4">
+      <section className="mt-4 flex min-h-[24rem] flex-col overflow-hidden rounded-[1.75rem] border border-slate-200 bg-gradient-to-b from-white to-slate-100 shadow-[0_20px_50px_rgba(15,23,42,0.08)] dark:border-slate-700/70 dark:from-[#1f2434] dark:to-[#171b28] dark:shadow-[0_24px_60px_rgba(0,0,0,0.32)]">
+        <div className="border-b border-slate-200 px-4 py-4 dark:border-slate-700/60">
           <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
             <div>
-              <p className="text-[10px] font-black uppercase tracking-[0.22em] text-sky-300/70">Positions and Orders</p>
-              <p className="mt-1 font-display text-xl font-semibold text-white">Trading activity under the chart</p>
+              <p className="text-[10px] font-black uppercase tracking-[0.22em] text-sky-600/80 dark:text-sky-300/70">Positions and Orders</p>
+              <p className="mt-1 font-display text-xl font-semibold text-slate-900 dark:text-white">Trading activity under the chart</p>
             </div>
             <div className="flex gap-2 overflow-x-auto">
               {deskTabs.map((tab) => (
@@ -257,11 +257,11 @@ const TradingTab = ({
                   className={`whitespace-nowrap rounded-2xl px-4 py-2.5 text-sm font-black transition-all ${
                     deskTab === tab.id
                       ? 'bg-gradient-to-r from-slate-100 to-white text-[#171a26] shadow-lg'
-                      : 'bg-[#111620] text-slate-300 hover:bg-white/5 hover:text-white'
+                      : 'bg-white text-slate-600 hover:bg-slate-50 hover:text-slate-900 border border-slate-200 dark:border-transparent dark:bg-[#111620] dark:text-slate-300 dark:hover:bg-white/5 dark:hover:text-white'
                   }`}
                 >
                   {tab.label}
-                  <span className={`ml-2 rounded-full px-2 py-0.5 text-[11px] ${deskTab === tab.id ? 'bg-slate-200 text-slate-700' : 'bg-slate-800 text-slate-400'}`}>
+                  <span className={`ml-2 rounded-full px-2 py-0.5 text-[11px] ${deskTab === tab.id ? 'bg-slate-200 text-slate-700' : 'bg-slate-200 text-slate-500 dark:bg-slate-800 dark:text-slate-400'}`}>
                     {tab.count}
                   </span>
                 </button>

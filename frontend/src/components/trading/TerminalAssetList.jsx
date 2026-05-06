@@ -107,15 +107,15 @@ const TerminalAssetList = ({
   const instrumentCount = watchlistSections.reduce((sum, section) => sum + section.rows.length, 0);
 
   return (
-    <div className="flex h-full flex-col bg-transparent font-sans text-white">
-      <div className="border-b border-slate-700/60 bg-[#1b2030]/95 px-4 py-3.5 backdrop-blur">
+    <div className="flex h-full flex-col bg-transparent font-sans text-slate-900 dark:text-white">
+      <div className="border-b border-slate-200 bg-white/95 px-4 py-3.5 backdrop-blur dark:border-slate-700/60 dark:bg-[#1b2030]/95">
         <div className="flex items-start justify-between gap-3">
           <div>
             <p className="text-[10px] font-black uppercase tracking-[0.22em] text-sky-300/70">Watchlist</p>
-            <p className="mt-1 text-lg font-semibold tracking-tight text-white">Market overview</p>
+            <p className="mt-1 text-lg font-semibold tracking-tight text-slate-900 dark:text-white">Market overview</p>
             <p className="mt-1 text-xs text-slate-400">{instrumentCount} instruments available</p>
           </div>
-          <div className="rounded-full border border-slate-700 bg-[#161b27] px-3 py-1 text-[11px] font-semibold text-slate-300">
+          <div className="rounded-full border border-slate-200 bg-slate-100 px-3 py-1 text-[11px] font-semibold text-slate-600 dark:border-slate-700 dark:bg-[#161b27] dark:text-slate-300">
             {favorites.length} saved
           </div>
         </div>
@@ -127,7 +127,7 @@ const TerminalAssetList = ({
             placeholder="Search..."
             value={searchQuery}
             onChange={(event) => setSearchQuery(event.target.value)}
-            className="w-full rounded-xl border border-slate-700 bg-[#141925] py-2.5 pl-10 pr-4 text-[13px] font-medium text-white outline-none placeholder:text-slate-500 focus:border-sky-400"
+            className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 pl-10 pr-4 text-[13px] font-medium text-slate-900 outline-none placeholder:text-slate-400 focus:border-sky-400 dark:border-slate-700 dark:bg-[#141925] dark:text-white dark:placeholder:text-slate-500"
           />
         </div>
 
@@ -135,7 +135,7 @@ const TerminalAssetList = ({
           <select
             value={selectedGroup}
             onChange={(event) => setSelectedGroup(event.target.value)}
-            className="w-full appearance-none rounded-xl border border-slate-700 bg-[#141925] px-3.5 py-2.5 text-[13px] font-semibold text-white outline-none focus:border-sky-400"
+            className="w-full appearance-none rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-[13px] font-semibold text-slate-900 outline-none focus:border-sky-400 dark:border-slate-700 dark:bg-[#141925] dark:text-white"
           >
             {GROUP_OPTIONS.map((option) => (
               <option key={option.id} value={option.id}>
@@ -147,7 +147,7 @@ const TerminalAssetList = ({
         </div>
       </div>
 
-      <div className="hidden grid-cols-[minmax(0,1.4fr)_0.8fr_0.8fr_0.7fr_0.65fr_auto] items-center gap-3 border-b border-slate-700/60 px-4 py-2.5 text-[9px] font-black uppercase tracking-[0.18em] text-slate-500 md:grid">
+      <div className="hidden grid-cols-[minmax(0,1.4fr)_0.8fr_0.8fr_0.7fr_0.65fr_auto] items-center gap-3 border-b border-slate-200 px-4 py-2.5 text-[9px] font-black uppercase tracking-[0.18em] text-slate-500 md:grid dark:border-slate-700/60">
         <span>Instrument</span>
         <span className="text-right">Sell</span>
         <span className="text-right">Buy</span>
@@ -159,7 +159,7 @@ const TerminalAssetList = ({
       <div className="flex-1 overflow-y-auto custom-scrollbar">
         {watchlistSections.map((section) => (
           <div key={section.label}>
-            <div className="border-b border-slate-800/90 bg-[#171c2a] px-4 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">
+            <div className="border-b border-slate-200 bg-slate-100 px-4 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-slate-500 dark:border-slate-800/90 dark:bg-[#171c2a] dark:text-slate-400">
               {section.label}
             </div>
 
@@ -192,15 +192,15 @@ const TerminalAssetList = ({
                   }}
                   className={`w-full border-b border-slate-800 px-4 py-3 text-left transition-all cursor-pointer ${
                     isActive
-                      ? 'bg-sky-400/8 shadow-[inset_2px_0_0_0_rgba(56,189,248,0.9)]'
-                      : 'hover:bg-white/[0.03]'
+                      ? 'bg-sky-50 shadow-[inset_2px_0_0_0_rgba(56,189,248,0.9)] dark:bg-sky-400/8'
+                      : 'hover:bg-slate-50 dark:hover:bg-white/[0.03]'
                   }`}
                 >
                   <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3 md:grid-cols-[minmax(0,1.4fr)_0.8fr_0.8fr_0.7fr_0.65fr_auto] md:items-center">
                     <div className="min-w-0">
                       <div className="flex items-start justify-between gap-3 md:block">
                         <div className="min-w-0">
-                          <p className="truncate text-[14px] font-semibold uppercase leading-none tracking-tight text-white">
+                          <p className="truncate text-[14px] font-semibold uppercase leading-none tracking-tight text-slate-900 dark:text-white">
                             {formatInstrumentDisplaySymbol(instrument.symbol, { withSlash: false })}
                           </p>
                           <div className="flex items-center gap-1.5 mt-1">
@@ -249,7 +249,7 @@ const TerminalAssetList = ({
                             className={`rounded-full border px-2.5 py-1.5 transition-colors ${
                               isFavorite
                                 ? 'border-amber-300/40 bg-amber-300/12 text-amber-200'
-                                : 'border-slate-700 bg-[#161b27] text-slate-400 hover:text-white'
+                                : 'border-slate-200 bg-white text-slate-500 hover:text-slate-900 dark:border-slate-700 dark:bg-[#161b27] dark:text-slate-400 dark:hover:text-white'
                             }`}
                           >
                             {isFavorite ? <FaStar size={11} /> : <FaRegStar size={11} />}
@@ -288,7 +288,7 @@ const TerminalAssetList = ({
                         className={`rounded-full border px-2.5 py-1.5 transition-colors ${
                           isFavorite
                             ? 'border-amber-300/40 bg-amber-300/12 text-amber-200'
-                            : 'border-slate-700 bg-[#161b27] text-slate-400 hover:text-white'
+                            : 'border-slate-200 bg-white text-slate-500 hover:text-slate-900 dark:border-slate-700 dark:bg-[#161b27] dark:text-slate-400 dark:hover:text-white'
                         }`}
                       >
                         {isFavorite ? <FaStar size={11} /> : <FaRegStar size={11} />}
@@ -303,7 +303,7 @@ const TerminalAssetList = ({
 
         {watchlistSections.length === 0 && (
           <div className="px-4 py-16 text-center">
-            <p className="text-lg font-semibold text-white">No instruments found</p>
+            <p className="text-lg font-semibold text-slate-900 dark:text-white">No instruments found</p>
             <p className="mt-2 text-sm text-slate-500">Try another search term or switch the watchlist filter.</p>
           </div>
         )}

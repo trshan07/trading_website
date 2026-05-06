@@ -50,9 +50,9 @@ const PositionsTable = ({ positions = [], onClose, onModify = () => {}, compact 
 
   if (!positions.length) {
     return (
-      <div className="rounded-3xl border border-slate-700/60 bg-[#131925] px-6 py-14 text-center text-slate-400">
-        <FaChartLine className="mx-auto mb-4 text-slate-600" size={24} />
-        <p className="font-display text-lg font-semibold text-white">No open positions</p>
+      <div className="rounded-3xl border border-slate-200 bg-white px-6 py-14 text-center text-slate-500 dark:border-slate-700/60 dark:bg-[#131925] dark:text-slate-400">
+        <FaChartLine className="mx-auto mb-4 text-slate-300 dark:text-slate-600" size={24} />
+        <p className="font-display text-lg font-semibold text-slate-900 dark:text-white">No open positions</p>
         <p className="mt-2 text-sm">Your active positions will appear here with their live market data.</p>
       </div>
     );
@@ -66,7 +66,7 @@ const PositionsTable = ({ positions = [], onClose, onModify = () => {}, compact 
           const isBuy = position.type === 'BUY';
 
           return (
-            <div key={position.id} className="rounded-3xl border border-slate-700/60 bg-[#131925] p-4">
+            <div key={position.id} className="rounded-3xl border border-slate-200 bg-white p-4 dark:border-slate-700/60 dark:bg-[#131925]">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
@@ -76,7 +76,7 @@ const PositionsTable = ({ positions = [], onClose, onModify = () => {}, compact 
                       {isBuy ? <FaArrowUp size={12} /> : <FaArrowDown size={12} />}
                     </span>
                     <div>
-                      <p className="font-display text-lg font-semibold uppercase tracking-tight text-white">{position.symbol}</p>
+                      <p className="font-display text-lg font-semibold uppercase tracking-tight text-slate-900 dark:text-white">{position.symbol}</p>
                       <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">{position.type}</p>
                     </div>
                   </div>
@@ -100,9 +100,9 @@ const PositionsTable = ({ positions = [], onClose, onModify = () => {}, compact 
                   ['TP', position.takeProfit ? formatMoney(position.takeProfit) : 'Off'],
                   ['SL', position.stopLoss ? formatMoney(position.stopLoss) : 'Off'],
                 ].map(([label, value]) => (
-                  <div key={label} className="rounded-2xl border border-slate-800 bg-[#0e1420] px-3 py-2.5">
+                  <div key={label} className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2.5 dark:border-slate-800 dark:bg-[#0e1420]">
                     <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">{label}</p>
-                    <p className="mt-1 text-sm font-semibold text-slate-100">{value}</p>
+                    <p className="mt-1 text-sm font-semibold text-slate-900 dark:text-slate-100">{value}</p>
                   </div>
                 ))}
               </div>
@@ -110,13 +110,13 @@ const PositionsTable = ({ positions = [], onClose, onModify = () => {}, compact 
               <div className="mt-4 flex gap-2">
                 <button
                   onClick={() => handleProtectionEdit(position)}
-                  className="flex-1 rounded-2xl border border-slate-700 bg-[#0e1420] px-3 py-3 text-xs font-semibold uppercase tracking-[0.18em] text-slate-200 transition-colors hover:border-slate-500"
+                  className="flex-1 rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3 text-xs font-semibold uppercase tracking-[0.18em] text-slate-700 transition-colors hover:border-slate-400 dark:border-slate-700 dark:bg-[#0e1420] dark:text-slate-200 dark:hover:border-slate-500"
                 >
                   Edit
                 </button>
                 <button
                   onClick={() => handlePartialClose(position)}
-                  className="flex-1 rounded-2xl border border-slate-700 bg-[#0e1420] px-3 py-3 text-xs font-semibold uppercase tracking-[0.18em] text-slate-200 transition-colors hover:border-slate-500"
+                  className="flex-1 rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3 text-xs font-semibold uppercase tracking-[0.18em] text-slate-700 transition-colors hover:border-slate-400 dark:border-slate-700 dark:bg-[#0e1420] dark:text-slate-200 dark:hover:border-slate-500"
                 >
                   Partial
                 </button>
@@ -138,11 +138,11 @@ const PositionsTable = ({ positions = [], onClose, onModify = () => {}, compact 
   const totalPnlPositive = totalPnl >= 0;
 
   return (
-    <div className="overflow-hidden rounded-3xl border border-slate-700/60 bg-[#131925]">
+    <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white dark:border-slate-700/60 dark:bg-[#131925]">
       <div className="overflow-x-auto custom-scrollbar">
         <table className="min-w-[1120px] w-full table-fixed">
-          <thead className="bg-[#0f1521]">
-            <tr className="border-b border-slate-700/60 text-left">
+          <thead className="bg-slate-50 dark:bg-[#0f1521]">
+            <tr className="border-b border-slate-200 text-left dark:border-slate-700/60">
               {['Instrument', 'Side', 'Size', 'Entry', 'Market', 'Leverage', 'TP', 'SL', 'Swap', 'Commission', 'P/L', 'Return', 'Actions'].map((heading) => (
                 <th key={heading} className="px-4 py-4 text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">
                   {heading}
@@ -156,7 +156,7 @@ const PositionsTable = ({ positions = [], onClose, onModify = () => {}, compact 
               const isBuy = position.type === 'BUY';
 
               return (
-                <tr key={position.id} className="border-b border-slate-800/80 align-top transition-colors hover:bg-white/[0.03]">
+                <tr key={position.id} className="border-b border-slate-200/80 align-top transition-colors hover:bg-slate-50 dark:border-slate-800/80 dark:hover:bg-white/[0.03]">
                   <td className="px-4 py-4">
                     <div className="flex items-center gap-3">
                       <span className={`inline-flex h-9 w-9 items-center justify-center rounded-full ${
@@ -165,7 +165,7 @@ const PositionsTable = ({ positions = [], onClose, onModify = () => {}, compact 
                         {isBuy ? <FaArrowUp size={12} /> : <FaArrowDown size={12} />}
                       </span>
                       <div className="min-w-0">
-                        <p className="font-display text-base font-semibold uppercase tracking-tight text-white">{position.symbol}</p>
+                        <p className="font-display text-base font-semibold uppercase tracking-tight text-slate-900 dark:text-white">{position.symbol}</p>
                         <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Live market position</p>
                       </div>
                     </div>
@@ -178,19 +178,19 @@ const PositionsTable = ({ positions = [], onClose, onModify = () => {}, compact 
                     </span>
                   </td>
                   <td className="px-4 py-4">
-                    <p className="text-sm font-semibold tabular-nums text-slate-100">{getLotText(position)} lots</p>
+                    <p className="text-sm font-semibold tabular-nums text-slate-900 dark:text-slate-100">{getLotText(position)} lots</p>
                     <p className="mt-1 text-xs text-slate-500">{formatUnits(position.quantity)} {getQuantityLabel(position)}</p>
                   </td>
-                  <td className="px-4 py-4 text-sm font-semibold tabular-nums text-slate-100">{formatMoney(position.entryPrice)}</td>
+                  <td className="px-4 py-4 text-sm font-semibold tabular-nums text-slate-900 dark:text-slate-100">{formatMoney(position.entryPrice)}</td>
                   <td className="px-4 py-4">
-                    <p className="text-sm font-semibold tabular-nums text-slate-100">{formatMoney(position.currentPrice)}</p>
+                    <p className="text-sm font-semibold tabular-nums text-slate-900 dark:text-slate-100">{formatMoney(position.currentPrice)}</p>
                     <p className="mt-1 text-xs text-slate-500">Live</p>
                   </td>
-                  <td className="px-4 py-4 text-sm font-semibold text-slate-100">1:{position.leverage || 1}</td>
-                  <td className="px-4 py-4 text-sm font-semibold tabular-nums text-slate-100">{position.takeProfit ? formatMoney(position.takeProfit) : 'Off'}</td>
-                  <td className="px-4 py-4 text-sm font-semibold tabular-nums text-slate-100">{position.stopLoss ? formatMoney(position.stopLoss) : 'Off'}</td>
-                  <td className="px-4 py-4 text-sm font-semibold tabular-nums text-slate-100">{formatMoney(position.swap)}</td>
-                  <td className="px-4 py-4 text-sm font-semibold tabular-nums text-slate-100">{formatMoney(position.commission)}</td>
+                  <td className="px-4 py-4 text-sm font-semibold text-slate-900 dark:text-slate-100">1:{position.leverage || 1}</td>
+                  <td className="px-4 py-4 text-sm font-semibold tabular-nums text-slate-900 dark:text-slate-100">{position.takeProfit ? formatMoney(position.takeProfit) : 'Off'}</td>
+                  <td className="px-4 py-4 text-sm font-semibold tabular-nums text-slate-900 dark:text-slate-100">{position.stopLoss ? formatMoney(position.stopLoss) : 'Off'}</td>
+                  <td className="px-4 py-4 text-sm font-semibold tabular-nums text-slate-900 dark:text-slate-100">{formatMoney(position.swap)}</td>
+                  <td className="px-4 py-4 text-sm font-semibold tabular-nums text-slate-900 dark:text-slate-100">{formatMoney(position.commission)}</td>
                   <td className={`px-4 py-4 text-sm font-semibold tabular-nums ${isProfit ? 'text-emerald-400' : 'text-rose-400'}`}>
                     {isProfit ? '+' : ''}{formatMoney(position.pnl)}
                   </td>
@@ -201,13 +201,13 @@ const PositionsTable = ({ positions = [], onClose, onModify = () => {}, compact 
                     <div className="flex flex-wrap gap-2">
                       <button
                         onClick={() => handleProtectionEdit(position)}
-                        className="rounded-xl border border-slate-700 bg-[#0e1420] px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-200 transition-colors hover:border-slate-500"
+                        className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-700 transition-colors hover:border-slate-400 dark:border-slate-700 dark:bg-[#0e1420] dark:text-slate-200 dark:hover:border-slate-500"
                       >
                         Edit
                       </button>
                       <button
                         onClick={() => handlePartialClose(position)}
-                        className="rounded-xl border border-slate-700 bg-[#0e1420] px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-200 transition-colors hover:border-slate-500"
+                        className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-700 transition-colors hover:border-slate-400 dark:border-slate-700 dark:bg-[#0e1420] dark:text-slate-200 dark:hover:border-slate-500"
                       >
                         Partial
                       </button>
@@ -227,20 +227,20 @@ const PositionsTable = ({ positions = [], onClose, onModify = () => {}, compact 
         </table>
       </div>
 
-      <div className="grid gap-3 border-t border-slate-700/60 bg-[#0f1521] px-4 py-4 md:grid-cols-3">
-        <div className="rounded-2xl border border-slate-700/60 bg-[#111823] px-4 py-3">
+      <div className="grid gap-3 border-t border-slate-200 bg-slate-50 px-4 py-4 md:grid-cols-3 dark:border-slate-700/60 dark:bg-[#0f1521]">
+        <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 dark:border-slate-700/60 dark:bg-[#111823]">
           <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">Total Positions</p>
-          <p className="mt-2 text-lg font-semibold text-white">{positions.length}</p>
+          <p className="mt-2 text-lg font-semibold text-slate-900 dark:text-white">{positions.length}</p>
         </div>
-        <div className="rounded-2xl border border-slate-700/60 bg-[#111823] px-4 py-3">
+        <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 dark:border-slate-700/60 dark:bg-[#111823]">
           <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">Total P/L</p>
           <p className={`mt-2 text-lg font-semibold tabular-nums ${totalPnlPositive ? 'text-emerald-400' : 'text-rose-400'}`}>
             {totalPnlPositive ? '+' : ''}{formatMoney(totalPnl)}
           </p>
         </div>
-        <div className="rounded-2xl border border-slate-700/60 bg-[#111823] px-4 py-3">
+        <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 dark:border-slate-700/60 dark:bg-[#111823]">
           <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">Long / Short</p>
-          <p className="mt-2 text-lg font-semibold text-white">
+          <p className="mt-2 text-lg font-semibold text-slate-900 dark:text-white">
             {positions.filter((position) => position.type === 'BUY').length} / {positions.filter((position) => position.type === 'SELL').length}
           </p>
         </div>
