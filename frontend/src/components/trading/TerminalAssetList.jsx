@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { FaChevronDown, FaRegStar, FaSearch, FaStar } from 'react-icons/fa';
 import { getDisplayQuoteSnapshot } from '../../utils/spreadCalculator';
 import { buildInstrumentSnapshot, formatInstrumentDisplaySymbol } from '../../utils/marketSymbols';
+import { useTheme } from '../../context/ThemeContext';
 
 const WATCHLIST_SECTIONS = [
   { label: 'FOREX (MAJORS)', symbols: ['EURUSD', 'GBPUSD', 'USDJPY', 'USDCHF', 'AUDUSD', 'USDCAD'] },
@@ -56,6 +57,7 @@ const TerminalAssetList = ({
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedGroup, setSelectedGroup] = useState('all');
+  const { theme } = useTheme();
 
   const instrumentMap = useMemo(
     () => new Map(instruments.map((instrument) => [instrument.symbol, instrument])),
@@ -178,6 +180,9 @@ const TerminalAssetList = ({
               const isPositive = change >= 0;
               const isActive = activeSymbol === instrument.symbol;
               const isFavorite = favorites.includes(instrument.symbol);
+              const activeRowClass = theme === 'dark'
+                ? 'bg-sky-500/10 shadow-[inset_2px_0_0_0_rgba(56,189,248,0.95)]'
+                : 'bg-sky-50 shadow-[inset_2px_0_0_0_rgba(56,189,248,0.9)]';
 
               return (
                 <div
@@ -192,7 +197,7 @@ const TerminalAssetList = ({
                   }}
                   className={`w-full border-b border-slate-200 dark:border-slate-800 px-4 py-3 text-left transition-all cursor-pointer ${
                     isActive
-                      ? 'bg-sky-50 shadow-[inset_2px_0_0_0_rgba(56,189,248,0.9)] dark:bg-sky-400/8'
+                      ? activeRowClass
                       : 'hover:bg-slate-50 dark:hover:bg-white/[0.03]'
                   }`}
                 >

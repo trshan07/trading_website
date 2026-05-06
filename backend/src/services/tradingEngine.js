@@ -990,16 +990,39 @@ const closePosition = async ({ positionId, userId, exitPrice, quantity = null })
 };
 
 const getClosedPositions = async (accountId) => {
-    const { rows } = await db.query(
-        `
-        SELECT *
-        FROM positions
-        WHERE account_id = $1 AND status = 'closed'
-        ORDER BY closed_at DESC NULLS LAST, updated_at DESC NULLS LAST, created_at DESC
-        `,
-        [accountId]
-    );
-    return rows;
+    const accountValue = [accountId];
+
+    try {
+        const { rows } = await db.query(
+            `
+            SELECT *
+            FROM positions
+            WHERE account_id = $1 AND status = 'closed'
+            ORDER BY closed_at DESC NULLS LAST, updated_at DESC NULLS LAST, created_at DESC
+            `,
+            accountValue
+        );
+        return rows;
+    } catch (error) {
+        if (isMissingRelationError(error)) {
+            return [];
+        }
+
+        if (isMissingColumnError(error)) {
+            const { rows } = await db.query(
+                `
+                SELECT *
+                FROM positions
+                WHERE account_id = $1 AND status = 'closed'
+                ORDER BY id DESC
+                `,
+                accountValue
+            );
+            return rows;
+        }
+
+        throw error;
+    }
 };
 
 const calculateAccountRisk = ({ account = {}, positions = [], quotes = {} }) => {

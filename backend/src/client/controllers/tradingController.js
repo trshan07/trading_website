@@ -145,13 +145,13 @@ const getOpenPositions = async (req, res) => {
 const getOpenOrders = async (req, res) => {
     try {
         const { accountId } = req.query;
-        await processPendingOrders({ accountId, userId: req.user.id });
         const orders = await Order.findByAccountId(accountId, 'pending');
         res.json({ success: true, data: orders });
     } catch (error) {
         if (isMissingRelationError(error)) {
             return res.json({ success: true, data: [] });
         }
+        console.error('[Trading] Failed to fetch open orders:', error.message);
         res.status(500).json({ success: false, message: 'Failed to fetch orders' });
     }
 };
@@ -165,6 +165,7 @@ const getClosedTradeHistory = async (req, res) => {
         if (isMissingRelationError(error)) {
             return res.json({ success: true, data: [] });
         }
+        console.error('[Trading] Failed to fetch closed trades:', error.message);
         res.status(500).json({ success: false, message: 'Failed to fetch closed trades' });
     }
 };

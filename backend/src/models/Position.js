@@ -9,6 +9,9 @@ class Position {
             const { rows } = await db.query(query, [userId, limit]);
             return rows;
         } catch (error) {
+            if (isMissingRelationError(error)) {
+                return [];
+            }
             if (isMissingColumnError(error) && getMissingColumnName(error) === 'created_at') {
                 const legacyQuery = 'SELECT * FROM positions WHERE user_id = $1 ORDER BY opened_at DESC LIMIT $2';
                 const { rows } = await db.query(legacyQuery, [userId, limit]);
@@ -32,6 +35,9 @@ class Position {
             const { rows } = await db.query(query, values);
             return rows;
         } catch (error) {
+            if (isMissingRelationError(error)) {
+                return [];
+            }
             if (isMissingColumnError(error) && getMissingColumnName(error) === 'created_at') {
                 let legacyQuery = 'SELECT * FROM positions WHERE account_id = $1';
                 const legacyValues = [accountId];
