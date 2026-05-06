@@ -662,6 +662,139 @@ const listPendingOrders = async ({ accountId = null, userId = null } = {}) => {
     }
 };
 
+const listOpenPositions = async () => {
+    const query = `
+        SELECT *
+        FROM positions
+        WHERE status = 'open'
+        ORDER BY created_at ASC
+    `;
+
+    try {
+        const { rows } = await db.query(query);
+        return rows;
+    } catch (error) {
+        if (isMissingColumnError(error) && getMissingColumnName(error) === 'created_at') {
+            const { rows } = await db.query(`
+                SELECT *
+                FROM positions
+                WHERE status = 'open'
+                ORDER BY id ASC
+            `);
+            return rows;
+        }
+        throw error;
+    }
+};
+
+const shouldAutoClosePosition = ({ position = {}, markPrice = 0 }) => {
+    const normalizedSide = normalizeSide(position.side);
+    const takeProfit = position.take_profit != null ? Number.parseFloat(position.take_profit) : null;
+    const stopLoss = position.stop_loss != null ? Number.parseFloat(position.stop_loss) : null;
+    const price = Number.parseFloat(markPrice) || 0;
+
+    if (!price) {
+        return null;
+    }
+
+    if (normalizedSide === 'buy') {
+        if (takeProfit !== null && price >= takeProfit) {
+            return { reason: 'take_profit', exitPrice: takeProfit };
+        }
+        if (stopLoss !== null && price <= stopLoss) {
+            return { reason: 'stop_loss', exitPrice: stopLoss };
+        }
+        return null;
+    }
+
+    if (takeProfit !== null && price <= takeProfit) {
+        return { reason: 'take_profit', exitPrice: takeProfit };
+    }
+    if (stopLoss !== null && price >= stopLoss) {
+        return { reason: 'stop_loss', exitPrice: stopLoss };
+    }
+
+    return null;
+};
+
+const syncOpenPositionsWithMarket = async () => {
+    const positions = await listOpenPositions();
+    if (positions.length === 0) {
+        return {
+            updatedPositions: [],
+            autoClosed: [],
+            accountIds: [],
+        };
+    }
+
+    const symbols = Array.from(new Set(positions.map((position) => position.symbol).filter(Boolean)));
+    const quotes = await getCanonicalMarketQuotes(symbols, {
+        preferChartAligned: false,
+        refresh: true,
+    });
+
+    const priceUpdates = [];
+    const autoClosed = [];
+
+    for (const position of positions) {
+        const quote = quotes[normalizeSymbol(position.symbol)] || quotes[position.symbol] || {};
+        const markPrice = getMarkPriceForSide(quote, position.side)
+            || Number.parseFloat(position.current_price)
+            || Number.parseFloat(position.entry_price)
+            || 0;
+        const pnl = calculatePositionPnl({
+            side: position.side,
+            entryPrice: Number.parseFloat(position.entry_price) || 0,
+            exitPrice: markPrice,
+            quantity: Number.parseFloat(position.quantity) || 0,
+        });
+
+        priceUpdates.push({
+            id: position.id,
+            current_price: markPrice,
+            pnl,
+        });
+
+        const autoClose = shouldAutoClosePosition({ position, markPrice });
+        if (!autoClose) {
+            continue;
+        }
+
+        try {
+            const result = await closePosition({
+                positionId: position.id,
+                userId: position.user_id,
+                exitPrice: autoClose.exitPrice,
+            });
+
+            autoClosed.push({
+                positionId: position.id,
+                accountId: position.account_id,
+                userId: position.user_id,
+                symbol: position.symbol,
+                reason: autoClose.reason,
+                pnl: result.pnl,
+            });
+        } catch (error) {
+            console.error(`[TradingEngine] Failed to auto-close ${position.symbol} position ${position.id}:`, error.message);
+        }
+    }
+
+    const updatedPositions = await Position.updatePrices(priceUpdates).catch((error) => {
+        console.error('[TradingEngine] Failed to sync open position prices:', error.message);
+        return [];
+    });
+
+    return {
+        updatedPositions,
+        autoClosed,
+        accountIds: Array.from(new Set([
+            ...positions.map((position) => position.account_id),
+            ...autoClosed.map((item) => item.accountId),
+        ].filter(Boolean))),
+    };
+};
+
 const processPendingOrders = async ({ accountId = null, userId = null, symbols = [] } = {}) => {
     const pendingOrders = await listPendingOrders({ accountId, userId });
     if (pendingOrders.length === 0) {
@@ -1001,7 +1134,14 @@ const runTradingEngineCycle = async () => {
     engineRunning = true;
     try {
         const executed = await processPendingOrders();
-        const accountIds = Array.from(new Set(executed.map((item) => item.accountId).filter(Boolean)));
+        const syncResult = await syncOpenPositionsWithMarket().catch((error) => {
+            console.error('Open position sync failed:', error.message);
+            return { accountIds: [] };
+        });
+        const accountIds = Array.from(new Set([
+            ...executed.map((item) => item.accountId),
+            ...(syncResult.accountIds || []),
+        ].filter(Boolean)));
 
         if (accountIds.length > 0) {
             await Promise.all(accountIds.map((accountId) => evaluateAccountRisk(accountId).catch(() => null)));

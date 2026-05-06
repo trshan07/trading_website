@@ -150,8 +150,33 @@ class Position {
     }
 
     static async updatePrices(updates) {
-        // updates = [{id, current_price, pnl}]
-        // This could be a bulk update in a real system, for now we'll do it individually if needed
+        if (!Array.isArray(updates) || updates.length === 0) {
+            return [];
+        }
+
+        const results = await Promise.all(
+            updates
+                .filter((update) => update?.id)
+                .map(async (update) => {
+                    const query = `
+                        UPDATE positions
+                        SET current_price = $1,
+                            pnl = $2,
+                            updated_at = CURRENT_TIMESTAMP
+                        WHERE id = $3 AND status = 'open'
+                        RETURNING *
+                    `;
+                    const values = [
+                        update.current_price ?? update.currentPrice ?? null,
+                        update.pnl ?? 0,
+                        update.id,
+                    ];
+                    const { rows } = await db.query(query, values);
+                    return rows[0] || null;
+                })
+        );
+
+        return results.filter(Boolean);
     }
 }
 

@@ -16,6 +16,7 @@ import { calculateSpreads } from '../utils/spreadCalculator';
 
 const GLOBAL_CHART_QUOTES_REFRESH_MS = 5000;
 const ACTIVE_CHART_SYMBOL_REFRESH_MS = 1000;
+const TRADING_DATA_REFRESH_MS = 3000;
 
 const normalizeInstrument = (instrument = {}) => ({
   symbol: instrument.symbol,
@@ -851,7 +852,7 @@ export const useDashboardData = (accountType = 'demo', activeSymbol = null) => {
       fetchPositions();
       fetchOrders();
       fetchClosedTrades();
-    }, 10000);
+    }, TRADING_DATA_REFRESH_MS);
     return () => clearInterval(pollInterval);
   }, [fetchPositions, fetchOrders, fetchClosedTrades, accountId]);
 
