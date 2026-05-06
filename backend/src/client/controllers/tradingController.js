@@ -131,26 +131,11 @@ const getOpenPositions = async (req, res) => {
     }
 
     try {
-        let risk = null;
-
-        try {
-            await processPendingOrders({ accountId, userId: req.user.id });
-        } catch (error) {
-            console.error('[Trading] Pending order processing failed during getOpenPositions:', error.message);
-        }
-
         const positions = await Position.findByAccountId(accountId, 'open');
-
-        try {
-            risk = await evaluateAccountRisk(accountId, req.user.id);
-        } catch (error) {
-            console.error('[Trading] Risk evaluation failed during getOpenPositions:', error.message);
-        }
-
-        return res.json({ success: true, data: positions, risk });
+        return res.json({ success: true, data: positions });
     } catch (error) {
         if (isMissingRelationError(error)) {
-            return res.json({ success: true, data: [], risk: null });
+            return res.json({ success: true, data: [] });
         }
         console.error('[Trading] Failed to fetch positions:', error.message);
         return res.status(500).json({ success: false, message: 'Failed to fetch positions' });

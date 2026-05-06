@@ -712,10 +712,17 @@ export const useDashboardData = (accountType = 'demo', activeSymbol = null) => {
     const token = localStorage.getItem('token');
     if (!token) return; // No token = don't fire, avoids 401 spam after logout
     try {
-      const response = await tradingService.getOpenPositions(accountId);
-      if (response.success) {
-        setAccountRisk(response.risk || null);
-        setRawPositions(response.data || []);
+      const [positionsResult, riskResult] = await Promise.allSettled([
+        tradingService.getOpenPositions(accountId),
+        tradingService.getRiskSnapshot(accountId),
+      ]);
+
+      if (positionsResult.status === 'fulfilled' && positionsResult.value.success) {
+        setRawPositions(positionsResult.value.data || []);
+      }
+
+      if (riskResult.status === 'fulfilled' && riskResult.value.success) {
+        setAccountRisk(riskResult.value.data || null);
       }
     } catch (error) {
       console.error('Failed to fetch positions:', error);
