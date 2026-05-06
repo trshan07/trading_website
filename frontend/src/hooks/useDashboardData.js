@@ -1019,9 +1019,18 @@ export const useDashboardData = (accountType = 'demo', activeSymbol = null) => {
         });
 
         if (response.success) {
-            await fetchPositions();
-            await fetchClosedTrades();
+            const executedPosition = response.data?.position;
+            if (executedPosition?.id) {
+              setRawPositions((prev) => {
+                const filtered = prev.filter((position) => position.id !== executedPosition.id);
+                return [executedPosition, ...filtered];
+              });
+            }
+
             toast.success(`${order.side} order executed`);
+            fetchPositions();
+            fetchOrders();
+            fetchClosedTrades();
             refreshUser();
             return true;
         }
