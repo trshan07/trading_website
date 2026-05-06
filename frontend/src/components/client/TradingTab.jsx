@@ -124,6 +124,14 @@ const TradingTab = ({
   const chartChange = Number(selectedInstrument.change || 0);
   const chartTone = chartChange >= 0 ? 'text-emerald-400' : 'text-rose-400';
   const compactTables = windowWidth < 1380;
+  const sellCardClass = theme === 'dark'
+    ? 'rounded-2xl border border-rose-400/45 bg-gradient-to-br from-[#3b1f2b] to-[#2a1720] px-4 py-3 shadow-[0_12px_28px_rgba(244,63,94,0.14)]'
+    : 'rounded-2xl border border-rose-300 bg-rose-100 px-4 py-3 shadow-sm';
+  const buyCardClass = theme === 'dark'
+    ? 'rounded-2xl border border-teal-400/45 bg-gradient-to-br from-[#15343a] to-[#10292e] px-4 py-3 shadow-[0_12px_28px_rgba(45,212,191,0.14)]'
+    : 'rounded-2xl border border-teal-300 bg-teal-100 px-4 py-3 shadow-sm';
+  const sellLabelClass = theme === 'dark' ? 'text-rose-100' : 'text-rose-700';
+  const buyLabelClass = theme === 'dark' ? 'text-teal-50' : 'text-teal-800';
 
   const filteredPositions = useMemo(
     () => positions.filter((position) => normalizeSymbol(position?.symbol) === normalizedActiveSymbol),
@@ -220,13 +228,13 @@ const TradingTab = ({
             >
               Open Order Ticket
             </button>
-            <div className="rounded-2xl border border-rose-300 bg-rose-100 px-4 py-3 shadow-sm dark:border-rose-400/35 dark:bg-rose-500/18">
-              <p className="text-[10px] font-black uppercase tracking-[0.18em] text-rose-700 dark:text-rose-100">Sell</p>
-              <p className="mt-1 text-xl font-semibold leading-none tabular-nums text-rose-700 dark:text-rose-100 sm:text-2xl">{bidPrice}</p>
+            <div className={sellCardClass}>
+              <p className={`text-[10px] font-black uppercase tracking-[0.18em] ${sellLabelClass}`}>Sell</p>
+              <p className={`mt-1 text-xl font-semibold leading-none tabular-nums sm:text-2xl ${sellLabelClass}`}>{bidPrice}</p>
             </div>
-            <div className="rounded-2xl border border-teal-300 bg-teal-100 px-4 py-3 shadow-sm dark:border-teal-400/35 dark:bg-teal-400/18">
-              <p className="text-[10px] font-black uppercase tracking-[0.18em] text-teal-800 dark:text-teal-50">Buy</p>
-              <p className="mt-1 text-xl font-semibold leading-none tabular-nums text-teal-800 dark:text-teal-50 sm:text-2xl">{askPrice}</p>
+            <div className={buyCardClass}>
+              <p className={`text-[10px] font-black uppercase tracking-[0.18em] ${buyLabelClass}`}>Buy</p>
+              <p className={`mt-1 text-xl font-semibold leading-none tabular-nums sm:text-2xl ${buyLabelClass}`}>{askPrice}</p>
             </div>
           </div>
         </div>
