@@ -536,7 +536,7 @@ const BankingTab = ({
                   </p>
                 </div>
               </div>
-              <div className="pt-6 border-t border-slate-800">
+              <div className="pt-6 border-t border-slate-200 dark:border-slate-800">
                 <div className="flex justify-between items-center mb-2">
                   <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Pending Withdrawals</span>
                   <span className="text-xs font-black text-amber-500 italic">${walletData.pendingWithdrawals?.toLocaleString() || '0'}</span>
@@ -569,7 +569,7 @@ const BankingTab = ({
                     <item.icon className="mr-4 text-gold-500 group-hover:text-gold-400 transition-colors" />
                     {item.label}
                   </span>
-                  <FaArrowRight size={10} className="text-slate-300 dark:text-slate-600 group-hover:text-gold-500 dark:group-hover:text-slate-900 group-hover:translate-x-1 transition-all" />
+                  <FaArrowRight size={10} className="text-slate-400 dark:text-slate-600 group-hover:text-gold-500 dark:group-hover:text-slate-900 group-hover:translate-x-1 transition-all" />
                 </button>
               ))}
             </div>
@@ -690,7 +690,7 @@ const BankingTab = ({
                       }`}
                     >
                       <div className="flex items-center space-x-5">
-                        <method.icon className={selectedMethod === method.id ? 'text-gold-500 dark:text-slate-900' : 'text-slate-300 dark:text-slate-600'} size={24} />
+                        <method.icon className={selectedMethod === method.id ? 'text-gold-500 dark:text-slate-900' : 'text-slate-500 dark:text-slate-600'} size={24} />
                         <div className="text-left font-black uppercase italic tracking-widest text-[10px]">
                           <p className={selectedMethod === method.id ? 'text-white dark:text-slate-900' : 'text-slate-900 dark:text-white transition-colors'}>{method.name}</p>
                           <p className="text-slate-500 dark:text-slate-400 mt-1 opacity-70 transition-colors">{method.processing} | {method.fee} Ratio</p>
@@ -705,7 +705,7 @@ const BankingTab = ({
                <div className="space-y-4">
                 <label className="text-[10px] uppercase font-black text-slate-400 tracking-[0.3em] ml-2">Injection Magnitude</label>
                 <div className="relative">
-                  <span className="absolute left-6 top-1/2 -translate-y-1/2 text-2xl font-black text-slate-300 dark:text-slate-700 italic">$</span>
+                  <span className="absolute left-6 top-1/2 -translate-y-1/2 text-2xl font-black text-slate-400 dark:text-slate-700 italic">$</span>
                   <input
                     type="number"
                     value={depositAmount}
@@ -760,7 +760,7 @@ const BankingTab = ({
                       <label className="flex items-center justify-between gap-4 px-4 py-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl cursor-pointer hover:border-gold-500/50 transition-all">
                         <div className="flex items-center gap-3">
                           <FaUpload className="text-gold-500 text-xs" />
-                          <span className="text-[10px] font-bold text-slate-300 truncate max-w-[200px]">
+                          <span className="text-[10px] font-bold text-slate-600 dark:text-slate-300 truncate max-w-[200px]">
                             {depositProofName || 'Upload transaction receipt'}
                           </span>
                         </div>
@@ -833,7 +833,7 @@ const BankingTab = ({
                         : 'border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/20 text-slate-400 dark:text-slate-500 hover:border-slate-300 dark:hover:border-slate-600'
                     }`}
                   >
-                    <method.icon size={24} className={selectedMethod === method.id ? 'text-gold-500 dark:text-slate-900' : 'text-slate-300 dark:text-slate-600'} />
+                    <method.icon size={24} className={selectedMethod === method.id ? 'text-gold-500 dark:text-slate-900' : 'text-slate-500 dark:text-slate-600'} />
                     <span className="text-[10px] font-black uppercase tracking-widest">{method.name}</span>
                   </button>
                 ))}
@@ -842,7 +842,7 @@ const BankingTab = ({
               {/* Amount Input */}
               <div className="space-y-4">
                 <div className="relative">
-                  <span className="absolute left-6 top-1/2 -translate-y-1/2 text-2xl font-black text-slate-300 dark:text-slate-700 italic">$</span>
+                  <span className="absolute left-6 top-1/2 -translate-y-1/2 text-2xl font-black text-slate-400 dark:text-slate-700 italic">$</span>
                   <input
                     type="number"
                     value={withdrawAmount}

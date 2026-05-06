@@ -54,7 +54,7 @@ const TransferModal = ({ isOpen, onClose, walletData, onConfirm }) => {
                     : 'border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 text-slate-400 hover:border-slate-300 dark:hover:border-slate-600'
                 }`}
               >
-                <FaWallet className={`mb-4 text-xl ${fromAccount === 'wallet' ? 'text-gold-500' : 'text-slate-300'}`} />
+                <FaWallet className={`mb-4 text-xl ${fromAccount === 'wallet' ? 'text-gold-500' : 'text-slate-500 dark:text-slate-300'}`} />
                 <p className={`text-[11px] font-black uppercase tracking-widest ${fromAccount === 'wallet' ? 'text-white dark:text-slate-900' : 'text-slate-900 dark:text-slate-100'}`}>Primary Vault</p>
                 <p className="text-[9px] font-medium opacity-60 mt-1">${walletData.mainWallet?.toLocaleString()}</p>
               </button>
@@ -67,7 +67,7 @@ const TransferModal = ({ isOpen, onClose, walletData, onConfirm }) => {
                     : 'border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 text-slate-400 hover:border-slate-300 dark:hover:border-slate-600'
                 }`}
               >
-                <FaChartLine className={`mb-4 text-xl ${fromAccount === 'trading' ? 'text-gold-500' : 'text-slate-300'}`} />
+                <FaChartLine className={`mb-4 text-xl ${fromAccount === 'trading' ? 'text-gold-500' : 'text-slate-500 dark:text-slate-300'}`} />
                 <p className={`text-[11px] font-black uppercase tracking-widest ${fromAccount === 'trading' ? 'text-white dark:text-slate-900' : 'text-slate-900 dark:text-slate-100'}`}>Active Margin</p>
                 <p className="text-[9px] font-medium opacity-60 mt-1">${walletData.tradingWallet?.toLocaleString()}</p>
               </button>

@@ -55,7 +55,7 @@ const Sidebar = ({ activeTab, onTabChange, onLogout, user, portfolio, showBalanc
     if (activeMetric === 'margin') return {
       label: 'Used Margin',
       value: showBalance ? formatSidebarCurrency(portfolio?.margin ?? 0) : 'â€¢â€¢â€¢â€¢',
-      color: 'text-slate-300',
+      color: 'text-slate-500 dark:text-slate-300',
     };
     if (activeMetric === 'pnl') return {
       label: 'Positions Count',
@@ -118,7 +118,7 @@ const Sidebar = ({ activeTab, onTabChange, onLogout, user, portfolio, showBalanc
 
           {/* Metric Value */}
           <div className="relative z-10">
-            <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-0.5 whitespace-nowrap">
+            <p className="text-[9px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-0.5 whitespace-nowrap">
               {activeMetric === 'balance' ? 'Total Balance' : 
                activeMetric === 'equity' ? 'Total Equity' : 
                activeMetric === 'margin' ? 'Free Margin' : 'Float Profit/Loss'}
@@ -133,7 +133,7 @@ const Sidebar = ({ activeTab, onTabChange, onLogout, user, portfolio, showBalanc
 
             <div className="pt-3 border-t border-slate-200/80 dark:border-white/10 flex justify-between items-center whitespace-nowrap">
               <div>
-                <p className="text-[8px] font-black uppercase text-slate-500 tracking-wider">{sub?.label}</p>
+                <p className="text-[8px] font-black uppercase text-slate-500 dark:text-slate-400 tracking-wider">{sub?.label}</p>
                 <p className={`text-xs font-bold mt-0.5 ${sub?.color}`}>{sub?.value}</p>
               </div>
               {activeMetric === 'equity' && (

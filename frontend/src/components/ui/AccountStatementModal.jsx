@@ -102,7 +102,7 @@ const AccountStatementModal = ({
               <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 block ml-1">Date Range</label>
               <div className="grid grid-cols-2 gap-3">
                 <div className="relative">
-                  <FaCalendarAlt className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={12} />
+                  <FaCalendarAlt className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-300" size={12} />
                   <input
                     type="date"
                     value={dateRange.start}
@@ -111,7 +111,7 @@ const AccountStatementModal = ({
                   />
                 </div>
                 <div className="relative">
-                  <FaCalendarAlt className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={12} />
+                  <FaCalendarAlt className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-300" size={12} />
                   <input
                     type="date"
                     value={dateRange.end}
@@ -137,7 +137,7 @@ const AccountStatementModal = ({
             <span>{loading ? 'Generating...' : 'Download Statement'}</span>
           </button>
 
-          <p className="text-[8px] font-black uppercase tracking-[0.25em] text-slate-300 dark:text-slate-600 text-center">
+          <p className="text-[8px] font-black uppercase tracking-[0.25em] text-slate-500 dark:text-slate-600 text-center">
             Export includes banking requests and internal transfer entries
           </p>
         </div>

@@ -70,7 +70,7 @@ const UploadModal = ({ isOpen, onClose, onUpload }) => {
                   <FaCloudUploadAlt className="text-gold-500 text-3xl group-hover/upload:animate-bounce" />
                 </div>
                 <p className="text-slate-900 dark:text-white text-xs font-black uppercase tracking-widest mb-2 italic transition-colors">Deploy File Stream</p>
-                <p className="text-slate-400 text-[9px] uppercase font-black tracking-widest opacity-60">PDF, JPG, PNG | MAGNITUDE 10MB MAX</p>
+                <p className="text-slate-500 dark:text-slate-400 text-[9px] uppercase font-black tracking-widest opacity-80 dark:opacity-60">PDF, JPG, PNG | MAGNITUDE 10MB MAX</p>
               </label>
             </div>
           </div>
@@ -89,7 +89,7 @@ const UploadModal = ({ isOpen, onClose, onUpload }) => {
           </div>
 
           <div className="pt-4 text-center">
-            <p className="text-[9px] font-black text-slate-300 uppercase tracking-widest italic flex items-center justify-center">
+            <p className="text-[9px] font-black text-slate-500 dark:text-slate-300 uppercase tracking-widest italic flex items-center justify-center">
               <FaShieldAlt className="mr-2 text-emerald-400" /> End-to-end Vault Encryption Active
             </p>
           </div>

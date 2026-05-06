@@ -196,7 +196,7 @@ const DocumentsTab = ({ documents, onUpload }) => {
                       <td className="px-8 py-6 text-[10px] font-black text-slate-500 border-y border-slate-50 group-hover:border-gold-500/20 uppercase tracking-widest">{doc.category}</td>
                       <td className="px-8 py-6 text-[10px] font-black text-slate-400 border-y border-slate-50 group-hover:border-gold-500/20 tracking-tighter lowercase italic">{doc.type}</td>
                       <td className="px-8 py-6 text-[10px] font-bold text-right text-slate-400 border-y border-slate-50 group-hover:border-gold-500/20 italic">{doc.size}</td>
-                      <td className="px-8 py-6 text-[10px] font-bold text-right text-slate-300 border-y border-slate-50 group-hover:border-gold-500/20 uppercase tracking-tighter">{doc.uploadDate}</td>
+                      <td className="px-8 py-6 text-[10px] font-bold text-right text-slate-500 dark:text-slate-300 border-y border-slate-50 group-hover:border-gold-500/20 uppercase tracking-tighter">{doc.uploadDate}</td>
                       <td className="px-8 py-6 border-y border-slate-50 group-hover:border-gold-500/20 text-center">
                         <span className={`px-4 py-1.5 text-[9px] font-black rounded-full uppercase tracking-widest shadow-sm ${
                           doc.status === 'Verified' ? 'bg-emerald-500 text-white' : doc.status === 'Rejected' ? 'bg-red-500 text-white' : 'bg-gold-500 text-white'
@@ -238,15 +238,15 @@ const DocumentsTab = ({ documents, onUpload }) => {
           )
         ) : (
           <div className="text-center py-24 bg-slate-50/50 rounded-[1.5rem] sm:rounded-[2.5rem] border border-dashed border-slate-200">
-            <FaFileAlt className="mx-auto text-slate-200 text-5xl sm:text-7xl mb-6 opacity-50" />
-            <p className="text-slate-400 font-black uppercase tracking-[0.3em] text-sm italic">Vault Empty</p>
-            <p className="text-[10px] text-slate-300 mt-2 uppercase tracking-widest">No matching records found in our archive</p>
+            <FaFileAlt className="mx-auto text-slate-300 dark:text-slate-200 text-5xl sm:text-7xl mb-6 opacity-60" />
+            <p className="text-slate-500 dark:text-slate-400 font-black uppercase tracking-[0.3em] text-sm italic">Vault Empty</p>
+            <p className="text-[10px] text-slate-500 dark:text-slate-300 mt-2 uppercase tracking-widest">No matching records found in our archive</p>
           </div>
         )}
 
         {/* Footer */}
         <div className="mt-12 pt-8 border-t border-slate-100 flex flex-col sm:flex-row justify-between items-center gap-6">
-          <p className="text-[10px] font-black text-slate-300 uppercase tracking-[0.3em] italic">
+          <p className="text-[10px] font-black text-slate-500 dark:text-slate-300 uppercase tracking-[0.3em] italic">
             SECURE ARCHIVE: {filteredDocuments.length} OBJECTS VISIBLE
           </p>
           <div className="flex items-center space-x-3 bg-white dark:bg-slate-900 px-6 py-2.5 rounded-full shadow-xl shadow-slate-200/60 dark:shadow-slate-900/10 border border-slate-200 dark:border-slate-800 transition-colors">
