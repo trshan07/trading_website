@@ -74,8 +74,9 @@ INSERT INTO instruments (
 -- Commodities
 ('XAUUSD', 'Gold', 'Commodities', 2340.5, 0.85, '42.1B', 'twelvedata', 'XAUUSD=X', 'XAU/USD', 'OANDA:XAUUSD', FALSE, 2, 0.42, 100, 0.01, 0.01, 'oz'),
 ('XAGUSD', 'Silver', 'Commodities', 28.45, 1.2, '8.4B', 'twelvedata', 'XAGUSD=X', 'XAG/USD', 'OANDA:XAGUSD', FALSE, 3, 0.094, 5000, 0.01, 0.01, 'oz'),
-('WTI', 'WTI Crude Oil', 'Commodities', 78.42, -0.53, '10.8B', 'twelvedata', 'CL=F', 'CL1!', 'TVC:USOIL', FALSE, 3, 0.04, 1000, 0.01, 0.01, 'bbl'),
-('BRENT', 'Brent Oil', 'Commodities', 82.4, -0.6, '12.1B', 'twelvedata', 'BZ=F', 'BRN1!', 'TVC:UKOIL', FALSE, 3, 0.08, 1000, 0.01, 0.01, 'bbl'),
+('WTI', 'WTI Crude Oil', 'Commodities', 78.42, -0.53, '10.8B', 'twelvedata', 'CL=F', 'WTI/USD', 'TVC:USOIL', FALSE, 3, 0.04, 1000, 0.01, 0.01, 'bbl'),
+('BRENT', 'Brent Oil', 'Commodities', 82.4, -0.6, '12.1B', 'twelvedata', 'BZ=F', 'XBR/USD', 'TVC:UKOIL', FALSE, 3, 0.08, 1000, 0.01, 0.01, 'bbl'),
+('NATGAS', 'Natural Gas', 'Commodities', 2.45, 0.05, '5.2B', 'twelvedata', 'NG=F', 'NG/USD', 'TVC:NATGAS', FALSE, 3, 0.005, 10000, 0.01, 0.01, 'mmbtu'),
 -- Brazilian Index
 ('IBOV', 'BOVESPA', 'Brazilian Index', 128500, 0.45, '24.1B', 'twelvedata', '^BVSP', 'IBOV', 'BMFBOVESPA:IBOV', FALSE, 2, 5, 1, 0.01, 0.01, 'index units'),
 -- Futures

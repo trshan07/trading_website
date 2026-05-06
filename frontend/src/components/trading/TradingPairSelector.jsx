@@ -30,6 +30,13 @@ const TradingPairSelector = ({ selectedSymbol, onSelectSymbol }) => {
       { symbol: 'SPX', name: 'S&P 500', price: 4850, change: 0.32 },
       { symbol: 'NDX', name: 'Nasdaq', price: 16800, change: 0.45 },
     ],
+    'Commodities': [
+      { symbol: 'XAUUSD', name: 'Gold', price: 2340.50, change: 0.85 },
+      { symbol: 'XAGUSD', name: 'Silver', price: 28.45, change: 1.20 },
+      { symbol: 'WTI', name: 'WTI Crude Oil', price: 78.42, change: -0.53 },
+      { symbol: 'BRENT', name: 'Brent Oil', price: 82.40, change: -0.60 },
+      { symbol: 'NATGAS', name: 'Natural Gas', price: 2.45, change: 0.05 },
+    ],
     'Funds': [
       { symbol: 'SPY', name: 'SPDR S&P 500 ETF', price: 484.50, change: 0.31 },
       { symbol: 'QQQ', name: 'Invesco QQQ', price: 412.30, change: 0.42 },

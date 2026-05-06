@@ -52,9 +52,10 @@ export const resolveTradingViewSymbol = ({ symbol, instrument }) => {
       const parts = symbol.split(':');
       const base = parts[parts.length - 1];
       
-      // Special case for Oil
+      // Special case for Commodities
       if (base === 'BRN1!' || base === 'BRENT') return 'TVC:UKOIL';
       if (base === 'CL1!' || base === 'USOIL') return 'TVC:USOIL';
+      if (base === 'NATGAS') return 'TVC:NATGAS';
       
       return `TVC:${base}`;
     }

@@ -277,9 +277,8 @@ const buildTradePreview = async ({ account = null, payload = {}, side = null }) 
         exitPrice: trade.stopLoss,
         quantity: trade.quantity,
     });
-    const freeMargin = account
-        ? ((Number.parseFloat(account.balance) || 0) + (Number.parseFloat(account.credit) || 0))
-        : null;
+    const risk = account ? await evaluateAccountRisk(account.id) : null;
+    const freeMargin = risk ? risk.risk.freeMargin : (account ? (Number.parseFloat(account.balance) + Number.parseFloat(account.credit)) : null);
     const tradeSide = String(trade.side).toLowerCase();
     const pnlFormula = meta.categoryKey === 'forex'
         ? 'profit = movement * pip_value'
@@ -421,34 +420,22 @@ const getAccountAvailableFunds = (account = {}) =>
 const deductMarginFromAccount = async ({ accountId, account, requiredMargin }) => {
     const accountBalance = Number.parseFloat(account.balance) || 0;
     const accountCredit = Number.parseFloat(account.credit) || 0;
-    const availableFunds = accountBalance + accountCredit;
+    
+    // We check against Equity/Free Margin for a more accurate check
+    const riskData = await evaluateAccountRisk(accountId);
+    const availableToMargin = riskData ? riskData.risk.freeMargin : (accountBalance + accountCredit);
 
-    if (availableFunds < requiredMargin) {
-        throw new Error(`Insufficient funds for margin ($${requiredMargin.toFixed(2)} required, $${availableFunds.toFixed(2)} available)`);
+    if (availableToMargin < requiredMargin) {
+        throw new Error(`Insufficient free margin ($${requiredMargin.toFixed(2)} required, $${availableToMargin.toFixed(2)} available)`);
     }
 
-    let newBalance = accountBalance;
-    let newCredit = accountCredit;
-    let remaining = requiredMargin;
-
-    if (newCredit >= remaining) {
-        newCredit -= remaining;
-        remaining = 0;
-    } else {
-        remaining -= newCredit;
-        newCredit = 0;
-        newBalance -= remaining;
-        remaining = 0;
-    }
-
-    await Account.updateCredit(accountId, newCredit);
-    await Account.updateBalance(accountId, newBalance);
-
+    // Margin is NOT deducted from balance. We only verify availability.
+    // Balance only changes when trades are closed (Realized P&L).
     return {
         accountBalance,
         accountCredit,
-        newBalance,
-        newCredit,
+        newBalance: accountBalance,
+        newCredit: accountCredit,
     };
 };
 
@@ -461,8 +448,9 @@ const creditMarginAndPnlToAccount = async ({ accountId, userId, realizedMargin, 
     const currentBalance = Number.parseFloat(currentAccount.balance) || 0;
     const currentCredit = Number.parseFloat(currentAccount.credit) || 0;
 
-    let newCredit = currentCredit + realizedMargin;
+    // Realized P&L updates balance. Margin is simply unlocked (not credited back as it was never deducted).
     let newBalance = currentBalance;
+    let newCredit = currentCredit;
 
     if (pnl >= 0) {
         newBalance += pnl;
@@ -477,8 +465,8 @@ const creditMarginAndPnlToAccount = async ({ accountId, userId, realizedMargin, 
         }
     }
 
-    await Account.updateCredit(accountId, newCredit);
-    await Account.updateBalance(accountId, newBalance);
+    if (newCredit !== currentCredit) await Account.updateCredit(accountId, newCredit);
+    if (newBalance !== currentBalance) await Account.updateBalance(accountId, newBalance);
 
     return {
         currentBalance,
@@ -541,11 +529,11 @@ const createExecutedPosition = async ({ userId, accountId, symbol, side, amount,
     await Transaction.create(userId, {
         account_id: accountId,
         type: 'Trade',
-        amount: -margin,
+        amount: 0, // No balance deduction for margin
         balance_before: funds.accountBalance,
         balance_after: funds.newBalance,
         reference_id: order?.id || position.id,
-        description: `Margin for ${side.toUpperCase()} ${symbol}`,
+        description: `Allocated margin for ${side.toUpperCase()} ${symbol}`,
     });
 
     await createActivityLog(userId, 'EXECUTION', `Opened ${side.toUpperCase()} ${symbol} Position`);
@@ -729,7 +717,7 @@ const syncOpenPositionsWithMarket = async () => {
 
     const symbols = Array.from(new Set(positions.map((position) => position.symbol).filter(Boolean)));
     const quotes = await getCanonicalMarketQuotes(symbols, {
-        preferChartAligned: false,
+        preferChartAligned: true,
         refresh: true,
     });
 
@@ -806,7 +794,7 @@ const processPendingOrders = async ({ accountId = null, userId = null, symbols =
         : pendingOrders.map((order) => order.symbol);
     const uniqueSymbols = Array.from(new Set(requestedSymbols));
     const quotes = await getCanonicalMarketQuotes(uniqueSymbols, {
-        preferChartAligned: false,
+        preferChartAligned: true,
         refresh: true,
     });
     const executed = [];
@@ -1078,7 +1066,7 @@ const evaluateAccountRisk = async (accountId, userId = null) => {
 
     const symbols = Array.from(new Set(positions.map((position) => position.symbol)));
     const quotes = await getCanonicalMarketQuotes(symbols, {
-        preferChartAligned: false,
+        preferChartAligned: true,
         refresh: true,
     });
     const risk = calculateAccountRisk({ account, positions, quotes });

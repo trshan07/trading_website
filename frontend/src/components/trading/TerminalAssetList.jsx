@@ -8,7 +8,7 @@ const WATCHLIST_SECTIONS = [
   { label: 'FOREX (MAJORS)', symbols: ['EURUSD', 'GBPUSD', 'USDJPY', 'USDCHF', 'AUDUSD', 'USDCAD'] },
   { label: 'FOREX (MINORS & EXOTICS)', symbols: ['EURGBP', 'EURJPY', 'GBPJPY', 'USDSGD', 'USDTRY'] },
   { label: 'INDICES (CFD SYMBOLS)', symbols: ['US500', 'NAS100', 'US30', 'UK100', 'DE40', 'JP225'] },
-  { label: 'COMMODITIES', symbols: ['XAUUSD', 'XAGUSD', 'WTI', 'BRENT'] },
+  { label: 'COMMODITIES', symbols: ['XAUUSD', 'XAGUSD', 'WTI', 'BRENT', 'NATGAS'] },
   { label: 'CRYPTOCURRENCIES', symbols: ['BTCUSD', 'ETHUSD', 'XRPUSD'] },
   { label: 'STOCKS (US SHARES CFD)', symbols: ['AAPL', 'TSLA', 'AMZN', 'MSFT'] },
 ];

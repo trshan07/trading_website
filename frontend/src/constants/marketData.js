@@ -29,6 +29,7 @@ export const MARKET_INSTRUMENTS = [
   { symbol: 'XAGUSD', name: 'Silver', category: 'Commodities', price: 28.4500, change: 1.20, volume: '$8.4B' },
   { symbol: 'WTI', name: 'WTI Crude Oil', category: 'Commodities', price: 78.42, change: -0.53, volume: '$10.8B' },
   { symbol: 'BRENT', name: 'Brent Oil', category: 'Commodities', price: 82.40, change: -0.60, volume: '$12.1B' },
+  { symbol: 'NATGAS', name: 'Natural Gas', category: 'Commodities', price: 2.45, change: 0.05, volume: '$5.2B' },
 
   // Crypto
   { symbol: 'BTCUSD', name: 'Bitcoin / USD', category: 'Crypto', price: 43250.00, change: 2.50, volume: '$28.4B' },

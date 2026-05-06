@@ -57,7 +57,7 @@ exports.getMarketQuotes = async (req, res) => {
 
   try {
     const data = await getCanonicalMarketQuotes(Array.from(new Set(requestedSymbols)), {
-      preferChartAligned: false,
+      preferChartAligned: true,
       refresh: true,
     });
     return res.status(200).json({

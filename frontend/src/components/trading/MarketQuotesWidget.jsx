@@ -67,9 +67,9 @@ const MarketQuotesWidget = ({ category = 'Forex', theme = 'dark', height = '500'
                 symbols: [
                     { name: "OANDA:XAUUSD", displayName: "Gold" },
                     { name: "OANDA:XAGUSD", displayName: "Silver" },
-                    { name: "NYMEX:CL1!", displayName: "Crude Oil" },
-                    { name: "NYMEX:NG1!", displayName: "Natural Gas" },
-                    { name: "COMEX:HG1!", displayName: "Copper" }
+                    { name: "TVC:USOIL", displayName: "Crude Oil" },
+                    { name: "TVC:UKOIL", displayName: "Brent Oil" },
+                    { name: "TVC:NATGAS", displayName: "Natural Gas" }
                 ]
             }];
             break;

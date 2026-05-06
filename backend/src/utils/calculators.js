@@ -71,36 +71,48 @@ const DEFAULT_MOVEMENT_VALUE_LABELS = {
 
 const SYMBOL_RULE_OVERRIDES = {
     XAUUSD: {
-        pointSize: 0.01,
-        movementLabel: 'Points',
-        movementValueLabel: 'Point Value',
+        contractSize: 100,      // 1 lot = 100 oz (0.01 lot = 1 oz)
+        pointSize: 0.01,        // 1 pip = $0.01 move
+        movementLabel: 'Pips',
+        movementValueLabel: 'Pip Value',
         quantityLabel: 'oz',
         calculationMode: 'commodity-usd',
     },
     XAGUSD: {
+        contractSize: 5000,
         pointSize: 0.001,
-        movementLabel: 'Points',
-        movementValueLabel: 'Point Value',
+        movementLabel: 'Pips',
+        movementValueLabel: 'Pip Value',
         quantityLabel: 'oz',
         calculationMode: 'commodity-usd',
     },
-    BRENT: {
-        pointSize: 0.001,
-        movementLabel: 'Points',
-        movementValueLabel: 'Point Value',
-        calculationMode: 'commodity-usd',
-    },
     WTI: {
-        pointSize: 0.001,
-        movementLabel: 'Points',
-        movementValueLabel: 'Point Value',
+        contractSize: 1000,
+        pointSize: 0.01,
+        movementLabel: 'Pips',
+        movementValueLabel: 'Pip Value',
         calculationMode: 'commodity-usd',
     },
-    'CL1!': {
+    BRENT: {
+        contractSize: 1000,
+        pointSize: 0.01,
+        movementLabel: 'Pips',
+        movementValueLabel: 'Pip Value',
+        calculationMode: 'commodity-usd',
+    },
+    NATGAS: {
+        contractSize: 10000,
         pointSize: 0.001,
-        movementLabel: 'Points',
-        movementValueLabel: 'Point Value',
-        calculationMode: 'futures-usd',
+        movementLabel: 'Pips',
+        movementValueLabel: 'Pip Value',
+        calculationMode: 'commodity-usd',
+    },
+    NG: {
+        contractSize: 10000,
+        pointSize: 0.001,
+        movementLabel: 'Pips',
+        movementValueLabel: 'Pip Value',
+        calculationMode: 'commodity-usd',
     },
 };
 
@@ -124,7 +136,7 @@ const resolveCategoryKey = (category = '', symbol = '') => {
     if (cat.includes('crypto') || normalizedSymbol.endsWith('USDT')) return 'crypto';
     if (cat.includes('stock') || cat.includes('share')) return 'stocks';
     if (cat.includes('fund') || cat.includes('etf')) return 'funds';
-    if (cat.includes('commod') || normalizedSymbol.startsWith('XAU') || normalizedSymbol.startsWith('XAG') || ['WTI', 'BRENT', 'CL1!'].includes(normalizedSymbol)) return 'commodities';
+    if (cat.includes('commod') || normalizedSymbol.startsWith('XAU') || normalizedSymbol.startsWith('XAG') || ['WTI', 'BRENT', 'CL1!', 'NG', 'NATGAS'].includes(normalizedSymbol)) return 'commodities';
     if (cat.includes('future')) return 'futures';
     if (cat.includes('indice') || cat.includes('index') || cat.includes('brazilian')) return 'indices';
     if (cat.includes('bond')) return 'bonds';

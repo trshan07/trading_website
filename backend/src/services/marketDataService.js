@@ -357,9 +357,9 @@ const resolveTradingVenueSymbol = (symbol = '', config = {}) => {
     }
 
     if (exchange === 'TVC') {
-        if (baseSymbol === 'USOIL' || baseSymbol === 'UKOIL') {
-            return baseSymbol;
-        }
+        if (baseSymbol === 'USOIL') return 'WTI/USD';
+        if (baseSymbol === 'UKOIL') return 'XBR/USD';
+        if (baseSymbol === 'NATGAS') return 'NG/USD';
 
         return normalized.endsWith('!') ? normalized : baseSymbol;
     }
@@ -424,10 +424,15 @@ const resolveTwelveDataSymbol = (symbol = '', config = {}, options = {}) => {
 const resolveTwelveDataQuoteSymbol = (symbol = '', config = {}, options = {}) => {
     const chartAlignedSymbol = resolveTwelveDataSymbol(symbol, config, options);
 
-    // TradingView-style venue prefixes are useful for chart/history alignment,
-    // but the Twelve Data quote endpoint is more reliable with canonical quote
-    // symbols such as BTC/USD, EUR/USD, XAU/USD, etc.
+    // If the symbol is chart-aligned (e.g., OANDA:XAU/USD), we check if the prefix
+    // is one that Twelve Data reliably supports in its quote/stream endpoints.
     if (String(chartAlignedSymbol || '').includes(':')) {
+        const [prefix] = chartAlignedSymbol.split(':');
+        if (CHART_ALIGNED_TWELVEDATA_PREFIXES.has(prefix.toUpperCase())) {
+            return chartAlignedSymbol;
+        }
+
+        // Fallback to canonical if the prefix is not supported
         return resolveTwelveDataSymbol(symbol, config, {
             ...options,
             preferChartAligned: false,
