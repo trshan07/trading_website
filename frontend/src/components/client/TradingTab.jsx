@@ -220,13 +220,13 @@ const TradingTab = ({
             >
               Open Order Ticket
             </button>
-            <div className="rounded-2xl border border-rose-300 bg-rose-100 px-4 py-3 shadow-sm dark:border-rose-400/30 dark:bg-rose-500/12">
-              <p className="text-[10px] font-black uppercase tracking-[0.18em] text-rose-700 dark:text-rose-200/80">Sell</p>
-              <p className="mt-1 text-xl font-semibold leading-none tabular-nums text-rose-700 dark:text-rose-300 sm:text-2xl">{bidPrice}</p>
+            <div className="rounded-2xl border border-rose-300 bg-rose-100 px-4 py-3 shadow-sm dark:border-rose-400/35 dark:bg-rose-500/18">
+              <p className="text-[10px] font-black uppercase tracking-[0.18em] text-rose-700 dark:text-rose-100">Sell</p>
+              <p className="mt-1 text-xl font-semibold leading-none tabular-nums text-rose-700 dark:text-rose-100 sm:text-2xl">{bidPrice}</p>
             </div>
-            <div className="rounded-2xl border border-teal-300 bg-teal-100 px-4 py-3 shadow-sm dark:border-teal-400/30 dark:bg-teal-400/12">
-              <p className="text-[10px] font-black uppercase tracking-[0.18em] text-teal-800 dark:text-teal-100/80">Buy</p>
-              <p className="mt-1 text-xl font-semibold leading-none tabular-nums text-teal-800 dark:text-teal-200 sm:text-2xl">{askPrice}</p>
+            <div className="rounded-2xl border border-teal-300 bg-teal-100 px-4 py-3 shadow-sm dark:border-teal-400/35 dark:bg-teal-400/18">
+              <p className="text-[10px] font-black uppercase tracking-[0.18em] text-teal-800 dark:text-teal-50">Buy</p>
+              <p className="mt-1 text-xl font-semibold leading-none tabular-nums text-teal-800 dark:text-teal-50 sm:text-2xl">{askPrice}</p>
             </div>
           </div>
         </div>
