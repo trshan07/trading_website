@@ -83,19 +83,19 @@ const MobileSidebar = ({
 
           {/* Account Snapshot Mobile */}
           <div className="p-5">
-            <div className="bg-slate-900 dark:bg-slate-800 rounded-[1.5rem] p-5 shadow-xl relative overflow-hidden border border-white/5">
+            <div className="bg-gradient-to-br from-white via-slate-50 to-amber-50/80 dark:from-slate-900 dark:via-slate-900 dark:to-slate-800 rounded-[1.5rem] p-5 shadow-xl shadow-slate-200/60 dark:shadow-black/20 relative overflow-hidden border border-slate-200/80 dark:border-white/5 transition-colors">
               <div className="absolute top-0 right-0 w-20 h-20 bg-gold-400/10 rounded-full -translate-y-8 translate-x-8 blur-xl"></div>
               <div className="relative z-10">
-                <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-1">
+                <p className="text-[9px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-1">
                    {isDemo ? 'Practice Balance' : 'Live Equity'}
                 </p>
-                <h3 className="text-xl font-black text-white italic tracking-tight mb-3">
+                <h3 className="text-xl font-black text-slate-900 dark:text-white italic tracking-tight mb-3">
                   {showBalance ? `$${(portfolio?.totalBalance ?? 0).toLocaleString()}` : '••••••'}
                 </h3>
-                <div className="flex justify-between items-center pt-3 border-t border-white/10">
+                <div className="flex justify-between items-center pt-3 border-t border-slate-200/80 dark:border-white/10">
                    <div>
                       <p className="text-[8px] font-black uppercase text-slate-500 tracking-widest">Available Margin</p>
-                      <p className="text-xs font-bold text-white mt-0.5">
+                      <p className="text-xs font-bold text-slate-900 dark:text-white mt-0.5">
                         {showBalance ? `$${(portfolio?.availableBalance ?? 0).toLocaleString()}` : '••••'}
                       </p>
                    </div>

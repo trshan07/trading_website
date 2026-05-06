@@ -77,10 +77,10 @@ const DocumentsTab = ({ documents, onUpload }) => {
             </p>
             <p className="text-[9px] uppercase font-black text-gold-600/60 dark:text-gold-400/60 tracking-[0.3em] mt-2 relative transition-colors">Review Pending</p>
           </div>
-          <div className="bg-slate-900 rounded-2xl sm:rounded-[2rem] p-6 sm:p-8 border border-slate-800 shadow-2xl shadow-slate-900/10 relative overflow-hidden group hover:scale-[1.02] transition-transform">
-            <div className="absolute top-0 right-0 w-24 h-24 bg-white/5 blur-2xl rounded-full translate-x-12 -translate-y-12"></div>
-            <p className="text-3xl sm:text-4xl font-black text-white italic tracking-tighter relative">{documents.length}</p>
-            <p className="text-[9px] uppercase font-black text-slate-500 tracking-[0.3em] mt-2 relative">Total Archive</p>
+          <div className="bg-gradient-to-br from-white via-slate-50 to-amber-50/70 dark:from-slate-900 dark:to-slate-800 rounded-2xl sm:rounded-[2rem] p-6 sm:p-8 border border-slate-200 dark:border-slate-800 shadow-2xl shadow-slate-200/50 dark:shadow-slate-900/10 relative overflow-hidden group hover:scale-[1.02] transition-transform">
+            <div className="absolute top-0 right-0 w-24 h-24 bg-gold-500/10 dark:bg-white/5 blur-2xl rounded-full translate-x-12 -translate-y-12"></div>
+            <p className="text-3xl sm:text-4xl font-black text-slate-900 dark:text-white italic tracking-tighter relative">{documents.length}</p>
+            <p className="text-[9px] uppercase font-black text-slate-500 dark:text-slate-500 tracking-[0.3em] mt-2 relative">Total Archive</p>
           </div>
         </div>
 
@@ -249,15 +249,15 @@ const DocumentsTab = ({ documents, onUpload }) => {
           <p className="text-[10px] font-black text-slate-300 uppercase tracking-[0.3em] italic">
             SECURE ARCHIVE: {filteredDocuments.length} OBJECTS VISIBLE
           </p>
-          <div className="flex items-center space-x-3 bg-slate-900 px-6 py-2.5 rounded-full shadow-xl shadow-slate-900/10 border border-slate-800">
+          <div className="flex items-center space-x-3 bg-white dark:bg-slate-900 px-6 py-2.5 rounded-full shadow-xl shadow-slate-200/60 dark:shadow-slate-900/10 border border-slate-200 dark:border-slate-800 transition-colors">
             <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></div>
-            <span className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] italic">Last Integrity Check: {new Date().toLocaleDateString()}</span>
+            <span className="text-[9px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em] italic">Last Integrity Check: {new Date().toLocaleDateString()}</span>
           </div>
         </div>
       </div>
 
       {/* Upload Guidelines */}
-      <div className="bg-slate-900 rounded-[2.5rem] border border-slate-800 p-10 shadow-2xl shadow-slate-900/40 relative overflow-hidden">
+      <div className="bg-gradient-to-br from-white via-slate-50 to-amber-50/60 dark:from-slate-900 dark:to-slate-800 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 p-10 shadow-2xl shadow-slate-200/60 dark:shadow-slate-900/40 relative overflow-hidden transition-colors">
         <div className="absolute bottom-0 right-0 w-64 h-64 bg-gold-500/5 blur-[100px] rounded-full translate-x-32 translate-y-32"></div>
         <h4 className="text-[10px] font-black text-gold-500 uppercase tracking-[0.4em] mb-10 italic flex items-center">
             <FaShieldAlt className="mr-3 text-lg" />
@@ -271,10 +271,10 @@ const DocumentsTab = ({ documents, onUpload }) => {
             { id: 4, text: "End-to-End Military Grade Encryption" }
           ].map(guide => (
             <div key={guide.id} className="flex flex-col space-y-4 group">
-              <div className="w-10 h-10 rounded-2xl bg-slate-800 border border-slate-700 flex items-center justify-center flex-shrink-0 group-hover:bg-gold-500 group-hover:border-gold-600 transition-all duration-500">
+              <div className="w-10 h-10 rounded-2xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center flex-shrink-0 group-hover:bg-gold-500 group-hover:border-gold-600 transition-all duration-500">
                 <span className="text-xs font-black text-slate-500 group-hover:text-white italic">{guide.id}</span>
               </div>
-              <p className="text-xs font-black text-slate-400 leading-relaxed uppercase tracking-wider">{guide.text}</p>
+              <p className="text-xs font-black text-slate-600 dark:text-slate-400 leading-relaxed uppercase tracking-wider">{guide.text}</p>
             </div>
           ))}
         </div>

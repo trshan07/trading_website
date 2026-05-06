@@ -91,11 +91,11 @@ const Sidebar = ({ activeTab, onTabChange, onLogout, user, portfolio, showBalanc
 
       {/* Account Snapshot Card (Hidden when collapsed) */}
       <div className={`px-4 pb-4 shrink-0 transition-all duration-300 ${isCollapsed ? 'opacity-0 h-0 overflow-hidden m-0 p-0' : 'opacity-100'}`}>
-        <div className="bg-slate-900 dark:bg-slate-800 rounded-[1.75rem] p-4 shadow-xl shadow-slate-900/30 dark:shadow-black/20 overflow-hidden relative border border-white/5">
+        <div className="bg-gradient-to-br from-white via-slate-50 to-amber-50/70 dark:from-slate-900 dark:via-slate-900 dark:to-slate-800 rounded-[1.75rem] p-4 shadow-xl shadow-slate-200/70 dark:shadow-black/20 overflow-hidden relative border border-slate-200/80 dark:border-white/5 transition-colors">
           <div className="absolute top-0 right-0 w-24 h-24 bg-gold-400/10 rounded-full -translate-y-12 translate-x-12 blur-2xl pointer-events-none" />
 
           {/* Metric Tabs */}
-          <div className="flex space-x-1 mb-3 bg-slate-800/60 dark:bg-slate-950/40 p-1 rounded-xl border border-white/5">
+          <div className="flex space-x-1 mb-3 bg-white/80 dark:bg-slate-950/40 p-1 rounded-xl border border-slate-200/80 dark:border-white/5">
             {[
               { id: 'balance', label: 'Balance' },
               { id: 'equity',  label: 'Equity' },
@@ -108,7 +108,7 @@ const Sidebar = ({ activeTab, onTabChange, onLogout, user, portfolio, showBalanc
                 className={`flex-1 py-1.5 rounded-lg text-[8px] font-black uppercase tracking-widest transition-all ${
                   activeMetric === tab.id
                     ? 'bg-gold-500 text-slate-900 shadow-md'
-                    : 'text-slate-400 hover:text-white hover:bg-white/5'
+                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/80 dark:hover:bg-white/5'
                 }`}
               >
                 {tab.label}
@@ -126,12 +126,12 @@ const Sidebar = ({ activeTab, onTabChange, onLogout, user, portfolio, showBalanc
             <h3 className={`text-2xl font-black italic tracking-tight leading-none mb-3 whitespace-nowrap ${
               activeMetric === 'pnl' 
                 ? (portfolio?.dailyPnL ?? 0) >= 0 ? 'text-emerald-400' : 'text-rose-400'
-                : 'text-white'
+                : 'text-slate-900 dark:text-white'
             }`}>
               {metricValue()}
             </h3>
 
-            <div className="pt-3 border-t border-white/10 flex justify-between items-center whitespace-nowrap">
+            <div className="pt-3 border-t border-slate-200/80 dark:border-white/10 flex justify-between items-center whitespace-nowrap">
               <div>
                 <p className="text-[8px] font-black uppercase text-slate-500 tracking-wider">{sub?.label}</p>
                 <p className={`text-xs font-bold mt-0.5 ${sub?.color}`}>{sub?.value}</p>

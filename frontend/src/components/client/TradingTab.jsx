@@ -19,6 +19,7 @@ const SlidingPanel = ({
   onClose,
   children,
 }) => {
+  const { theme } = useTheme();
   if (!open) {
     return null;
   }
@@ -31,21 +32,21 @@ const SlidingPanel = ({
     <div className="fixed inset-0 z-[110]">
       <button
         aria-label="Close panel"
-        className="absolute inset-0 bg-slate-950/70 backdrop-blur-[2px]"
+        className="absolute inset-0 bg-slate-950/50 dark:bg-slate-950/70 backdrop-blur-[2px]"
         onClick={onClose}
       />
       <div
-        className={`absolute top-0 h-full w-full max-w-[28rem] border-slate-700/70 bg-gradient-to-b from-[#1f2434] to-[#171b28] shadow-[0_28px_90px_rgba(0,0,0,0.48)] ${sideClass} border-l border-r`}
+        className={`absolute top-0 h-full w-full max-w-[28rem] ${theme === 'dark' ? 'border-slate-700/70 bg-gradient-to-b from-[#1f2434] to-[#171b28] shadow-[0_28px_90px_rgba(0,0,0,0.48)]' : 'border-slate-200 bg-gradient-to-b from-white via-slate-50 to-slate-100 shadow-[0_24px_60px_rgba(15,23,42,0.12)]'} ${sideClass} border-l border-r transition-colors`}
       >
         <div className="flex h-full flex-col">
-          <div className="flex items-start justify-between gap-3 border-b border-slate-700/60 bg-[#161b27]/85 px-5 py-4 backdrop-blur">
+          <div className={`flex items-start justify-between gap-3 px-5 py-4 backdrop-blur transition-colors ${theme === 'dark' ? 'border-b border-slate-700/60 bg-[#161b27]/85' : 'border-b border-slate-200 bg-white/85'}`}>
             <div>
-              <p className="text-[10px] font-black uppercase tracking-[0.22em] text-sky-300/70">{title}</p>
-              <p className="mt-1 font-display text-2xl font-semibold text-white">{subtitle}</p>
+              <p className="text-[10px] font-black uppercase tracking-[0.22em] text-sky-600 dark:text-sky-300/70">{title}</p>
+              <p className="mt-1 font-display text-2xl font-semibold text-slate-900 dark:text-white">{subtitle}</p>
             </div>
             <button
               onClick={onClose}
-              className="rounded-xl border border-slate-700 bg-[#111620] p-2 text-slate-400 transition-colors hover:text-white"
+              className="rounded-xl border border-slate-200 bg-white p-2 text-slate-400 transition-colors hover:text-slate-900 dark:border-slate-700 dark:bg-[#111620] dark:hover:text-white"
             >
               <FaTimes size={14} />
             </button>
@@ -219,13 +220,13 @@ const TradingTab = ({
             >
               Open Order Ticket
             </button>
-            <div className="rounded-2xl border border-rose-300/60 bg-rose-50 px-4 py-3 dark:border-rose-400/30 dark:bg-rose-500/12">
-              <p className="text-[10px] font-black uppercase tracking-[0.18em] text-rose-600 dark:text-rose-200/80">Sell</p>
-              <p className="mt-1 text-xl font-semibold leading-none tabular-nums text-rose-600 dark:text-rose-300 sm:text-2xl">{bidPrice}</p>
+            <div className="rounded-2xl border border-rose-300 bg-rose-100 px-4 py-3 shadow-sm dark:border-rose-400/30 dark:bg-rose-500/12">
+              <p className="text-[10px] font-black uppercase tracking-[0.18em] text-rose-700 dark:text-rose-200/80">Sell</p>
+              <p className="mt-1 text-xl font-semibold leading-none tabular-nums text-rose-700 dark:text-rose-300 sm:text-2xl">{bidPrice}</p>
             </div>
-            <div className="rounded-2xl border border-teal-300/60 bg-teal-50 px-4 py-3 dark:border-teal-400/30 dark:bg-teal-400/12">
-              <p className="text-[10px] font-black uppercase tracking-[0.18em] text-teal-700 dark:text-teal-100/80">Buy</p>
-              <p className="mt-1 text-xl font-semibold leading-none tabular-nums text-teal-700 dark:text-teal-200 sm:text-2xl">{askPrice}</p>
+            <div className="rounded-2xl border border-teal-300 bg-teal-100 px-4 py-3 shadow-sm dark:border-teal-400/30 dark:bg-teal-400/12">
+              <p className="text-[10px] font-black uppercase tracking-[0.18em] text-teal-800 dark:text-teal-100/80">Buy</p>
+              <p className="mt-1 text-xl font-semibold leading-none tabular-nums text-teal-800 dark:text-teal-200 sm:text-2xl">{askPrice}</p>
             </div>
           </div>
         </div>

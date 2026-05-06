@@ -20,7 +20,7 @@ const PortfolioTab = ({ portfolio = {}, positions = [], activityLogs = [] }) => 
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700 transition-colors">
       {/* Equity Perspective Header */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-        <div className="md:col-span-2 bg-slate-900 dark:bg-slate-800 rounded-[1.5rem] sm:rounded-[2.5rem] p-6 sm:p-10 border border-slate-800 dark:border-slate-700 shadow-2xl shadow-slate-900/40 dark:shadow-black/40 relative overflow-hidden group transition-colors duration-300">
+        <div className="md:col-span-2 bg-gradient-to-br from-white via-slate-50 to-amber-50/70 dark:from-slate-900 dark:via-slate-900 dark:to-slate-800 rounded-[1.5rem] sm:rounded-[2.5rem] p-6 sm:p-10 border border-slate-200 dark:border-slate-700 shadow-2xl shadow-slate-200/60 dark:shadow-black/40 relative overflow-hidden group transition-colors duration-300">
           <div className="absolute top-0 right-0 w-64 h-64 bg-gold-400/5 blur-[100px] rounded-full translate-x-32 -translate-y-32"></div>
           <div className="relative z-10">
             <div className="flex justify-between items-start mb-10">
@@ -29,7 +29,7 @@ const PortfolioTab = ({ portfolio = {}, positions = [], activityLogs = [] }) => 
                      <FaWallet className="mr-3" />
                      Capital Projection
                   </h3>
-                  <p className="text-4xl font-black text-white italic tracking-tighter">
+                  <p className="text-4xl font-black text-slate-900 dark:text-white italic tracking-tighter">
                      ${(portfolio?.equity ?? 0).toLocaleString()}
                   </p>
                </div>
@@ -39,10 +39,10 @@ const PortfolioTab = ({ portfolio = {}, positions = [], activityLogs = [] }) => 
                </div>
             </div>
             
-            <div className="grid grid-cols-2 gap-8 pt-10 border-t border-slate-800 dark:border-slate-700">
+            <div className="grid grid-cols-2 gap-8 pt-10 border-t border-slate-200 dark:border-slate-700">
                <div>
                   <p className="text-[9px] font-black text-slate-500 dark:text-slate-500 uppercase tracking-widest mb-1.5">Free Liquidity</p>
-                  <p className="text-xl font-black text-white italic tracking-tighter">${(portfolio?.availableBalance ?? 0).toLocaleString()}</p>
+                  <p className="text-xl font-black text-slate-900 dark:text-white italic tracking-tighter">${(portfolio?.availableBalance ?? 0).toLocaleString()}</p>
                </div>
                <div>
                   <p className="text-[9px] font-black text-slate-500 dark:text-slate-500 uppercase tracking-widest mb-1.5">Used Core</p>
@@ -147,7 +147,7 @@ const PortfolioTab = ({ portfolio = {}, positions = [], activityLogs = [] }) => 
 
         {/* Portfolio Integrity Sidebar */}
         <div className="lg:col-span-4 space-y-6 md:space-y-8">
-           <div className="bg-slate-900 dark:bg-slate-800 rounded-[1.5rem] sm:rounded-[2.5rem] p-6 sm:p-10 border border-slate-800 dark:border-slate-700 shadow-2xl shadow-slate-900/40 dark:shadow-black/40 relative overflow-hidden group transition-colors duration-300 text-left">
+           <div className="bg-gradient-to-br from-white via-slate-50 to-amber-50/60 dark:from-slate-900 dark:via-slate-900 dark:to-slate-800 rounded-[1.5rem] sm:rounded-[2.5rem] p-6 sm:p-10 border border-slate-200 dark:border-slate-700 shadow-2xl shadow-slate-200/60 dark:shadow-black/40 relative overflow-hidden group transition-colors duration-300 text-left">
               <h4 className="text-[10px] font-black text-gold-500 uppercase tracking-[0.4em] mb-8 sm:mb-10 italic">Integrity Nodes</h4>
               <div className="space-y-8">
                  {[
@@ -155,12 +155,12 @@ const PortfolioTab = ({ portfolio = {}, positions = [], activityLogs = [] }) => 
                     { id: 2, label: 'Asset Custody', status: 'Distributed', color: 'text-gold-500' },
                     { id: 3, label: 'Audit Compliance', status: 'Verified_v2', color: 'text-emerald-400' }
                  ].map(item => (
-                    <div key={item.id} className="flex items-center justify-between group/node pb-6 border-b border-white/5 dark:border-white/5 last:border-0">
+                    <div key={item.id} className="flex items-center justify-between group/node pb-6 border-b border-slate-200/80 dark:border-white/5 last:border-0">
                        <div className="flex items-center space-x-4">
-                          <div className="w-8 h-8 rounded-xl bg-white/5 flex items-center justify-center text-[10px] font-black text-slate-400 group-hover/node:bg-gold-500 group-hover/node:text-white dark:group-hover/node:text-slate-900 transition-all">
+                          <div className="w-8 h-8 rounded-xl bg-slate-100 dark:bg-white/5 flex items-center justify-center text-[10px] font-black text-slate-500 dark:text-slate-400 group-hover/node:bg-gold-500 group-hover/node:text-white dark:group-hover/node:text-slate-900 transition-all">
                              {item.id}
                           </div>
-                          <span className="text-[11px] font-black text-white italic tracking-tighter uppercase">{item.label}</span>
+                          <span className="text-[11px] font-black text-slate-900 dark:text-white italic tracking-tighter uppercase">{item.label}</span>
                        </div>
                        <div className={`flex items-center space-x-2 ${item.color}`}>
                           <FaCheckCircle size={10} className="animate-pulse" />

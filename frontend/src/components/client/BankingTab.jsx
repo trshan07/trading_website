@@ -509,7 +509,7 @@ const BankingTab = ({
         {/* Left Column - Wallet Info */}
         <div className="col-span-1 space-y-6">
           {/* Wallet Balance Card */}
-          <div className="bg-slate-900 dark:bg-slate-800 rounded-[2.5rem] p-6 sm:p-8 shadow-2xl shadow-slate-900/30 dark:shadow-black/40 relative overflow-hidden border border-slate-800 dark:border-slate-700 transition-colors duration-300">
+          <div className="bg-gradient-to-br from-white via-slate-50 to-amber-50/70 dark:from-slate-900 dark:via-slate-900 dark:to-slate-800 rounded-[2.5rem] p-6 sm:p-8 shadow-2xl shadow-slate-200/60 dark:shadow-black/40 relative overflow-hidden border border-slate-200 dark:border-slate-700 transition-colors duration-300">
             <div className="absolute top-0 right-0 w-48 h-48 bg-gold-500/5 blur-[80px] rounded-full -translate-y-24 translate-x-24"></div>
             <h3 className="text-[10px] font-black text-gold-500 uppercase tracking-[0.3em] mb-6 sm:mb-8 flex items-center italic">
               <FaWallet className="mr-3 text-lg" />
@@ -518,18 +518,18 @@ const BankingTab = ({
             <div className="space-y-6 relative">
               <div>
                 <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">Total Net Worth</p>
-                <p className="text-3xl sm:text-4xl font-black text-white italic tracking-tighter">
+                <p className="text-3xl sm:text-4xl font-black text-slate-900 dark:text-white italic tracking-tighter">
                   ${walletData.totalBalance?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}
                 </p>
               </div>
               <div className="grid grid-cols-1 xs:grid-cols-2 gap-4">
-                <div className="bg-slate-800/50 dark:bg-slate-900/40 rounded-2xl p-4 sm:p-5 border border-slate-700/50 dark:border-slate-800/50 backdrop-blur-xl">
+                <div className="bg-white/85 dark:bg-slate-900/40 rounded-2xl p-4 sm:p-5 border border-slate-200 dark:border-slate-800/50 backdrop-blur-xl">
                   <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest mb-1">Trading</p>
                   <p className="text-base sm:text-lg font-black text-gold-500 italic">
                     ${walletData.tradingWallet?.toLocaleString() || '0'}
                   </p>
                 </div>
-                <div className="bg-slate-800/50 dark:bg-slate-900/40 rounded-2xl p-4 sm:p-5 border border-slate-700/50 dark:border-slate-800/50 backdrop-blur-xl">
+                <div className="bg-white/85 dark:bg-slate-900/40 rounded-2xl p-4 sm:p-5 border border-slate-200 dark:border-slate-800/50 backdrop-blur-xl">
                   <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest mb-1">Incentives</p>
                   <p className="text-base sm:text-lg font-black text-emerald-500 italic">
                     ${walletData.bonusWallet?.toLocaleString() || '0'}
@@ -580,12 +580,12 @@ const BankingTab = ({
         <div className="lg:col-span-2 space-y-8">
           {activeBankingTab === 'overview' && (
             <>
-              <div className="bg-slate-900 rounded-[2.5rem] p-6 sm:p-10 border border-slate-800 shadow-2xl relative overflow-hidden">
+              <div className="bg-gradient-to-br from-white via-slate-50 to-amber-50/70 dark:from-slate-900 dark:to-slate-800 rounded-[2.5rem] p-6 sm:p-10 border border-slate-200 dark:border-slate-800 shadow-2xl shadow-slate-200/60 dark:shadow-black/30 relative overflow-hidden transition-colors">
                 <div className="absolute top-0 right-0 w-64 h-64 bg-gold-500/5 blur-[80px] rounded-full translate-x-32 -translate-y-32"></div>
                 <h3 className="text-[10px] font-black text-gold-500 uppercase tracking-[0.3em] mb-8 sm:mb-10 relative italic">Capital Metrics</h3>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-6 sm:gap-8 relative">
                   {[
-                    { label: 'Total Equity', value: `$${walletData.totalBalance?.toLocaleString() || '0'}`, color: 'text-white' },
+                    { label: 'Total Equity', value: `$${walletData.totalBalance?.toLocaleString() || '0'}`, color: 'text-slate-900 dark:text-white' },
                     { label: 'Monthly Flow', value: '+$5,250', color: 'text-emerald-400' },
                     { label: 'Ledger Count', value: transactions.length, color: 'text-gold-500' },
                     { label: 'Pending Sync', value: transactions.filter(t => t.status === 'Pending').length, color: 'text-amber-400' }
@@ -717,7 +717,7 @@ const BankingTab = ({
               </div>
 
               {selectedMethod === 'bank' && platformInfo && (
-                <div className="bg-slate-900 rounded-[2rem] p-6 sm:p-8 border border-slate-800 space-y-6 relative overflow-hidden">
+                <div className="bg-gradient-to-br from-white via-slate-50 to-amber-50/60 dark:from-slate-900 dark:to-slate-800 rounded-[2rem] p-6 sm:p-8 border border-slate-200 dark:border-slate-800 space-y-6 relative overflow-hidden transition-colors">
                   <div className="absolute top-0 right-0 w-32 h-32 bg-gold-500/5 blur-3xl rounded-full translate-x-16 -translate-y-16"></div>
                   <div className="flex items-center justify-between mb-2">
                     <h4 className="text-[10px] font-black text-gold-500 uppercase tracking-[0.3em] italic">Receiver Protocol Details</h4>
@@ -727,37 +727,37 @@ const BankingTab = ({
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                     <div className="space-y-1">
                       <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest">Bank Entity</p>
-                      <p className="text-sm font-black text-white italic">{platformInfo.bank_name}</p>
+                      <p className="text-sm font-black text-slate-900 dark:text-white italic">{platformInfo.bank_name}</p>
                     </div>
                     <div className="space-y-1">
                       <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest">Account Identity</p>
-                      <p className="text-sm font-black text-white italic">{platformInfo.account_name}</p>
+                      <p className="text-sm font-black text-slate-900 dark:text-white italic">{platformInfo.account_name}</p>
                     </div>
                     <div className="space-y-1">
                       <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest">IBAN / Account No</p>
-                      <p className="text-sm font-black text-white italic tracking-tighter">{platformInfo.iban || platformInfo.account_number}</p>
+                      <p className="text-sm font-black text-slate-900 dark:text-white italic tracking-tighter">{platformInfo.iban || platformInfo.account_number}</p>
                     </div>
                     <div className="space-y-1">
                       <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest">SWIFT / BIC</p>
-                      <p className="text-sm font-black text-white italic">{platformInfo.swift_bic}</p>
+                      <p className="text-sm font-black text-slate-900 dark:text-white italic">{platformInfo.swift_bic}</p>
                     </div>
                   </div>
 
-                  <div className="pt-4 border-t border-slate-800 flex flex-col gap-4">
+                  <div className="pt-4 border-t border-slate-200 dark:border-slate-800 flex flex-col gap-4">
                     <div className="space-y-2">
                       <label className="text-[9px] uppercase font-black text-slate-400 tracking-[0.2em] ml-1">Transfer Reference *</label>
                       <input
                         type="text"
                         value={depositReference}
                         onChange={(e) => setDepositReference(e.target.value)}
-                        className="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-xl text-xs font-bold text-white focus:outline-none focus:ring-2 focus:ring-gold-500/20"
+                        className="w-full px-4 py-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-gold-500/20"
                         placeholder="RT-XXXXXX"
                       />
                     </div>
                     
                     <div className="space-y-2">
                       <label className="text-[9px] uppercase font-black text-slate-400 tracking-[0.2em] ml-1">Proof of Transfer *</label>
-                      <label className="flex items-center justify-between gap-4 px-4 py-3 bg-slate-800 border border-slate-700 rounded-xl cursor-pointer hover:border-gold-500/50 transition-all">
+                      <label className="flex items-center justify-between gap-4 px-4 py-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl cursor-pointer hover:border-gold-500/50 transition-all">
                         <div className="flex items-center gap-3">
                           <FaUpload className="text-gold-500 text-xs" />
                           <span className="text-[10px] font-bold text-slate-300 truncate max-w-[200px]">
