@@ -41,7 +41,7 @@ const PriceCell = ({ price, label, className = '' }) => {
 
   return (
     <div className={`${className} ${flash} rounded px-1 transition-all duration-300`}>
-      <p className="text-[13px] font-semibold tabular-nums text-slate-100">{label}</p>
+      <p className="text-[13px] font-semibold tabular-nums text-slate-900 dark:text-slate-100">{label}</p>
     </div>
   );
 };
@@ -111,9 +111,9 @@ const TerminalAssetList = ({
       <div className="border-b border-slate-200 bg-white/95 px-4 py-3.5 backdrop-blur dark:border-slate-700/60 dark:bg-[#1b2030]/95">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <p className="text-[10px] font-black uppercase tracking-[0.22em] text-sky-300/70">Watchlist</p>
+            <p className="text-[10px] font-black uppercase tracking-[0.22em] text-sky-600 dark:text-sky-300/70">Watchlist</p>
             <p className="mt-1 text-lg font-semibold tracking-tight text-slate-900 dark:text-white">Market overview</p>
-            <p className="mt-1 text-xs text-slate-400">{instrumentCount} instruments available</p>
+            <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{instrumentCount} instruments available</p>
           </div>
           <div className="rounded-full border border-slate-200 bg-slate-100 px-3 py-1 text-[11px] font-semibold text-slate-600 dark:border-slate-700 dark:bg-[#161b27] dark:text-slate-300">
             {favorites.length} saved
@@ -190,7 +190,7 @@ const TerminalAssetList = ({
                       onSelectSymbol(instrument.symbol);
                     }
                   }}
-                  className={`w-full border-b border-slate-800 px-4 py-3 text-left transition-all cursor-pointer ${
+                  className={`w-full border-b border-slate-200 dark:border-slate-800 px-4 py-3 text-left transition-all cursor-pointer ${
                     isActive
                       ? 'bg-sky-50 shadow-[inset_2px_0_0_0_rgba(56,189,248,0.9)] dark:bg-sky-400/8'
                       : 'hover:bg-slate-50 dark:hover:bg-white/[0.03]'
