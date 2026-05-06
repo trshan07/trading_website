@@ -41,6 +41,40 @@ const normalizeLeverage = (value, fallback = 100) => {
   return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
 };
 
+const validateProtectionInputs = ({ side, entryPrice, takeProfit, stopLoss }) => {
+  const normalizedSide = String(side || 'buy').toLowerCase();
+  const price = Number.parseFloat(entryPrice) || 0;
+  const tp = takeProfit == null ? null : Number.parseFloat(takeProfit);
+  const sl = stopLoss == null ? null : Number.parseFloat(stopLoss);
+
+  if ((tp !== null && !Number.isFinite(tp)) || (sl !== null && !Number.isFinite(sl))) {
+    return 'Invalid take profit or stop loss value';
+  }
+
+  if (!price) {
+    return '';
+  }
+
+  if (normalizedSide === 'buy') {
+    if (tp !== null && tp <= price) {
+      return 'Take profit must be above the entry price for buy orders';
+    }
+    if (sl !== null && sl >= price) {
+      return 'Stop loss must be below the entry price for buy orders';
+    }
+    return '';
+  }
+
+  if (tp !== null && tp >= price) {
+    return 'Take profit must be below the entry price for sell orders';
+  }
+  if (sl !== null && sl <= price) {
+    return 'Stop loss must be above the entry price for sell orders';
+  }
+
+  return '';
+};
+
 const SideButton = ({ side, active, price, label, onClick, className = '' }) => {
   const [flash, setFlash] = useState('');
   const prevPriceRef = React.useRef(price);
@@ -174,6 +208,19 @@ const OrderPanel = ({
     if (!accountId || !hasLiveReferencePrice || lots < minLot || quantity <= 0) {
       setPreview(null);
       setPreviewError('');
+      return undefined;
+    }
+
+    const clientValidationError = validateProtectionInputs({
+      side: selectedSide,
+      entryPrice: finalPrice,
+      takeProfit: tpEnabled && tpValue ? Number.parseFloat(tpValue) : null,
+      stopLoss: slEnabled && slValue ? Number.parseFloat(slValue) : null,
+    });
+
+    if (clientValidationError) {
+      setPreview(null);
+      setPreviewError(clientValidationError);
       return undefined;
     }
 
