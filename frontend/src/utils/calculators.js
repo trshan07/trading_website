@@ -44,6 +44,8 @@ const DEFAULT_MIN_LOT = {
   ...DEFAULT_LOT_STEP,
 };
 
+const MIN_ALLOWED_LOT = 0.01;
+
 const DEFAULT_MOVEMENT_LABELS = {
   forex: 'Pips',
   commodities: 'Points',
@@ -197,6 +199,7 @@ export const getInstrumentTradingMeta = ({ symbol = '', category = '', instrumen
   const override = SYMBOL_RULE_OVERRIDES[normalizedSymbol] || {};
   const categoryKey = resolveCategoryKey(instrument.category || category, normalizedSymbol);
   const price = Number.parseFloat(instrument.price ?? mapping.defaultPrice ?? 0) || 0;
+  const resolvedMinLot = Number.parseFloat(instrument.minLot ?? mapping.minLot ?? DEFAULT_MIN_LOT[categoryKey]) || MIN_ALLOWED_LOT;
   const precision = inferPrecision({
     symbol: normalizedSymbol,
     categoryKey,
@@ -210,7 +213,7 @@ export const getInstrumentTradingMeta = ({ symbol = '', category = '', instrumen
     contractSize: Number.parseFloat(instrument.contractSize ?? mapping.contractSize ?? DEFAULT_CONTRACT_SIZES[categoryKey]) || 1,
     quantityLabel: instrument.quantityLabel || mapping.quantityLabel || override.quantityLabel || DEFAULT_QUANTITY_LABELS[categoryKey],
     lotStep: Number.parseFloat(instrument.lotStep ?? mapping.lotStep ?? DEFAULT_LOT_STEP[categoryKey]) || 0.01,
-    minLot: Number.parseFloat(instrument.minLot ?? mapping.minLot ?? DEFAULT_MIN_LOT[categoryKey]) || 0.01,
+    minLot: Math.max(resolvedMinLot, MIN_ALLOWED_LOT),
     precision,
     movementLabel: override.movementLabel || DEFAULT_MOVEMENT_LABELS[categoryKey] || 'Price Move',
     movementValueLabel: override.movementValueLabel || DEFAULT_MOVEMENT_VALUE_LABELS[categoryKey] || 'Price Move Value',

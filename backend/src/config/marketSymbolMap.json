@@ -7,7 +7,7 @@
     "contractSize": 1,
     "quantityLabel": "BTC",
     "lotStep": 0.001,
-    "minLot": 0.001
+    "minLot": 0.01
   },
   "BTCUSD": {
     "tradingView": "COINBASE:BTCUSD",
@@ -17,7 +17,7 @@
     "contractSize": 1,
     "quantityLabel": "BTC",
     "lotStep": 0.001,
-    "minLot": 0.001
+    "minLot": 0.01
   },
   "ETHUSDT": {
     "tradingView": "BINANCE:ETHUSDT",
@@ -27,7 +27,7 @@
     "contractSize": 1,
     "quantityLabel": "ETH",
     "lotStep": 0.001,
-    "minLot": 0.001
+    "minLot": 0.01
   },
   "ETHUSD": {
     "tradingView": "COINBASE:ETHUSD",
@@ -37,7 +37,7 @@
     "contractSize": 1,
     "quantityLabel": "ETH",
     "lotStep": 0.001,
-    "minLot": 0.001
+    "minLot": 0.01
   },
   "XRPUSD": {
     "tradingView": "BITSTAMP:XRPUSD",
@@ -47,7 +47,7 @@
     "contractSize": 1,
     "quantityLabel": "XRP",
     "lotStep": 0.001,
-    "minLot": 0.001
+    "minLot": 0.01
   },
   "BNBUSDT": {
     "tradingView": "BINANCE:BNBUSDT",
@@ -57,7 +57,7 @@
     "contractSize": 1,
     "quantityLabel": "BNB",
     "lotStep": 0.001,
-    "minLot": 0.001
+    "minLot": 0.01
   },
   "SOLUSDT": {
     "tradingView": "BINANCE:SOLUSDT",
@@ -67,7 +67,7 @@
     "contractSize": 1,
     "quantityLabel": "SOL",
     "lotStep": 0.001,
-    "minLot": 0.001
+    "minLot": 0.01
   },
   "SOLUSD": {
     "tradingView": "COINBASE:SOLUSD",
@@ -77,7 +77,7 @@
     "contractSize": 1,
     "quantityLabel": "SOL",
     "lotStep": 0.001,
-    "minLot": 0.001
+    "minLot": 0.01
   },
   "ADAUSDT": {
     "tradingView": "BINANCE:ADAUSDT",
@@ -87,7 +87,7 @@
     "contractSize": 1,
     "quantityLabel": "ADA",
     "lotStep": 0.001,
-    "minLot": 0.001
+    "minLot": 0.01
   },
   "ADAUSD": {
     "tradingView": "COINBASE:ADAUSD",
@@ -97,7 +97,7 @@
     "contractSize": 1,
     "quantityLabel": "ADA",
     "lotStep": 0.001,
-    "minLot": 0.001
+    "minLot": 0.01
   },
   "EURUSD": {
     "tradingView": "FX:EURUSD",
