@@ -676,14 +676,14 @@ export const useDashboardData = (accountType = 'demo', activeSymbol = null) => {
     }
   }, []);
 
-  const fetchChartAlignedQuotes = useCallback(async (symbols = []) => {
+  const fetchChartAlignedQuotes = useCallback(async (symbols = [], options = {}) => {
     const filteredSymbols = Array.from(new Set(symbols.filter(Boolean)));
     if (filteredSymbols.length === 0) {
       return;
     }
 
     try {
-      const response = await infraService.getChartAlignedQuotes(filteredSymbols);
+      const response = await infraService.getChartAlignedQuotes(filteredSymbols, options);
       if (response.success && response.data) {
         const responseStamp = response.asOf || Date.now();
         const stampedQuotes = Object.fromEntries(
@@ -825,7 +825,7 @@ export const useDashboardData = (accountType = 'demo', activeSymbol = null) => {
 
       inFlight = true;
       try {
-        await fetchChartAlignedQuotes([normalizedActiveSymbol]);
+        await fetchChartAlignedQuotes([normalizedActiveSymbol], { maxAgeMs: 0 });
       } finally {
         inFlight = false;
       }

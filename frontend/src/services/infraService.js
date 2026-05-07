@@ -26,9 +26,12 @@ const infraService = {
     return response.data;
   },
 
-  getChartAlignedQuotes: async (symbols = []) => {
+  getChartAlignedQuotes: async (symbols = [], options = {}) => {
     const response = await api.get('/infra/market-data/chart-quotes', {
-      params: { symbols: symbols.join(',') }
+      params: {
+        symbols: symbols.join(','),
+        ...(options.maxAgeMs != null ? { maxAgeMs: options.maxAgeMs } : {}),
+      }
     });
     return response.data;
   },
