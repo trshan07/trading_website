@@ -159,6 +159,16 @@ const TradingTab = ({
     setShowOrderPanel(true);
   };
 
+  const handleOrderPanelSubmit = async (orderPayload) => {
+    const result = await Promise.resolve(onPlaceOrder(orderPayload));
+    if (result) {
+      setDeskTab('positions');
+      setShowOrderPanel(false);
+    }
+
+    return result;
+  };
+
   const renderDeskContent = () => {
     if (deskTab === 'positions') {
       return (
@@ -315,7 +325,7 @@ const TradingTab = ({
         <div className="h-full overflow-y-auto p-4 custom-scrollbar">
           <OrderPanel
             accountId={accountId}
-            onSubmit={onPlaceOrder}
+            onSubmit={handleOrderPanelSubmit}
             symbol={activeSymbol}
             marketData={marketData}
             instrument={selectedInstrument}
