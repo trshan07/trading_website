@@ -123,7 +123,7 @@ const OrderPanel = ({
   maxLeverage = 500,
 }) => {
   const [selectedSide, setSelectedSide] = useState('buy');
-  const [lots, setLots] = useState(1);
+  const [lots, setLots] = useState(0.01);
   const [tpEnabled, setTpEnabled] = useState(false);
   const [slEnabled, setSlEnabled] = useState(false);
   const [tpValue, setTpValue] = useState('');
@@ -174,6 +174,17 @@ const OrderPanel = ({
   const lotPrecision = getLotPrecision(category, symbol, instrument);
   const quantity = calculateQuantityFromLots(lots, symbol, category, instrument);
   const notionalValue = calculateUsdFromLots(lots, finalPrice, category, symbol, instrument);
+
+  useEffect(() => {
+    setLots((current) => {
+      if (!Number.isFinite(current) || current < minLot) {
+        return minLot;
+      }
+
+      return Number(current.toFixed(lotPrecision));
+    });
+  }, [lotPrecision, minLot, symbol]);
+
   const requiredMargin = calculateMarginRequired({
     symbol,
     category,
