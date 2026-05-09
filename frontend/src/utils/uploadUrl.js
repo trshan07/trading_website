@@ -1,4 +1,27 @@
-const API_URL = (import.meta.env.VITE_API_URL || 'http://localhost:5000/api').replace(/\/$/, '');
+const resolveApiUrl = () => {
+  let apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+
+  if (
+    apiUrl.includes('localhost') &&
+    typeof window !== 'undefined' &&
+    window.location.hostname &&
+    window.location.hostname !== 'localhost'
+  ) {
+    apiUrl = apiUrl.replace('localhost', window.location.hostname);
+  }
+
+  if (
+    (!apiUrl || apiUrl === 'http://localhost:5000/api') &&
+    typeof window !== 'undefined' &&
+    window.location?.origin
+  ) {
+    apiUrl = `${window.location.origin.replace(/\/$/, '')}/api`;
+  }
+
+  return apiUrl.replace(/\/$/, '');
+};
+
+const API_URL = resolveApiUrl();
 
 const buildResolvedUploadUrl = (filePath, download = false) => {
   if (!filePath) return null;
