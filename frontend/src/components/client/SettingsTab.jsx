@@ -26,7 +26,7 @@ const SettingsTab = () => {
     });
 
     const [settingsForm, setSettingsForm] = useState({
-        theme: 'dark',
+        theme,
         chartPreferences: {
             grid: true,
             labels: true,
@@ -44,10 +44,11 @@ const SettingsTab = () => {
             try {
                 const res = await userService.getSettings();
                 if (res.success && res.data) {
-                    setSettingsForm(res.data);
-                    if (res.data.theme) {
-                        setTheme(res.data.theme);
-                    }
+                    setSettingsForm((prev) => ({
+                        ...prev,
+                        ...res.data,
+                        theme: res.data.theme || theme,
+                    }));
                 }
             } catch (error) {
                 console.error("Failed to sync settings");
@@ -63,7 +64,7 @@ const SettingsTab = () => {
             });
             fetchSettings();
         }
-    }, [user]);
+    }, [user, theme]);
 
     const handleProfileSubmit = async (e) => {
         e.preventDefault();

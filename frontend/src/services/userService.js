@@ -2,13 +2,13 @@
 import api from './api';
 
 const normalizeSettings = (settings = {}) => ({
-    theme: settings.theme || 'dark',
+    theme: typeof settings.theme === 'string' && settings.theme.trim() ? settings.theme : undefined,
     chartPreferences: settings.chartPreferences || settings.chart_preferences || {},
     notificationSettings: settings.notificationSettings || settings.notification_settings || {},
 });
 
 const serializeSettings = (settings = {}) => ({
-    theme: settings.theme || 'dark',
+    theme: typeof settings.theme === 'string' && settings.theme.trim() ? settings.theme : undefined,
     chartPreferences: settings.chartPreferences || settings.chart_preferences || {},
     notificationSettings: settings.notificationSettings || settings.notification_settings || {},
 });
