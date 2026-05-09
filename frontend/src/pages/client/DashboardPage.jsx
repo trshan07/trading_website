@@ -196,7 +196,9 @@ const DashboardPage = () => {
     portfolioHistory,
     platformInfo,
     unreadNotifications: hookUnreadCount
-  } = useDashboardData(selectedAccountType, marketSymbol);
+  } = useDashboardData(selectedAccountType, marketSymbol, {
+    shouldPollTrading: activeMainTab !== 'banking',
+  });
 
   const isDemo = selectedAccountType === 'demo';
 

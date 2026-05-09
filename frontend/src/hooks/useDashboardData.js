@@ -489,9 +489,10 @@ const mapOrderToLiveView = (order = {}, instruments = [], marketData = {}) => {
   };
 };
 
-export const useDashboardData = (accountType = 'demo', activeSymbol = null) => {
+export const useDashboardData = (accountType = 'demo', activeSymbol = null, options = {}) => {
   const { user, refreshUser } = useContext(AuthContext);
   const isDemo = accountType === 'demo';
+  const shouldPollTrading = options.shouldPollTrading ?? true;
 
   // Find the active account ID based on the type
   const activeAccount = user?.accounts?.find(acc => {
@@ -852,7 +853,7 @@ export const useDashboardData = (accountType = 'demo', activeSymbol = null) => {
   }, [activeSymbol, fetchChartAlignedQuotes, user]);
 
   useEffect(() => {
-    if (!accountId) return; // Don't start polling at all without an account
+    if (!accountId || !shouldPollTrading) return; // Don't start polling at all without an account
     fetchClosedTrades();
     fetchOrders();
     fetchPositions();
@@ -862,7 +863,7 @@ export const useDashboardData = (accountType = 'demo', activeSymbol = null) => {
       fetchClosedTrades();
     }, TRADING_DATA_REFRESH_MS);
     return () => clearInterval(pollInterval);
-  }, [fetchPositions, fetchOrders, fetchClosedTrades, accountId]);
+  }, [fetchPositions, fetchOrders, fetchClosedTrades, accountId, shouldPollTrading]);
 
   useEffect(() => {
     setPortfolioHistory(buildPortfolioHistory({
