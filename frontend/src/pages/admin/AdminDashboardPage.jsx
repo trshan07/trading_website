@@ -32,6 +32,13 @@ const timeAgo = (d) => { if (!d) return "—"; const s = (Date.now() - new Date(
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" }) : "—";
 const fmtDateTime = (d) => d ? new Date(d).toLocaleString("en-US", { year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }) : "—";
 
+const openUploadFile = (filePath, download = false) => {
+  const url = download ? getUploadDownloadUrl(filePath) : getUploadUrl(filePath);
+  if (url) {
+    window.open(url, "_blank", "noopener,noreferrer");
+  }
+};
+
 const toNum = (v) => {
   const n = Number(v);
   return Number.isFinite(n) ? n : 0;
@@ -1122,18 +1129,23 @@ function KYCPage({ toast }) {
                     </div>
                     <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                       <StatusBadge status={doc.status} />
-                      {doc.status !== "missing" && doc.file && (() => {
-                        const fileUrl = getUploadUrl(doc.file);
-                        const downloadUrl = getUploadDownloadUrl(doc.file);
-                        return fileUrl ? (
+                      {doc.status !== "missing" && doc.file && getUploadUrl(doc.file) && (
+                        <>
+                          
                           <div
-                            onClick={() => window.open(downloadUrl || fileUrl, '_blank')}
+                            onClick={() => openUploadFile(doc.file, false)}
                             style={{ background: C.bgCard, borderRadius: "6px", padding: "5px 10px", fontSize: "11px", color: C.blue, cursor: "pointer", border: `1px solid ${C.border}`, userSelect: "none" }}
                           >
                             {isPdfFile(doc.file) ? '📄 Open PDF' : '👁 Preview'}
                           </div>
-                        ) : null;
-                      })()}
+                          <div
+                            onClick={() => openUploadFile(doc.file, true)}
+                            style={{ background: C.bgCard, borderRadius: "6px", padding: "5px 10px", fontSize: "11px", color: C.gold, cursor: "pointer", border: `1px solid ${C.border}`, userSelect: "none" }}
+                          >
+                            Download
+                          </div>
+                        </>
+                      )}
                       {doc.status !== "verified" && doc.status !== "missing" && (
                         <Btn size="sm" onClick={() => verifyDoc(selectedUser.id, doc.id)}>✓ Verify</Btn>
                       )}
@@ -1555,10 +1567,11 @@ function FundingPage({ funding, setFunding, users, setUsers, toast }) {
               ))}
             </div>
             {modal.proof && (
-              <div style={{ background: C.bg, border: `1px solid ${C.borderLight}`, borderRadius: "8px", padding: "12px 14px", marginBottom: "16px", display: "flex", alignItems: "center", gap: "10px", cursor: "pointer" }}>
+              <div style={{ background: C.bg, border: `1px solid ${C.borderLight}`, borderRadius: "8px", padding: "12px 14px", marginBottom: "16px", display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
                 <span style={{ fontSize: "20px" }}>📎</span>
-                <span style={{ fontSize: "13px", color: C.blue }}>{modal.proof}</span>
-                <span style={{ marginLeft: "auto", fontSize: "11px", color: C.textMuted, textDecoration: "underline" }}>Preview</span>
+                <span style={{ fontSize: "13px", color: C.blue, flex: 1, minWidth: "180px" }}>{modal.proof}</span>
+                <span onClick={() => openUploadFile(modal.proof, false)} style={{ marginLeft: "auto", fontSize: "11px", color: C.textMuted, textDecoration: "underline", cursor: "pointer" }}>Preview</span>
+                <span onClick={() => openUploadFile(modal.proof, true)} style={{ fontSize: "11px", color: C.gold, textDecoration: "underline", cursor: "pointer" }}>Download</span>
               </div>
             )}
             <Sel

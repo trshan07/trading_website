@@ -77,12 +77,47 @@ app.use((req, res, next) => {
 const uploadsDirs = [
     path.join(__dirname, 'uploads'),
     path.join(__dirname, 'src', 'uploads'),
+    path.join(__dirname, 'public', 'uploads'),
 ];
 
 uploadsDirs.forEach((dir) => {
     app.use('/uploads', express.static(dir));
     app.use('/api/uploads', express.static(dir));
 });
+
+const findFileRecursively = (rootDir, targetBaseName) => {
+    if (!targetBaseName || !fs.existsSync(rootDir)) {
+        return null;
+    }
+
+    const pending = [rootDir];
+
+    while (pending.length) {
+        const currentDir = pending.pop();
+        let entries = [];
+
+        try {
+            entries = fs.readdirSync(currentDir, { withFileTypes: true });
+        } catch (error) {
+            continue;
+        }
+
+        for (const entry of entries) {
+            const fullPath = path.join(currentDir, entry.name);
+
+            if (entry.isDirectory()) {
+                pending.push(fullPath);
+                continue;
+            }
+
+            if (entry.isFile() && entry.name === targetBaseName) {
+                return fullPath;
+            }
+        }
+    }
+
+    return null;
+};
 
 const resolveUploadFile = (value) => {
     const normalizedPath = normalizeStoredUploadPath(value);
@@ -106,6 +141,11 @@ const resolveUploadFile = (value) => {
             if (fs.existsSync(candidatePath) && fs.statSync(candidatePath).isFile()) {
                 return candidatePath;
             }
+        }
+
+        const recursiveMatch = findFileRecursively(dir, baseName);
+        if (recursiveMatch) {
+            return recursiveMatch;
         }
     }
 
