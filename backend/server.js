@@ -29,6 +29,7 @@ const { startTradingEngine } = require('./src/services/tradingEngine');
 const marketStreamService = require('./src/services/marketStreamService');
 const { corsOptions, allowedOrigins } = require('./src/config/cors');
 const { normalizeStoredUploadPath } = require('./src/utils/uploadPath');
+const { getUploadDirectories } = require('./src/utils/uploadStorage');
 
 app.use(cors(corsOptions));
 app.options(/.*/, cors(corsOptions));
@@ -74,11 +75,7 @@ app.use((req, res, next) => {
     next();
 });
 
-const uploadsDirs = [
-    path.join(__dirname, 'uploads'),
-    path.join(__dirname, 'src', 'uploads'),
-    path.join(__dirname, 'public', 'uploads'),
-];
+const uploadsDirs = getUploadDirectories();
 
 uploadsDirs.forEach((dir) => {
     app.use('/uploads', express.static(dir));
