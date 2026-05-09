@@ -6,6 +6,7 @@ const dotenv = require('dotenv');
 const { createServer } = require('http');
 const cookieParser = require('cookie-parser');
 const path = require('path');
+const fs = require('fs');
 
 dotenv.config();
 
@@ -27,6 +28,7 @@ const { protect, admin } = require('./src/middleware/authMiddleware');
 const { startTradingEngine } = require('./src/services/tradingEngine');
 const marketStreamService = require('./src/services/marketStreamService');
 const { corsOptions, allowedOrigins } = require('./src/config/cors');
+const { normalizeStoredUploadPath } = require('./src/utils/uploadPath');
 
 app.use(cors(corsOptions));
 app.options(/.*/, cors(corsOptions));
@@ -80,6 +82,52 @@ const uploadsDirs = [
 uploadsDirs.forEach((dir) => {
     app.use('/uploads', express.static(dir));
     app.use('/api/uploads', express.static(dir));
+});
+
+const resolveUploadFile = (value) => {
+    const normalizedPath = normalizeStoredUploadPath(value);
+    if (!normalizedPath) {
+        return null;
+    }
+
+    const relativePath = normalizedPath.replace(/^\/uploads\//i, '');
+    const baseName = path.basename(relativePath);
+    const candidateNames = Array.from(new Set([relativePath, baseName])).filter(Boolean);
+
+    for (const dir of uploadsDirs) {
+        for (const candidateName of candidateNames) {
+            const candidatePath = path.resolve(dir, candidateName);
+            const relativeToDir = path.relative(dir, candidatePath);
+
+            if (relativeToDir.startsWith('..') || path.isAbsolute(relativeToDir)) {
+                continue;
+            }
+
+            if (fs.existsSync(candidatePath) && fs.statSync(candidatePath).isFile()) {
+                return candidatePath;
+            }
+        }
+    }
+
+    return null;
+};
+
+app.get(['/uploads/resolve', '/api/uploads/resolve'], (req, res) => {
+    const requestedPath = req.query.path || req.query.file;
+    const resolvedFile = resolveUploadFile(requestedPath);
+
+    if (!resolvedFile) {
+        return res.status(404).json({
+            success: false,
+            error: 'File not found',
+        });
+    }
+
+    if (String(req.query.download || '').toLowerCase() === '1') {
+        return res.download(resolvedFile);
+    }
+
+    return res.sendFile(resolvedFile);
 });
 
 app.get('/', (req, res) => {

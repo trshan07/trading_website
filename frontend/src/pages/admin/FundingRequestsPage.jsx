@@ -25,7 +25,7 @@ import {
   FilePdfOutlined,
 } from '@ant-design/icons';
 import { adminService } from '../../services/adminService';
-import { getUploadUrl, isPdfFile } from '../../utils/uploadUrl';
+import { getUploadUrl, getUploadDownloadUrl, isPdfFile } from '../../utils/uploadUrl';
 import moment from 'moment';
 
 const { TabPane } = Tabs;
@@ -190,6 +190,7 @@ const FundingRequestsPage = () => {
   ];
 
   const proofUrl = getUploadUrl(selectedRequest?.proofImage);
+  const proofDownloadUrl = getUploadDownloadUrl(selectedRequest?.proofImage);
   const proofIsPdf = isPdfFile(selectedRequest?.proofImage);
   const bankAccounts = selectedRequest?.bankAccounts || [];
   const creditCards = selectedRequest?.creditCards || [];
@@ -300,7 +301,7 @@ const FundingRequestsPage = () => {
                       <Button
                         style={{ marginTop: 12 }}
                         icon={<EyeOutlined />}
-                        onClick={() => window.open(account.proofFile, '_blank')}
+                        onClick={() => window.open(getUploadDownloadUrl(account.proofFile) || account.proofFile, '_blank')}
                       >
                         Open Bank Proof
                       </Button>
@@ -355,7 +356,7 @@ const FundingRequestsPage = () => {
                   <div style={{ textAlign: 'center', padding: 24, background: '#fff', border: '1px dashed #d9d9d9', borderRadius: 6 }}>
                     <FilePdfOutlined style={{ fontSize: 52, color: '#ff4d4f', display: 'block', marginBottom: 10 }} />
                     <p style={{ color: '#666', margin: '0 0 12px' }}>PDF proof document cannot be previewed inline</p>
-                    <Button type="primary" icon={<EyeOutlined />} onClick={() => window.open(proofUrl, '_blank')}>
+                    <Button type="primary" icon={<EyeOutlined />} onClick={() => window.open(proofDownloadUrl || proofUrl, '_blank')}>
                       Open PDF
                     </Button>
                   </div>
@@ -368,7 +369,7 @@ const FundingRequestsPage = () => {
                 )}
                 <Button 
                   icon={<DownloadOutlined />} 
-                  onClick={() => window.open(proofUrl, '_blank')}
+                  onClick={() => window.open(proofDownloadUrl || proofUrl, '_blank')}
                   style={{ marginTop: 8 }}
                 >
                   Download Proof

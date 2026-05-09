@@ -2,7 +2,7 @@ import { useContext, useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../../context/AuthContext";
 import { adminService } from "../../services/adminService";
-import { getUploadUrl, isPdfFile } from "../../utils/uploadUrl";
+import { getUploadUrl, getUploadDownloadUrl, isPdfFile } from "../../utils/uploadUrl";
 import logoDark from "../../assets/images/logos/logo-dark.png";
 
 // ─── re-export everything from part 1 inline (merged single file) ──────────
@@ -1124,9 +1124,10 @@ function KYCPage({ toast }) {
                       <StatusBadge status={doc.status} />
                       {doc.status !== "missing" && doc.file && (() => {
                         const fileUrl = getUploadUrl(doc.file);
+                        const downloadUrl = getUploadDownloadUrl(doc.file);
                         return fileUrl ? (
                           <div
-                            onClick={() => window.open(fileUrl, '_blank')}
+                            onClick={() => window.open(downloadUrl || fileUrl, '_blank')}
                             style={{ background: C.bgCard, borderRadius: "6px", padding: "5px 10px", fontSize: "11px", color: C.blue, cursor: "pointer", border: `1px solid ${C.border}`, userSelect: "none" }}
                           >
                             {isPdfFile(doc.file) ? '📄 Open PDF' : '👁 Preview'}

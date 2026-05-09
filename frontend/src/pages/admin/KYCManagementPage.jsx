@@ -9,7 +9,7 @@ import {
   IdcardOutlined, ReloadOutlined, FilePdfOutlined, FileImageOutlined,
 } from '@ant-design/icons';
 import { adminService } from '../../services/adminService';
-import { getUploadUrl, isPdfFile } from '../../utils/uploadUrl';
+import { getUploadUrl, getUploadDownloadUrl, isPdfFile } from '../../utils/uploadUrl';
 import moment from 'moment';
 
 const { TabPane } = Tabs;
@@ -185,6 +185,7 @@ const KYCManagementPage = () => {
 
             {(selectedUser.kycDocs || []).map((doc) => {
               const fileUrl = getUploadUrl(doc.file);
+              const downloadUrl = getUploadDownloadUrl(doc.file);
               const docIsPdf = isPdfFile(doc.file);
 
               return (
@@ -203,7 +204,7 @@ const KYCManagementPage = () => {
                     <Space>
                       {fileUrl && (
                         <Tooltip title="Open / download document">
-                          <Button size="small" icon={<DownloadOutlined />} onClick={() => window.open(fileUrl, '_blank')}>
+                          <Button size="small" icon={<DownloadOutlined />} onClick={() => window.open(downloadUrl || fileUrl, '_blank')}>
                             Open / Download
                           </Button>
                         </Tooltip>
@@ -244,7 +245,7 @@ const KYCManagementPage = () => {
                       <div style={{ textAlign: 'center', padding: 24, background: '#fff', border: '1px dashed #d9d9d9', borderRadius: 6 }}>
                         <FilePdfOutlined style={{ fontSize: 52, color: '#ff4d4f', display: 'block', marginBottom: 10 }} />
                         <p style={{ color: '#666', margin: '0 0 12px' }}>PDF Document — cannot be previewed inline</p>
-                        <Button type="primary" icon={<EyeOutlined />} onClick={() => window.open(fileUrl, '_blank')}>
+                        <Button type="primary" icon={<EyeOutlined />} onClick={() => window.open(downloadUrl || fileUrl, '_blank')}>
                           Open PDF
                         </Button>
                       </div>

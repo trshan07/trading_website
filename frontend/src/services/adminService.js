@@ -1,6 +1,5 @@
 // frontend/src/services/adminService.js
 import api from './api';
-import { getUploadUrl } from '../utils/uploadUrl';
 
 const enrichResponse = (response, extra = {}) => Object.assign(response, extra);
 
@@ -18,7 +17,7 @@ const normalizeFundingRequest = (request) => ({
   createdAt: request?.createdAt || request?.created || request?.created_at,
   updatedAt: request?.updatedAt || request?.updated_at || request?.createdAt || request?.created,
   rejectionReason: request?.rejectionReason || request?.rejection_reason || request?.note || '',
-  proofImage: getUploadUrl(request?.proofImage || request?.proof),
+  proofImage: request?.proofImage || request?.proof || '',
   bankAccounts: (request?.bankAccounts || request?.bank_accounts || []).map((account) => ({
     ...account,
     id: account?.id != null ? String(account.id) : account?.id,
@@ -33,7 +32,7 @@ const normalizeFundingRequest = (request) => ({
     iban: account?.iban || '',
     beneficiaryName: account?.beneficiaryName || account?.beneficiary_name || '',
     relationship: account?.relationship || '',
-    proofFile: getUploadUrl(account?.proofFile || account?.proof_file),
+    proofFile: account?.proofFile || account?.proof_file || '',
     isDefault: Boolean(account?.isDefault ?? account?.is_default),
     isVerified: Boolean(account?.isVerified ?? account?.is_verified),
   })),
