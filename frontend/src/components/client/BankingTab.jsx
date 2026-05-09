@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { 
-  FaWallet, FaExchangeAlt, FaMoneyBillWave, FaLandmark,
+  FaWallet, FaMoneyBillWave, FaLandmark,
   FaCreditCard, FaMobileAlt, FaHistory, FaArrowRight,
   FaPlus, FaDownload, FaFileInvoice, FaUniversity,
   FaCheck, FaTimes, FaEye, FaTrash, FaEdit,
@@ -42,7 +42,6 @@ const BankingTab = ({
   onAddCreditCard,
   onDeleteCreditCard,
   onSetDefaultCreditCard,
-  onShowTransferModal,
   platformInfo,
   isDemo
 }) => {
@@ -396,16 +395,6 @@ const BankingTab = ({
     }
   };
 
-  const openTransferFlow = () => {
-    if (onShowTransferModal) {
-      onShowTransferModal();
-      return;
-    }
-
-    setShowErrorMessage('Transfer flow is unavailable right now.');
-    setTimeout(() => setShowErrorMessage(''), 3000);
-  };
-
   const handleExportLedger = () => {
     if (!transactions || transactions.length === 0) {
       setShowErrorMessage('No transaction history available to export.');
@@ -555,7 +544,6 @@ const BankingTab = ({
             <div className="space-y-3">
               {[
                 { label: 'Deposit Funds', icon: FaArrowDown, action: () => setShowDeposit(true) },
-                { label: 'Internal Transfer', icon: FaExchangeAlt, action: openTransferFlow },
                 { label: 'Add Repository', icon: FaBuilding, action: () => setShowAddAccount(true) },
                 { label: 'Link interface', icon: FaCreditCard, action: () => setShowAddCard(true) },
                 { label: 'Export Ledger', icon: FaDownload, action: handleExportLedger }
@@ -599,18 +587,6 @@ const BankingTab = ({
               </div>
               <TransactionHistorySection transactions={transactions} isMobile={isMobile} />
             </>
-          )}
-
-          {activeBankingTab === 'transfer' && (
-            <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 p-10 shadow-2xl shadow-slate-200/50 dark:shadow-black/20 transition-colors">
-              <h3 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tight italic mb-8 transition-colors">Asset Migration</h3>
-              <button
-                onClick={openTransferFlow}
-                className="px-10 py-5 bg-slate-900 dark:bg-gold-500 text-white dark:text-slate-900 rounded-[1.5rem] font-black uppercase tracking-[0.2em] text-[11px] hover:bg-gold-600 dark:hover:bg-gold-400 transition-all shadow-2xl shadow-slate-900/10 dark:shadow-gold-500/10"
-              >
-                Initialize Migration Vector
-              </button>
-            </div>
           )}
 
           {activeBankingTab === 'withdraw' && (

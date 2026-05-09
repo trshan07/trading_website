@@ -1,6 +1,5 @@
 import {
   FaUniversity,
-  FaExchangeAlt,
   FaMoneyBillWave,
   FaLandmark,
   FaCreditCard,
@@ -43,7 +42,6 @@ export const SUPPORTED_CURRENCIES = ['LKR', 'USD', 'EUR', 'GBP', 'AED', 'SGD', '
 
 export const BANKING_TABS = [
   { id: 'overview', label: 'Overview', icon: FaUniversity },
-  { id: 'transfer', label: 'Transfer', icon: FaExchangeAlt },
   { id: 'withdraw', label: 'Withdraw', icon: FaMoneyBillWave },
   { id: 'accounts', label: 'Accounts', icon: FaLandmark },
   { id: 'cards', label: 'Cards', icon: FaCreditCard },
