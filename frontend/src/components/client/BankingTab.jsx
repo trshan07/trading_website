@@ -122,8 +122,6 @@ const BankingTab = ({
 
     if (step >= 3) {
       if (!bankForm.proofOfBankAccountName) errors.proofOfBankAccount = 'Proof of bank account is required';
-      if (!/^\d{4,6}$/.test(bankForm.withdrawalPin)) errors.withdrawalPin = 'PIN must be 4 to 6 digits';
-      if (!/^\d{6}$/.test(bankForm.otpCode)) errors.otpCode = 'OTP must be 6 digits';
     }
 
     if (step >= 4) {
@@ -1004,15 +1002,11 @@ const BankingTab = ({
                         </label>
                         {formErrors.proofOfBankAccount && <p className="text-rose-500 text-[10px] font-black uppercase tracking-wider ml-2">{formErrors.proofOfBankAccount}</p>}
                       </div>
-                      <div className="space-y-2">
-                        <label className="block text-[10px] uppercase font-black text-slate-400 tracking-[0.28em] ml-2">Set Withdrawal PIN *</label>
-                        <input type="password" name="withdrawalPin" value={bankForm.withdrawalPin} onChange={handleBankFormChange} placeholder="4 to 6 digits" className={`w-full px-6 py-5 bg-slate-50 dark:bg-slate-800 border rounded-2xl text-sm font-bold text-slate-900 dark:text-white focus:outline-none transition-all ${formErrors.withdrawalPin ? 'border-rose-500' : 'border-slate-100 dark:border-slate-700 focus:ring-8 focus:ring-slate-900/5 dark:focus:ring-gold-500/10'}`} />
-                        {formErrors.withdrawalPin && <p className="text-rose-500 text-[10px] font-black uppercase tracking-wider ml-2">{formErrors.withdrawalPin}</p>}
-                      </div>
-                      <div className="space-y-2">
-                        <label className="block text-[10px] uppercase font-black text-slate-400 tracking-[0.28em] ml-2">OTP Verification Code *</label>
-                        <input type="text" name="otpCode" value={bankForm.otpCode} onChange={handleBankFormChange} placeholder="6-digit code" className={`w-full px-6 py-5 bg-slate-50 dark:bg-slate-800 border rounded-2xl text-sm font-bold text-slate-900 dark:text-white focus:outline-none transition-all ${formErrors.otpCode ? 'border-rose-500' : 'border-slate-100 dark:border-slate-700 focus:ring-8 focus:ring-slate-900/5 dark:focus:ring-gold-500/10'}`} />
-                        {formErrors.otpCode && <p className="text-rose-500 text-[10px] font-black uppercase tracking-wider ml-2">{formErrors.otpCode}</p>}
+                      <div className="md:col-span-2 rounded-[1.75rem] border border-amber-200/70 dark:border-amber-500/20 bg-amber-50/70 dark:bg-amber-500/5 px-5 py-4">
+                        <p className="text-[10px] font-black uppercase tracking-[0.22em] text-amber-700 dark:text-amber-300">Security Note</p>
+                        <p className="mt-2 text-sm font-medium text-slate-600 dark:text-slate-300">
+                          Withdrawal PIN and OTP verification are not active in this bank-linking flow yet. Bank ownership is currently verified using the uploaded proof and server-side review.
+                        </p>
                       </div>
                     </div>
                   </div>

@@ -333,8 +333,8 @@ const normalizeBankAccount = (account = {}) => ({
   branchName: account.branchName || account.branch_name || '',
   branchCode: account.branchCode || account.branch_code || '',
   country: account.country || '',
-  accountHolderName: account.accountHolderName || account.account_holder_name || account.account_name || '',
-  accountName: account.accountName || account.account_name || account.account_holder_name || '',
+  accountHolderName: account.accountHolderName || account.account_holder_name || account.account_holder || account.account_name || '',
+  accountName: account.accountName || account.account_name || account.account_holder_name || account.account_holder || '',
   accountNumber: account.accountNumber || account.account_number || '',
   maskedAccountNumber: account.maskedAccountNumber || maskAccountNumber(account.accountNumber || account.account_number || ''),
   accountType: account.accountType || account.account_type || '',
@@ -549,15 +549,23 @@ export const useDashboardData = (accountType = 'demo', activeSymbol = null) => {
   // --- Fetch Methods ---
 
   const fetchBanking = useCallback(async () => {
-    try {
-      const [banksRes, cardsRes] = await Promise.all([
-        fundingService.getBankAccounts(),
-        fundingService.getCreditCards()
-      ]);
-      if (banksRes.success) setBankAccounts((banksRes.data || []).map(normalizeBankAccount));
-      if (cardsRes.success) setCreditCards((cardsRes.data || []).map(normalizeCreditCard));
-    } catch (error) {
-      console.error('Banking Fetch Failed:', error);
+    const [banksResult, cardsResult] = await Promise.allSettled([
+      fundingService.getBankAccounts(),
+      fundingService.getCreditCards()
+    ]);
+
+    if (banksResult.status === 'fulfilled' && banksResult.value.success) {
+      setBankAccounts((banksResult.value.data || []).map(normalizeBankAccount));
+    } else if (banksResult.status === 'rejected') {
+      console.error('Bank Accounts Fetch Failed:', banksResult.reason);
+      setBankAccounts([]);
+    }
+
+    if (cardsResult.status === 'fulfilled' && cardsResult.value.success) {
+      setCreditCards((cardsResult.value.data || []).map(normalizeCreditCard));
+    } else if (cardsResult.status === 'rejected') {
+      console.error('Credit Cards Fetch Failed:', cardsResult.reason);
+      setCreditCards([]);
     }
   }, []);
 

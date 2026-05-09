@@ -5,21 +5,31 @@ const { isMissingColumnError, isMissingRelationError, getMissingColumnName } = r
 class BankAccount {
     static async findByUserId(userId) {
         console.log('DB Debug - Fetching Bank Accounts for User ID:', userId);
-        try {
-            const query = 'SELECT * FROM bank_accounts WHERE user_id = $1 ORDER BY is_default DESC, created_at DESC';
-            const { rows } = await db.query(query, [userId]);
-            return rows;
-        } catch (error) {
-            if (isMissingColumnError(error)) {
-                const legacyQuery = 'SELECT * FROM bank_accounts WHERE user_id = $1 ORDER BY created_at DESC';
-                const { rows } = await db.query(legacyQuery, [userId]);
-                return rows.map((row, index) => ({ ...row, is_default: index === 0 }));
+        const queries = [
+            'SELECT * FROM bank_accounts WHERE user_id = $1 ORDER BY is_default DESC, created_at DESC',
+            'SELECT * FROM bank_accounts WHERE user_id = $1 ORDER BY created_at DESC',
+            'SELECT * FROM bank_accounts WHERE user_id = $1',
+        ];
+
+        for (const query of queries) {
+            try {
+                const { rows } = await db.query(query, [userId]);
+                return rows.map((row, index) => ({
+                    ...row,
+                    is_default: typeof row.is_default === 'boolean' ? row.is_default : index === 0,
+                }));
+            } catch (error) {
+                if (isMissingRelationError(error)) {
+                    return [];
+                }
+
+                if (!isMissingColumnError(error)) {
+                    throw error;
+                }
             }
-            if (isMissingRelationError(error)) {
-                return [];
-            }
-            throw error;
         }
+
+        return [];
     }
 
     static async findById(id) {
@@ -54,58 +64,34 @@ class BankAccount {
             await this.clearDefaults(userId);
         }
 
-        const values = [
-            userId, bankName, branchName, accountNumber, finalAccountName,
-            finalAccountName, currency || 'USD', swiftCode, iban,
-            beneficiaryName, relationship, proof_file, setAsDefault
-        ];
-
-        try {
-            const query = `
-                INSERT INTO bank_accounts (
-                    user_id, bank_name, branch_name, account_number, account_name, 
-                    account_holder_name, currency, swift_code, iban, 
-                    beneficiary_name, relationship, proof_file, is_default
-                )
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
-                RETURNING *
-            `;
-            const { rows } = await db.query(query, values);
-            return rows[0];
-        } catch (error) {
-            if (isMissingColumnError(error)) {
-                const missingColumn = getMissingColumnName(error);
-
-                if (missingColumn === 'branch_name') {
-                    const noBranchQuery = `
-                        INSERT INTO bank_accounts (
-                            user_id, bank_name, account_number, account_name, 
-                            currency, swift_code, is_verified
-                        )
-                        VALUES ($1, $2, $3, $4, $5, $6, FALSE)
-                        RETURNING *
-                    `;
-                    const noBranchValues = [
-                        userId,
-                        bankName,
-                        accountNumber,
-                        finalAccountName,
-                        currency || 'USD',
-                        swiftCode,
-                    ];
-                    const { rows } = await db.query(noBranchQuery, noBranchValues);
-                    return { ...rows[0], branch_name: branchName, is_default: setAsDefault };
-                }
-
-                const legacyQuery = `
+        const insertAttempts = [
+            {
+                query: `
                     INSERT INTO bank_accounts (
                         user_id, bank_name, branch_name, account_number, account_name, 
-                        currency, swift_code, is_verified
+                        account_holder_name, currency, swift_code, iban, 
+                        beneficiary_name, relationship, proof_file, is_default
                     )
-                    VALUES ($1, $2, $3, $4, $5, $6, $7, FALSE)
+                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
                     RETURNING *
-                `;
-                const legacyValues = [
+                `,
+                values: [
+                    userId, bankName, branchName, accountNumber, finalAccountName,
+                    finalAccountName, currency || 'USD', swiftCode, iban,
+                    beneficiaryName, relationship, proof_file, setAsDefault
+                ],
+                normalize: (row) => row,
+            },
+            {
+                query: `
+                    INSERT INTO bank_accounts (
+                        user_id, bank_name, branch_name, account_number, account_name, 
+                        currency, swift_code, is_verified, is_default
+                    )
+                    VALUES ($1, $2, $3, $4, $5, $6, $7, FALSE, $8)
+                    RETURNING *
+                `,
+                values: [
                     userId,
                     bankName,
                     branchName,
@@ -113,12 +99,61 @@ class BankAccount {
                     finalAccountName,
                     currency || 'USD',
                     swiftCode,
-                ];
-                const { rows } = await db.query(legacyQuery, legacyValues);
-                return { ...rows[0], is_default: setAsDefault };
+                    setAsDefault,
+                ],
+                normalize: (row) => ({
+                    ...row,
+                    account_holder_name: row.account_holder_name || finalAccountName,
+                    beneficiary_name: row.beneficiary_name || beneficiaryName,
+                    relationship: row.relationship || relationship,
+                    proof_file: row.proof_file || proof_file,
+                }),
+            },
+            {
+                query: `
+                    INSERT INTO bank_accounts (
+                        user_id, bank_name, account_number, account_holder
+                    )
+                    VALUES ($1, $2, $3, $4)
+                    RETURNING *
+                `,
+                values: [userId, bankName, accountNumber, finalAccountName],
+                normalize: (row) => ({
+                    ...row,
+                    branch_name: row.branch_name || branchName,
+                    account_name: row.account_name || finalAccountName,
+                    account_holder_name: row.account_holder_name || row.account_holder || finalAccountName,
+                    currency: row.currency || currency || 'USD',
+                    swift_code: row.swift_code || swiftCode,
+                    iban: row.iban || iban,
+                    beneficiary_name: row.beneficiary_name || beneficiaryName,
+                    relationship: row.relationship || relationship,
+                    proof_file: row.proof_file || proof_file,
+                    is_default: typeof row.is_default === 'boolean' ? row.is_default : setAsDefault,
+                }),
+            },
+        ];
+
+        let lastError = null;
+
+        for (const attempt of insertAttempts) {
+            try {
+                const { rows } = await db.query(attempt.query, attempt.values);
+                return attempt.normalize(rows[0]);
+            } catch (error) {
+                if (isMissingRelationError(error)) {
+                    throw error;
+                }
+
+                if (!isMissingColumnError(error)) {
+                    throw error;
+                }
+
+                lastError = error;
             }
-            throw error;
         }
+
+        throw lastError || new Error(`Unable to insert bank account due to schema mismatch: ${getMissingColumnName(lastError) || 'unknown column'}`);
     }
 
     static async update(id, updateData) {
