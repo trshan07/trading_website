@@ -1339,6 +1339,7 @@ function CreditsPage({ users, setUsers, toast }) {
               const targetLabel = form.target === "demo" ? "Demo" : "Real";
               const targetCredit = form.target === "demo" ? toNum(modal.demoCredit) : toNum(modal.realCredit);
               const targetBalance = form.target === "demo" ? toNum(modal.demoBalance) : toNum(modal.realBalance);
+              const linkedBankAccount = null;
 
               return (
                 <>
@@ -1363,6 +1364,32 @@ function CreditsPage({ users, setUsers, toast }) {
               ))}
             </div>
 
+            {linkedBankAccount && (
+              <div style={{ background: C.bg, border: `1px solid ${C.borderLight}`, borderRadius: "8px", padding: "12px 14px", marginBottom: "16px" }}>
+                <div style={{ fontSize: "10px", color: C.textMuted, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "10px" }}>Linked Bank Account</div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
+                  {[["Bank Name", linkedBankAccount.bankName || "â€”"], ["Branch", linkedBankAccount.branchName || "â€”"], ["Account Number", linkedBankAccount.accountNumber || linkedBankAccount.maskedAccountNumber || "â€”"], ["Account Holder", linkedBankAccount.accountHolderName || linkedBankAccount.accountName || "â€”"]].map(([l, v]) => (
+                    <div key={l} style={{ background: C.bgCard, borderRadius: "8px", padding: "10px 12px" }}>
+                      <div style={{ fontSize: "10px", color: C.textMuted, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "4px" }}>{l}</div>
+                      <div className="mono" style={{ fontSize: "12px", color: C.text }}>{v}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            {linkedBankAccount && (
+              <div style={{ background: C.bg, border: `1px solid ${C.borderLight}`, borderRadius: "8px", padding: "12px 14px", marginBottom: "16px" }}>
+                <div style={{ fontSize: "10px", color: C.textMuted, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "10px" }}>Linked Bank Account</div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
+                  {[["Bank Name", linkedBankAccount.bankName || "â€”"], ["Branch", linkedBankAccount.branchName || "â€”"], ["Account Number", linkedBankAccount.accountNumber || linkedBankAccount.maskedAccountNumber || "â€”"], ["Account Holder", linkedBankAccount.accountHolderName || linkedBankAccount.accountName || "â€”"]].map(([l, v]) => (
+                    <div key={l} style={{ background: C.bgCard, borderRadius: "8px", padding: "10px 12px" }}>
+                      <div style={{ fontSize: "10px", color: C.textMuted, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "4px" }}>{l}</div>
+                      <div className="mono" style={{ fontSize: "12px", color: C.text }}>{v}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
             <Sel
               label="Target Account"
               value={form.target}
@@ -1553,6 +1580,7 @@ function FundingPage({ funding, setFunding, users, setUsers, toast }) {
           <>
             {(() => {
               const selectedUser = users.find(u => u.id === modal.userId);
+              const linkedBankAccount = (modal.bankAccounts || []).find(account => account.isDefault) || (modal.bankAccounts || [])[0] || null;
               const currentBalance = toNum(selectedUser?.[targetAccount === "demo" ? "demoBalance" : "realBalance"]);
               const projectedBalance = modal.type === "deposit" ? currentBalance + modal.amount : currentBalance - modal.amount;
 
@@ -1586,6 +1614,19 @@ function FundingPage({ funding, setFunding, users, setUsers, toast }) {
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
                   <span className="mono" style={{ fontSize: "12px", color: C.textMuted }}>Current: {fmt(currentBalance)}</span>
                   <span className="mono" style={{ fontSize: "12px", color: projectedBalance < 0 ? C.red : C.text }}>After approval: {fmt(projectedBalance)}</span>
+                </div>
+              </div>
+            )}
+            {linkedBankAccount && (
+              <div style={{ background: C.bg, border: `1px solid ${C.borderLight}`, borderRadius: "8px", padding: "12px 14px", marginBottom: "16px" }}>
+                <div style={{ fontSize: "10px", color: C.textMuted, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "10px" }}>Linked Bank Account</div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
+                  {[["Bank Name", linkedBankAccount.bankName || "â€”"], ["Branch", linkedBankAccount.branchName || "â€”"], ["Account Number", linkedBankAccount.accountNumber || linkedBankAccount.maskedAccountNumber || "â€”"], ["Account Holder", linkedBankAccount.accountHolderName || linkedBankAccount.accountName || "â€”"]].map(([l, v]) => (
+                    <div key={l} style={{ background: C.bgCard, borderRadius: "8px", padding: "10px 12px" }}>
+                      <div style={{ fontSize: "10px", color: C.textMuted, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "4px" }}>{l}</div>
+                      <div className="mono" style={{ fontSize: "12px", color: C.text }}>{v}</div>
+                    </div>
+                  ))}
                 </div>
               </div>
             )}
