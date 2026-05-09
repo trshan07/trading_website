@@ -502,11 +502,11 @@ const BankingTab = ({
             <div className="absolute top-0 right-0 w-48 h-48 bg-gold-500/5 blur-[80px] rounded-full -translate-y-24 translate-x-24"></div>
             <h3 className="text-[10px] font-black text-gold-500 uppercase tracking-[0.3em] mb-6 sm:mb-8 flex items-center italic">
               <FaWallet className="mr-3 text-lg" />
-              Global Liquidity
+              Account Summary
             </h3>
             <div className="space-y-6 relative">
               <div>
-                <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">Total Net Worth</p>
+                <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">Total Balance</p>
                 <p className="text-3xl sm:text-4xl font-black text-slate-900 dark:text-white italic tracking-tighter">
                   ${walletData.totalBalance?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}
                 </p>
@@ -519,7 +519,7 @@ const BankingTab = ({
                   </p>
                 </div>
                 <div className="bg-white/85 dark:bg-slate-900/40 rounded-2xl p-4 sm:p-5 border border-slate-200 dark:border-slate-800/50 backdrop-blur-xl">
-                  <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest mb-1">Incentives</p>
+                  <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest mb-1">Bonus</p>
                   <p className="text-base sm:text-lg font-black text-emerald-500 italic">
                     ${walletData.bonusWallet?.toLocaleString() || '0'}
                   </p>
@@ -540,13 +540,13 @@ const BankingTab = ({
           
           {/* Quick Actions */}
           <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 p-6 sm:p-8 shadow-2xl shadow-slate-200/50 dark:shadow-black/20 transition-colors">
-            <h3 className="text-[10px] font-black text-gold-500 uppercase tracking-[0.3em] mb-6 sm:mb-8 italic">Rapid Protocols</h3>
+            <h3 className="text-[10px] font-black text-gold-500 uppercase tracking-[0.3em] mb-6 sm:mb-8 italic">Quick Actions</h3>
             <div className="space-y-3">
               {[
                 { label: 'Deposit Funds', icon: FaArrowDown, action: () => setShowDeposit(true) },
-                { label: 'Add Repository', icon: FaBuilding, action: () => setShowAddAccount(true) },
-                { label: 'Link interface', icon: FaCreditCard, action: () => setShowAddCard(true) },
-                { label: 'Export Ledger', icon: FaDownload, action: handleExportLedger }
+                { label: 'Add Bank Account', icon: FaBuilding, action: () => setShowAddAccount(true) },
+                { label: 'Add Card', icon: FaCreditCard, action: () => setShowAddCard(true) },
+                { label: 'Export Statement', icon: FaDownload, action: handleExportLedger }
               ].map((item, idx) => (
                 <button 
                   key={idx}
@@ -570,13 +570,13 @@ const BankingTab = ({
             <>
               <div className="bg-gradient-to-br from-white via-slate-50 to-amber-50/70 dark:from-slate-900 dark:to-slate-800 rounded-[2.5rem] p-6 sm:p-10 border border-slate-200 dark:border-slate-800 shadow-2xl shadow-slate-200/60 dark:shadow-black/30 relative overflow-hidden transition-colors">
                 <div className="absolute top-0 right-0 w-64 h-64 bg-gold-500/5 blur-[80px] rounded-full translate-x-32 -translate-y-32"></div>
-                <h3 className="text-[10px] font-black text-gold-500 uppercase tracking-[0.3em] mb-8 sm:mb-10 relative italic">Capital Metrics</h3>
+                <h3 className="text-[10px] font-black text-gold-500 uppercase tracking-[0.3em] mb-8 sm:mb-10 relative italic">Overview</h3>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-6 sm:gap-8 relative">
                   {[
-                    { label: 'Total Equity', value: `$${walletData.totalBalance?.toLocaleString() || '0'}`, color: 'text-slate-900 dark:text-white' },
-                    { label: 'Monthly Flow', value: '+$5,250', color: 'text-emerald-400' },
-                    { label: 'Ledger Count', value: transactions.length, color: 'text-gold-500' },
-                    { label: 'Pending Sync', value: transactions.filter(t => t.status === 'Pending').length, color: 'text-amber-400' }
+                    { label: 'Total Balance', value: `$${walletData.totalBalance?.toLocaleString() || '0'}`, color: 'text-slate-900 dark:text-white' },
+                    { label: 'This Month', value: '+$5,250', color: 'text-emerald-400' },
+                    { label: 'Transactions', value: transactions.length, color: 'text-gold-500' },
+                    { label: 'Pending', value: transactions.filter(t => t.status === 'Pending').length, color: 'text-amber-400' }
                   ].map((stat, idx) => (
                     <div key={idx} className="group">
                       <p className={`text-2xl sm:text-3xl font-black ${stat.color} italic tracking-tighter mb-2 group-hover:scale-110 transition-transform origin-left`}>{stat.value}</p>
@@ -591,16 +591,16 @@ const BankingTab = ({
 
           {activeBankingTab === 'withdraw' && (
             <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 p-10 shadow-2xl shadow-slate-200/50 dark:shadow-black/20 transition-colors">
-              <h3 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tight italic mb-8 transition-colors">Capital Extraction</h3>
+              <h3 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tight italic mb-8 transition-colors">Withdraw Funds</h3>
               {isDemo ? (
                 <div className="p-10 bg-slate-50 dark:bg-slate-800/50 rounded-[2rem] border border-dashed border-slate-200 dark:border-slate-700 text-center">
                   <FaMoneyBillWave className="mx-auto text-slate-200 dark:text-slate-700 text-4xl mb-6" />
-                  <p className="text-slate-500 dark:text-slate-400 font-bold italic mb-6">Extraction protocols are locked for simulation-only repositories.</p>
+                  <p className="text-slate-500 dark:text-slate-400 font-bold italic mb-6">Withdrawals are not available for demo accounts.</p>
                   <button
                     onClick={() => window.location.href = '/settings'}
                     className="px-10 py-5 bg-gold-500 text-slate-900 rounded-[1.5rem] font-black uppercase tracking-[0.2em] text-[11px] hover:bg-gold-600 transition-all shadow-xl shadow-gold-500/20"
                   >
-                    Authorize Live Operating ID
+                    Verify Live Account
                   </button>
                 </div>
               ) : (
@@ -608,7 +608,7 @@ const BankingTab = ({
                   onClick={() => setShowWithdraw(true)}
                   className="px-10 py-5 bg-slate-900 dark:bg-gold-500 text-white dark:text-slate-900 rounded-[1.5rem] font-black uppercase tracking-[0.2em] text-[11px] hover:bg-gold-600 dark:hover:bg-gold-400 transition-all shadow-2xl shadow-slate-900/10 dark:shadow-gold-500/10"
                 >
-                  Deploy Sync Logic
+                  Request Withdrawal
                 </button>
               )}
             </div>
@@ -643,8 +643,8 @@ const BankingTab = ({
           <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 p-6 sm:p-10 w-full max-w-xl shadow-[0_0_100px_rgba(0,0,0,0.1)] overflow-y-auto max-h-[90vh] custom-scrollbar">
             <div className="flex items-center justify-between mb-10">
               <div>
-                <h3 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight italic uppercase transition-colors">Capital Injection</h3>
-                <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-2 uppercase font-black tracking-[0.2em] transition-colors">Synchronize External Assets</p>
+                <h3 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight italic uppercase transition-colors">Deposit Funds</h3>
+                <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-2 uppercase font-black tracking-[0.2em] transition-colors">Add money to your account</p>
               </div>
               <button onClick={() => setShowDeposit(false)} className="w-12 h-12 bg-slate-50 dark:bg-slate-800 text-slate-400 dark:text-slate-500 hover:text-rose-500 dark:hover:text-rose-400 rounded-2xl flex items-center justify-center transition-all border border-slate-100 dark:border-slate-700">
                 <FaTimes size={18} />
@@ -653,7 +653,7 @@ const BankingTab = ({
 
             <div className="space-y-8">
               <div className="space-y-4">
-                <label className="text-[10px] uppercase font-black text-slate-400 tracking-[0.3em] ml-2">Channel Selection</label>
+                <label className="text-[10px] uppercase font-black text-slate-400 tracking-[0.3em] ml-2">Payment Method</label>
                 <div className="grid grid-cols-1 gap-3">
                   {DEPOSIT_METHODS.map((method) => (
                     <button
@@ -669,7 +669,7 @@ const BankingTab = ({
                         <method.icon className={selectedMethod === method.id ? 'text-gold-500 dark:text-slate-900' : 'text-slate-500 dark:text-slate-600'} size={24} />
                         <div className="text-left font-black uppercase italic tracking-widest text-[10px]">
                           <p className={selectedMethod === method.id ? 'text-white dark:text-slate-900' : 'text-slate-900 dark:text-white transition-colors'}>{method.name}</p>
-                          <p className="text-slate-500 dark:text-slate-400 mt-1 opacity-70 transition-colors">{method.processing} | {method.fee} Ratio</p>
+                          <p className="text-slate-500 dark:text-slate-400 mt-1 opacity-70 transition-colors">{method.processing} | {method.fee} Fee</p>
                         </div>
                       </div>
                       {selectedMethod === method.id && <FaCheck className="text-gold-500 dark:text-slate-900" />}
@@ -679,7 +679,7 @@ const BankingTab = ({
               </div>
 
                <div className="space-y-4">
-                <label className="text-[10px] uppercase font-black text-slate-400 tracking-[0.3em] ml-2">Injection Magnitude</label>
+                <label className="text-[10px] uppercase font-black text-slate-400 tracking-[0.3em] ml-2">Amount</label>
                 <div className="relative">
                   <span className="absolute left-6 top-1/2 -translate-y-1/2 text-2xl font-black text-slate-400 dark:text-slate-700 italic">$</span>
                   <input
@@ -696,17 +696,17 @@ const BankingTab = ({
                 <div className="bg-gradient-to-br from-white via-slate-50 to-amber-50/60 dark:from-slate-900 dark:to-slate-800 rounded-[2rem] p-6 sm:p-8 border border-slate-200 dark:border-slate-800 space-y-6 relative overflow-hidden transition-colors">
                   <div className="absolute top-0 right-0 w-32 h-32 bg-gold-500/5 blur-3xl rounded-full translate-x-16 -translate-y-16"></div>
                   <div className="flex items-center justify-between mb-2">
-                    <h4 className="text-[10px] font-black text-gold-500 uppercase tracking-[0.3em] italic">Receiver Protocol Details</h4>
-                    <span className="px-3 py-1 rounded-full bg-gold-500/10 text-gold-500 text-[8px] font-black uppercase tracking-widest border border-gold-500/20">Verified Vault</span>
+                    <h4 className="text-[10px] font-black text-gold-500 uppercase tracking-[0.3em] italic">Bank Details</h4>
+                    <span className="px-3 py-1 rounded-full bg-gold-500/10 text-gold-500 text-[8px] font-black uppercase tracking-widest border border-gold-500/20">Verified</span>
                   </div>
                   
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                     <div className="space-y-1">
-                      <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest">Bank Entity</p>
+                      <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest">Bank Name</p>
                       <p className="text-sm font-black text-slate-900 dark:text-white italic">{platformInfo.bank_name}</p>
                     </div>
                     <div className="space-y-1">
-                      <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest">Account Identity</p>
+                      <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest">Account Name</p>
                       <p className="text-sm font-black text-slate-900 dark:text-white italic">{platformInfo.account_name}</p>
                     </div>
                     <div className="space-y-1">
@@ -765,13 +765,13 @@ const BankingTab = ({
                   disabled={!depositAmount}
                   className="flex-1 px-8 py-5 bg-slate-900 dark:bg-gold-500 text-white dark:text-slate-900 rounded-[1.5rem] font-black uppercase tracking-[0.2em] text-[11px] hover:bg-gold-600 dark:hover:bg-gold-400 disabled:bg-slate-200 dark:disabled:bg-slate-800 transition-all shadow-2xl shadow-slate-900/10 dark:shadow-gold-500/10"
                 >
-                  Authorized Injection
+                  Confirm Deposit
                 </button>
                 <button
                   onClick={() => setShowDeposit(false)}
                   className="px-8 py-5 bg-slate-50 dark:bg-slate-800 text-slate-400 dark:text-slate-500 rounded-[1.5rem] font-black uppercase tracking-[0.2em] text-[11px] hover:bg-slate-100 dark:hover:bg-slate-700 transition-all"
                 >
-                  Abort
+                  Cancel
                 </button>
               </div>
             </div>
@@ -785,8 +785,8 @@ const BankingTab = ({
           <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 p-6 sm:p-10 w-full max-w-xl shadow-[0_0_100px_rgba(0,0,0,0.1)] max-h-[90vh] overflow-y-auto custom-scrollbar">
             <div className="flex items-center justify-between mb-8">
               <div>
-                <h3 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight italic uppercase transition-colors">Capital Extraction</h3>
-                <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-2 uppercase font-black tracking-[0.2em] transition-colors">Liquidate Assets to External Vault</p>
+                <h3 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight italic uppercase transition-colors">Withdraw Funds</h3>
+                <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-2 uppercase font-black tracking-[0.2em] transition-colors">Send money from your account</p>
               </div>
               <button 
                 onClick={() => setShowWithdraw(false)} 
@@ -836,13 +836,13 @@ const BankingTab = ({
                   disabled={!withdrawAmount || parseFloat(withdrawAmount) > walletData.mainWallet}
                   className="flex-1 px-8 py-5 bg-slate-900 dark:bg-gold-500 text-white dark:text-slate-900 rounded-[1.5rem] font-black uppercase tracking-[0.2em] text-[11px] hover:bg-gold-600 dark:hover:bg-gold-400 disabled:bg-slate-200 dark:disabled:bg-slate-800 transition-all shadow-2xl shadow-slate-900/10 dark:shadow-gold-500/10"
                 >
-                  Confirm Extraction
+                  Confirm Withdrawal
                 </button>
                 <button
                   onClick={() => setShowWithdraw(false)}
                   className="px-8 py-5 bg-slate-50 dark:bg-slate-800 text-slate-400 dark:text-slate-500 rounded-[1.5rem] font-black uppercase tracking-[0.2em] text-[11px] hover:bg-slate-100 dark:hover:bg-slate-700 transition-all"
                 >
-                  Discard
+                  Cancel
                 </button>
               </div>
             </div>
