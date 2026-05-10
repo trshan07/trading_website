@@ -906,17 +906,18 @@ const BankingTab = ({
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div className="md:col-span-2 space-y-2">
                         <label className="block text-[10px] uppercase font-black text-slate-400 tracking-[0.28em] ml-2">Bank Name *</label>
-                        <input type="text" name="bankName" value={bankForm.bankName} onChange={handleBankFormChange} placeholder="e.g. Commercial Bank, HSBC, Sampath Bank" className={`w-full px-6 py-5 bg-slate-50 dark:bg-slate-800 border rounded-2xl text-sm font-bold text-slate-900 dark:text-white focus:outline-none transition-all ${formErrors.bankName ? 'border-rose-500' : 'border-slate-100 dark:border-slate-700 focus:ring-8 focus:ring-slate-900/5 dark:focus:ring-gold-500/10'}`} />
+                        <input type="text" name="bankName" value={bankForm.bankName} onChange={handleBankFormChange} placeholder="e.g. HSBC, Barclays, DBS Bank" className={`w-full px-6 py-5 bg-slate-50 dark:bg-slate-800 border rounded-2xl text-sm font-bold text-slate-900 dark:text-white focus:outline-none transition-all ${formErrors.bankName ? 'border-rose-500' : 'border-slate-100 dark:border-slate-700 focus:ring-8 focus:ring-slate-900/5 dark:focus:ring-gold-500/10'}`} />
                         {formErrors.bankName && <p className="text-rose-500 text-[10px] font-black uppercase tracking-wider ml-2">{formErrors.bankName}</p>}
                       </div>
                       <div className="space-y-2">
                         <label className="block text-[10px] uppercase font-black text-slate-400 tracking-[0.28em] ml-2">Branch Name / Branch Code *</label>
-                        <input type="text" name="branchName" value={bankForm.branchName} onChange={handleBankFormChange} placeholder="Colombo Fort / 001" className={`w-full px-6 py-5 bg-slate-50 dark:bg-slate-800 border rounded-2xl text-sm font-bold text-slate-900 dark:text-white focus:outline-none transition-all ${formErrors.branchName ? 'border-rose-500' : 'border-slate-100 dark:border-slate-700 focus:ring-8 focus:ring-slate-900/5 dark:focus:ring-gold-500/10'}`} />
+                        <input type="text" name="branchName" value={bankForm.branchName} onChange={handleBankFormChange} placeholder="Main Branch / 001" className={`w-full px-6 py-5 bg-slate-50 dark:bg-slate-800 border rounded-2xl text-sm font-bold text-slate-900 dark:text-white focus:outline-none transition-all ${formErrors.branchName ? 'border-rose-500' : 'border-slate-100 dark:border-slate-700 focus:ring-8 focus:ring-slate-900/5 dark:focus:ring-gold-500/10'}`} />
                         {formErrors.branchName && <p className="text-rose-500 text-[10px] font-black uppercase tracking-wider ml-2">{formErrors.branchName}</p>}
                       </div>
                       <div className="space-y-2">
                         <label className="block text-[10px] uppercase font-black text-slate-400 tracking-[0.28em] ml-2">Country *</label>
                         <select name="country" value={bankForm.country} onChange={handleBankFormChange} className={`w-full px-6 py-5 bg-slate-50 dark:bg-slate-800 border rounded-2xl text-sm font-bold text-slate-900 dark:text-white focus:outline-none transition-all ${formErrors.country ? 'border-rose-500' : 'border-slate-100 dark:border-slate-700 focus:ring-8 focus:ring-slate-900/5 dark:focus:ring-gold-500/10'}`}>
+                          <option value="">Select country</option>
                           {SUPPORTED_COUNTRIES.map((country) => <option key={country} value={country}>{country}</option>)}
                         </select>
                         {formErrors.country && <p className="text-rose-500 text-[10px] font-black uppercase tracking-wider ml-2">{formErrors.country}</p>}

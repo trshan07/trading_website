@@ -11,6 +11,15 @@ ALTER TABLE bank_accounts
 ADD COLUMN IF NOT EXISTS account_holder_name VARCHAR(100);
 
 ALTER TABLE bank_accounts
+ADD COLUMN IF NOT EXISTS branch_code VARCHAR(50);
+
+ALTER TABLE bank_accounts
+ADD COLUMN IF NOT EXISTS country VARCHAR(100);
+
+ALTER TABLE bank_accounts
+ADD COLUMN IF NOT EXISTS account_type VARCHAR(50);
+
+ALTER TABLE bank_accounts
 ADD COLUMN IF NOT EXISTS iban VARCHAR(50);
 
 ALTER TABLE bank_accounts

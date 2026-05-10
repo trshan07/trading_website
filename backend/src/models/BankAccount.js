@@ -42,9 +42,12 @@ class BankAccount {
         const { 
             bankName, 
             branchName, 
+            branchCode,
+            country,
             accountNumber, 
             accountHolderName, 
             accountName, // fallback
+            accountType,
             currency, 
             swiftCode, 
             iban,
@@ -68,17 +71,18 @@ class BankAccount {
             {
                 query: `
                     INSERT INTO bank_accounts (
-                        user_id, bank_name, branch_name, account_number, account_name, 
-                        account_holder_name, currency, swift_code, iban, 
-                        beneficiary_name, relationship, proof_file, is_default
+                        user_id, bank_name, branch_name, branch_code, country,
+                        account_number, account_name, account_holder_name, account_type,
+                        currency, swift_code, iban, beneficiary_name, relationship,
+                        proof_file, is_default
                     )
-                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
                     RETURNING *
                 `,
                 values: [
-                    userId, bankName, branchName, accountNumber, finalAccountName,
-                    finalAccountName, currency || 'USD', swiftCode, iban,
-                    beneficiaryName, relationship, proof_file, setAsDefault
+                    userId, bankName, branchName, branchCode, country, accountNumber,
+                    finalAccountName, finalAccountName, accountType, currency || 'USD',
+                    swiftCode, iban, beneficiaryName, relationship, proof_file, setAsDefault
                 ],
                 normalize: (row) => row,
             },
@@ -103,7 +107,10 @@ class BankAccount {
                 ],
                 normalize: (row) => ({
                     ...row,
+                    branch_code: row.branch_code || branchCode,
+                    country: row.country || country,
                     account_holder_name: row.account_holder_name || finalAccountName,
+                    account_type: row.account_type || accountType,
                     beneficiary_name: row.beneficiary_name || beneficiaryName,
                     relationship: row.relationship || relationship,
                     proof_file: row.proof_file || proof_file,
@@ -121,8 +128,11 @@ class BankAccount {
                 normalize: (row) => ({
                     ...row,
                     branch_name: row.branch_name || branchName,
+                    branch_code: row.branch_code || branchCode,
+                    country: row.country || country,
                     account_name: row.account_name || finalAccountName,
                     account_holder_name: row.account_holder_name || row.account_holder || finalAccountName,
+                    account_type: row.account_type || accountType,
                     currency: row.currency || currency || 'USD',
                     swift_code: row.swift_code || swiftCode,
                     iban: row.iban || iban,
