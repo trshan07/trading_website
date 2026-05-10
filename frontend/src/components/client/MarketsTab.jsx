@@ -21,8 +21,8 @@ const MarketsTab = ({
   const [uncontrolledSymbol, setUncontrolledSymbol] = useState(() => (hasExternalSymbol ? symbol : 'BTCUSDT'));
   const activeSymbol = isControlled ? symbol : uncontrolledSymbol;
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeCategory, setActiveCategory] = useState(initialCategory);
   const [showSearchDropdown, setShowSearchDropdown] = useState(false);
+  const [showWatchlist, setShowWatchlist] = useState(false);
   const searchRef = useRef(null);
 
   const getCategoryMatches = (category) => {
@@ -48,8 +48,6 @@ const MarketsTab = ({
 
   useEffect(() => {
     if (initialCategory) {
-      setActiveCategory(initialCategory);
-
       if (initialCategory !== 'All') {
         const matches = getCategoryMatches(initialCategory);
         if (matches.length > 0 && !matches.some((inst) => inst.symbol === activeSymbol)) {
@@ -69,41 +67,30 @@ const MarketsTab = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  useEffect(() => {
+    if (!showWatchlist) {
+      return undefined;
+    }
+
+    const handleEscape = (event) => {
+      if (event.key === 'Escape') {
+        setShowWatchlist(false);
+      }
+    };
+
+    document.addEventListener('keydown', handleEscape);
+    return () => document.removeEventListener('keydown', handleEscape);
+  }, [showWatchlist]);
+
   const handleSelectSymbol = (sym) => {
     if (!isControlled) {
       setUncontrolledSymbol(sym);
     }
     setSearchQuery('');
     setShowSearchDropdown(false);
+    setShowWatchlist(false);
     if (onSymbolChange) onSymbolChange(sym);
   };
-
-  const handleCategorySelect = (category) => {
-    setActiveCategory(category);
-
-    if (category === 'All') {
-      return;
-    }
-
-    const matches = getCategoryMatches(category);
-    if (matches.length === 0) {
-      return;
-    }
-
-    const currentStillVisible = matches.some((inst) => inst.symbol === activeSymbol);
-    if (!currentStillVisible) {
-      handleSelectSymbol(matches[0].symbol);
-    }
-  };
-
-  const filtered = getCategoryMatches(activeCategory).filter((inst) => {
-    const query = searchQuery.toLowerCase();
-    return (
-      !searchQuery.trim() ||
-      inst.symbol.toLowerCase().includes(query) ||
-      inst.name.toLowerCase().includes(query)
-    );
-  });
 
   const dropdownResults = instruments.filter((inst) => {
     const query = searchQuery.toLowerCase();
@@ -124,36 +111,8 @@ const MarketsTab = ({
 
   return (
     <div className="flex flex-col h-[calc(100vh-10rem)] min-h-[500px] lg:min-h-[1050px] -mx-4 md:-mx-10 border-t border-slate-100 dark:border-slate-800 animate-in fade-in slide-in-from-bottom-4 duration-700">
-      <div className="flex-1 flex flex-col lg:flex-row overflow-x-hidden overflow-y-auto lg:overflow-hidden gap-6">
-        <div className="block w-full lg:w-72 xl:w-80 flex-shrink-0 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-3xl md:rounded-[2rem] shadow-2xl overflow-hidden transition-all duration-300 relative z-10 mx-auto lg:mx-0 max-w-full">
-          <TerminalAssetList
-            activeSymbol={activeSymbol}
-            onSelectSymbol={handleSelectSymbol}
-            favorites={favorites}
-            onToggleFavorite={onToggleFavorite}
-            marketData={marketData}
-            instruments={instruments}
-            categories={categories}
-          />
-        </div>
-
+      <div className="flex-1 flex flex-col overflow-x-hidden overflow-y-auto lg:overflow-hidden gap-6">
         <div className="flex-1 flex flex-col min-w-0 relative overflow-y-auto custom-scrollbar space-y-6">
-          <div className="bg-white dark:bg-slate-900 p-2 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-xl overflow-hidden flex items-center space-x-2 scrollbar-hide overflow-x-auto whitespace-nowrap">
-            {['All', 'Watchlist', 'Popular', ...categories].map((cat) => (
-              <button
-                key={cat}
-                onClick={() => handleCategorySelect(cat)}
-                className={`px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${
-                  activeCategory === cat
-                    ? 'bg-slate-900 dark:bg-gold-500 text-white dark:text-slate-900 shadow-lg'
-                    : 'text-slate-400 dark:text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-800'
-                }`}
-              >
-                {cat}
-              </button>
-            ))}
-          </div>
-
           <div className="bg-white dark:bg-slate-900 rounded-[3rem] border border-slate-100 dark:border-slate-800 overflow-hidden shadow-2xl shadow-slate-200/50">
             <div className="p-6 border-b border-slate-50 dark:border-slate-800 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-slate-50/50 dark:bg-slate-800/10 transition-colors">
               <div className="flex items-center space-x-4">
@@ -258,8 +217,12 @@ const MarketsTab = ({
                     </div>
                   )}
                 </div>
-                <button className="p-3 bg-slate-900 dark:bg-gold-500 text-white dark:text-slate-900 rounded-xl shadow-lg hover:bg-gold-600 dark:hover:bg-gold-400 transition-all">
+                <button
+                  onClick={() => setShowWatchlist(true)}
+                  className="inline-flex items-center justify-center gap-2 px-4 py-3 bg-slate-900 dark:bg-gold-500 text-white dark:text-slate-900 rounded-xl shadow-lg hover:bg-gold-600 dark:hover:bg-gold-400 transition-all whitespace-nowrap"
+                >
                   <FaLayerGroup size={14} />
+                  <span className="text-[10px] font-black uppercase tracking-[0.18em]">Watchlist</span>
                 </button>
               </div>
             </div>
@@ -316,6 +279,43 @@ const MarketsTab = ({
           </div>
         </div>
       </div>
+
+      {showWatchlist && (
+        <div className="fixed inset-0 z-[100] flex items-end justify-center p-0 sm:items-center sm:p-4">
+          <button
+            type="button"
+            aria-label="Close watchlist"
+            className="absolute inset-0 bg-slate-900/65 backdrop-blur-md"
+            onClick={() => setShowWatchlist(false)}
+          />
+          <div className="relative z-10 flex h-[82vh] w-full max-w-5xl flex-col overflow-hidden rounded-t-[2rem] border border-slate-200 bg-white shadow-2xl dark:border-slate-800 dark:bg-slate-900 sm:h-[85vh] sm:rounded-[2rem]">
+            <div className="flex items-center justify-between gap-3 border-b border-slate-100 px-4 py-4 dark:border-slate-800 sm:px-5">
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-[0.24em] text-sky-600 dark:text-sky-300/70">Market Access</p>
+                <h3 className="mt-1 text-lg font-semibold tracking-tight text-slate-900 dark:text-white">Watchlist</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowWatchlist(false)}
+                className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-slate-50 text-slate-500 transition-colors hover:text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400 dark:hover:text-white"
+              >
+                <FaTimes size={14} />
+              </button>
+            </div>
+            <div className="min-h-0 flex-1 overflow-hidden">
+              <TerminalAssetList
+                activeSymbol={activeSymbol}
+                onSelectSymbol={handleSelectSymbol}
+                favorites={favorites}
+                onToggleFavorite={onToggleFavorite}
+                marketData={marketData}
+                instruments={instruments}
+                categories={categories}
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
