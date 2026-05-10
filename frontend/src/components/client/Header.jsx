@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { FaEye, FaBolt, FaBell, FaBars, FaChevronDown, FaExchangeAlt, FaTimes, FaFileAlt } from 'react-icons/fa';
+import { FaEye, FaBolt, FaBell, FaBars, FaChevronDown, FaExchangeAlt, FaTimes, FaFileAlt, FaArrowDown } from 'react-icons/fa';
 import { HiMagnifyingGlass } from 'react-icons/hi2';
 import ThemeToggle from '../ui/ThemeToggle';
 import { buildInstrumentSnapshot } from '../../utils/marketSymbols';
@@ -12,6 +12,7 @@ const Header = ({
   showBalance = true, 
   onToggleBalance = () => {},
   onQuickTrade = () => {},
+  onDepositFunds = () => {},
   unreadNotifications = 0,
   notifications = [],
   onMarkNotificationRead = () => {},
@@ -291,11 +292,20 @@ const Header = ({
             <ThemeToggle />
 
             <button
+              onClick={onDepositFunds}
+              className="flex items-center space-x-0 lg:space-x-3 px-3 lg:px-6 py-3 bg-emerald-500 text-white rounded-2xl shadow-2xl shadow-emerald-500/20 hover:bg-emerald-400 hover:scale-[1.02] transition-all font-black uppercase tracking-widest text-[11px] border border-emerald-400/40"
+              title="Deposit Funds"
+            >
+              <FaArrowDown className={typeof window !== 'undefined' && window.innerWidth < 1024 ? 'text-lg' : ''} />
+              <span className="hidden lg:inline">Deposit</span>
+            </button>
+
+            <button
               onClick={onQuickTrade}
               className="flex items-center space-x-0 lg:space-x-3 px-3 lg:px-6 py-3 bg-slate-900 dark:bg-gold-500 text-white dark:text-slate-900 rounded-2xl shadow-2xl shadow-slate-900/20 hover:bg-gold-600 dark:hover:bg-gold-400 hover:scale-[1.02] transition-all font-black uppercase tracking-widest text-[11px] border border-slate-800 dark:border-gold-400/50"
               title="Quick Trade"
             >
-              <FaBolt className={window.innerWidth < 1024 ? 'text-lg' : ''} />
+              <FaBolt className={typeof window !== 'undefined' && window.innerWidth < 1024 ? 'text-lg' : ''} />
               <span className="hidden lg:inline">Quick Trade</span>
             </button>
 

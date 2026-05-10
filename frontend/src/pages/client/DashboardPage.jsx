@@ -26,6 +26,7 @@ import MobileSidebar from '../../components/client/MobileSidebar';
 import TransferModal from '../../components/ui/TransferModal';
 import UploadDocumentModal from '../../components/ui/UploadDocumentModal';
 import MobileBottomNav from '../../components/client/MobileBottomNav';
+import DepositFundsModal from '../../components/client/banking/DepositFundsModal';
 
 const DashboardPage = () => {
   const normalizeLeverage = (value, fallback = 100) => {
@@ -99,6 +100,7 @@ const DashboardPage = () => {
   }, [pathname]);
   const [showBalance, setShowBalance] = useState(true);
   const [showOrderForm, setShowOrderForm] = useState(false);
+  const [showDepositModal, setShowDepositModal] = useState(false);
   const [showTransferModal, setShowTransferModal] = useState(false);
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [showStatementModal, setShowStatementModal] = useState(false);
@@ -312,6 +314,7 @@ const DashboardPage = () => {
           portfolio={livePortfolio}
           showBalance={showBalance}
           onToggleBalance={() => setShowBalance(!showBalance)}
+          onDepositFunds={() => setShowDepositModal(true)}
           onQuickTrade={() => setShowOrderForm(true)}
           unreadNotifications={hookUnreadCount}
           notifications={notifications}
@@ -460,6 +463,13 @@ const DashboardPage = () => {
             show={showOrderForm}
             onClose={() => setShowOrderForm(false)}
             onPlaceOrder={onOrderPlaced}
+          />
+
+          <DepositFundsModal
+            open={showDepositModal}
+            onClose={() => setShowDepositModal(false)}
+            onDeposit={handleDeposit}
+            platformInfo={platformInfo}
           />
 
           <MobileSidebar
