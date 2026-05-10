@@ -66,6 +66,24 @@ const normalizeUserAccounts = (user) => {
 
   const kyc = user?.kyc_status || user?.kyc || "not_submitted";
   const kycSubmitted = user?.kyc_submitted_at || null;
+  const bankAccounts = (user?.bankAccounts || user?.bank_accounts || []).map((account) => ({
+    ...account,
+    bankName: account?.bankName || account?.bank_name || "",
+    branchName: account?.branchName || account?.branch_name || "",
+    accountHolderName: account?.accountHolderName || account?.account_holder_name || account?.account_holder || account?.account_name || "",
+    accountName: account?.accountName || account?.account_name || account?.account_holder_name || account?.account_holder || "",
+    accountNumber: account?.accountNumber || account?.account_number || "",
+    maskedAccountNumber: account?.maskedAccountNumber || account?.masked_account_number || "",
+    currency: account?.currency || "USD",
+    swiftCode: account?.swiftCode || account?.swift_code || "",
+    iban: account?.iban || "",
+    beneficiaryName: account?.beneficiaryName || account?.beneficiary_name || "",
+    relationship: account?.relationship || "",
+    proofFile: account?.proofFile || account?.proof_file || "",
+    isDefault: Boolean(account?.isDefault ?? account?.is_default),
+    isVerified: Boolean(account?.isVerified ?? account?.is_verified),
+  }));
+  const creditCards = user?.creditCards || user?.credit_cards || [];
 
   return {
     ...user,
@@ -87,6 +105,8 @@ const normalizeUserAccounts = (user) => {
     demoAccountId,
     balance: realBalance + demoBalance,
     credit: realCredit + demoCredit,
+    bankAccounts,
+    creditCards,
   };
 };
 
@@ -828,6 +848,11 @@ function UsersPage({ users, setUsers, toast }) {
 
       {/* View Modal */}
       <Modal open={modal === "view"} onClose={() => setModal(null)} title={form.name} subtitle={form.email} width="580px">
+        {(() => {
+          const linkedBankAccount = (form.bankAccounts || []).find(account => account.isDefault) || (form.bankAccounts || [])[0] || null;
+
+          return (
+            <>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", marginBottom: "16px" }}>
           {[["Balance", fmt(form.balance), C.text], ["Equity", fmt(form.equity), form.equity >= form.balance ? C.green : C.red], ["Credit", fmt(form.credit), C.gold], ["Total Trades", fmtNum(form.totalTrades), C.text], ["P&L", fmt(form.profit), form.profit >= 0 ? C.green : C.red], ["Leverage", `1:${form.leverage}`, C.text]].map(([l, v, c], i) => (
             <div key={i} style={{ background: C.bg, borderRadius: "8px", padding: "12px 14px" }}>
@@ -851,6 +876,25 @@ function UsersPage({ users, setUsers, toast }) {
             <span className="mono" style={{ fontSize: "12px", color: C.purple }}>{form.demoAccountId}</span>
           </div>
         </div>
+        {linkedBankAccount && (
+          <div style={{ background: C.bg, border: `1px solid ${C.borderLight}`, borderRadius: "8px", padding: "12px 14px", marginBottom: "16px" }}>
+            <div style={{ fontSize: "10px", color: C.textMuted, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "10px" }}>Linked Bank Account</div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
+              {[["Bank Name", linkedBankAccount.bankName || "—"], ["Branch", linkedBankAccount.branchName || "—"], ["Account Number", linkedBankAccount.accountNumber || linkedBankAccount.maskedAccountNumber || "—"], ["Account Holder", linkedBankAccount.accountHolderName || linkedBankAccount.accountName || "—"], ["SWIFT", linkedBankAccount.swiftCode || "—"], ["IBAN", linkedBankAccount.iban || "—"], ["Beneficiary", linkedBankAccount.beneficiaryName || "—"], ["Country", linkedBankAccount.country || "—"]].map(([l, v]) => (
+                <div key={l} style={{ background: C.bgCard, borderRadius: "8px", padding: "10px 12px" }}>
+                  <div style={{ fontSize: "10px", color: C.textMuted, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "4px" }}>{l}</div>
+                  <div className="mono" style={{ fontSize: "12px", color: C.text }}>{v}</div>
+                </div>
+              ))}
+            </div>
+            {linkedBankAccount.proofFile && (
+              <div style={{ marginTop: "12px", display: "flex", gap: "10px", flexWrap: "wrap" }}>
+                <span onClick={() => openUploadFile(linkedBankAccount.proofFile, false)} style={{ fontSize: "11px", color: C.textMuted, textDecoration: "underline", cursor: "pointer" }}>Preview proof</span>
+                <span onClick={() => openUploadFile(linkedBankAccount.proofFile, true)} style={{ fontSize: "11px", color: C.gold, textDecoration: "underline", cursor: "pointer" }}>Download proof</span>
+              </div>
+            )}
+          </div>
+        )}
         {form.notes && <div style={{ background: C.bg, borderRadius: "8px", padding: "12px 14px", marginBottom: "16px" }}><div style={{ fontSize: "10px", color: C.textMuted, textTransform: "uppercase", marginBottom: "4px" }}>Admin Notes</div><div style={{ fontSize: "12px", color: C.textMuted }}>{form.notes}</div></div>}
         {form.creditHistory?.length > 0 && (
           <div><div style={{ fontSize: "11px", color: C.textMuted, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "8px", fontWeight: 600 }}>Credit History</div>
@@ -862,6 +906,9 @@ function UsersPage({ users, setUsers, toast }) {
             ))}
           </div>
         )}
+            </>
+          );
+        })()}
       </Modal>
 
       <Modal open={!!resetModal} onClose={() => setResetModal(null)} title={`Reset Password — ${resetModal?.name || ""}`} subtitle={resetModal?.email || ""} width="460px">
@@ -1339,7 +1386,7 @@ function CreditsPage({ users, setUsers, toast }) {
               const targetLabel = form.target === "demo" ? "Demo" : "Real";
               const targetCredit = form.target === "demo" ? toNum(modal.demoCredit) : toNum(modal.realCredit);
               const targetBalance = form.target === "demo" ? toNum(modal.demoBalance) : toNum(modal.realBalance);
-              const linkedBankAccount = null;
+              const linkedBankAccount = (modal.bankAccounts || []).find(account => account.isDefault) || (modal.bankAccounts || [])[0] || null;
 
               return (
                 <>
@@ -1368,7 +1415,7 @@ function CreditsPage({ users, setUsers, toast }) {
               <div style={{ background: C.bg, border: `1px solid ${C.borderLight}`, borderRadius: "8px", padding: "12px 14px", marginBottom: "16px" }}>
                 <div style={{ fontSize: "10px", color: C.textMuted, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "10px" }}>Linked Bank Account</div>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
-                  {[["Bank Name", linkedBankAccount.bankName || "â€”"], ["Branch", linkedBankAccount.branchName || "â€”"], ["Account Number", linkedBankAccount.accountNumber || linkedBankAccount.maskedAccountNumber || "â€”"], ["Account Holder", linkedBankAccount.accountHolderName || linkedBankAccount.accountName || "â€”"]].map(([l, v]) => (
+                  {[["Bank Name", linkedBankAccount.bankName || "—"], ["Branch", linkedBankAccount.branchName || "—"], ["Account Number", linkedBankAccount.accountNumber || linkedBankAccount.maskedAccountNumber || "—"], ["Account Holder", linkedBankAccount.accountHolderName || linkedBankAccount.accountName || "—"], ["SWIFT", linkedBankAccount.swiftCode || "—"], ["Country", linkedBankAccount.country || "—"]].map(([l, v]) => (
                     <div key={l} style={{ background: C.bgCard, borderRadius: "8px", padding: "10px 12px" }}>
                       <div style={{ fontSize: "10px", color: C.textMuted, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "4px" }}>{l}</div>
                       <div className="mono" style={{ fontSize: "12px", color: C.text }}>{v}</div>
@@ -1377,7 +1424,7 @@ function CreditsPage({ users, setUsers, toast }) {
                 </div>
               </div>
             )}
-            {linkedBankAccount && (
+            {false && linkedBankAccount && (
               <div style={{ background: C.bg, border: `1px solid ${C.borderLight}`, borderRadius: "8px", padding: "12px 14px", marginBottom: "16px" }}>
                 <div style={{ fontSize: "10px", color: C.textMuted, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "10px" }}>Linked Bank Account</div>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>

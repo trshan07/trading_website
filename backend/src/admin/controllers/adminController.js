@@ -61,10 +61,13 @@ const mapBankAccountForAdmin = (account = {}) => ({
     id: account.id,
     bankName: account.bank_name || '',
     branchName: account.branch_name || '',
+    branchCode: account.branch_code || '',
+    country: account.country || '',
     accountHolderName: account.account_holder_name || account.account_name || '',
     accountName: account.account_name || account.account_holder_name || '',
     accountNumber: account.account_number || '',
     maskedAccountNumber: maskAccountNumber(account.account_number),
+    accountType: account.account_type || '',
     currency: account.currency || 'USD',
     swiftCode: account.swift_code || '',
     iban: account.iban || '',
@@ -103,6 +106,7 @@ const attachAccountsAndHistory = async (user) => {
     const realAcc = accounts.find((account) => account.account_type === 'real') || {};
     const demoAcc = accounts.find((account) => account.account_type === 'demo') || {};
     const logs = await AdminLog.findByTargetId(user.id);
+    const fundingSources = await getUserFundingSources(user.id);
 
     const creditHistory = logs
         .filter((log) => log.action === 'ADJUST_CREDIT')
@@ -148,7 +152,9 @@ const attachAccountsAndHistory = async (user) => {
         demoAccountNumber: demoAcc.account_number || null,
         leverage: realAcc.leverage || demoAcc.leverage || 50,
         accounts,
-        creditHistory
+        creditHistory,
+        bankAccounts: fundingSources.bankAccounts,
+        creditCards: fundingSources.creditCards
     };
 };
 
