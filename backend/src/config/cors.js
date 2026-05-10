@@ -10,10 +10,17 @@ const DEFAULT_ALLOWED_ORIGINS = [
     'http://127.0.0.1:3001',
 ];
 
+const DEFAULT_ALLOWED_ORIGIN_PATTERNS = [
+    /^https:\/\/([a-z0-9-]+\.)?tiktrades\.com$/i,
+    /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i,
+];
+
+const normalizeOrigin = (origin = '') => String(origin).trim().replace(/\/+$/, '');
+
 const splitOrigins = (value = '') =>
     String(value)
         .split(',')
-        .map((origin) => origin.trim())
+        .map((origin) => normalizeOrigin(origin))
         .filter(Boolean);
 
 const buildAllowedOrigins = () => {
@@ -33,7 +40,10 @@ const isOriginAllowed = (origin) => {
         return true;
     }
 
-    return allowedOrigins.includes(origin);
+    const normalizedOrigin = normalizeOrigin(origin);
+
+    return allowedOrigins.includes(normalizedOrigin)
+        || DEFAULT_ALLOWED_ORIGIN_PATTERNS.some((pattern) => pattern.test(normalizedOrigin));
 };
 
 const corsOptions = {
@@ -49,9 +59,12 @@ const corsOptions = {
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
     exposedHeaders: ['Content-Length', 'Content-Type'],
     optionsSuccessStatus: 204,
+    maxAge: 86400,
 };
 
 module.exports = {
     corsOptions,
     allowedOrigins,
+    isOriginAllowed,
+    normalizeOrigin,
 };

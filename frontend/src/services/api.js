@@ -3,6 +3,12 @@ import axios from 'axios';
 // Vite uses import.meta.env — process.env does NOT work in Vite
 let apiBaseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
+const isTikTradesHost = (hostname = '') => /(^|\.)tiktrades\.com$/i.test(hostname);
+
+if (typeof window !== 'undefined' && isTikTradesHost(window.location.hostname)) {
+  apiBaseUrl = `${window.location.origin.replace(/\/$/, '')}/api`;
+}
+
 // Dynamically route to local network IP instead of localhost phone loopback
 // when testing on mobile devices
 if (

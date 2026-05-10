@@ -27,7 +27,7 @@ const publicRoutes = require('./src/public/routes/publicRoutes');
 const { protect, admin } = require('./src/middleware/authMiddleware');
 const { startTradingEngine } = require('./src/services/tradingEngine');
 const marketStreamService = require('./src/services/marketStreamService');
-const { corsOptions, allowedOrigins } = require('./src/config/cors');
+const { corsOptions, allowedOrigins, isOriginAllowed } = require('./src/config/cors');
 const { normalizeStoredUploadPath } = require('./src/utils/uploadPath');
 const { getUploadDirectories } = require('./src/utils/uploadStorage');
 
@@ -43,7 +43,7 @@ app.use(
 
 app.use((req, res, next) => {
     const requestOrigin = req.headers.origin;
-    if (requestOrigin && allowedOrigins.includes(requestOrigin)) {
+    if (requestOrigin && isOriginAllowed(requestOrigin)) {
         res.header('Access-Control-Allow-Origin', requestOrigin);
         res.header('Vary', 'Origin');
     }
