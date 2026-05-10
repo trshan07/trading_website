@@ -8,6 +8,7 @@
     "dev": "node ../scripts/run-backend.js dev",
     "test": "echo \"Error: no test specified\" && exit 1",
     "db:check": "node src/scripts/checkDatabaseReadiness.js",
+    "db:update": "node run_migration.js",
     "db:migrate": "sequelize-cli db:migrate",
     "db:seed": "sequelize-cli db:seed:all"
   },
