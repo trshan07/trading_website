@@ -149,7 +149,7 @@ const TerminalAssetList = ({
         </div>
       </div>
 
-      <div className="hidden grid-cols-[minmax(0,1.4fr)_0.8fr_0.8fr_0.7fr_0.65fr_auto] items-center gap-3 border-b border-slate-200 px-4 py-2.5 text-[9px] font-black uppercase tracking-[0.18em] text-slate-500 md:grid dark:border-slate-700/60">
+      <div className="hidden grid-cols-[minmax(0,1.35fr)_minmax(0,0.78fr)_minmax(0,0.78fr)_minmax(0,0.72fr)_minmax(0,0.68fr)_auto] items-center gap-2 border-b border-slate-200 px-4 py-2.5 text-[9px] font-black uppercase tracking-[0.14em] text-slate-500 min-[440px]:grid dark:border-slate-700/60">
         <span>Instrument</span>
         <span className="text-right">Sell</span>
         <span className="text-right">Buy</span>
@@ -201,9 +201,9 @@ const TerminalAssetList = ({
                       : 'hover:bg-slate-50 dark:hover:bg-white/[0.03]'
                   }`}
                 >
-                  <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3 md:grid-cols-[minmax(0,1.4fr)_0.8fr_0.8fr_0.7fr_0.65fr_auto] md:items-center">
+                  <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3 min-[440px]:grid-cols-[minmax(0,1.35fr)_minmax(0,0.78fr)_minmax(0,0.78fr)_minmax(0,0.72fr)_minmax(0,0.68fr)_auto] min-[440px]:items-center">
                     <div className="min-w-0">
-                      <div className="flex items-start justify-between gap-3 md:block">
+                      <div className="flex items-start justify-between gap-3 min-[440px]:block">
                         <div className="min-w-0">
                           <p className="truncate text-[14px] font-semibold uppercase leading-none tracking-tight text-slate-900 dark:text-white">
                             {formatInstrumentDisplaySymbol(instrument.symbol, { withSlash: false })}
@@ -220,12 +220,12 @@ const TerminalAssetList = ({
                             )}
                           </div>
                         </div>
-                        <div className={`shrink-0 text-[12px] font-semibold tabular-nums md:hidden ${isPositive ? 'text-emerald-400' : 'text-rose-400'}`}>
+                        <div className={`shrink-0 text-[12px] font-semibold tabular-nums min-[440px]:hidden ${isPositive ? 'text-emerald-400' : 'text-rose-400'}`}>
                           {isPositive ? '+' : ''}{change.toFixed(2)}%
                         </div>
                       </div>
 
-                      <div className="mt-3 grid grid-cols-3 gap-3 md:hidden">
+                      <div className="mt-3 grid grid-cols-3 gap-3 min-[440px]:hidden">
                         <div>
                           <p className="text-[9px] font-black uppercase tracking-[0.14em] text-slate-500">Sell</p>
                           <PriceCell price={quoteSnapshot.bid} label={quoteSnapshot.bidLabel} />
@@ -263,19 +263,19 @@ const TerminalAssetList = ({
                       </div>
                     </div>
 
-                    <div className="hidden text-right md:block">
+                    <div className="hidden text-right min-[440px]:block">
                       <PriceCell price={quoteSnapshot.bid} label={quoteSnapshot.bidLabel} className="text-right" />
                     </div>
 
-                    <div className="hidden text-right md:block">
+                    <div className="hidden text-right min-[440px]:block">
                       <PriceCell price={quoteSnapshot.ask} label={quoteSnapshot.askLabel} className="text-right" />
                     </div>
 
-                    <div className={`hidden text-right text-[12px] font-semibold tabular-nums md:block ${isPositive ? 'text-emerald-400' : 'text-rose-400'}`}>
+                    <div className={`hidden text-right text-[12px] font-semibold tabular-nums min-[440px]:block ${isPositive ? 'text-emerald-400' : 'text-rose-400'}`}>
                       {isPositive ? '+' : ''}{change.toFixed(2)}%
                     </div>
 
-                    <div className="hidden justify-center md:flex">
+                    <div className="hidden justify-center min-[440px]:flex">
                       <svg viewBox="0 0 40 12" className={`h-4 w-10 ${isPositive ? 'stroke-emerald-400' : 'stroke-rose-400'}`} fill="none" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                         {isPositive
                           ? <path d="M0 10 L10 8 L15 12 L25 4 L30 6 L40 0" />
@@ -284,7 +284,7 @@ const TerminalAssetList = ({
                       </svg>
                     </div>
 
-                    <div className="hidden justify-end md:flex">
+                    <div className="hidden justify-end min-[440px]:flex">
                       <button
                         onClick={(event) => {
                           event.stopPropagation();
