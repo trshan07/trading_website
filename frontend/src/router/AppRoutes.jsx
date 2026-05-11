@@ -1,6 +1,6 @@
 // frontend/src/router/AppRoutes.js
 import React from "react";
-import { Routes, Route } from "react-router-dom";
+import { Navigate, Route, Routes } from "react-router-dom";
 
 // Public Pages
 import HomePage from "../pages/public/HomePage";
@@ -39,32 +39,41 @@ import TransactionsPage from "../pages/admin/TransactionsPage";
 
 // Components
 import ProtectedRoute from "../components/common/ProtectedRoute";
+import SeoHead from "../components/common/SeoHead";
+import { seoConfig } from "../config/seo";
+
+const withSeo = (page, seo) => (
+  <>
+    <SeoHead {...seo} />
+    {page}
+  </>
+);
 
 const AppRoutes = () => {
   return (
     <Routes>
       {/* Public Routes */}
-      <Route path="/" element={<HomePage />} />
-      <Route path="/real-time-trading-platform" element={<HomePage />} />
-      <Route path="/about" element={<AboutPage />} />
-      <Route path="/contact" element={<ContactPage />} />
-      <Route path="/markets" element={<MarketsPage />} />
-      <Route path="/markets/:category" element={<MarketExplorerPage />} />
-      <Route path="/resources/:category" element={<ResourceExplorerPage />} />
-      <Route path="/promotions" element={<PromotionsPage />} />
-      <Route path="/trading/account-types" element={<AccountTypesPage />} />
-      <Route path="/trading/conditions" element={<ConditionsPage />} />
-      <Route path="/account-types" element={<AccountTypesPage />} />
-      <Route path="/terms" element={<TermsPage />} />
-      <Route path="/privacy" element={<PrivacyPage />} />
-      <Route path="/risk-disclaimer" element={<RiskDisclaimerPage />} />
-      <Route path="/kyc-policy" element={<KYCPolicyPage />} />
-      <Route path="/aml-policy" element={<AMLPolicyPage />} />
-      <Route path="/deposits-withdrawals" element={<DepositsWithdrawalsPage />} />
-      <Route path="/login" element={<LoginPage />} />
-      <Route path="/register" element={<RegisterPage />} />
-      <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-      <Route path="/reset-password" element={<ResetPasswordPage />} />
+      <Route path="/" element={<Navigate to="/real-time-trading-platform" replace />} />
+      <Route path="/real-time-trading-platform" element={withSeo(<HomePage />, seoConfig.home)} />
+      <Route path="/about" element={withSeo(<AboutPage />, seoConfig.about)} />
+      <Route path="/contact" element={withSeo(<ContactPage />, seoConfig.contact)} />
+      <Route path="/markets" element={withSeo(<MarketsPage />, seoConfig.markets)} />
+      <Route path="/markets/:category" element={withSeo(<MarketExplorerPage />, seoConfig.marketExplorer)} />
+      <Route path="/resources/:category" element={withSeo(<ResourceExplorerPage />, seoConfig.resourceExplorer)} />
+      <Route path="/promotions" element={withSeo(<PromotionsPage />, seoConfig.promotions)} />
+      <Route path="/trading/account-types" element={withSeo(<AccountTypesPage />, seoConfig.accountTypes)} />
+      <Route path="/trading/conditions" element={withSeo(<ConditionsPage />, seoConfig.conditions)} />
+      <Route path="/account-types" element={withSeo(<AccountTypesPage />, seoConfig.accountTypes)} />
+      <Route path="/terms" element={withSeo(<TermsPage />, seoConfig.terms)} />
+      <Route path="/privacy" element={withSeo(<PrivacyPage />, seoConfig.privacy)} />
+      <Route path="/risk-disclaimer" element={withSeo(<RiskDisclaimerPage />, seoConfig.riskDisclaimer)} />
+      <Route path="/kyc-policy" element={withSeo(<KYCPolicyPage />, seoConfig.kycPolicy)} />
+      <Route path="/aml-policy" element={withSeo(<AMLPolicyPage />, seoConfig.amlPolicy)} />
+      <Route path="/deposits-withdrawals" element={withSeo(<DepositsWithdrawalsPage />, seoConfig.depositsWithdrawals)} />
+      <Route path="/login" element={withSeo(<LoginPage />, seoConfig.login)} />
+      <Route path="/register" element={withSeo(<RegisterPage />, seoConfig.register)} />
+      <Route path="/forgot-password" element={withSeo(<ForgotPasswordPage />, seoConfig.forgotPassword)} />
+      <Route path="/reset-password" element={withSeo(<ResetPasswordPage />, seoConfig.resetPassword)} />
 
       {/* Client Dashboard Routes - All protected for clients only */}
       <Route path="/dashboard" element={
@@ -126,7 +135,7 @@ const AppRoutes = () => {
       } />
 
       {/* Catch all route - redirect to home */}
-      <Route path="*" element={<HomePage />} />
+      <Route path="*" element={<Navigate to="/real-time-trading-platform" replace />} />
     </Routes>
   );
 };
