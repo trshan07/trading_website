@@ -1,5 +1,5 @@
 // frontend/src/components/client/BankingTab.jsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { 
   FaWallet, FaMoneyBillWave, FaLandmark,
@@ -83,6 +83,32 @@ const BankingTab = ({
   const [cardErrors, setCardErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isCardSubmitting, setIsCardSubmitting] = useState(false);
+
+  const monthlyFlow = useMemo(() => {
+    const now = new Date();
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
+
+    return transactions.reduce((sum, transaction) => {
+      if (transaction.status !== 'Completed' || !transaction.createdAt) return sum;
+
+      const transactionDate = new Date(transaction.createdAt);
+      if (
+        Number.isNaN(transactionDate.getTime()) ||
+        transactionDate.getMonth() !== currentMonth ||
+        transactionDate.getFullYear() !== currentYear
+      ) {
+        return sum;
+      }
+
+      return sum + (Number.parseFloat(transaction.signedAmount) || 0);
+    }, 0);
+  }, [transactions]);
+
+  const formattedMonthlyFlow = `${monthlyFlow >= 0 ? '+' : '-'}$${Math.abs(monthlyFlow).toLocaleString(undefined, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`;
 
   const renderModal = (content) => {
     if (typeof document === 'undefined') return null;
@@ -550,7 +576,7 @@ const BankingTab = ({
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-6 sm:gap-8 relative">
                   {[
                     { label: 'Total Balance', value: `$${walletData.totalBalance?.toLocaleString() || '0'}`, color: 'text-slate-900 dark:text-white' },
-                    { label: 'This Month', value: '+$5,250', color: 'text-emerald-400' },
+                    { label: 'This Month', value: formattedMonthlyFlow, color: monthlyFlow >= 0 ? 'text-emerald-400' : 'text-rose-400' },
                     { label: 'Transactions', value: transactions.length, color: 'text-gold-500' },
                     { label: 'Pending', value: transactions.filter(t => t.status === 'Pending').length, color: 'text-amber-400' }
                   ].map((stat, idx) => (
