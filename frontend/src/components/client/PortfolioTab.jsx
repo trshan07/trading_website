@@ -15,6 +15,54 @@ const PortfolioTab = ({ portfolio = {}, positions = [], activityLogs = [] }) => 
   }, []);
 
   const isMobile = windowWidth < 768;
+  const growthRate = React.useMemo(() => {
+    const baselineCapital = Number.parseFloat(portfolio?.totalBalance) || 0;
+    const currentEquity = Number.parseFloat(portfolio?.equity) || 0;
+
+    if (baselineCapital <= 0) return 0;
+    return ((currentEquity - baselineCapital) / baselineCapital) * 100;
+  }, [portfolio?.equity, portfolio?.totalBalance]);
+
+  const { diversityRatio, diversityBars } = React.useMemo(() => {
+    if (!positions.length) {
+      return {
+        diversityRatio: 0,
+        diversityBars: [0, 0, 0],
+      };
+    }
+
+    const exposureBySymbol = positions.reduce((acc, position) => {
+      const exposure = Math.abs(Number.parseFloat(position.amount) || (Number(position.quantity) || 0) * (Number(position.currentPrice) || 0));
+      if (exposure <= 0) return acc;
+
+      acc[position.symbol] = (acc[position.symbol] || 0) + exposure;
+      return acc;
+    }, {});
+
+    const exposures = Object.values(exposureBySymbol);
+    const totalExposure = exposures.reduce((sum, value) => sum + value, 0);
+
+    if (totalExposure <= 0) {
+      return {
+        diversityRatio: 0,
+        diversityBars: [0, 0, 0],
+      };
+    }
+
+    const weights = exposures
+      .map((value) => value / totalExposure)
+      .sort((a, b) => b - a);
+
+    const hhi = weights.reduce((sum, weight) => sum + (weight * weight), 0);
+    const normalizedRatio = weights.length > 1
+      ? ((1 - hhi) / (1 - (1 / weights.length))) * 100
+      : 0;
+
+    return {
+      diversityRatio: Number.isFinite(normalizedRatio) ? normalizedRatio : 0,
+      diversityBars: [weights[0] || 0, weights[1] || 0, weights[2] || 0],
+    };
+  }, [positions]);
   
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700 transition-colors">
@@ -33,9 +81,11 @@ const PortfolioTab = ({ portfolio = {}, positions = [], activityLogs = [] }) => 
                      ${(portfolio?.equity ?? 0).toLocaleString()}
                   </p>
                </div>
-               <div className="bg-emerald-500/10 border border-emerald-500/20 px-5 py-2 rounded-2xl flex items-center space-x-2">
-                  <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_10px_#10b981]"></span>
-                  <span className="text-[10px] font-black text-emerald-500 uppercase tracking-widest">+6.5% Growth</span>
+               <div className={`${growthRate >= 0 ? 'bg-emerald-500/10 border-emerald-500/20' : 'bg-rose-500/10 border-rose-500/20'} border px-5 py-2 rounded-2xl flex items-center space-x-2`}>
+                  <span className={`w-1.5 h-1.5 rounded-full animate-pulse ${growthRate >= 0 ? 'bg-emerald-500 shadow-[0_0_10px_#10b981]' : 'bg-rose-500 shadow-[0_0_10px_#f43f5e]'}`}></span>
+                  <span className={`text-[10px] font-black uppercase tracking-widest ${growthRate >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
+                    {growthRate >= 0 ? '+' : ''}{growthRate.toFixed(2)}% Growth
+                  </span>
                </div>
             </div>
             
@@ -56,11 +106,16 @@ const PortfolioTab = ({ portfolio = {}, positions = [], activityLogs = [] }) => 
             <div>
                <FaCube className="text-gold-500 mb-6 text-2xl" />
                <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1.5">Asset Diversity</p>
-               <h4 className="text-2xl font-black text-slate-900 dark:text-white italic tracking-tighter transition-colors">14.2% Ratio</h4>
+               <h4 className="text-2xl font-black text-slate-900 dark:text-white italic tracking-tighter transition-colors">{diversityRatio.toFixed(1)}% Ratio</h4>
             </div>
             <div className="flex space-x-4 mt-6">
-                {[1, 2, 3].map(i => (
-                   <div key={i} className={`h-1.5 rounded-full flex-1 ${i === 1 ? 'bg-slate-900 dark:bg-gold-500 w-1/2' : 'bg-slate-100 dark:bg-slate-800'}`}></div>
+                {diversityBars.map((weight, index) => (
+                   <div key={index} className="h-1.5 rounded-full flex-1 bg-slate-100 dark:bg-slate-800 overflow-hidden">
+                     <div
+                       className={`h-full rounded-full transition-all duration-500 ${index === 0 ? 'bg-slate-900 dark:bg-gold-500' : index === 1 ? 'bg-slate-400 dark:bg-slate-500' : 'bg-slate-300 dark:bg-slate-600'}`}
+                       style={{ width: `${Math.max(weight * 100, 0)}%` }}
+                     />
+                   </div>
                 ))}
             </div>
         </div>
