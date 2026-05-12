@@ -16,7 +16,7 @@ const Footer = () => {
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-10 md:gap-12 mb-12 md:mb-16">
                     {/* Brand - Full width on mobile */}
                     <div className="col-span-2 lg:col-span-1 text-center lg:text-left mb-4 md:mb-0">
-                        <Link to="/" className="mb-4 md:mb-6 block">
+                        <Link to="/real-time-trading-platform" className="mb-4 md:mb-6 block">
                             <img 
                               src={logoDark} 
                               alt="TIK TRADES" 
@@ -24,7 +24,7 @@ const Footer = () => {
                             />
                         </Link>
                         <p className="text-white/50 text-sm leading-relaxed mb-6 max-w-sm mx-auto lg:mx-0">
-                            Empowering traders globally with institutional-grade technology, deep liquidity, and a commitment to transparency.
+                            TikTrades is a real-time trading platform for forex, crypto, stocks, commodities, and indices with live charts, market analysis, and fast online execution.
                         </p>
                         <div className="flex justify-center md:justify-start space-x-4">
                             <a href="#" className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-white/50 hover:bg-gold hover:text-navy transition-all">

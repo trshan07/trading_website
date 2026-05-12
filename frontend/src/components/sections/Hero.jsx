@@ -45,8 +45,8 @@ const Hero = () => {
                             transition={{ duration: 0.8, delay: 0.2, type: 'spring', damping: 15 }}
                             className="text-4xl md:text-6xl xl:text-7xl font-display font-bold leading-[1.1] mb-6"
                         >
-                            Elevate Your <br />
-                            <span className="gradient-text italic">Trading Legacy</span>
+                            TikTrades Real-Time <br />
+                            <span className="gradient-text italic">Trading Platform</span>
                         </motion.h1>
 
                         <motion.p
@@ -55,7 +55,7 @@ const Hero = () => {
                             transition={{ duration: 0.8, delay: 0.3 }}
                             className="text-base md:text-lg text-white/50 mb-10 max-w-xl leading-relaxed font-sans"
                         >
-                            Access deep institutional liquidity and lightning-fast execution across Forex, Metals, and Global Indices on our next-generation proprietary infrastructure.
+                            Trade forex, crypto, stocks, commodities, and indices with live charts, real-time market data, market analysis, and fast execution from one powerful online trading platform.
                         </motion.p>
 
                         <motion.div

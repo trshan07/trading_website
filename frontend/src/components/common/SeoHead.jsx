@@ -36,6 +36,7 @@ const SeoHead = ({
   twitterDescription,
   twitterImage,
   robots = "index, follow",
+  structuredData,
 }) => {
   useEffect(() => {
     document.title = title;
@@ -48,12 +49,26 @@ const SeoHead = ({
     upsertMeta("property", "og:description", ogDescription);
     upsertMeta("property", "og:url", ogUrl);
     upsertMeta("property", "og:type", "website");
+    upsertMeta("property", "og:site_name", "TikTrades");
     upsertMeta("property", "og:image", ogImage);
 
     upsertMeta("name", "twitter:card", "summary_large_image");
     upsertMeta("name", "twitter:title", twitterTitle);
     upsertMeta("name", "twitter:description", twitterDescription);
     upsertMeta("name", "twitter:image", twitterImage);
+
+    if (structuredData) {
+      let script = document.head.querySelector('script[data-seo-structured-data="true"]');
+
+      if (!script) {
+        script = document.createElement("script");
+        script.type = "application/ld+json";
+        script.dataset.seoStructuredData = "true";
+        document.head.appendChild(script);
+      }
+
+      script.textContent = JSON.stringify(structuredData);
+    }
   }, [
     canonicalUrl,
     description,
@@ -62,6 +77,7 @@ const SeoHead = ({
     ogTitle,
     ogUrl,
     robots,
+    structuredData,
     title,
     twitterDescription,
     twitterImage,

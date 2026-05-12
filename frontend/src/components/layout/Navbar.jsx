@@ -23,7 +23,7 @@ const Navbar = () => {
             <Container>
                 <div className="flex justify-between items-center h-20">
                     {/* Logo */}
-                    <Link to="/" className="flex items-center">
+                    <Link to="/real-time-trading-platform" className="flex items-center">
                         <img 
                           src={logoDark} 
                           alt="TIK TRADES" 

@@ -1,5 +1,6 @@
 const SITE_URL = "https://tiktrades.com";
 const DEFAULT_OG_IMAGE = `${SITE_URL}/favicon.jpg`;
+const ORGANIZATION_NAME = "TikTrades";
 
 const createSeo = ({
   path,
@@ -33,6 +34,47 @@ export const seoConfig = {
     ogTitle: "TikTrades | Advanced Online Trading Platform",
     ogDescription:
       "Trade Forex, crypto, stocks, and commodities with real-time charts and advanced trading tools on TikTrades.",
+    structuredData: {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "Organization",
+          "@id": `${SITE_URL}/#organization`,
+          name: ORGANIZATION_NAME,
+          url: SITE_URL,
+          logo: DEFAULT_OG_IMAGE,
+          sameAs: [],
+        },
+        {
+          "@type": "WebSite",
+          "@id": `${SITE_URL}/#website`,
+          url: SITE_URL,
+          name: ORGANIZATION_NAME,
+          publisher: {
+            "@id": `${SITE_URL}/#organization`,
+          },
+          potentialAction: {
+            "@type": "SearchAction",
+            target: `${SITE_URL}/markets`,
+            "query-input": "required name=search_term_string",
+          },
+        },
+        {
+          "@type": "WebPage",
+          "@id": `${SITE_URL}/real-time-trading-platform#webpage`,
+          url: `${SITE_URL}/real-time-trading-platform`,
+          name: "TikTrades - Real-Time Forex, Crypto & Stock Trading Platform",
+          description:
+            "Experience smart online trading with TikTrades. Access live charts, market analysis, forex, crypto, commodities, and stock trading tools in one powerful platform.",
+          isPartOf: {
+            "@id": `${SITE_URL}/#website`,
+          },
+          about: {
+            "@id": `${SITE_URL}/#organization`,
+          },
+        },
+      ],
+    },
   }),
   about: createSeo({
     path: "/about",
