@@ -21,6 +21,18 @@ export default defineConfig({
   },
   build: {
     outDir: 'dist',
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          react: ['react', 'react-dom'],
+          router: ['react-router-dom'],
+          motion: ['framer-motion'],
+          icons: ['react-icons'],
+          ui: ['antd', '@ant-design/icons'],
+          charts: ['recharts', 'lightweight-charts'],
+        },
+      },
+    },
   },
   server: {
     port: 3001,

@@ -37,6 +37,10 @@ const MarketsSection = () => {
 
     useEffect(() => {
         const fetchTradingViewData = async () => {
+            if (typeof document !== 'undefined' && document.visibilityState !== 'visible') {
+                return;
+            }
+
             const currentTabAssets = marketData[activeTab];
             if (!currentTabAssets || currentTabAssets.length === 0) return;
 
@@ -86,7 +90,7 @@ const MarketsSection = () => {
 
         // Fetch immediately and set interval
         fetchTradingViewData();
-        const interval = setInterval(fetchTradingViewData, 5000);
+        const interval = setInterval(fetchTradingViewData, 15000);
         return () => clearInterval(interval);
     }, [activeTab]);
 

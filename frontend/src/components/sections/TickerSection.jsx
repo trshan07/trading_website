@@ -16,7 +16,13 @@ const TickerSection = () => {
     const [prices, setPrices] = useState(INITIAL_PRICES);
 
     useEffect(() => {
+        let intervalId;
+
         const fetchTickers = async () => {
+            if (typeof document !== 'undefined' && document.visibilityState !== 'visible') {
+                return;
+            }
+
             const scannerGroups = { forex: [], cfd: [], crypto: [] };
             INITIAL_PRICES.forEach(item => scannerGroups[item.scanner].push(item.symbol));
 
@@ -51,9 +57,22 @@ const TickerSection = () => {
             }
         };
 
-        fetchTickers();
-        const interval = setInterval(fetchTickers, 10000);
-        return () => clearInterval(interval);
+        const startPolling = () => {
+            fetchTickers();
+            intervalId = setInterval(fetchTickers, 30000);
+        };
+
+        if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
+            const idleId = window.requestIdleCallback(startPolling, { timeout: 1500 });
+            return () => {
+                window.cancelIdleCallback(idleId);
+                clearInterval(intervalId);
+            };
+        }
+
+        startPolling();
+
+        return () => clearInterval(intervalId);
     }, []);
 
     // Double the array for seamless looping

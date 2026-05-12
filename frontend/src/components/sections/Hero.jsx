@@ -118,6 +118,9 @@ const Hero = () => {
                                 alt="TIK TRADES Terminal"
                                 className="rounded-[1.8rem] w-full h-auto object-cover transition-transform duration-700 group-hover:scale-105"
                                 style={{ maxHeight: '600px' }}
+                                loading="eager"
+                                decoding="async"
+                                fetchPriority="high"
                             />
 
                             {/* Overlay glass labels */}
