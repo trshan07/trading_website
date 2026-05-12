@@ -251,15 +251,29 @@ const DashboardPage = () => {
     };
   }, [user, activeAccount, positions, portfolio, accountRisk]);
 
-  const walletData = useMemo(() => ({
-    mainWallet: livePortfolio.cashBalance,
-    tradingWallet: livePortfolio.margin,
-    totalBalance: livePortfolio.totalBalance,
-    equity: livePortfolio.equity,
-    bonusWallet: livePortfolio.credit,
-    pendingWithdrawals: 0,
-    pendingDeposits: 0,
-  }), [livePortfolio]);
+  const walletData = useMemo(() => {
+    const pendingWithdrawals = transactions.reduce((sum, transaction) => (
+      transaction.status === 'Pending' && transaction.type === 'Withdrawal'
+        ? sum + (Number.parseFloat(transaction.amount) || 0)
+        : sum
+    ), 0);
+
+    const pendingDeposits = transactions.reduce((sum, transaction) => (
+      transaction.status === 'Pending' && transaction.type === 'Deposit'
+        ? sum + (Number.parseFloat(transaction.amount) || 0)
+        : sum
+    ), 0);
+
+    return {
+      mainWallet: livePortfolio.cashBalance,
+      tradingWallet: livePortfolio.margin,
+      totalBalance: livePortfolio.totalBalance,
+      equity: livePortfolio.equity,
+      bonusWallet: livePortfolio.credit,
+      pendingWithdrawals,
+      pendingDeposits,
+    };
+  }, [livePortfolio, transactions]);
 
   const handleLogout = () => {
     logout();
