@@ -51,12 +51,19 @@ const submitContactForm = async (req, res) => {
             console.error('Contact email dispatch failed:', mailError.message);
         }
 
+        if (!emailDelivered) {
+            return res.status(503).json({
+                success: false,
+                message: 'Support request was saved, but the email could not be delivered. Please check the mail configuration and try again.',
+                emailDelivered: false,
+                data: newMessage
+            });
+        }
+
         res.status(201).json({
             success: true,
-            message: emailDelivered
-                ? 'Support request initiated successfully'
-                : 'Support request saved. Email dispatch is temporarily unavailable.',
-            emailDelivered,
+            message: 'Support request initiated successfully',
+            emailDelivered: true,
             data: newMessage
         });
     } catch (error) {

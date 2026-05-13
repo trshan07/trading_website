@@ -27,7 +27,7 @@ const ContactPage = () => {
         setIsSubmitting(true);
         try {
             const response = await publicService.submitContactForm(formData);
-            if (response.success) {
+            if (response.success && response.emailDelivered !== false) {
                 toast.success('Request Received. Our institutional desk will contact you shortly.');
                 setFormData({
                     fullName: '',
@@ -35,6 +35,8 @@ const ContactPage = () => {
                     subject: 'Account Inquiry',
                     message: ''
                 });
+            } else {
+                toast.error(response.message || 'We saved your request, but could not deliver the email notification.');
             }
         } catch (error) {
             toast.error(error.response?.data?.message || 'Failed to initiate request. Network protocol error.');
