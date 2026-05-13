@@ -1,7 +1,17 @@
 // src/config/database.js
 const { Pool } = require('pg');
 const path = require('path');
-require('dotenv').config({ path: path.resolve(__dirname, '../../../.env') });
+const fs = require('fs');
+const dotenv = require('dotenv');
+
+const loadEnvFile = (envPath) => {
+    if (fs.existsSync(envPath)) {
+        dotenv.config({ path: envPath, override: false });
+    }
+};
+
+loadEnvFile(path.resolve(__dirname, '../../.env'));
+loadEnvFile(path.resolve(__dirname, '../../../.env'));
 
 const pool = new Pool({
     host: process.env.DB_HOST || 'localhost',

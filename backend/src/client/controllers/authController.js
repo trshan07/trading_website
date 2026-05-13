@@ -4,7 +4,7 @@ const bcrypt = require('bcryptjs');
 const User = require('../../models/User');
 const Admin = require('../../models/Admin');
 const Account = require('../../models/Account');
-const { sendPasswordResetEmail } = require('../../services/emailService');
+const { verifyEmailTransport, sendPasswordResetEmail } = require('../../services/emailService');
 
 // Generate JWT
 const generateToken = (id, role) => {
@@ -274,13 +274,19 @@ const forgotPassword = async (req, res) => {
         let emailResult = null;
 
         try {
+            await verifyEmailTransport();
             emailResult = await sendPasswordResetEmail({
                 to: email,
                 resetUrl,
                 firstName: user.first_name || user.firstName || ''
             });
         } catch (mailError) {
-            console.error('Password reset email delivery failed:', mailError);
+            console.error('Password reset email delivery failed:', {
+                message: mailError.message,
+                code: mailError.code,
+                command: mailError.command,
+                response: mailError.response
+            });
 
             if ((process.env.NODE_ENV || 'development') !== 'production') {
                 return res.json({

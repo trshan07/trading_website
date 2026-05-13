@@ -2,6 +2,7 @@ const nodemailer = require('nodemailer');
 
 let cachedTransporter = null;
 let cachedIsTestTransport = false;
+let cachedTransportVerified = false;
 
 const getTransporter = async () => {
   if (cachedTransporter) {
@@ -105,6 +106,17 @@ const sendPasswordResetEmail = async ({ to, resetUrl, firstName = '' }) => {
   };
 };
 
+const verifyEmailTransport = async () => {
+  const { transporter, isTestTransport } = await getTransporter();
+
+  if (!cachedTransportVerified) {
+    await transporter.verify();
+    cachedTransportVerified = true;
+  }
+
+  return { isTestTransport };
+};
+
 const sendContactFormEmail = async ({ fullName, email, subject = '', message = '' }) => {
   const appName = process.env.APP_NAME || 'TIK TRADES';
   const fromEmail = process.env.MAIL_FROM || process.env.SMTP_USER || 'no-reply@tiktrades.com';
@@ -167,6 +179,7 @@ const sendContactFormEmail = async ({ fullName, email, subject = '', message = '
 };
 
 module.exports = {
+  verifyEmailTransport,
   sendPasswordResetEmail,
   sendContactFormEmail
 };

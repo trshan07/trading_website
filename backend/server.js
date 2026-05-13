@@ -8,7 +8,14 @@ const cookieParser = require('cookie-parser');
 const path = require('path');
 const fs = require('fs');
 
-dotenv.config();
+const loadEnvFile = (envPath) => {
+    if (fs.existsSync(envPath)) {
+        dotenv.config({ path: envPath, override: false });
+    }
+};
+
+loadEnvFile(path.resolve(__dirname, '.env'));
+loadEnvFile(path.resolve(__dirname, '..', '.env'));
 
 const app = express();
 const server = createServer(app);
