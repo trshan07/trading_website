@@ -53,11 +53,6 @@ export const seoConfig = {
           publisher: {
             "@id": `${SITE_URL}/#organization`,
           },
-          potentialAction: {
-            "@type": "SearchAction",
-            target: `${SITE_URL}/markets`,
-            "query-input": "required name=search_term_string",
-          },
         },
         {
           "@type": "WebPage",

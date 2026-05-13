@@ -24,7 +24,7 @@ const Footer = () => {
                             />
                         </Link>
                         <p className="text-white/50 text-sm leading-relaxed mb-6 max-w-sm mx-auto lg:mx-0">
-                            TikTrades is a real-time trading platform for forex, crypto, stocks, commodities, and indices with live charts, market analysis, and fast online execution.
+                            Built for traders who value speed, clarity, and a more refined way to access global markets.
                         </p>
                         <div className="flex justify-center md:justify-start space-x-4">
                             <a href="#" className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-white/50 hover:bg-gold hover:text-navy transition-all">
