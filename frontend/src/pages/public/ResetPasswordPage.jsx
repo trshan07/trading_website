@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { HiLockClosed, HiCheck, HiExclamationCircle, HiOutlineEye, HiOutlineEyeOff } from 'react-icons/hi';
 import { toast } from 'react-hot-toast';
 import Button from '../../components/ui/Button';
@@ -14,6 +14,7 @@ import logoVerticalDark from '../../assets/images/logos/logo-vertical-dark.png';
 
 const ResetPasswordPage = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
@@ -22,8 +23,8 @@ const ResetPasswordPage = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  // Retrieve reset token from session storage (set by forgot password page)
-  const resetToken = sessionStorage.getItem('resetToken');
+  // Support reset links delivered by email while keeping session fallback for older flows.
+  const resetToken = searchParams.get('token') || sessionStorage.getItem('resetToken');
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -135,10 +136,10 @@ const ResetPasswordPage = () => {
             </Link>
           </div>
           <h1 className="text-3xl md:text-4xl font-display font-bold text-gold tracking-wide mb-2">
-            Credential Reset Protocol
+            Reset Password
           </h1>
           <p className="text-white/60 text-sm md:text-base italic">
-            Secure reinstatement of operator credentials.
+            Choose a new password for your trading account.
           </p>
           
           <div className="flex flex-col items-center lg:items-start mt-4 space-y-1.5 text-[10px] text-white/50 tracking-widest uppercase">
@@ -190,7 +191,7 @@ const ResetPasswordPage = () => {
               
               <div className="space-y-4">
                 <p className="text-xs text-white/50 tracking-wide leading-relaxed mb-4 text-center text-green-400">
-                   Verification Successful. Establish new security phrase.
+                   Enter and confirm your new password to finish resetting your account.
                 </p>
                 <div className="relative group">
                   <HiLockClosed className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40 group-focus-within:text-gold transition-colors w-5 h-5" />
@@ -198,7 +199,7 @@ const ResetPasswordPage = () => {
                     type={showPassword ? "text" : "password"}
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
-                    placeholder="New Security Phrase"
+                    placeholder="New Password"
                     className="w-full bg-navy/50 border border-white/20 rounded-lg py-4 pl-12 pr-12 text-white text-sm focus:outline-none focus:border-gold/60 focus:bg-navy/80 transition-all placeholder:text-white/30"
                   />
                   <div 
@@ -214,7 +215,7 @@ const ResetPasswordPage = () => {
                     type={showConfirmPassword ? "text" : "password"}
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
-                    placeholder="Confirm Phrase"
+                    placeholder="Confirm Password"
                     className="w-full bg-navy/50 border border-white/20 rounded-lg py-4 pl-12 pr-12 text-white text-sm focus:outline-none focus:border-gold/60 focus:bg-navy/80 transition-all placeholder:text-white/30"
                   />
                   <div 
@@ -241,7 +242,7 @@ const ResetPasswordPage = () => {
                     <span>Updating...</span>
                   </span>
                 ) : (
-                  <>Verify & Reset <span className="ml-2">→</span></>
+                  <>Reset Password <span className="ml-2">→</span></>
                 )}
               </Button>
             </form>

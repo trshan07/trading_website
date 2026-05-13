@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useContext } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
-import { HiOutlineMail, HiOutlineLockClosed, HiChevronLeft, HiLockClosed, HiCheck, HiOutlineEye, HiOutlineEyeOff, HiExclamationCircle } from 'react-icons/hi';
+import { HiOutlineMail, HiOutlineLockClosed, HiLockClosed, HiCheck, HiOutlineEye, HiOutlineEyeOff, HiExclamationCircle } from 'react-icons/hi';
 import { toast } from 'react-hot-toast';
 import Button from '../../components/ui/Button';
 import authBg from '../../assets/images/real_trading_bg.png';
@@ -76,35 +76,6 @@ const handleSubmit = async (e) => {
   }
 };
 
-  const handleDemoLogin = async () => {
-    setIsLoading(true);
-    setErrorMsg("");
-    try {
-      const response = await authService.demoLogin();
-      if (response.success && response.data) {
-        const guestData = response.data;
-        // Guests are always in demo mode
-        const loginResult = await contextLogin(
-          { ...guestData, selectedAccountType: 'demo' },
-          guestData.token
-        );
-        if (!loginResult?.success) {
-          throw new Error(loginResult?.error || 'Unable to establish guest session');
-        }
-        toast.success("Guest Connection Established! Welcome to the Demo Terminal.");
-        navigate('/dashboard');
-      } else {
-        throw new Error("Invalid demo connection protocol");
-      }
-    } catch (err) {
-      console.error('Demo Login error:', err);
-      setErrorMsg("Failed to establish guest connection. Please try manual registration.");
-      toast.error("Demo Access Failed");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   return (
     <main className="bg-navy min-h-screen relative text-white font-sans">
       {/* Background */}
@@ -173,11 +144,8 @@ const handleSubmit = async (e) => {
             </Link>
           </div>
           <h1 className="text-3xl md:text-4xl font-display font-bold text-gold tracking-wide mb-2">
-            Professional Trading Terminal Access
+            Login to WebTrader Terminal
           </h1>
-          <p className="text-white/60 text-sm md:text-base italic">
-            Encrypted access for authorized trading operators.
-          </p>
 
           <div className="flex flex-col items-center lg:items-start mt-4 space-y-1.5 text-[10px] text-white/50 tracking-widest uppercase">
             <div className="flex items-center space-x-2 text-green-400">
@@ -204,7 +172,7 @@ const handleSubmit = async (e) => {
           {/* Card Header */}
           <div className="py-5 border-b border-white/10 bg-white/5 text-center relative">
             <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-gold/50 to-transparent"></div>
-            <h2 className="text-xl font-display text-white tracking-widest">Operator Login</h2>
+            <h2 className="text-xl font-display text-white tracking-widest">Login to Trading Account</h2>
           </div>
 
           <div className="p-8">
@@ -248,7 +216,7 @@ const handleSubmit = async (e) => {
                   }`}
                 >
                   <span className={`w-1.5 h-1.5 rounded-full ${accountType === 'real' ? 'bg-navy-dark animate-pulse' : 'bg-white/20'}`} />
-                  <span>Live Trading</span>
+                  <span>Real Account</span>
                 </button>
               </div>
 
@@ -259,7 +227,7 @@ const handleSubmit = async (e) => {
                     type="email"
                     value={formData.email}
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    placeholder="Operator Email / Terminal ID"
+                    placeholder="Email ID"
                     className="w-full bg-navy/50 border border-white/20 rounded-lg py-3 pl-12 pr-4 text-white text-sm focus:outline-none focus:border-gold/60 focus:bg-navy/80 transition-all placeholder:text-white/30"
                   />
                 </div>
@@ -302,16 +270,6 @@ const handleSubmit = async (e) => {
               </div>
 
               <div className="pt-2">
-                <button 
-                  type="button"
-                  onClick={handleDemoLogin}
-                  disabled={isLoading}
-                  className="w-full py-3 bg-white/5 hover:bg-white/10 border border-gold/30 rounded-lg text-gold text-[10px] font-bold uppercase tracking-[0.2em] transition-all flex items-center justify-center space-x-2 group mb-4 shadow-xl active:scale-[0.98]"
-                >
-                  <span className="w-2 h-2 rounded-full bg-gold animate-ping" />
-                  <span>Try Instant Demo Access</span>
-                </button>
-
                 <Button 
                   variant="gold" 
                   type="submit"
@@ -327,7 +285,7 @@ const handleSubmit = async (e) => {
                     <span>Authenticating...</span>
                   </span>
                 ) : (
-                  <>Establish Connection <span className="ml-2">→</span></>
+                  <>Login <span className="ml-2">→</span></>
                 )}
               </Button>
             </div>
@@ -345,9 +303,8 @@ const handleSubmit = async (e) => {
           </div>
 
           {/* Forgot Password / Register Links inside card bottom */}
-          <div className="bg-navy-dark/60 py-4 px-6 border-t border-white/10 flex justify-between items-center text-[10px] uppercase font-bold tracking-widest">
-            <Link to="/forgot-password" className="text-white/40 hover:text-gold transition-colors">Lost Access?</Link>
-            <Link to="/register" className="text-white/40 hover:text-gold transition-colors">Request Account</Link>
+          <div className="bg-navy-dark/60 py-4 px-6 border-t border-white/10 flex justify-center items-center text-[10px] uppercase font-bold tracking-widest">
+            <Link to="/forgot-password" className="text-white/40 hover:text-gold transition-colors">Forgot Password</Link>
           </div>
         </motion.div>
       </div>

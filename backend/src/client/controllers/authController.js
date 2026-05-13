@@ -4,6 +4,7 @@ const bcrypt = require('bcryptjs');
 const User = require('../../models/User');
 const Admin = require('../../models/Admin');
 const Account = require('../../models/Account');
+const { sendPasswordResetEmail } = require('../../services/emailService');
 
 // Generate JWT
 const generateToken = (id, role) => {
@@ -256,22 +257,30 @@ const forgotPassword = async (req, res) => {
         const user = await User.findByEmail(email);
 
         if (!user) {
-            return res.status(404).json({ message: 'User not found' });
+            return res.json({
+                success: true,
+                message: 'Password reset instructions sent to your email'
+            });
         }
 
-        // In production, send email with reset link
         const resetToken = jwt.sign(
             { id: user.id, purpose: 'password-reset' },
             process.env.JWT_SECRET,
             { expiresIn: '1h' }
         );
 
-        console.log(`[DEV] Password reset token for ${email}: ${resetToken}`);
+        const clientUrl = process.env.CLIENT_URL || process.env.FRONTEND_URL || 'http://localhost:5173';
+        const resetUrl = `${clientUrl.replace(/\/$/, '')}/reset-password?token=${encodeURIComponent(resetToken)}`;
+        const emailResult = await sendPasswordResetEmail({
+            to: email,
+            resetUrl,
+            firstName: user.first_name || user.firstName || ''
+        });
 
         res.json({ 
             success: true,
             message: 'Password reset instructions sent to your email',
-            resetToken
+            previewUrl: emailResult.previewUrl || null
         });
     } catch (error) {
         console.error(error);
