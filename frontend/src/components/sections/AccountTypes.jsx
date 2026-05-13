@@ -77,7 +77,7 @@ const AccountTypes = () => {
                             <div className="mt-auto space-y-6">
                                 <Link to="/register">
                                     <Button 
-                                        variant={account.popular ? 'gold' : 'outline'} 
+                                        variant="gold"
                                         className={`w-full py-4 text-xs md:text-sm uppercase tracking-[0.2em] font-bold ${account.popular ? 'animate-pulse-subtle shadow-gold-glow' : ''}`}
                                     >
                                         Establish {account.name}
