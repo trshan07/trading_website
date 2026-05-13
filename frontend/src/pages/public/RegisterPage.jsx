@@ -150,11 +150,8 @@ const RegisterPage = () => {
             </Link>
           </div>
           <h1 className="text-3xl md:text-4xl font-display font-bold text-gold tracking-wide mb-2">
-            Operator Registration Terminal
+            Registration Terminal
           </h1>
-          <p className="text-white/60 text-sm md:text-base italic">
-            Secure provisioning protocol for new operators.
-          </p>
           
           <div className="flex flex-col items-center lg:items-start mt-4 space-y-1.5 text-[10px] text-white/50 tracking-widest uppercase hidden md:flex">
              <div className="flex flex-col lg:items-start space-y-2 lg:space-y-1.5">
@@ -184,7 +181,7 @@ const RegisterPage = () => {
           {/* Card Header */}
           <div className="py-5 border-b border-white/10 bg-white/5 text-center relative flex justify-center items-center px-6">
              <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-gold/50 to-transparent"></div>
-             <h2 className="text-xl font-display text-white tracking-widest">Account Provisioning</h2>
+             <h2 className="text-xl font-display text-white tracking-widest">Account Opening</h2>
           </div>
 
           <div className="p-6 md:p-8">
@@ -200,7 +197,7 @@ const RegisterPage = () => {
                 }`}
               >
                 <div className={`w-1.5 h-1.5 rounded-full ${accountType === 'demo' ? 'bg-navy-dark animate-pulse' : 'bg-white/20'}`} />
-                <span>Practice Demo Access</span>
+                <span>Demo Account Registration</span>
               </button>
               <button
                 type="button"
@@ -212,7 +209,7 @@ const RegisterPage = () => {
                 }`}
               >
                 <div className={`w-1.5 h-1.5 rounded-full ${accountType === 'real' ? 'bg-navy-dark animate-pulse' : 'bg-white/20'}`} />
-                <span>Real Operating Account</span>
+                <span>Real Account Registration</span>
               </button>
             </div>
 
@@ -321,7 +318,7 @@ const RegisterPage = () => {
 
                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                    <label className="block text-white/50 text-[10px] uppercase font-bold tracking-[0.2em] mb-2 ml-1">Access Phrase (Password)</label>
+                    <label className="block text-white/50 text-[10px] uppercase font-bold tracking-[0.2em] mb-2 ml-1">Password</label>
                     <div className="relative group">
                       <div className="relative">
                         <HiOutlineLockClosed className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40 group-focus-within:text-gold transition-colors w-5 h-5" />
@@ -357,7 +354,7 @@ const RegisterPage = () => {
                     </div>
                 </div>
                 <div>
-                    <label className="block text-white/50 text-[10px] uppercase font-bold tracking-[0.2em] mb-2 ml-1">Verify Phrase</label>
+                    <label className="block text-white/50 text-[10px] uppercase font-bold tracking-[0.2em] mb-2 ml-1">Confirm Password</label>
                     <div className="relative group">
                       <div className="relative">
                         <HiOutlineLockClosed className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40 group-focus-within:text-gold transition-colors w-5 h-5" />
@@ -403,7 +400,7 @@ const RegisterPage = () => {
                     <span>Provisioning...</span>
                   </span>
                 ) : (
-                  <>Establish Account <span className="ml-2">→</span></>
+                  <>Register Account <span className="ml-2">→</span></>
                 )}
               </Button>
             </form>
@@ -411,8 +408,7 @@ const RegisterPage = () => {
           
            {/* Login Link inside card bottom */}
           <div className="bg-navy-dark/60 py-4 px-6 border-t border-white/10 flex justify-center items-center text-[10px] uppercase font-bold tracking-widest">
-             <span className="text-white/40 mr-2">Existing Operator?</span>
-             <Link to="/login" className="text-gold hover:text-white transition-colors">Synchronize Account</Link>
+             <Link to="/login" className="text-gold hover:text-white transition-colors">Already have an account? Login</Link>
           </div>
         </motion.div>
       </div>
