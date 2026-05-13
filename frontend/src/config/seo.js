@@ -136,6 +136,7 @@ export const seoConfig = {
     title: "Risk Disclaimer | TikTrades",
     description:
       "Understand the trading risks associated with leveraged products, market volatility, and online trading services offered by TikTrades.",
+    robots: "noindex, nofollow",
   }),
   kycPolicy: createSeo({
     path: "/kyc-policy",
@@ -160,14 +161,12 @@ export const seoConfig = {
     title: "Client Login | TikTrades",
     description:
       "Access your TikTrades trading account securely through the client login portal.",
-    robots: "noindex, nofollow",
   }),
   register: createSeo({
     path: "/register",
     title: "Open an Account | Register with TikTrades",
     description:
       "Create your TikTrades account to access forex, crypto, commodities, and stock trading tools in one platform.",
-    robots: "noindex, nofollow",
   }),
   forgotPassword: createSeo({
     path: "/forgot-password",

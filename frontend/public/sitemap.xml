@@ -28,9 +28,6 @@
     <loc>https://tiktrades.com/privacy</loc>
   </url>
   <url>
-    <loc>https://tiktrades.com/risk-disclaimer</loc>
-  </url>
-  <url>
     <loc>https://tiktrades.com/kyc-policy</loc>
   </url>
   <url>
@@ -38,5 +35,11 @@
   </url>
   <url>
     <loc>https://tiktrades.com/deposits-withdrawals</loc>
+  </url>
+  <url>
+    <loc>https://tiktrades.com/login</loc>
+  </url>
+  <url>
+    <loc>https://tiktrades.com/register</loc>
   </url>
 </urlset>
