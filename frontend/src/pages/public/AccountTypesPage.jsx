@@ -139,14 +139,8 @@ const AccountTypesPage = () => {
 
                                 <div className="mt-auto">
                                     <Link to="/register" className="relative group/btn block">
-                                        <div className={`absolute -inset-1 rounded-2xl blur opacity-25 group-hover/btn:opacity-60 transition duration-500 ${
-                                            acc.highlight ? 'bg-gold' : 'bg-white/20'
-                                        }`} />
-                                        <button className={`relative w-full py-4 rounded-2xl text-xs font-black tracking-[0.2em] uppercase transition-all duration-300 border ${
-                                            acc.highlight 
-                                            ? 'bg-gold text-navy border-gold hover:translate-y-[-2px]' 
-                                            : 'bg-white/5 text-white border-white/10 hover:bg-white/10'
-                                        }`}>
+                                        <div className="absolute -inset-1 rounded-2xl blur opacity-25 group-hover/btn:opacity-60 transition duration-500 bg-gold" />
+                                        <button className="relative w-full py-4 rounded-2xl text-xs font-black tracking-[0.2em] uppercase transition-all duration-300 border bg-gold text-navy border-gold hover:translate-y-[-2px]">
                                             Secure {acc.name.split(' ')[0]} Access
                                         </button>
                                     </Link>
