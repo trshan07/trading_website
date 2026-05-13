@@ -271,11 +271,30 @@ const forgotPassword = async (req, res) => {
 
         const clientUrl = process.env.CLIENT_URL || process.env.FRONTEND_URL || 'http://localhost:5173';
         const resetUrl = `${clientUrl.replace(/\/$/, '')}/reset-password?token=${encodeURIComponent(resetToken)}`;
-        const emailResult = await sendPasswordResetEmail({
-            to: email,
-            resetUrl,
-            firstName: user.first_name || user.firstName || ''
-        });
+        let emailResult = null;
+
+        try {
+            emailResult = await sendPasswordResetEmail({
+                to: email,
+                resetUrl,
+                firstName: user.first_name || user.firstName || ''
+            });
+        } catch (mailError) {
+            console.error('Password reset email delivery failed:', mailError);
+
+            if ((process.env.NODE_ENV || 'development') !== 'production') {
+                return res.json({
+                    success: true,
+                    message: 'Email delivery is unavailable in this environment. Use the development reset link below.',
+                    resetUrl,
+                    deliveryMode: 'dev-link'
+                });
+            }
+
+            return res.status(502).json({
+                message: 'Unable to send the reset email right now. Please try again later.'
+            });
+        }
 
         res.json({ 
             success: true,

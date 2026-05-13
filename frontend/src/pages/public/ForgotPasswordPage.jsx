@@ -15,11 +15,13 @@ const ForgotPasswordPage = () => {
   const [errorMsg, setErrorMsg] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
   const [email, setEmail] = useState("");
+  const [devResetUrl, setDevResetUrl] = useState("");
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setErrorMsg("");
     setSuccessMsg("");
+    setDevResetUrl("");
 
     if (!email) {
       setErrorMsg("Email is required.");
@@ -28,9 +30,10 @@ const ForgotPasswordPage = () => {
     setIsLoading(true);
 
     try {
-      await authService.forgotPassword(email);
-      setSuccessMsg("If an account exists for this email, a password reset link has been sent.");
-      toast.success("Reset link sent");
+      const response = await authService.forgotPassword(email);
+      setSuccessMsg(response?.message || "If an account exists for this email, a password reset link has been sent.");
+      setDevResetUrl(response?.resetUrl || "");
+      toast.success(response?.deliveryMode === 'dev-link' ? "Development reset link ready" : "Reset link sent");
     } catch (err) {
       setErrorMsg(err.response?.data?.message || "We couldn't send the reset link right now. Please try again.");
       toast.error("Reset link failed");
@@ -178,6 +181,17 @@ const ForgotPasswordPage = () => {
                     className="w-full bg-navy/50 border border-white/20 rounded-lg py-4 pl-12 pr-4 text-white text-sm focus:outline-none focus:border-gold/60 focus:bg-navy/80 transition-all placeholder:text-white/30"
                   />
                 </div>
+                {devResetUrl && (
+                  <div className="mt-4 rounded-lg border border-gold/30 bg-gold/10 px-4 py-3 text-left">
+                    <p className="text-[11px] uppercase tracking-wider text-gold mb-2">Development Reset Link</p>
+                    <a
+                      href={devResetUrl}
+                      className="break-all text-sm text-white hover:text-gold transition-colors"
+                    >
+                      {devResetUrl}
+                    </a>
+                  </div>
+                )}
               </div>
 
               <Button 
