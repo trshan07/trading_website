@@ -6,8 +6,6 @@ import ThemeToggle from '../ui/ThemeToggle';
 import { useTheme } from '../../context/ThemeContext';
 import logoLight from '../../assets/images/logos/logo-light.jpg';
 import logoDark from '../../assets/images/logos/logo-dark.png';
-import logoVerticalLight from '../../assets/images/logos/logo-vertical-light.jpg';
-import logoVerticalDark from '../../assets/images/logos/logo-vertical-dark.png';
 
 
 const MobileSidebar = ({ 
@@ -38,20 +36,20 @@ const MobileSidebar = ({
   ];
 
   return (
-    <div className="fixed inset-0 z-[100] flex lg:hidden">
+    <div className="fixed inset-0 z-[100] flex">
       <div 
         className="absolute inset-0 bg-slate-900/60 dark:bg-black/70 backdrop-blur-sm" 
         onClick={onClose}
       />
       
-      <div className="relative w-[280px] bg-white dark:bg-slate-900 shadow-2xl flex flex-col h-full overflow-hidden animate-in slide-in-from-left duration-300 transition-colors">
+      <div className="relative w-[300px] sm:w-[320px] bg-white dark:bg-slate-900 shadow-2xl flex flex-col h-full overflow-hidden animate-in slide-in-from-left duration-300 transition-colors">
         {/* Drawer Header */}
         <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center shrink-0">
           <div className="flex items-center">
             <img 
-              src={theme === 'dark' ? logoVerticalDark : logoVerticalLight} 
+              src={theme === 'dark' ? logoDark : logoLight} 
               alt="TIK TRADES" 
-              className="h-12 w-auto object-contain" 
+              className="h-8 w-auto object-contain" 
             />
           </div>
           <div className="flex items-center space-x-2">

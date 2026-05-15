@@ -8,7 +8,6 @@ import { AuthContext } from '../../context/AuthContext';
 import { useDashboardData } from '../../hooks/useDashboardData';
 
 // Import Dashboard Components
-import Sidebar from '../../components/client/Sidebar';
 import Header from '../../components/client/Header';
 import TradingTab from '../../components/client/TradingTab';
 import BankingTab from '../../components/client/BankingTab';
@@ -298,23 +297,8 @@ const DashboardPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[var(--bg-primary)] flex overflow-hidden font-sans transition-colors duration-300">
-      {/* Permanent Sidebar (Desktop) */}
-      <Sidebar
-        activeTab={activeMainTab}
-        onTabChange={(tab) => {
-          navigate(`/dashboard/${tab}`);
-          setShowMobileMenu(false);
-        }}
-        user={user}
-        portfolio={livePortfolio}
-        showBalance={showBalance}
-        onLogout={handleLogout}
-        onShowStatement={() => setShowStatementModal(true)}
-      />
-
-      {/* Content Wrapper */}
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+    <div className="min-h-screen bg-[var(--bg-primary)] overflow-hidden font-sans transition-colors duration-300">
+      <div className="flex flex-col min-w-0 overflow-hidden">
         <Header
           portfolio={livePortfolio}
           showBalance={showBalance}
@@ -340,7 +324,7 @@ const DashboardPage = () => {
 
         {/* Scrollable Region */}
         <div className="flex-1 overflow-y-auto relative custom-scrollbar bg-[var(--bg-primary)]">
-          <main className="px-2 sm:px-6 md:px-10 py-4 md:py-10 pb-24 lg:pb-10 max-w-[1600px] mx-auto w-full">
+          <main className="px-2 sm:px-6 md:px-8 lg:px-10 py-4 md:py-8 pb-24 lg:pb-10 max-w-[1700px] mx-auto w-full">
             {/* Demo Mode Banner */}
             {isDemo && (
               <div className="mb-6 sm:mb-8 p-4 sm:p-6 bg-amber-500/10 border border-amber-500/20 rounded-[2rem] flex flex-col md:flex-row items-center justify-between gap-6 transition-all hover:bg-amber-500/20">
