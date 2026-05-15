@@ -408,8 +408,8 @@ const mapPositionToLiveView = (position = {}, instruments = [], marketData = {})
     marketData,
   });
   const quantity = Number.parseFloat(position.quantity) || 0;
-  const entryPrice = Number.parseFloat(position.entry_price) || 0;
-  const side = String(position.side || 'buy').toUpperCase();
+  const entryPrice = Number.parseFloat(position.entry_price ?? position.entryPrice) || 0;
+  const side = String(position.side || position.type || 'buy').toUpperCase();
   const { bidPrice: syntheticBid, askPrice: syntheticAsk } = calculateSpreads(position.symbol, snapshot.price || entryPrice, {
     category: snapshot.category,
     precision: snapshot.precision,
@@ -447,10 +447,14 @@ const mapPositionToLiveView = (position = {}, instruments = [], marketData = {})
     category: snapshot.category,
     instrument: snapshot,
     leverage: Number.parseFloat(position.leverage) || null,
-    takeProfit: position.take_profit != null ? Number.parseFloat(position.take_profit) : null,
-    stopLoss: position.stop_loss != null ? Number.parseFloat(position.stop_loss) : null,
-    createdAt: position.created_at,
-    entryTime: position.created_at,
+    takeProfit: position.take_profit != null
+      ? Number.parseFloat(position.take_profit)
+      : (position.takeProfit != null ? Number.parseFloat(position.takeProfit) : null),
+    stopLoss: position.stop_loss != null
+      ? Number.parseFloat(position.stop_loss)
+      : (position.stopLoss != null ? Number.parseFloat(position.stopLoss) : null),
+    createdAt: position.created_at || position.createdAt,
+    entryTime: position.created_at || position.createdAt,
     swap: Number.parseFloat(position.swap) || 0,
     commission: Number.parseFloat(position.commission) || 0,
   };
