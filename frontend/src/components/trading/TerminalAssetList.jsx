@@ -41,8 +41,8 @@ const PriceCell = ({ price, label, className = '' }) => {
   }, [price]);
 
   return (
-    <div className={`${className} ${flash} rounded px-1 transition-all duration-300`}>
-      <p className="text-[13px] font-semibold tabular-nums text-slate-900 dark:text-slate-100">{label}</p>
+    <div className={`${className} ${flash} min-w-0 rounded px-1 transition-all duration-300`}>
+      <p className="truncate text-[13px] font-semibold tabular-nums text-slate-900 dark:text-slate-100">{label}</p>
     </div>
   );
 };
@@ -149,7 +149,7 @@ const TerminalAssetList = ({
         </div>
       </div>
 
-      <div className="hidden grid-cols-[minmax(0,1.35fr)_minmax(0,0.78fr)_minmax(0,0.78fr)_minmax(0,0.72fr)_minmax(0,0.68fr)_auto] items-center gap-2 border-b border-slate-200 px-4 py-2.5 text-[9px] font-black uppercase tracking-[0.14em] text-slate-500 min-[440px]:grid dark:border-slate-700/60">
+      <div className="hidden grid-cols-[minmax(0,1.5fr)_minmax(5.5rem,0.9fr)_minmax(5.5rem,0.9fr)_minmax(4.75rem,0.75fr)_3.5rem_2.75rem] items-center gap-3 border-b border-slate-200 px-4 py-2.5 text-[9px] font-black uppercase tracking-[0.14em] text-slate-500 min-[440px]:grid dark:border-slate-700/60">
         <span>Instrument</span>
         <span className="text-right">Sell</span>
         <span className="text-right">Buy</span>
@@ -201,19 +201,19 @@ const TerminalAssetList = ({
                       : 'hover:bg-slate-50 dark:hover:bg-white/[0.03]'
                   }`}
                 >
-                  <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3 min-[440px]:grid-cols-[minmax(0,1.35fr)_minmax(0,0.78fr)_minmax(0,0.78fr)_minmax(0,0.72fr)_minmax(0,0.68fr)_auto] min-[440px]:items-center">
+                  <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3 min-[440px]:grid-cols-[minmax(0,1.5fr)_minmax(5.5rem,0.9fr)_minmax(5.5rem,0.9fr)_minmax(4.75rem,0.75fr)_3.5rem_2.75rem] min-[440px]:items-center">
                     <div className="min-w-0">
                       <div className="flex items-start justify-between gap-3 min-[440px]:block">
                         <div className="min-w-0">
                           <p className="truncate text-[14px] font-semibold uppercase leading-none tracking-tight text-slate-900 dark:text-white">
                             {formatInstrumentDisplaySymbol(instrument.symbol, { withSlash: false })}
                           </p>
-                          <div className="flex items-center gap-1.5 mt-1">
-                            <p className="truncate text-[10px] font-medium uppercase tracking-[0.14em] text-slate-500">
+                          <div className="mt-1 flex items-center gap-1.5">
+                            <p className="min-w-0 truncate text-[10px] font-medium uppercase tracking-[0.14em] text-slate-500">
                               {instrument.name || instrument.category}
                             </p>
                             {String(instrumentSnapshot.source || '').includes('twelvedata') && (
-                              <span className="flex items-center gap-1 rounded bg-teal-400/10 px-1 py-0.5 text-[8px] font-black uppercase tracking-widest text-teal-400 border border-teal-400/20">
+                              <span className="flex shrink-0 items-center gap-1 rounded border border-teal-400/20 bg-teal-400/10 px-1 py-0.5 text-[8px] font-black uppercase tracking-widest text-teal-400">
                                 <span className="h-1 w-1 animate-pulse rounded-full bg-teal-400" />
                                 Live
                               </span>
@@ -263,15 +263,15 @@ const TerminalAssetList = ({
                       </div>
                     </div>
 
-                    <div className="hidden text-right min-[440px]:block">
+                    <div className="hidden min-w-0 text-right min-[440px]:block">
                       <PriceCell price={quoteSnapshot.bid} label={quoteSnapshot.bidLabel} className="text-right" />
                     </div>
 
-                    <div className="hidden text-right min-[440px]:block">
+                    <div className="hidden min-w-0 text-right min-[440px]:block">
                       <PriceCell price={quoteSnapshot.ask} label={quoteSnapshot.askLabel} className="text-right" />
                     </div>
 
-                    <div className={`hidden text-right text-[12px] font-semibold tabular-nums min-[440px]:block ${isPositive ? 'text-emerald-400' : 'text-rose-400'}`}>
+                    <div className={`hidden whitespace-nowrap text-right text-[12px] font-semibold tabular-nums min-[440px]:block ${isPositive ? 'text-emerald-400' : 'text-rose-400'}`}>
                       {isPositive ? '+' : ''}{change.toFixed(2)}%
                     </div>
 
