@@ -1,157 +1,96 @@
-import React, { useState, useEffect, useContext, useMemo } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import React, { useContext, useEffect, useMemo, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
-
 import AccountStatementModal from '../../components/ui/AccountStatementModal';
-
+import UploadDocumentModal from '../../components/ui/UploadDocumentModal';
+import TransferModal from '../../components/ui/TransferModal';
+import DepositFundsModal from '../../components/client/banking/DepositFundsModal';
+import WithdrawalFundsModal from '../../components/client/banking/WithdrawalFundsModal';
+import BankingZoneTab from '../../components/client/BankingZoneTab';
+import Header from '../../components/client/Header';
+import MobileBottomNav from '../../components/client/MobileBottomNav';
+import MobileSidebar from '../../components/client/MobileSidebar';
+import MyAccountTab from '../../components/client/MyAccountTab';
+import SettingsTab from '../../components/client/SettingsTab';
+import TradingTab from '../../components/client/TradingTab';
+import VerificationCenterTab from '../../components/client/VerificationCenterTab';
 import { AuthContext } from '../../context/AuthContext';
 import { useDashboardData } from '../../hooks/useDashboardData';
 
-// Import Dashboard Components
-import Header from '../../components/client/Header';
-import TradingTab from '../../components/client/TradingTab';
-import BankingTab from '../../components/client/BankingTab';
-import DocumentsTab from '../../components/client/DocumentsTab';
-import SettingsTab from '../../components/client/SettingsTab';
-import MarketsTab from '../../components/client/MarketsTab';
-import PortfolioTab from '../../components/client/PortfolioTab';
-// Import newly added components
-import MobileSidebar from '../../components/client/MobileSidebar';
-import TransferModal from '../../components/ui/TransferModal';
-import UploadDocumentModal from '../../components/ui/UploadDocumentModal';
-import MobileBottomNav from '../../components/client/MobileBottomNav';
-import DepositFundsModal from '../../components/client/banking/DepositFundsModal';
-import WithdrawalFundsModal from '../../components/client/banking/WithdrawalFundsModal';
+const normalizeLeverage = (value, fallback = 100) => {
+  if (typeof value === 'number' && Number.isFinite(value) && value > 0) {
+    return value;
+  }
+
+  const raw = String(value ?? '').trim();
+  if (!raw) {
+    return fallback;
+  }
+
+  if (raw.includes(':')) {
+    const [, rhs] = raw.split(':');
+    const parsedRatio = Number.parseFloat(rhs);
+    return Number.isFinite(parsedRatio) && parsedRatio > 0 ? parsedRatio : fallback;
+  }
+
+  const parsed = Number.parseFloat(raw);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+};
+
+const routeToTabMap = {
+  trading: 'webtrader',
+  webtrader: 'webtrader',
+  account: 'account',
+  portfolio: 'account',
+  banking: 'banking',
+  funding: 'banking',
+  deposit: 'banking',
+  withdrawal: 'banking',
+  verification: 'verification',
+  documents: 'verification',
+  settings: 'settings',
+};
 
 const DashboardPage = () => {
-  const normalizeLeverage = (value, fallback = 100) => {
-    if (typeof value === 'number' && Number.isFinite(value) && value > 0) {
-      return value;
-    }
-
-    const raw = String(value ?? '').trim();
-    if (!raw) {
-      return fallback;
-    }
-
-    if (raw.includes(':')) {
-      const [, rhs] = raw.split(':');
-      const parsedRatio = Number.parseFloat(rhs);
-      return Number.isFinite(parsedRatio) && parsedRatio > 0 ? parsedRatio : fallback;
-    }
-
-    const parsed = Number.parseFloat(raw);
-    return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
-  };
-
   const { user, logout, loading: authLoading, selectedAccountType, switchAccountType } = useContext(AuthContext);
   const navigate = useNavigate();
-
-  // Find the selected account based on the session
-  const activeAccount = user?.accounts?.find(acc => {
-    const type = (acc.account_type || acc.type || '').toLowerCase();
-    const targetType = (selectedAccountType || 'demo').toLowerCase();
-    if (targetType === 'real' || targetType === 'live') {
-      return type === 'real' || type === 'live';
-    }
-    return type === targetType;
-  }) || {
-    id: user?.accounts?.[0]?.id || 'dummy', // Try to get an ID if possible
-    balance: 0,
-    type: selectedAccountType || 'demo',
-    account_number: 'N/A'
-  };
-
   const { pathname } = useLocation();
   const [loading, setLoading] = useState(true);
-  const [activeMainTab, setActiveMainTab] = useState('trading');
+  const [activeMainTab, setActiveMainTab] = useState('webtrader');
   const [marketSymbol, setMarketSymbol] = useState('BTCUSDT');
-  const [marketCategory, setMarketCategory] = useState('All');
-
-  useEffect(() => {
-    // Robust tab matching
-    const parts = pathname.split('/').filter(Boolean);
-    const dashboardIndex = parts.indexOf('dashboard');
-    
-    if (dashboardIndex !== -1) {
-      const tab = parts[dashboardIndex + 1];
-      
-      if (!tab) {
-        setActiveMainTab('trading');
-        return;
-      }
-
-      const tabMap = {
-        'funding': 'banking',
-        'deposit': 'banking',
-        'withdrawal': 'banking',
-        'history': 'banking',
-        'profile': 'settings',
-        'statements': 'documents'
-      };
-      
-      setActiveMainTab(tabMap[tab] || tab);
-    }
-  }, [pathname]);
-  const [showBalance, setShowBalance] = useState(true);
+  const [showBalance] = useState(true);
   const [showDepositModal, setShowDepositModal] = useState(false);
   const [showWithdrawalModal, setShowWithdrawalModal] = useState(false);
   const [showTransferModal, setShowTransferModal] = useState(false);
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [showStatementModal, setShowStatementModal] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
-  const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1200);
 
-  const handleCategorySelect = (categoryId) => {
-    // 1. Map categoryId to Chart Symbol
-    const symbolsMap = {
-      watchlist: favorites[0] || 'BTCUSDT',
-      popular: 'EURUSD',
-      forex: 'EURUSD',
-      commodities: 'XAUUSD',
-      crypto: 'BTCUSDT',
-      shares: 'AAPL',
-      'indices-cash-1': 'SPX',
-      'future-rolling-cfds': 'ES1!',
-      'brazilian-index': 'IBOV',
-      stocks: 'AAPL',
-      funds: 'SPY',
-      futures: 'ES1!',
-      indices: 'SPX',
-      bonds: 'US10Y',
-      economy: 'DXY',
-      options: 'VIX'
-    };
+  const activeAccount = user?.accounts?.find((account) => {
+    const type = (account.account_type || account.type || '').toLowerCase();
+    const targetType = (selectedAccountType || 'demo').toLowerCase();
 
-    // 2. Map categoryId to MarketsTab Filter Category
-    const categoryNameMap = {
-      watchlist: 'Watchlist',
-      popular: 'Popular',
-      forex: 'Forex',
-      commodities: 'Commodities',
-      crypto: 'Crypto',
-      shares: 'Stocks', 
-      'indices-cash-1': 'Indices',
-      'future-rolling-cfds': 'Futures',
-      'brazilian-index': 'Brazilian Index',
-      stocks: 'Stocks',
-      funds: 'Funds',
-      futures: 'Futures',
-      indices: 'Indices',
-      bonds: 'Bonds',
-      economy: 'Economy',
-      options: 'Options'
-    };
+    if (targetType === 'real' || targetType === 'live') {
+      return type === 'real' || type === 'live';
+    }
 
-    const targetSymbol = symbolsMap[categoryId] || 'BTCUSDT';
-    const targetCategory = categoryNameMap[categoryId] || 'All';
-
-    setMarketSymbol(targetSymbol);
-    setMarketCategory(targetCategory);
-    navigate(`/dashboard/markets`);
+    return type === targetType;
+  }) || user?.accounts?.[0] || {
+    id: null,
+    balance: 0,
+    credit: 0,
+    leverage: 100,
+    account_number: 'N/A',
   };
 
-  // Fetch all mock state from custom hook
+  useEffect(() => {
+    const parts = pathname.split('/').filter(Boolean);
+    const dashboardIndex = parts.indexOf('dashboard');
+    const routeKey = dashboardIndex !== -1 ? parts[dashboardIndex + 1] : null;
+    const nextTab = routeToTabMap[routeKey] || 'webtrader';
+    setActiveMainTab(nextTab);
+  }, [pathname]);
+
   const {
     bankAccounts,
     creditCards,
@@ -164,7 +103,7 @@ const DashboardPage = () => {
     marketData,
     notifications,
     priceAlerts,
-    settings,
+    platformInfo,
     handleAddBankAccount,
     handleDeleteBankAccount,
     handleSetDefaultBankAccount,
@@ -181,7 +120,6 @@ const DashboardPage = () => {
     handleModifyOrder,
     handleCreateAlert,
     handleDeleteAlert,
-    handleUpdateSettings,
     handleMarkNotificationRead,
     handleMarkAllNotificationsRead,
     handleToggleFavorite,
@@ -191,47 +129,25 @@ const DashboardPage = () => {
     instruments,
     categories,
     portfolioHistory,
-    platformInfo,
-    unreadNotifications: hookUnreadCount
+    unreadNotifications,
   } = useDashboardData(selectedAccountType, marketSymbol, {
-    shouldPollTrading: activeMainTab !== 'banking',
+    shouldPollTrading: activeMainTab === 'webtrader' || activeMainTab === 'account',
   });
 
-  const isDemo = selectedAccountType === 'demo';
-
-  // Dynamic Portfolio Data
-  const [portfolio, setPortfolio] = useState({
-    totalBalance: 0,
-    availableBalance: 0,
-    equity: 0,
-    margin: 0,
-    marginLevel: 0,
-    dailyPnL: 0,
-    dailyPnLPercent: 0,
-    weeklyPnL: 0,
-    monthlyPnL: 0,
-  });
-
-
-
-  // Live Portfolio Calculation (Real-time P&L)
   const livePortfolio = useMemo(() => {
-    if (!user || !activeAccount) return portfolio;
-    
-    const balance = parseFloat(activeAccount.balance) || 0;
-    const credit = parseFloat(activeAccount.credit) || 0;
+    const balance = Number.parseFloat(activeAccount?.balance) || 0;
+    const credit = Number.parseFloat(activeAccount?.credit) || 0;
     const totalFunds = balance + credit;
     const backendRisk = accountRisk?.risk || null;
-    const totalUnrealizedPnL = positions.reduce((sum, pos) => sum + (Number.parseFloat(pos.pnl) || 0), 0);
-    const totalMargin = positions.reduce((sum, pos) => sum + (Number.parseFloat(pos.margin) || 0), 0);
+    const totalUnrealizedPnL = positions.reduce((sum, position) => sum + (Number.parseFloat(position.pnl) || 0), 0);
+    const totalMargin = positions.reduce((sum, position) => sum + (Number.parseFloat(position.margin) || 0), 0);
     const equity = totalFunds + totalUnrealizedPnL;
     const freeMargin = equity - totalMargin;
     const marginLevel = totalMargin > 0 ? (equity / totalMargin) * 100 : 0;
-    
+
     return {
-      ...portfolio,
-      totalBalance: totalFunds,       // Balance = cash + credit (what admin gave)
-      cashBalance: balance,           // raw cash only (for withdrawal checks)
+      totalBalance: totalFunds,
+      cashBalance: balance,
       availableBalance: freeMargin,
       freeMargin,
       equity,
@@ -240,11 +156,11 @@ const DashboardPage = () => {
       dailyPnL: totalUnrealizedPnL,
       positionsCount: positions.length,
       credit,
-      leverage: activeAccount.leverage || 100,
+      leverage: activeAccount?.leverage || 100,
       marginCall: Boolean(backendRisk?.marginCall),
       stopOut: Boolean(backendRisk?.stopOut),
     };
-  }, [user, activeAccount, positions, portfolio, accountRisk]);
+  }, [accountRisk, activeAccount, positions]);
 
   const walletData = useMemo(() => {
     const pendingWithdrawals = transactions.reduce((sum, transaction) => (
@@ -270,246 +186,174 @@ const DashboardPage = () => {
     };
   }, [livePortfolio, transactions]);
 
+  useEffect(() => {
+    const timer = setTimeout(() => setLoading(false), 450);
+    return () => clearTimeout(timer);
+  }, []);
+
   const handleLogout = () => {
     logout();
     navigate('/login');
   };
 
-  useEffect(() => {
-    const timer = setTimeout(() => setLoading(false), 1000);
-    const handleResize = () => {
-      setWindowWidth(window.innerWidth);
-      if (windowWidth >= 1024) setShowMobileMenu(false);
-    };
-    window.addEventListener('resize', handleResize);
-    return () => {
-      clearTimeout(timer);
-      window.removeEventListener('resize', handleResize);
-    };
-  }, [windowWidth]);
+  const changeMainTab = (tab) => {
+    const normalized = tab || 'webtrader';
+    setActiveMainTab(normalized);
+    setShowMobileMenu(false);
+    navigate(normalized === 'webtrader' ? '/dashboard' : `/dashboard/${normalized}`);
+  };
 
   if (loading || authLoading) {
     return (
-      <div className="min-h-screen bg-white dark:bg-slate-900 flex items-center justify-center transition-colors duration-300">
-        <div className="w-16 h-16 border-4 border-gold-500 border-t-transparent rounded-full animate-spin"></div>
+      <div className="flex min-h-screen items-center justify-center bg-[var(--bg-primary)]">
+        <div className="h-12 w-12 animate-spin rounded-full border-4 border-slate-200 border-t-slate-900 dark:border-slate-700 dark:border-t-white" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[var(--bg-primary)] overflow-hidden font-sans transition-colors duration-300">
-      <div className="flex flex-col min-w-0 overflow-hidden">
-        <Header
-          portfolio={livePortfolio}
-          showBalance={showBalance}
-          onDepositFunds={() => setShowDepositModal(true)}
-          onWithdrawFunds={() => setShowWithdrawalModal(true)}
-          unreadNotifications={hookUnreadCount}
-          notifications={notifications}
-          instruments={instruments}
-          marketData={marketData}
-          onMarkNotificationRead={handleMarkNotificationRead}
-          onMarkAllNotificationsRead={handleMarkAllNotificationsRead}
-          user={user}
-          onLogout={handleLogout}
-          onMenuClick={() => setShowMobileMenu(true)}
-          isDemo={isDemo}
-          onSwitchAccount={switchAccountType}
-          onSelectSymbol={(symbol) => {
-            setMarketSymbol(symbol);
-            setActiveMainTab('markets');
-          }}
-          onShowStatement={() => setShowStatementModal(true)}
-        />
+    <div className="min-h-screen bg-[var(--bg-primary)] text-slate-900 transition-colors dark:text-white">
+      <Header
+        portfolio={livePortfolio}
+        showBalance={showBalance}
+        unreadNotifications={unreadNotifications}
+        notifications={notifications}
+        instruments={instruments}
+        marketData={marketData}
+        onMarkNotificationRead={handleMarkNotificationRead}
+        onMarkAllNotificationsRead={handleMarkAllNotificationsRead}
+        user={user}
+        onLogout={handleLogout}
+        onMenuClick={() => setShowMobileMenu(true)}
+        isDemo={selectedAccountType === 'demo'}
+        onSwitchAccount={switchAccountType}
+        onSelectSymbol={(symbol) => {
+          setMarketSymbol(symbol);
+          changeMainTab('webtrader');
+        }}
+        onShowStatement={() => setShowStatementModal(true)}
+      />
 
-        {/* Scrollable Region */}
-        <div className="flex-1 overflow-y-auto relative custom-scrollbar bg-[var(--bg-primary)]">
-          <main className="px-2 sm:px-6 md:px-8 lg:px-10 py-4 md:py-8 pb-24 lg:pb-10 max-w-[1700px] mx-auto w-full">
-            {/* Demo Mode Banner */}
-            {isDemo && (
-              <div className="mb-6 sm:mb-8 p-4 sm:p-6 bg-amber-500/10 border border-amber-500/20 rounded-[2rem] flex flex-col md:flex-row items-center justify-between gap-6 transition-all hover:bg-amber-500/20">
-                <div className="flex items-center space-x-4">
-                  <div className="p-3 bg-amber-500 text-slate-900 rounded-2xl animate-pulse shadow-lg shadow-amber-500/20 flex-shrink-0">
-                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                  </div>
-                  <div>
-                    <p className="text-[10px] font-black text-amber-500 uppercase tracking-widest leading-none mb-1.5">Simulated Practice Mode Active</p>
-                    <p className="text-[11px] sm:text-sm font-medium text-slate-400 leading-relaxed">You are currently operating with simulated funds ($1,000.00 Grant). Real profits/losses are not applicable.</p>
-                  </div>
-                </div>
-                <button 
-                  onClick={() => {
-                    const hasLiveAccount = user?.accounts?.some(acc => (acc.account_type || acc.type || '').toLowerCase() === 'live');
-                    if (hasLiveAccount) {
-                      switchAccountType('live');
-                    } else {
-                      setActiveMainTab('documents');
-                      toast.info('Please complete your verification to unlock a Real Account.');
-                    }
-                  }} 
-                  className="w-full md:w-auto px-8 py-4 bg-white dark:bg-slate-800 text-slate-900 dark:text-white rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] hover:scale-105 transition-transform border border-slate-100 dark:border-slate-700 shadow-xl"
-                >
-                  Apply for Real Account
-                </button>
-              </div>
-            )}
+      <main className="mx-auto max-w-[1800px] px-3 py-4 pb-24 sm:px-5 lg:px-6 lg:pb-8">
+        {selectedAccountType === 'demo' && activeMainTab === 'webtrader' && (
+          <div className="mb-4 rounded-[2rem] border border-amber-200 bg-amber-50 px-5 py-4 text-sm text-amber-900 dark:border-amber-500/20 dark:bg-amber-500/10 dark:text-amber-100">
+            Demo mode is active. Trades, balances, and requests are simulated until you switch to a live account.
+          </div>
+        )}
 
-            {/* Content Logic */}
-            <div className="transition-all duration-300">
-              {activeMainTab === 'trading' && (
-                <TradingTab
-                  accountId={activeAccount?.id}
-                  portfolio={livePortfolio}
-                  showBalance={showBalance}
-                  onToggleBalance={() => setShowBalance(!showBalance)}
-                  positions={positions}
-                  orders={orders}
-                  closedTrades={closedTrades}
-                  marketData={marketData}
-                  portfolioHistory={portfolioHistory}
-                  onPlaceOrder={handlePlaceOrder}
-                  onClosePosition={handleClosePosition}
-                  onModifyPosition={handleModifyPosition}
-                  onCancelOrder={handleCancelOrder}
-                  onModifyOrder={handleModifyOrder}
-                  activeSymbol={marketSymbol}
-                  onSymbolChange={(sym) => setMarketSymbol(sym)}
-                  favorites={favorites}
-                  onToggleFavorite={handleToggleFavorite}
-                  transactions={transactions}
-                  instruments={instruments}
-                  categories={categories}
-                  priceAlerts={priceAlerts}
-                  onCreateAlert={handleCreateAlert}
-                  onDeleteAlert={handleDeleteAlert}
-                  maxLeverage={normalizeLeverage(activeAccount?.leverage, 100)}
-                />
-              )}
-
-              {activeMainTab === 'banking' && (
-                <BankingTab
-                  walletData={walletData}
-                  bankAccounts={bankAccounts}
-                  creditCards={creditCards}
-                  transactions={transactions}
-                  onTransfer={() => setShowTransferModal(true)}
-                  onShowTransferModal={() => setShowTransferModal(true)}
-                  onDeposit={handleDeposit}
-                  onWithdraw={handleWithdraw}
-                  onAddBankAccount={handleAddBankAccount}
-                  onDeleteBankAccount={handleDeleteBankAccount}
-                  onSetDefaultBankAccount={handleSetDefaultBankAccount}
-                  onAddCreditCard={handleAddCreditCard}
-                  onDeleteCreditCard={handleDeleteCreditCard}
-                  onSetDefaultCreditCard={handleSetDefaultCreditCard}
-                  platformInfo={platformInfo}
-                  isDemo={isDemo}
-                />
-              )}
-
-              {activeMainTab === 'documents' && (
-                <DocumentsTab
-                  documents={documents}
-                  onUpload={() => setShowUploadModal(true)}
-                  onUploadFile={handleUploadDocument}
-                />
-              )}
-
-              {activeMainTab === 'markets' && (
-                <MarketsTab
-                  symbol={marketSymbol}
-                  onSymbolChange={(sym) => setMarketSymbol(sym)}
-                  initialCategory={marketCategory}
-                  favorites={favorites}
-                  onToggleFavorite={handleToggleFavorite}
-                  instruments={instruments}
-                  categories={categories}
-                  marketData={marketData}
-                />
-              )}
-
-              {activeMainTab === 'portfolio' && (
-                <PortfolioTab
-                  portfolio={livePortfolio}
-                  portfolioHistory={portfolioHistory}
-                  positions={positions}
-                  activityLogs={activityLogs}
-                />
-              )}
-
-              {activeMainTab === 'settings' && <SettingsTab />}
-            </div>
-          </main>
-
-          {/* Extracted Components */}
-          <DepositFundsModal
-            open={showDepositModal}
-            onClose={() => setShowDepositModal(false)}
-            onDeposit={handleDeposit}
-            platformInfo={platformInfo}
-          />
-
-          <WithdrawalFundsModal
-            open={showWithdrawalModal}
-            onClose={() => setShowWithdrawalModal(false)}
-            onWithdraw={handleWithdraw}
-            walletBalance={walletData.mainWallet}
-            isDemo={isDemo}
-          />
-
-          <MobileSidebar
-            show={showMobileMenu}
-            onClose={() => setShowMobileMenu(false)}
-            activeMainTab={activeMainTab}
-            setActiveMainTab={(tab) => {
-              navigate(`/dashboard/${tab}`);
-              setShowMobileMenu(false);
-            }}
-            user={user}
+        {activeMainTab === 'webtrader' && (
+          <TradingTab
+            accountId={activeAccount?.id}
             portfolio={livePortfolio}
-            showBalance={showBalance}
-            onLogout={handleLogout}
-            onSwitchAccount={switchAccountType}
-            onShowStatement={() => setShowStatementModal(true)}
+            positions={positions}
+            orders={orders}
+            closedTrades={closedTrades}
+            marketData={marketData}
+            portfolioHistory={portfolioHistory}
+            onPlaceOrder={handlePlaceOrder}
+            onClosePosition={handleClosePosition}
+            onModifyPosition={handleModifyPosition}
+            onCancelOrder={handleCancelOrder}
+            onModifyOrder={handleModifyOrder}
+            activeSymbol={marketSymbol}
+            onSymbolChange={setMarketSymbol}
+            favorites={favorites}
+            onToggleFavorite={handleToggleFavorite}
+            transactions={transactions}
+            instruments={instruments}
+            categories={categories}
+            priceAlerts={priceAlerts}
+            onCreateAlert={handleCreateAlert}
+            onDeleteAlert={handleDeleteAlert}
+            maxLeverage={normalizeLeverage(activeAccount?.leverage, 100)}
           />
+        )}
 
-          {/* Functional Modals */}
-          <TransferModal
-            show={showTransferModal}
-            onClose={() => setShowTransferModal(false)}
-            onTransfer={handleTransfer}
+        {activeMainTab === 'account' && (
+          <MyAccountTab
+            portfolio={livePortfolio}
+            positions={positions}
+            closedTrades={closedTrades}
+            transactions={transactions}
+            activityLogs={activityLogs}
+          />
+        )}
+
+        {activeMainTab === 'banking' && (
+          <BankingZoneTab
             walletData={walletData}
-            accounts={user?.accounts || []}
+            bankAccounts={bankAccounts}
+            creditCards={creditCards}
+            transactions={transactions}
+            onTransfer={() => setShowTransferModal(true)}
+            onDeposit={handleDeposit}
+            onWithdraw={handleWithdraw}
+            onAddBankAccount={handleAddBankAccount}
+            onDeleteBankAccount={handleDeleteBankAccount}
+            onSetDefaultBankAccount={handleSetDefaultBankAccount}
+            onAddCreditCard={handleAddCreditCard}
+            onDeleteCreditCard={handleDeleteCreditCard}
+            onSetDefaultCreditCard={handleSetDefaultCreditCard}
+            platformInfo={platformInfo}
+            isDemo={selectedAccountType === 'demo'}
           />
+        )}
 
-          <UploadDocumentModal
-            show={showUploadModal}
-            onClose={() => setShowUploadModal(false)}
+        {activeMainTab === 'verification' && (
+          <VerificationCenterTab
+            documents={documents}
             onUpload={handleUploadDocument}
           />
+        )}
 
-        </div>
+        {activeMainTab === 'settings' && <SettingsTab />}
+      </main>
 
-        {/* Mobile Bottom Navigation */}
-        <MobileBottomNav 
-          activeTab={activeMainTab}
-          onTabChange={(tab) => {
-            navigate(`/dashboard/${tab}`);
-            setShowMobileMenu(false);
-          }}
-        />
-      </div>
+      <DepositFundsModal
+        open={showDepositModal}
+        onClose={() => setShowDepositModal(false)}
+        onDeposit={handleDeposit}
+        platformInfo={platformInfo}
+      />
 
-      <style>{`
-        ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
-        ::-webkit-scrollbar-thumb:hover { background: #cbd5e1; }
-      `}</style>
-      <AccountStatementModal 
-        show={showStatementModal} 
+      <WithdrawalFundsModal
+        open={showWithdrawalModal}
+        onClose={() => setShowWithdrawalModal(false)}
+        onWithdraw={handleWithdraw}
+        walletBalance={walletData.mainWallet}
+        isDemo={selectedAccountType === 'demo'}
+      />
+
+      <MobileSidebar
+        show={showMobileMenu}
+        onClose={() => setShowMobileMenu(false)}
+        activeMainTab={activeMainTab}
+        setActiveMainTab={changeMainTab}
+        user={user}
+        onLogout={handleLogout}
+      />
+
+      <TransferModal
+        show={showTransferModal}
+        onClose={() => setShowTransferModal(false)}
+        onTransfer={handleTransfer}
+        walletData={walletData}
+        accounts={user?.accounts || []}
+      />
+
+      <UploadDocumentModal
+        show={showUploadModal}
+        onClose={() => setShowUploadModal(false)}
+        onUpload={handleUploadDocument}
+      />
+
+      <MobileBottomNav
+        activeTab={activeMainTab}
+        onTabChange={changeMainTab}
+      />
+
+      <AccountStatementModal
+        show={showStatementModal}
         onClose={() => setShowStatementModal(false)}
         transactions={transactions}
         accountLabel={`${(activeAccount?.account_type || activeAccount?.type || selectedAccountType || 'account').toUpperCase()} ${activeAccount?.account_number || ''}`.trim()}

@@ -1,39 +1,39 @@
-@import url("https://fonts.googleapis.com/css2?family=Raleway:wght@300;400;500;600;700;800&family=Inter:wght@400;700&family=Outfit:wght@400;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700&display=swap");
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  --bg-primary: #f8fafc;
+  --bg-primary: #f3f5f8;
   --bg-secondary: #ffffff;
-  --bg-tertiary: #f1f5f9;
-  --text-primary: #0f172a;
-  --text-secondary: #475569;
-  --border-color: #e2e8f0;
-  --accent-gold: #D4AF37;
-  --accent-gold-light: #F9E2AF;
+  --bg-tertiary: #eef2f6;
+  --text-primary: #111827;
+  --text-secondary: #64748b;
+  --border-color: #dbe2ea;
+  --accent-gold: #0f172a;
+  --accent-gold-light: #e5e7eb;
   --navy-900: #0f172a;
-  --card-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
+  --card-shadow: 0 16px 40px -24px rgba(15, 23, 42, 0.2);
 }
 
 .dark {
-  --bg-primary: #0a0f1c;
-  --bg-secondary: #0f172a;
-  --bg-tertiary: #1e293b;
+  --bg-primary: #09111b;
+  --bg-secondary: #0d1420;
+  --bg-tertiary: #151f2d;
   --text-primary: #f8fafc;
   --text-secondary: #94a3b8;
-  --border-color: rgba(255, 215, 0, 0.1);
-  --card-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+  --border-color: rgba(148, 163, 184, 0.18);
+  --card-shadow: 0 18px 42px -24px rgba(0, 0, 0, 0.5);
 }
 
 @layer base {
   html {
-    font-family: "Raleway", sans-serif;
+    font-family: "Inter", sans-serif;
   }
 
   body {
-    font-family: "Raleway", sans-serif;
+    font-family: "Inter", sans-serif;
     background-color: var(--bg-primary);
     color: var(--text-primary);
     transition: background-color 0.3s ease, color 0.3s ease;
@@ -597,16 +597,16 @@
 }
 
 ::-webkit-scrollbar-track {
-  background: #1e293b;
+  background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #ffd700;
+  background: #94a3b8;
   border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #fbbf24;
+  background: #64748b;
 }
 
 /* Hide scrollbar utility */
