@@ -231,6 +231,15 @@ const Header = ({
               {showBalance ? formatHeaderCurrency(portfolio?.totalBalance) : '••••'}
             </span>
           </div>
+
+          <div className="hidden lg:flex items-center gap-2 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/50 px-4 py-3 shrink-0">
+            <span className="text-[9px] font-black uppercase tracking-[0.18em] text-slate-400 dark:text-slate-500">
+              Credit
+            </span>
+            <span className="text-[11px] font-black italic tabular-nums text-slate-900 dark:text-white">
+              {showBalance ? formatHeaderCurrency(portfolio?.credit) : '••••'}
+            </span>
+          </div>
         </div>
 
         <div className="flex items-center gap-2 sm:gap-3 shrink-0">
