@@ -444,26 +444,30 @@ const Header = ({
         <div className="flex-1 overflow-x-auto scrollbar-hide">
           <div className="flex items-center space-x-6 sm:space-x-8 px-4 h-full">
           {[
-            { label: 'Balance', value: portfolio?.totalBalance, highlight: false },
-            { label: 'Equity', value: portfolio?.equity, highlight: true },
-            { label: 'Used Margin', value: portfolio?.margin, highlight: false },
-            { label: 'Free Margin', value: portfolio?.freeMargin, highlight: false },
-            { label: 'Margin Level', value: `${(portfolio?.marginLevel || 0).toFixed(2)}%`, highlight: (portfolio?.marginLevel || 0) < 100 && (portfolio?.marginLevel || 0) > 0, isPercent: true },
-            { label: 'Credit', value: portfolio?.credit || 0, highlight: false },
-            { label: 'Leverage', value: `1:${portfolio?.leverage || 100}`, highlight: false, isPercent: true }
-          ].map((item, idx) => (
+            { label: 'Balance', value: portfolio?.totalBalance, tone: 'default' },
+            { label: 'Equity', value: portfolio?.equity, tone: 'highlight' },
+            { label: 'P&L', value: portfolio?.dailyPnL, tone: 'profit' },
+            { label: 'Free Margin', value: portfolio?.freeMargin, tone: 'default' },
+            { label: 'Used Margin', value: portfolio?.margin, tone: 'default' },
+            { label: 'Margin Level', value: `${(portfolio?.marginLevel || 0).toFixed(2)}%`, tone: 'marginLevel', isPercent: true },
+            { label: 'Credit', value: portfolio?.credit || 0, tone: 'default' }
+          ].map((item, idx, items) => (
             <div key={idx} className="flex items-center space-x-3 whitespace-nowrap">
               <span className="text-[8px] lg:text-[9px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-600">
                 {item.label}:
               </span>
               <span className={`text-[10px] lg:text-[11px] font-black tabular-nums italic ${
-                item.highlight 
-                  ? (item.label === 'Margin Level' && (portfolio?.marginLevel || 0) < 100 ? 'text-rose-500 animate-pulse' : 'text-gold-500') 
-                  : 'text-slate-900 dark:text-white'
+                item.tone === 'highlight'
+                  ? 'text-gold-500'
+                  : item.tone === 'marginLevel'
+                    ? ((portfolio?.marginLevel || 0) < 100 && (portfolio?.marginLevel || 0) > 0 ? 'text-rose-500 animate-pulse' : 'text-slate-900 dark:text-white')
+                    : item.tone === 'profit'
+                      ? ((portfolio?.dailyPnL || 0) > 0 ? 'text-emerald-500' : (portfolio?.dailyPnL || 0) < 0 ? 'text-rose-500' : 'text-slate-900 dark:text-white')
+                      : 'text-slate-900 dark:text-white'
               }`}>
                 {showBalance ? (item.isPercent ? item.value : (item.value < 0 ? `-$${Math.abs(item.value).toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}` : `$${(item.value || 0).toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}`)) : '••••'}
               </span>
-              {idx < 6 && <div className="h-3 w-[1px] bg-slate-100 dark:bg-slate-800 ml-4" />}
+              {idx < items.length - 1 && <div className="h-3 w-[1px] bg-slate-100 dark:bg-slate-800 ml-4" />}
             </div>
           ))}
         </div>

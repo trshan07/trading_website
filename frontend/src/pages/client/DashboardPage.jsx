@@ -16,9 +16,6 @@ import DocumentsTab from '../../components/client/DocumentsTab';
 import SettingsTab from '../../components/client/SettingsTab';
 import MarketsTab from '../../components/client/MarketsTab';
 import PortfolioTab from '../../components/client/PortfolioTab';
-import PriceTicker from '../../components/trading/PriceTicker';
-import WelcomeHeader from '../../components/ui/WelcomeHeader';
-
 // Import newly added components
 import QuickTradeModal from '../../components/trading/QuickTradeModal';
 import QuickCategories from '../../components/client/QuickCategories';
@@ -347,9 +344,6 @@ const DashboardPage = () => {
           }}
           onShowStatement={() => setShowStatementModal(true)}
         />
-
-        {/* Fixed Price Ticker */}
-        <PriceTicker data={marketData} />
 
         {/* Scrollable Region */}
         <div className="flex-1 overflow-y-auto relative custom-scrollbar bg-[var(--bg-primary)]">
