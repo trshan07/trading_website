@@ -17,13 +17,12 @@ import SettingsTab from '../../components/client/SettingsTab';
 import MarketsTab from '../../components/client/MarketsTab';
 import PortfolioTab from '../../components/client/PortfolioTab';
 // Import newly added components
-import QuickTradeModal from '../../components/trading/QuickTradeModal';
-import QuickCategories from '../../components/client/QuickCategories';
 import MobileSidebar from '../../components/client/MobileSidebar';
 import TransferModal from '../../components/ui/TransferModal';
 import UploadDocumentModal from '../../components/ui/UploadDocumentModal';
 import MobileBottomNav from '../../components/client/MobileBottomNav';
 import DepositFundsModal from '../../components/client/banking/DepositFundsModal';
+import WithdrawalFundsModal from '../../components/client/banking/WithdrawalFundsModal';
 
 const DashboardPage = () => {
   const normalizeLeverage = (value, fallback = 100) => {
@@ -96,8 +95,8 @@ const DashboardPage = () => {
     }
   }, [pathname]);
   const [showBalance, setShowBalance] = useState(true);
-  const [showOrderForm, setShowOrderForm] = useState(false);
   const [showDepositModal, setShowDepositModal] = useState(false);
+  const [showWithdrawalModal, setShowWithdrawalModal] = useState(false);
   const [showTransferModal, setShowTransferModal] = useState(false);
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [showStatementModal, setShowStatementModal] = useState(false);
@@ -290,11 +289,6 @@ const DashboardPage = () => {
     };
   }, [windowWidth]);
 
-  const onOrderPlaced = (order) => {
-    handlePlaceOrder(order);
-    setShowOrderForm(false);
-  };
-
   if (loading || authLoading) {
     return (
       <div className="min-h-screen bg-white dark:bg-slate-900 flex items-center justify-center transition-colors duration-300">
@@ -326,7 +320,7 @@ const DashboardPage = () => {
           showBalance={showBalance}
           onToggleBalance={() => setShowBalance(!showBalance)}
           onDepositFunds={() => setShowDepositModal(true)}
-          onQuickTrade={() => setShowOrderForm(true)}
+          onWithdrawFunds={() => setShowWithdrawalModal(true)}
           unreadNotifications={hookUnreadCount}
           notifications={notifications}
           instruments={instruments}
@@ -467,17 +461,19 @@ const DashboardPage = () => {
           </main>
 
           {/* Extracted Components */}
-          <QuickTradeModal
-            show={showOrderForm}
-            onClose={() => setShowOrderForm(false)}
-            onPlaceOrder={onOrderPlaced}
-          />
-
           <DepositFundsModal
             open={showDepositModal}
             onClose={() => setShowDepositModal(false)}
             onDeposit={handleDeposit}
             platformInfo={platformInfo}
+          />
+
+          <WithdrawalFundsModal
+            open={showWithdrawalModal}
+            onClose={() => setShowWithdrawalModal(false)}
+            onWithdraw={handleWithdraw}
+            walletBalance={walletData.mainWallet}
+            isDemo={isDemo}
           />
 
           <MobileSidebar

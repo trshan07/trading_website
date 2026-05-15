@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { FaEye, FaBolt, FaBell, FaBars, FaChevronDown, FaExchangeAlt, FaTimes, FaFileAlt, FaArrowDown } from 'react-icons/fa';
+import { FaBell, FaBars, FaChevronDown, FaExchangeAlt, FaTimes, FaFileAlt, FaArrowDown, FaArrowUp } from 'react-icons/fa';
 import { HiMagnifyingGlass } from 'react-icons/hi2';
 import ThemeToggle from '../ui/ThemeToggle';
 import { buildInstrumentSnapshot } from '../../utils/marketSymbols';
@@ -11,8 +11,8 @@ const Header = ({
   portfolio = {}, 
   showBalance = true, 
   onToggleBalance = () => {},
-  onQuickTrade = () => {},
   onDepositFunds = () => {},
+  onWithdrawFunds = () => {},
   unreadNotifications = 0,
   notifications = [],
   onMarkNotificationRead = () => {},
@@ -301,12 +301,12 @@ const Header = ({
             </button>
 
             <button
-              onClick={onQuickTrade}
-              className="flex items-center space-x-0 lg:space-x-3 px-3 lg:px-6 py-3 bg-slate-900 dark:bg-gold-500 text-white dark:text-slate-900 rounded-2xl shadow-2xl shadow-slate-900/20 hover:bg-gold-600 dark:hover:bg-gold-400 hover:scale-[1.02] transition-all font-black uppercase tracking-widest text-[11px] border border-slate-800 dark:border-gold-400/50"
-              title="Quick Trade"
+              onClick={onWithdrawFunds}
+              className="flex items-center space-x-0 lg:space-x-3 px-3 lg:px-6 py-3 bg-rose-500 text-white rounded-2xl shadow-2xl shadow-rose-500/20 hover:bg-rose-400 hover:scale-[1.02] transition-all font-black uppercase tracking-widest text-[11px] border border-rose-400/40"
+              title="Withdraw Funds"
             >
-              <FaBolt className={typeof window !== 'undefined' && window.innerWidth < 1024 ? 'text-lg' : ''} />
-              <span className="hidden lg:inline">Quick Trade</span>
+              <FaArrowUp className={typeof window !== 'undefined' && window.innerWidth < 1024 ? 'text-lg' : ''} />
+              <span className="hidden lg:inline">Withdrawal</span>
             </button>
 
             {/* Notifications */}

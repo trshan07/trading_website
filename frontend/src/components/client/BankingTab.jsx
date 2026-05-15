@@ -19,7 +19,6 @@ import {
   INITIAL_BANK_FORM,
   SUPPORTED_COUNTRIES,
   SUPPORTED_CURRENCIES,
-  WITHDRAWAL_METHODS,
 } from './banking/config';
 import { maskAccountNumber } from './banking/utils';
 import BankAccountsSection from './banking/sections/BankAccountsSection';
@@ -27,6 +26,7 @@ import CreditCardsSection from './banking/sections/CreditCardsSection';
 import DepositFundsModal from './banking/DepositFundsModal';
 import PaymentMethodsSection from './banking/sections/PaymentMethodsSection';
 import TransactionHistorySection from './banking/sections/TransactionHistorySection';
+import WithdrawalFundsModal from './banking/WithdrawalFundsModal';
 
 const BankingTab = ({ 
   walletData = {}, 
@@ -50,8 +50,6 @@ const BankingTab = ({
   const [showAddCard, setShowAddCard] = useState(false);
   const [showWithdraw, setShowWithdraw] = useState(false);
   const [showDeposit, setShowDeposit] = useState(false);
-  const [withdrawAmount, setWithdrawAmount] = useState('');
-  const [selectedMethod, setSelectedMethod] = useState('bank');
   const [showSuccessMessage, setShowSuccessMessage] = useState('');
   const [showErrorMessage, setShowErrorMessage] = useState('');
   const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1200);
@@ -333,32 +331,19 @@ const BankingTab = ({
     return true;
   };
 
-  const handleWithdraw = async () => {
-    if (!withdrawAmount || parseFloat(withdrawAmount) <= 0) {
-      setShowErrorMessage('Please enter a valid amount');
-      setTimeout(() => setShowErrorMessage(''), 3000);
-      return;
-    }
-    
-    if (parseFloat(withdrawAmount) > walletData.mainWallet) {
-      setShowErrorMessage('Insufficient balance');
-      setTimeout(() => setShowErrorMessage(''), 3000);
-      return;
-    }
-    
+  const handleWithdrawRequest = async (amount, method) => {
     if (onWithdraw) {
-      const success = await onWithdraw(withdrawAmount, selectedMethod);
+      const success = await onWithdraw(amount, method);
       if (!success) {
         setShowErrorMessage('Withdrawal request failed. Please try again.');
         setTimeout(() => setShowErrorMessage(''), 3000);
-        return;
+        return false;
       }
     }
     
     setShowSuccessMessage('Withdrawal initiated successfully!');
     setTimeout(() => setShowSuccessMessage(''), 3000);
-    setShowWithdraw(false);
-    setWithdrawAmount('');
+    return true;
   };
 
   const handleDeleteAccount = (id) => {
@@ -646,76 +631,13 @@ const BankingTab = ({
         platformInfo={platformInfo}
       />
 
-      {/* Withdraw Modal */}
-      {showWithdraw && renderModal(
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xl flex items-center justify-center z-50 p-4 sm:p-8">
-          <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 p-6 sm:p-10 w-full max-w-xl shadow-[0_0_100px_rgba(0,0,0,0.1)] max-h-[90vh] overflow-y-auto custom-scrollbar">
-            <div className="flex items-center justify-between mb-8">
-              <div>
-                <h3 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight italic uppercase transition-colors">Withdraw Funds</h3>
-                <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-2 uppercase font-black tracking-[0.2em] transition-colors">Send money from your account</p>
-              </div>
-              <button 
-                onClick={() => setShowWithdraw(false)} 
-                className="w-12 h-12 bg-slate-50 dark:bg-slate-800 text-slate-400 dark:text-slate-500 hover:text-rose-500 dark:hover:text-rose-400 rounded-2xl flex items-center justify-center transition-all border border-slate-100 dark:border-slate-700"
-              >
-                <FaTimes size={18} />
-              </button>
-            </div>
-
-            <div className="space-y-8">
-              {/* Method Selection */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {WITHDRAWAL_METHODS.map((method) => (
-                  <button
-                    key={method.id}
-                    onClick={() => setSelectedMethod(method.id)}
-                    className={`p-6 rounded-[2rem] border transition-all flex flex-col items-center gap-3 ${
-                      selectedMethod === method.id 
-                        ? 'border-slate-900 dark:border-gold-500 bg-slate-900 dark:bg-gold-500 text-white dark:text-slate-900 shadow-2xl scale-[1.02]' 
-                        : 'border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/20 text-slate-400 dark:text-slate-500 hover:border-slate-300 dark:hover:border-slate-600'
-                    }`}
-                  >
-                    <method.icon size={24} className={selectedMethod === method.id ? 'text-gold-500 dark:text-slate-900' : 'text-slate-500 dark:text-slate-600'} />
-                    <span className="text-[10px] font-black uppercase tracking-widest">{method.name}</span>
-                  </button>
-                ))}
-              </div>
-
-              {/* Amount Input */}
-              <div className="space-y-4">
-                <div className="relative">
-                  <span className="absolute left-6 top-1/2 -translate-y-1/2 text-2xl font-black text-slate-400 dark:text-slate-700 italic">$</span>
-                  <input
-                    type="number"
-                    value={withdrawAmount}
-                    onChange={(e) => setWithdrawAmount(e.target.value)}
-                    className="w-full pl-12 pr-6 py-6 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-[2rem] text-3xl font-black italic text-slate-900 dark:text-white focus:outline-none focus:ring-8 focus:ring-slate-900/5 dark:focus:ring-gold-500/10 transition-all"
-                    placeholder="0.00"
-                  />
-                </div>
-              </div>
-
-              {/* Execution Actions */}
-              <div className="flex flex-col sm:flex-row gap-4 pt-4">
-                <button
-                  onClick={handleWithdraw}
-                  disabled={!withdrawAmount || parseFloat(withdrawAmount) > walletData.mainWallet}
-                  className="flex-1 px-8 py-5 bg-slate-900 dark:bg-gold-500 text-white dark:text-slate-900 rounded-[1.5rem] font-black uppercase tracking-[0.2em] text-[11px] hover:bg-gold-600 dark:hover:bg-gold-400 disabled:bg-slate-200 dark:disabled:bg-slate-800 transition-all shadow-2xl shadow-slate-900/10 dark:shadow-gold-500/10"
-                >
-                  Confirm Withdrawal
-                </button>
-                <button
-                  onClick={() => setShowWithdraw(false)}
-                  className="px-8 py-5 bg-slate-50 dark:bg-slate-800 text-slate-400 dark:text-slate-500 rounded-[1.5rem] font-black uppercase tracking-[0.2em] text-[11px] hover:bg-slate-100 dark:hover:bg-slate-700 transition-all"
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      <WithdrawalFundsModal
+        open={showWithdraw}
+        onClose={() => setShowWithdraw(false)}
+        onWithdraw={handleWithdrawRequest}
+        walletBalance={walletData.mainWallet}
+        isDemo={isDemo}
+      />
 
       {/* Redesigned Bank Account Modal */}
       {showAddAccount && renderModal(
