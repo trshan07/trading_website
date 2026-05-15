@@ -116,6 +116,7 @@ const OrderPanel = ({
   onSubmit,
   symbol = 'BTCUSDT',
   onClose,
+  mode = 'market',
   marketData = {},
   instrument: selectedInstrument,
   portfolio = {},
@@ -123,7 +124,9 @@ const OrderPanel = ({
   maxLeverage = 500,
 }) => {
   const [selectedSide, setSelectedSide] = useState('buy');
+  const [pendingType, setPendingType] = useState('limit');
   const [lots, setLots] = useState(0.01);
+  const [entryValue, setEntryValue] = useState('');
   const [tpEnabled, setTpEnabled] = useState(false);
   const [slEnabled, setSlEnabled] = useState(false);
   const [tpValue, setTpValue] = useState('');
@@ -165,15 +168,21 @@ const OrderPanel = ({
   const spreadValue = Number.isFinite(quoteSnapshot.spread) ? quoteSnapshot.spread : askPrice - bidPrice;
   const spreadLabel = Number.isFinite(spreadValue) ? Number(spreadValue).toFixed(precision) : '0.00';
   const resolvedLeverage = normalizeLeverage(maxLeverage, 100);
+  const isPendingMode = mode === 'pending';
+  const resolvedOrderType = isPendingMode ? pendingType : 'market';
 
   const referencePrice = selectedSide === 'buy' ? askPrice : bidPrice;
-  const finalPrice = referencePrice;
+  const parsedEntryPrice = Number.parseFloat(entryValue);
+  const finalPrice = isPendingMode
+    ? (Number.isFinite(parsedEntryPrice) ? parsedEntryPrice : 0)
+    : referencePrice;
 
   const lotStep = getLotStep(category, symbol, instrument);
   const minLot = getMinLot(category, symbol, instrument);
   const lotPrecision = getLotPrecision(category, symbol, instrument);
   const quantity = calculateQuantityFromLots(lots, symbol, category, instrument);
   const notionalValue = calculateUsdFromLots(lots, finalPrice, category, symbol, instrument);
+  const hasLiveReferencePrice = Number.isFinite(referencePrice) && referencePrice > 0;
 
   useEffect(() => {
     setLots((current) => {
@@ -184,6 +193,20 @@ const OrderPanel = ({
       return Number(current.toFixed(lotPrecision));
     });
   }, [lotPrecision, minLot, symbol]);
+
+  useEffect(() => {
+    if (!isPendingMode || !hasLiveReferencePrice) {
+      return;
+    }
+
+    setEntryValue((current) => {
+      if (current && Number.isFinite(Number.parseFloat(current)) && Number.parseFloat(current) > 0) {
+        return current;
+      }
+
+      return Number(referencePrice).toFixed(precision);
+    });
+  }, [hasLiveReferencePrice, isPendingMode, precision, referencePrice, selectedSide, symbol]);
 
   const requiredMargin = calculateMarginRequired({
     symbol,
@@ -196,27 +219,27 @@ const OrderPanel = ({
   });
 
   const freeMargin = Number(portfolio?.freeMargin ?? 0);
-  const hasLiveReferencePrice = Number.isFinite(referencePrice) && referencePrice > 0;
   const previewMargin = Number(preview?.requiredMargin);
   const effectiveRequiredMargin = Number.isFinite(previewMargin) && previewMargin > 0
     ? previewMargin
     : requiredMargin;
   const previewHasEnoughMargin = typeof preview?.hasEnoughMargin === 'boolean' ? preview.hasEnoughMargin : null;
   const hasEnoughMargin = previewHasEnoughMargin ?? (effectiveRequiredMargin > 0 && effectiveRequiredMargin <= freeMargin);
-  const canSubmit = Boolean(accountId) && lots >= minLot && quantity > 0 && hasLiveReferencePrice && hasEnoughMargin && !previewError;
+  const hasValidEntryPrice = Number.isFinite(finalPrice) && finalPrice > 0;
+  const canSubmit = Boolean(accountId) && lots >= minLot && quantity > 0 && hasValidEntryPrice && hasEnoughMargin && !previewError;
 
   useEffect(() => {
     onIntentChange?.({
       side: selectedSide,
-      type: 'market',
+      type: resolvedOrderType,
       price: finalPrice,
       tp: tpEnabled ? Number.parseFloat(tpValue) : null,
       sl: slEnabled ? Number.parseFloat(slValue) : null,
     });
-  }, [finalPrice, onIntentChange, selectedSide, slEnabled, slValue, tpEnabled, tpValue]);
+  }, [finalPrice, onIntentChange, resolvedOrderType, selectedSide, slEnabled, slValue, tpEnabled, tpValue]);
 
   useEffect(() => {
-    if (!accountId || !hasLiveReferencePrice || lots < minLot || quantity <= 0) {
+    if (!accountId || !hasValidEntryPrice || lots < minLot || quantity <= 0) {
       setPreview(null);
       setPreviewError('');
       return undefined;
@@ -242,7 +265,9 @@ const OrderPanel = ({
           accountId,
           symbol,
           side: selectedSide,
-          type: 'market',
+          type: resolvedOrderType,
+          entryPrice: finalPrice,
+          price: finalPrice,
           lots,
           quantity,
           category,
@@ -278,12 +303,15 @@ const OrderPanel = ({
   }, [
     accountId,
     category,
-    hasLiveReferencePrice,
+    finalPrice,
+    hasValidEntryPrice,
     lots,
     maxLeverage,
     minLot,
+    pendingType,
     quantity,
     resolvedLeverage,
+    resolvedOrderType,
     selectedSide,
     slEnabled,
     slValue,
@@ -307,7 +335,9 @@ const OrderPanel = ({
 
     await Promise.resolve(onSubmit({
       symbol,
-      type: 'market',
+      type: resolvedOrderType,
+      entryPrice: finalPrice,
+      price: finalPrice,
       side: selectedSide,
       amount: Number.parseFloat(notionalValue.toFixed(2)),
       lots,
@@ -320,7 +350,7 @@ const OrderPanel = ({
   };
 
   const orderTitle = formatInstrumentDisplaySymbol(symbol, { withSlash: false });
-  const submitLabel = 'Place Order';
+  const submitLabel = isPendingMode ? 'Place Pending Order' : 'Place Order';
   const displayExecutionPrice = Number(preview?.executionPrice) || finalPrice;
   const displayPipValue = Number(preview?.pipValue);
   const tpPreview = Number(preview?.projectedTakeProfitPnl);
@@ -355,7 +385,9 @@ const OrderPanel = ({
 
       <div className="flex-1 overflow-y-auto px-4 py-4 custom-scrollbar">
         <div className="flex flex-col items-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 dark:border-slate-700/60 dark:bg-[#242a3b]">
-          <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-600 dark:text-slate-300">Market Execution Only</p>
+          <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-600 dark:text-slate-300">
+            {isPendingMode ? 'Pending Order Entry' : 'Market Execution Only'}
+          </p>
           {String(instrument.source || '').includes('twelvedata') && (
             <div className="flex items-center gap-1.5 rounded-full bg-teal-400/10 px-2 py-0.5 text-[9px] font-black uppercase tracking-widest text-teal-400 border border-teal-400/20">
               <span className="h-1 w-1 animate-pulse rounded-full bg-teal-400" />
@@ -389,6 +421,24 @@ const OrderPanel = ({
         </div>
 
         <div className="mt-3">
+          {isPendingMode && (
+            <div className="mb-3 grid grid-cols-2 gap-2">
+              {['limit', 'stop'].map((type) => (
+                <button
+                  key={type}
+                  onClick={() => setPendingType(type)}
+                  className={`rounded-lg border px-3 py-2 text-sm font-semibold uppercase tracking-[0.14em] transition-colors ${
+                    pendingType === type
+                      ? 'border-slate-900 bg-slate-900 text-white dark:border-slate-100 dark:bg-slate-100 dark:text-slate-950'
+                      : 'border-slate-200 bg-slate-50 text-slate-600 hover:text-slate-900 dark:border-slate-700 dark:bg-[#242a3b] dark:text-slate-300 dark:hover:text-white'
+                  }`}
+                >
+                  {type}
+                </button>
+              ))}
+            </div>
+          )}
+
           <div className="grid grid-cols-[1fr_3.25rem] overflow-hidden rounded-lg border border-slate-200 bg-slate-50 dark:border-slate-700/70 dark:bg-[#3a3f50]">
             <div className="px-3 py-2.5">
               <p className="text-xs uppercase text-slate-700 dark:text-white">Amount</p>
@@ -425,9 +475,26 @@ const OrderPanel = ({
           </div>
         </div>
 
+        {isPendingMode && (
+          <div className="mt-3">
+            <div className="overflow-hidden rounded-lg border border-slate-200 bg-slate-50 dark:border-slate-700/70 dark:bg-[#3a3f50]">
+              <div className="px-3 py-2.5">
+                <p className="text-xs uppercase text-slate-700 dark:text-white">Trigger Price</p>
+                <input
+                  type="number"
+                  step={precision >= 4 ? '0.0001' : '0.01'}
+                  value={entryValue}
+                  onChange={(event) => setEntryValue(event.target.value)}
+                  className="mt-1 w-full bg-transparent text-[1rem] font-semibold tabular-nums text-slate-900 outline-none dark:text-white"
+                />
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="mt-5 space-y-2 text-sm">
           <div className="flex items-center justify-between gap-4">
-            <span className="font-semibold text-slate-700 dark:text-white">Est. fill:</span>
+            <span className="font-semibold text-slate-700 dark:text-white">{isPendingMode ? 'Trigger:' : 'Est. fill:'}</span>
             <span className="font-semibold tabular-nums text-slate-900 dark:text-white">{formatMoney(displayExecutionPrice, precision)}</span>
           </div>
           <div className="flex items-center justify-between gap-4">
@@ -475,6 +542,9 @@ const OrderPanel = ({
           )}
           {!accountId && (
             <p className="text-xs font-semibold text-amber-300">No active trading account selected.</p>
+          )}
+          {isPendingMode && accountId && !previewError && !hasValidEntryPrice && (
+            <p className="text-xs font-semibold text-amber-300">Enter a valid trigger price to place this pending order.</p>
           )}
           {accountId && !previewError && !hasEnoughMargin && (
             <p className="text-xs font-semibold text-amber-300">Insufficient free margin for this position size.</p>

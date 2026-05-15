@@ -88,6 +88,48 @@ const getTriggerKind = (orderType = '') => {
     }
 };
 
+const validatePendingEntry = ({ type, side, entryPrice, marketPrice }) => {
+    const orderType = normalizeOrderType(type, side);
+    const triggerKind = getTriggerKind(orderType);
+
+    if (triggerKind === 'market') {
+        return;
+    }
+
+    if (!Number.isFinite(entryPrice) || entryPrice <= 0) {
+        throw new Error('Trigger price is required for pending orders');
+    }
+
+    if (!Number.isFinite(marketPrice) || marketPrice <= 0) {
+        throw new Error('Live market price is unavailable for this pending order');
+    }
+
+    switch (orderType) {
+        case 'buy_limit':
+            if (entryPrice > marketPrice) {
+                throw new Error('Buy limit trigger must be at or below the current market price');
+            }
+            break;
+        case 'sell_limit':
+            if (entryPrice < marketPrice) {
+                throw new Error('Sell limit trigger must be at or above the current market price');
+            }
+            break;
+        case 'buy_stop':
+            if (entryPrice < marketPrice) {
+                throw new Error('Buy stop trigger must be at or above the current market price');
+            }
+            break;
+        case 'sell_stop':
+            if (entryPrice > marketPrice) {
+                throw new Error('Sell stop trigger must be at or below the current market price');
+            }
+            break;
+        default:
+            break;
+    }
+};
+
 const validateStops = ({ side, entryPrice, takeProfit, stopLoss }) => {
     const normalizedSide = normalizeSide(side);
     const price = Number.parseFloat(entryPrice) || 0;
@@ -236,16 +278,30 @@ const getMarketExecutionContext = async ({ symbol, side }) => {
 
 const buildTradePreview = async ({ account = null, payload = {}, side = null }) => {
     const normalizedSide = normalizeSide(side || payload.side);
+    const requestedType = normalizeOrderType(payload.type, normalizedSide);
+    const triggerKind = getTriggerKind(requestedType);
     const marketContext = await getMarketExecutionContext({
         symbol: payload.symbol,
         side: normalizedSide,
     });
+    const requestedEntryPrice = Number.parseFloat(payload.entryPrice ?? payload.price);
+    const previewEntryPrice = triggerKind === 'market'
+        ? marketContext.executionPrice
+        : requestedEntryPrice;
+
+    validatePendingEntry({
+        type: requestedType,
+        side: normalizedSide,
+        entryPrice: previewEntryPrice,
+        marketPrice: marketContext.executionPrice,
+    });
+
     const trade = await parseTradeInputs({
         ...payload,
         side: normalizedSide,
-        type: 'market',
-        entryPrice: marketContext.executionPrice,
-        price: marketContext.executionPrice,
+        type: requestedType,
+        entryPrice: previewEntryPrice,
+        price: previewEntryPrice,
     });
     const meta = getInstrumentTradingMeta({
         symbol: trade.symbol,
@@ -264,7 +320,7 @@ const buildTradePreview = async ({ account = null, payload = {}, side = null }) 
         category: trade.category,
         instrument: marketContext.instrumentConfig,
         side: trade.side,
-        entryPrice: marketContext.executionPrice,
+        entryPrice: previewEntryPrice,
         exitPrice: trade.takeProfit,
         quantity: trade.quantity,
     });
@@ -273,7 +329,7 @@ const buildTradePreview = async ({ account = null, payload = {}, side = null }) 
         category: trade.category,
         instrument: marketContext.instrumentConfig,
         side: trade.side,
-        entryPrice: marketContext.executionPrice,
+        entryPrice: previewEntryPrice,
         exitPrice: trade.stopLoss,
         quantity: trade.quantity,
     });
@@ -288,33 +344,33 @@ const buildTradePreview = async ({ account = null, payload = {}, side = null }) 
         symbol: trade.symbol,
         category: trade.category,
         instrument: marketContext.instrumentConfig,
-        entryPrice: marketContext.executionPrice,
+        entryPrice: previewEntryPrice,
         exitPrice: trade.takeProfit,
     });
     const slMovement = trade.stopLoss == null ? null : calculateMovementValue({
         symbol: trade.symbol,
         category: trade.category,
         instrument: marketContext.instrumentConfig,
-        entryPrice: marketContext.executionPrice,
+        entryPrice: previewEntryPrice,
         exitPrice: trade.stopLoss,
     });
     const priceDeltaToTp = trade.takeProfit == null
         ? null
         : (tradeSide === 'sell'
-            ? marketContext.executionPrice - trade.takeProfit
-            : trade.takeProfit - marketContext.executionPrice);
+            ? previewEntryPrice - trade.takeProfit
+            : trade.takeProfit - previewEntryPrice);
     const priceDeltaToSl = trade.stopLoss == null
         ? null
         : (tradeSide === 'sell'
-            ? marketContext.executionPrice - trade.stopLoss
-            : trade.stopLoss - marketContext.executionPrice);
+            ? previewEntryPrice - trade.stopLoss
+            : trade.stopLoss - previewEntryPrice);
 
     return {
         symbol: trade.symbol,
         side: trade.side,
-        type: 'market',
+        type: requestedType,
         category: trade.category,
-        executionPrice: marketContext.executionPrice,
+        executionPrice: previewEntryPrice,
         markPrice: marketContext.markPrice,
         bid: Number.parseFloat(marketContext.quote?.bid) || null,
         ask: Number.parseFloat(marketContext.quote?.ask) || null,
@@ -337,8 +393,8 @@ const buildTradePreview = async ({ account = null, payload = {}, side = null }) 
             symbol: trade.symbol,
             category: trade.category,
             instrument: marketContext.instrumentConfig,
-            entryPrice: marketContext.executionPrice,
-            exitPrice: marketContext.executionPrice + meta.movementSize,
+            entryPrice: previewEntryPrice,
+            exitPrice: previewEntryPrice + meta.movementSize,
         }),
         calculationMode: meta.calculationMode,
         calculationVerified: meta.calculationVerified,
@@ -370,7 +426,7 @@ const buildTradePreview = async ({ account = null, payload = {}, side = null }) 
                 leverage: trade.leverage,
             },
             pricing: {
-                executionPrice: marketContext.executionPrice,
+                executionPrice: previewEntryPrice,
                 markPrice: marketContext.markPrice,
                 bid: Number.parseFloat(marketContext.quote?.bid) || null,
                 ask: Number.parseFloat(marketContext.quote?.ask) || null,
@@ -545,9 +601,6 @@ const createExecutedPosition = async ({ userId, accountId, symbol, side, amount,
 const placeTrade = async ({ userId, accountId, payload }) => {
     const normalizedSide = normalizeSide(payload.side);
     const requestedType = normalizeOrderType(payload.type, normalizedSide);
-    if (getTriggerKind(requestedType) !== 'market') {
-        throw new Error('Only market buy and sell orders are supported');
-    }
 
     const accounts = await Account.findByUserId(userId);
     const account = accounts.find((item) => item.id == accountId);
@@ -560,10 +613,40 @@ const placeTrade = async ({ userId, accountId, payload }) => {
         payload: {
             ...payload,
             side: normalizedSide,
-            type: 'market',
+            type: requestedType,
         },
         side: normalizedSide,
     });
+
+    if (!preview.hasEnoughMargin) {
+        throw new Error('Insufficient free margin for this order');
+    }
+
+    if (getTriggerKind(requestedType) !== 'market') {
+        const pendingOrder = await Order.create(userId, {
+            accountId,
+            symbol: preview.symbol,
+            side: preview.side,
+            type: requestedType,
+            amount: preview.amount,
+            quantity: preview.quantity,
+            entryPrice: preview.executionPrice,
+            leverage: parseLeverageValue(payload.leverage, 100),
+            takeProfit: preview.takeProfit,
+            stopLoss: preview.stopLoss,
+            status: 'pending',
+        });
+
+        await createActivityLog(userId, 'EXECUTION', `Placed ${requestedType.replace('_', ' ').toUpperCase()} ${preview.symbol} pending order`);
+        await createNotification(userId, 'success', `Pending order placed: ${preview.side.toUpperCase()} ${preview.symbol} at ${preview.executionPrice}`);
+
+        return {
+            mode: 'pending',
+            order: pendingOrder,
+            requiredMargin: preview.requiredMargin,
+            preview,
+        };
+    }
 
     const result = await createExecutedPosition({
         userId,

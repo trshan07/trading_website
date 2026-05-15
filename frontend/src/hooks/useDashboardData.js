@@ -469,7 +469,8 @@ const mapOrderToLiveView = (order = {}, instruments = [], marketData = {}) => {
   });
   const quantity = Number.parseFloat(order.quantity) || 0;
   const lots = calculateLotsFromQuantity(quantity, order.symbol, snapshot.category, snapshot);
-  const amount = calculateUsdFromLots(lots, Number.parseFloat(order.entry_price) || 0, snapshot.category, order.symbol, snapshot)
+  const entryPrice = Number.parseFloat(order.entry_price ?? order.entryPrice) || 0;
+  const amount = calculateUsdFromLots(lots, entryPrice, snapshot.category, order.symbol, snapshot)
     || Number.parseFloat(order.amount)
     || 0;
 
@@ -482,11 +483,15 @@ const mapOrderToLiveView = (order = {}, instruments = [], marketData = {}) => {
     amount,
     quantity,
     lots,
-    entryPrice: Number.parseFloat(order.entry_price) || 0,
+    entryPrice,
     leverage: Number.parseFloat(order.leverage) || null,
-    takeProfit: order.take_profit != null ? Number.parseFloat(order.take_profit) : null,
-    stopLoss: order.stop_loss != null ? Number.parseFloat(order.stop_loss) : null,
-    createdAt: order.created_at,
+    takeProfit: order.take_profit != null
+      ? Number.parseFloat(order.take_profit)
+      : (order.takeProfit != null ? Number.parseFloat(order.takeProfit) : null),
+    stopLoss: order.stop_loss != null
+      ? Number.parseFloat(order.stop_loss)
+      : (order.stopLoss != null ? Number.parseFloat(order.stopLoss) : null),
+    createdAt: order.created_at || order.createdAt,
     status: order.status,
     category: snapshot.category,
     instrument: snapshot,
@@ -1033,13 +1038,16 @@ export const useDashboardData = (accountType = 'demo', activeSymbol = null, opti
             lots: order.lots,
             quantity: order.quantity,
             category: order.category,
-            type: 'market',
+            type: order.type || 'market',
+            entryPrice: order.entryPrice ?? order.price,
+            price: order.entryPrice ?? order.price,
             leverage: order.leverage,
             takeProfit: order.takeProfit,
             stopLoss: order.stopLoss
         });
 
         if (response.success) {
+            const pendingOrder = response.data?.order;
             const executedPosition = response.data?.position;
             if (executedPosition?.id) {
               setRawPositions((prev) => {
@@ -1048,12 +1056,27 @@ export const useDashboardData = (accountType = 'demo', activeSymbol = null, opti
               });
             }
 
-            toast.success(`${order.side} order executed`);
+            if (pendingOrder?.id && !executedPosition?.id) {
+              setRawOrders((prev) => {
+                const filtered = prev.filter((existingOrder) => existingOrder.id !== pendingOrder.id);
+                return [pendingOrder, ...filtered];
+              });
+            }
+
+            const responseMode = executedPosition?.id ? 'market' : 'pending';
+            toast.success(response.message || (responseMode === 'pending'
+              ? `${order.side} pending order placed`
+              : `${order.side} order executed`));
             fetchPositions();
             fetchOrders();
             fetchClosedTrades();
             refreshUser();
-            return true;
+            return {
+              success: true,
+              mode: responseMode,
+              position: executedPosition || null,
+              order: pendingOrder || null,
+            };
         }
     } catch (error) {
         toast.error(error.response?.data?.message || "Order Failed");

@@ -81,6 +81,18 @@ const TradingTab = ({
   const priceChange = Number(selectedInstrument.change || 0);
   const isPositive = priceChange >= 0;
 
+  const handleOrderSubmit = async (payload) => {
+    const result = await Promise.resolve(onPlaceOrder(payload));
+    if (!result?.success) {
+      return result;
+    }
+
+    setShowOrderPopup(false);
+    setOrderMode('market');
+    setActivityTab(result.mode === 'pending' ? 'orders' : 'positions');
+    return result;
+  };
+
   const renderActivityContent = () => {
     if (activityTab === 'positions') {
       return (
@@ -302,25 +314,26 @@ const TradingTab = ({
               {orderMode === 'market' ? (
                 <OrderPanel
                   accountId={accountId}
-                  onSubmit={onPlaceOrder}
+                  onSubmit={handleOrderSubmit}
                   symbol={activeSymbol}
+                  onClose={() => setShowOrderPopup(false)}
                   marketData={marketData}
                   instrument={selectedInstrument}
                   portfolio={portfolio}
                   maxLeverage={maxLeverage}
                 />
               ) : (
-                <div className="flex h-full min-h-[28rem] flex-col justify-between p-5">
-                  <div>
-                    <h3 className="text-lg font-semibold text-slate-900 dark:text-white">Pending order ticket</h3>
-                    <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
-                      Review working orders below. Market execution remains the active order flow in this terminal.
-                    </p>
-                  </div>
-                  <div className="rounded-3xl border border-dashed border-slate-200 bg-slate-50 p-6 dark:border-slate-700 dark:bg-slate-950/40">
-                    <p className="text-sm text-slate-600 dark:text-slate-300">{orders.length} pending orders currently open.</p>
-                  </div>
-                </div>
+                <OrderPanel
+                  accountId={accountId}
+                  onSubmit={handleOrderSubmit}
+                  onClose={() => setShowOrderPopup(false)}
+                  mode="pending"
+                  symbol={activeSymbol}
+                  marketData={marketData}
+                  instrument={selectedInstrument}
+                  portfolio={portfolio}
+                  maxLeverage={maxLeverage}
+                />
               )}
             </div>
           </div>
