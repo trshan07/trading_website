@@ -237,7 +237,7 @@ const TradingTab = ({
             className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm"
             onClick={() => setShowWatchlistPopup(false)}
           />
-          <div className="absolute left-0 top-0 h-full w-[22rem] max-w-[90vw] overflow-hidden border-r border-slate-200 bg-white shadow-[0_24px_60px_rgba(15,23,42,0.18)] dark:border-slate-800 dark:bg-[#0d1420]">
+          <div className="absolute left-0 top-0 h-full w-[34rem] max-w-[96vw] overflow-hidden border-r border-slate-200 bg-white shadow-[0_24px_60px_rgba(15,23,42,0.18)] dark:border-slate-800 dark:bg-[#0d1420]">
             <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3 dark:border-slate-800">
               <div>
                 <p className="text-sm font-medium text-slate-900 dark:text-white">Market watch</p>

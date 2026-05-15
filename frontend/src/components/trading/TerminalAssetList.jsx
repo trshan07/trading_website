@@ -149,7 +149,7 @@ const TerminalAssetList = ({
         </div>
       </div>
 
-      <div className="hidden grid-cols-[minmax(0,1.5fr)_minmax(5.5rem,0.9fr)_minmax(5.5rem,0.9fr)_minmax(4.75rem,0.75fr)_3.5rem_2.75rem] items-center gap-3 border-b border-slate-200 px-4 py-2.5 text-[9px] font-black uppercase tracking-[0.14em] text-slate-500 min-[440px]:grid dark:border-slate-700/60">
+      <div className="hidden grid-cols-[minmax(10rem,1.9fr)_minmax(6.75rem,0.95fr)_minmax(6.75rem,0.95fr)_minmax(5.25rem,0.8fr)_4rem_3rem] items-center gap-4 border-b border-slate-200 px-5 py-3 text-[9px] font-black uppercase tracking-[0.14em] text-slate-500 min-[440px]:grid dark:border-slate-700/60">
         <span>Instrument</span>
         <span className="text-right">Sell</span>
         <span className="text-right">Buy</span>
@@ -201,7 +201,7 @@ const TerminalAssetList = ({
                       : 'hover:bg-slate-50 dark:hover:bg-white/[0.03]'
                   }`}
                 >
-                  <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3 min-[440px]:grid-cols-[minmax(0,1.5fr)_minmax(5.5rem,0.9fr)_minmax(5.5rem,0.9fr)_minmax(4.75rem,0.75fr)_3.5rem_2.75rem] min-[440px]:items-center">
+                  <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3 min-[440px]:grid-cols-[minmax(10rem,1.9fr)_minmax(6.75rem,0.95fr)_minmax(6.75rem,0.95fr)_minmax(5.25rem,0.8fr)_4rem_3rem] min-[440px]:items-center">
                     <div className="min-w-0">
                       <div className="flex items-start justify-between gap-3 min-[440px]:block">
                         <div className="min-w-0">
@@ -209,7 +209,7 @@ const TerminalAssetList = ({
                             {formatInstrumentDisplaySymbol(instrument.symbol, { withSlash: false })}
                           </p>
                           <div className="mt-1 flex items-center gap-1.5">
-                            <p className="min-w-0 truncate text-[10px] font-medium uppercase tracking-[0.14em] text-slate-500">
+                            <p className="min-w-0 truncate pr-1 text-[10px] font-medium uppercase tracking-[0.14em] text-slate-500">
                               {instrument.name || instrument.category}
                             </p>
                             {String(instrumentSnapshot.source || '').includes('twelvedata') && (
@@ -263,19 +263,19 @@ const TerminalAssetList = ({
                       </div>
                     </div>
 
-                    <div className="hidden min-w-0 text-right min-[440px]:block">
+                    <div className="hidden min-w-0 self-center text-right min-[440px]:block">
                       <PriceCell price={quoteSnapshot.bid} label={quoteSnapshot.bidLabel} className="text-right" />
                     </div>
 
-                    <div className="hidden min-w-0 text-right min-[440px]:block">
+                    <div className="hidden min-w-0 self-center text-right min-[440px]:block">
                       <PriceCell price={quoteSnapshot.ask} label={quoteSnapshot.askLabel} className="text-right" />
                     </div>
 
-                    <div className={`hidden whitespace-nowrap text-right text-[12px] font-semibold tabular-nums min-[440px]:block ${isPositive ? 'text-emerald-400' : 'text-rose-400'}`}>
+                    <div className={`hidden self-center whitespace-nowrap text-right text-[12px] font-semibold tabular-nums min-[440px]:block ${isPositive ? 'text-emerald-400' : 'text-rose-400'}`}>
                       {isPositive ? '+' : ''}{change.toFixed(2)}%
                     </div>
 
-                    <div className="hidden justify-center min-[440px]:flex">
+                    <div className="hidden justify-center self-center min-[440px]:flex">
                       <svg viewBox="0 0 40 12" className={`h-4 w-10 ${isPositive ? 'stroke-emerald-400' : 'stroke-rose-400'}`} fill="none" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                         {isPositive
                           ? <path d="M0 10 L10 8 L15 12 L25 4 L30 6 L40 0" />
@@ -284,7 +284,7 @@ const TerminalAssetList = ({
                       </svg>
                     </div>
 
-                    <div className="hidden justify-end min-[440px]:flex">
+                    <div className="hidden justify-end self-center min-[440px]:flex">
                       <button
                         onClick={(event) => {
                           event.stopPropagation();
