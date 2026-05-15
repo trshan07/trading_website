@@ -43,6 +43,7 @@ const Header = ({
   const { theme } = useTheme();
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [showMobileMetrics, setShowMobileMetrics] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchFocused, setSearchFocused] = useState(false);
   const profileRef = useRef(null);
@@ -328,9 +329,40 @@ const Header = ({
       </div>
 
       <div className="border-t border-slate-100 bg-slate-50/80 dark:border-slate-800 dark:bg-slate-900/40">
-        <div className="grid grid-cols-2 gap-x-4 gap-y-3 px-3 py-3 sm:flex sm:gap-6 sm:overflow-x-auto sm:px-5 lg:px-6">
+        <div className="sm:hidden">
+          <button
+            onClick={() => setShowMobileMetrics((current) => !current)}
+            className="flex w-full items-center justify-between px-3 py-3 text-left"
+          >
+            <div>
+              <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400">Account Summary</p>
+              <p className="mt-1 text-sm font-semibold tabular-nums text-slate-900 dark:text-white">
+                {showBalance ? formatCurrency(portfolio.equity) : 'â€¢â€¢â€¢â€¢â€¢â€¢'}
+              </p>
+            </div>
+            <FaChevronDown
+              size={13}
+              className={`text-slate-400 transition-transform ${showMobileMetrics ? 'rotate-180' : ''}`}
+            />
+          </button>
+          {showMobileMetrics && (
+            <div className="grid grid-cols-2 gap-x-4 gap-y-3 px-3 pb-3">
+              {headerMetrics.map((metric) => (
+                <div key={metric.label} className="min-w-0">
+                  <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400">{metric.label}</p>
+                  <p className={`mt-1 text-sm font-semibold tabular-nums ${metric.tone || 'text-slate-900 dark:text-white'}`}>
+                    {showBalance
+                      ? (metric.raw ? metric.value : formatCurrency(metric.value))
+                      : 'â€¢â€¢â€¢â€¢â€¢â€¢'}
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+        <div className="hidden sm:flex sm:gap-6 sm:overflow-x-auto sm:px-5 sm:py-3 lg:px-6">
           {headerMetrics.map((metric) => (
-            <div key={metric.label} className="min-w-0 sm:min-w-fit">
+            <div key={metric.label} className="min-w-fit">
               <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400">{metric.label}</p>
               <p className={`mt-1 text-sm font-semibold tabular-nums ${metric.tone || 'text-slate-900 dark:text-white'}`}>
                 {showBalance

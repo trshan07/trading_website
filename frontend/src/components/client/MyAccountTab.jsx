@@ -20,14 +20,41 @@ const EmptyState = ({ label }) => (
 );
 
 const TransactionTable = ({ title, rows = [] }) => (
-    <section className="rounded-[2rem] border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
+  <section className="rounded-[2rem] border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
     <div className="border-b border-slate-100 px-4 py-4 sm:px-5 dark:border-slate-800">
       <h3 className="text-base font-semibold text-slate-900 dark:text-white">{title}</h3>
     </div>
     {rows.length === 0 ? (
       <div className="px-4 py-16 text-center text-sm text-slate-500 sm:px-5 dark:text-slate-400">No records available.</div>
     ) : (
-      <div className="overflow-x-auto">
+      <>
+        <div className="space-y-3 p-4 sm:hidden">
+          {rows.map((row, index) => (
+            <div
+              key={`${row.source_type || 'row-mobile'}-${row.id || index}`}
+              className="rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-950/50"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-slate-900 dark:text-white">
+                    {row.reference || row.bank_reference || row.reference_id || '-'}
+                  </p>
+                  <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                    {row.created_at ? new Date(row.created_at).toLocaleDateString() : '-'}
+                  </p>
+                </div>
+                <p className="text-sm font-semibold text-slate-900 dark:text-white">
+                  {formatMoney(Math.abs(Number(row.amount || 0)))}
+                </p>
+              </div>
+              <div className="mt-3 flex items-center justify-between text-xs">
+                <span className="text-slate-500 dark:text-slate-400">Status</span>
+                <span className="capitalize text-slate-700 dark:text-slate-300">{row.status || 'completed'}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+        <div className="hidden overflow-x-auto sm:block">
         <table className="min-w-full">
           <thead>
             <tr className="border-b border-slate-100 text-left text-xs text-slate-500 dark:border-slate-800 dark:text-slate-400">
@@ -56,7 +83,8 @@ const TransactionTable = ({ title, rows = [] }) => (
             ))}
           </tbody>
         </table>
-      </div>
+        </div>
+      </>
     )}
   </section>
 );
