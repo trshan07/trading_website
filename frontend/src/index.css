@@ -11,8 +11,8 @@
   --text-primary: #111827;
   --text-secondary: #64748b;
   --border-color: #dbe2ea;
-  --accent-gold: #0f172a;
-  --accent-gold-light: #e5e7eb;
+  --accent-gold: #d4af37;
+  --accent-gold-light: #f5d76e;
   --navy-900: #0f172a;
   --card-shadow: 0 16px 40px -24px rgba(15, 23, 42, 0.2);
 }
@@ -72,6 +72,7 @@
   }
 
   .btn-gold:hover {
+    background-color: var(--accent-gold-light);
     box-shadow: 0 0 20px rgba(212, 175, 55, 0.4);
   }
 

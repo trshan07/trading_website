@@ -200,7 +200,7 @@ const handleSubmit = async (e) => {
                   className={`flex-1 py-2.5 px-4 rounded-lg text-[10px] font-bold uppercase tracking-[0.2em] transition-all flex items-center justify-center space-x-2 ${
                     accountType === 'demo' 
                     ? 'bg-gold text-navy-dark shadow-gold-glow-sm' 
-                    : 'text-white/40 hover:text-white/70'
+                    : 'text-white/75 hover:text-white border border-transparent hover:border-white/10'
                   }`}
                 >
                   <span className={`w-1.5 h-1.5 rounded-full ${accountType === 'demo' ? 'bg-navy-dark animate-pulse' : 'bg-white/20'}`} />
@@ -212,7 +212,7 @@ const handleSubmit = async (e) => {
                   className={`flex-1 py-2.5 px-4 rounded-lg text-[10px] font-bold uppercase tracking-[0.2em] transition-all flex items-center justify-center space-x-2 ${
                     accountType === 'real' 
                     ? 'bg-green-500 text-navy-dark shadow-[0_0_15px_rgba(34,197,94,0.3)]' 
-                    : 'text-white/40 hover:text-white/70'
+                    : 'text-white/75 hover:text-white border border-transparent hover:border-white/10'
                   }`}
                 >
                   <span className={`w-1.5 h-1.5 rounded-full ${accountType === 'real' ? 'bg-navy-dark animate-pulse' : 'bg-white/20'}`} />
