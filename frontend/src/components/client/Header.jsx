@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { FaBell, FaBars, FaChevronDown, FaExchangeAlt, FaTimes, FaFileAlt, FaArrowDown, FaArrowUp } from 'react-icons/fa';
+import { FaBell, FaBars, FaExchangeAlt, FaTimes, FaFileAlt } from 'react-icons/fa';
 import { HiMagnifyingGlass } from 'react-icons/hi2';
 import ThemeToggle from '../ui/ThemeToggle';
 import { buildInstrumentSnapshot } from '../../utils/marketSymbols';
@@ -10,7 +10,6 @@ import { buildInstrumentSnapshot } from '../../utils/marketSymbols';
 const Header = ({ 
   portfolio = {}, 
   showBalance = true, 
-  onToggleBalance = () => {},
   onDepositFunds = () => {},
   onWithdrawFunds = () => {},
   unreadNotifications = 0,
@@ -180,6 +179,16 @@ const Header = ({
     }
   };
 
+  const formatHeaderCurrency = (value) => {
+    const numericValue = Number.parseFloat(value ?? 0) || 0;
+    const formatted = Math.abs(numericValue).toLocaleString(undefined, {
+      minimumFractionDigits: 1,
+      maximumFractionDigits: 1,
+    });
+
+    return numericValue < 0 ? `-$${formatted}` : `$${formatted}`;
+  };
+
   return (
     <header className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 sticky top-0 z-40 px-4 sm:px-6 lg:px-10 flex flex-col transition-colors duration-300">
       {/* Primary Header Row */}
@@ -287,33 +296,49 @@ const Header = ({
         </div>
 
         {/* Right Section - Profile and Actions */}
-        <div className="flex items-center space-x-4 sm:space-x-8">
-          <div className="flex items-center space-x-3">
+        <div className="flex items-center space-x-4 sm:space-x-6">
+          <div className="flex items-center space-x-2 lg:space-x-3">
             <ThemeToggle />
+
+            <div className="hidden lg:flex items-center gap-2 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/50 px-4 py-3">
+              <span className="text-[9px] font-black uppercase tracking-[0.22em] text-slate-400 dark:text-slate-500">
+                Balance
+              </span>
+              <span className="text-[11px] font-black italic tabular-nums text-slate-900 dark:text-white">
+                {showBalance ? formatHeaderCurrency(portfolio?.totalBalance) : '••••'}
+              </span>
+            </div>
+
+            <div className="hidden lg:flex items-center gap-2 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/50 px-4 py-3">
+              <span className="text-[9px] font-black uppercase tracking-[0.22em] text-slate-400 dark:text-slate-500">
+                Credit
+              </span>
+              <span className="text-[11px] font-black italic tabular-nums text-slate-900 dark:text-white">
+                {showBalance ? formatHeaderCurrency(portfolio?.credit) : '••••'}
+              </span>
+            </div>
 
             <button
               onClick={onDepositFunds}
-              className="flex items-center space-x-0 lg:space-x-3 px-3 lg:px-6 py-3 bg-emerald-500 text-white rounded-2xl shadow-2xl shadow-emerald-500/20 hover:bg-emerald-400 hover:scale-[1.02] transition-all font-black uppercase tracking-widest text-[11px] border border-emerald-400/40"
+              className="px-4 lg:px-5 py-3 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/50 text-[10px] lg:text-[11px] font-black uppercase tracking-[0.22em] text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all"
               title="Deposit Funds"
             >
-              <FaArrowDown className={typeof window !== 'undefined' && window.innerWidth < 1024 ? 'text-lg' : ''} />
-              <span className="hidden lg:inline">Deposit</span>
+              Deposit
             </button>
 
             <button
               onClick={onWithdrawFunds}
-              className="flex items-center space-x-0 lg:space-x-3 px-3 lg:px-6 py-3 bg-rose-500 text-white rounded-2xl shadow-2xl shadow-rose-500/20 hover:bg-rose-400 hover:scale-[1.02] transition-all font-black uppercase tracking-widest text-[11px] border border-rose-400/40"
+              className="px-4 lg:px-5 py-3 rounded-2xl border border-rose-200 dark:border-rose-500/20 bg-rose-50 dark:bg-rose-500/10 text-[10px] lg:text-[11px] font-black uppercase tracking-[0.22em] text-rose-500 hover:bg-rose-100 dark:hover:bg-rose-500/20 transition-all"
               title="Withdraw Funds"
             >
-              <FaArrowUp className={typeof window !== 'undefined' && window.innerWidth < 1024 ? 'text-lg' : ''} />
-              <span className="hidden lg:inline">Withdrawal</span>
+              Withdraw
             </button>
 
             {/* Notifications */}
             <div className="relative" ref={notificationRef}>
               <button
                 onClick={() => setShowNotifications((current) => !current)}
-                className="relative p-3 bg-slate-900 dark:bg-slate-800 text-white dark:text-gold-500 rounded-2xl shadow-xl hover:bg-slate-800 dark:hover:bg-slate-700 transition-all group"
+                className="relative p-3 border border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/50 text-slate-700 dark:text-slate-200 rounded-2xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-all group"
               >
                 <FaBell size={18} className="group-hover:rotate-12 transition-transform" />
                 {unreadNotifications > 0 && (
@@ -379,7 +404,7 @@ const Header = ({
             <div className="relative" ref={dropdownRef}>
               <div
                 onClick={() => setShowDropdown(!showDropdown)}
-                className="flex items-center p-1 bg-slate-100 dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 ml-1 lg:ml-4 group cursor-pointer hover:bg-white dark:hover:bg-slate-700 transition-all shadow-sm"
+                className="flex items-center p-1 bg-slate-50/80 dark:bg-slate-800/50 rounded-2xl border border-slate-200 dark:border-slate-800 ml-1 lg:ml-2 group cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 transition-all shadow-sm"
               >
                 <div className="w-8 h-8 lg:w-10 lg:h-10 bg-slate-900 dark:bg-gold-500 rounded-xl lg:rounded-[1.1rem] flex items-center justify-center text-gold-500 dark:text-slate-900 font-black italic shadow-lg">
                   {user?.firstName?.charAt(0)}
@@ -395,10 +420,6 @@ const Header = ({
                     </p>
                   </div>
                 </div>
-                <FaChevronDown
-                  size={10}
-                  className={`mr-2 text-slate-400 transition-transform duration-300 ${showDropdown ? 'rotate-180' : ''}`}
-                />
               </div>
 
               {showDropdown && (
@@ -444,13 +465,11 @@ const Header = ({
         <div className="flex-1 overflow-x-auto scrollbar-hide">
           <div className="flex items-center space-x-6 sm:space-x-8 px-4 h-full">
           {[
-            { label: 'Balance', value: portfolio?.totalBalance, tone: 'default' },
             { label: 'Equity', value: portfolio?.equity, tone: 'highlight' },
             { label: 'P&L', value: portfolio?.dailyPnL, tone: 'profit' },
             { label: 'Free Margin', value: portfolio?.freeMargin, tone: 'default' },
             { label: 'Used Margin', value: portfolio?.margin, tone: 'default' },
-            { label: 'Margin Level', value: `${(portfolio?.marginLevel || 0).toFixed(2)}%`, tone: 'marginLevel', isPercent: true },
-            { label: 'Credit', value: portfolio?.credit || 0, tone: 'default' }
+            { label: 'Margin Level', value: `${(portfolio?.marginLevel || 0).toFixed(2)}%`, tone: 'marginLevel', isPercent: true }
           ].map((item, idx, items) => (
             <div key={idx} className="flex items-center space-x-3 whitespace-nowrap">
               <span className="text-[8px] lg:text-[9px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-600">

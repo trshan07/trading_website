@@ -318,7 +318,6 @@ const DashboardPage = () => {
         <Header
           portfolio={livePortfolio}
           showBalance={showBalance}
-          onToggleBalance={() => setShowBalance(!showBalance)}
           onDepositFunds={() => setShowDepositModal(true)}
           onWithdrawFunds={() => setShowWithdrawalModal(true)}
           unreadNotifications={hookUnreadCount}
