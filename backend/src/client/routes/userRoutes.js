@@ -6,7 +6,8 @@ const {
     updateProfile, 
     changePassword,
     getSettings,
-    updateSettings
+    updateSettings,
+    getAccountOverview
 } = require('../controllers/userController');
 const { protect } = require('../../middleware/authMiddleware');
 
@@ -20,5 +21,6 @@ router.put('/change-password', changePassword);
 // Settings
 router.get('/settings', getSettings);
 router.put('/settings', updateSettings);
+router.get('/account-overview', getAccountOverview);
 
 module.exports = router;

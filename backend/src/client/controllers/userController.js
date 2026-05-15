@@ -4,6 +4,9 @@ const User = require('../../models/User');
 const Admin = require('../../models/Admin');
 const Account = require('../../models/Account');
 const Settings = require('../../models/Settings');
+const Position = require('../../models/Position');
+const Transaction = require('../../models/Transaction');
+const FundingRequest = require('../../models/FundingRequest');
 
 // @desc    Get user profile
 // @route   GET /api/users/profile
@@ -146,10 +149,110 @@ const updateSettings = async (req, res) => {
     }
 };
 
+// @desc    Get account overview
+// @route   GET /api/users/account-overview
+// @access  Private
+const getAccountOverview = async (req, res) => {
+    try {
+        if (req.user.role === 'admin' || req.user.role === 'super_admin') {
+            return res.status(403).json({ success: false, message: 'Admins do not have trading account overviews' });
+        }
+
+        await Account.ensureAccounts(req.user.id);
+        const accounts = await Account.findByUserId(req.user.id);
+
+        if (!accounts.length) {
+            return res.status(404).json({ success: false, message: 'No accounts found' });
+        }
+
+        const requestedAccountId = req.query.accountId ? String(req.query.accountId) : null;
+        const selectedAccount = requestedAccountId
+            ? accounts.find((account) => String(account.id) === requestedAccountId)
+            : accounts[0];
+
+        if (!selectedAccount) {
+            return res.status(404).json({ success: false, message: 'Requested account not found' });
+        }
+
+        const [openPositions, closedPositions, transactions, fundingRequests] = await Promise.all([
+            Position.findByAccountId(selectedAccount.id, 'open'),
+            Position.findByAccountId(selectedAccount.id, 'closed'),
+            Transaction.findByAccountId(selectedAccount.id, 100),
+            FundingRequest.findByUserId(req.user.id),
+        ]);
+
+        const scopedFundingRequests = fundingRequests.filter((request) => String(request.account_id) === String(selectedAccount.id));
+        const totalBalance = (Number.parseFloat(selectedAccount.balance) || 0) + (Number.parseFloat(selectedAccount.credit) || 0);
+        const usedMargin = openPositions.reduce((sum, position) => sum + (Number.parseFloat(position.margin) || 0), 0);
+        const unrealizedPnl = openPositions.reduce((sum, position) => sum + (Number.parseFloat(position.pnl) || 0), 0);
+        const realizedPnl = closedPositions.reduce((sum, position) => sum + (Number.parseFloat(position.pnl) || 0), 0);
+        const totalPnl = realizedPnl + unrealizedPnl;
+        const equity = totalBalance + unrealizedPnl;
+        const freeMargin = equity - usedMargin;
+        const marginLevel = usedMargin > 0 ? (equity / usedMargin) * 100 : 0;
+
+        const normalizedTransactions = [
+            ...transactions.map((entry) => ({
+                ...entry,
+                source_type: 'transaction',
+                status: 'completed',
+                reference: entry.reference_id || entry.reference || '-',
+            })),
+            ...scopedFundingRequests.map((entry) => ({
+                ...entry,
+                source_type: 'funding_request',
+                reference: entry.bank_reference || entry.reference || '-',
+            })),
+        ].sort((left, right) => new Date(right.created_at) - new Date(left.created_at));
+
+        const deposits = normalizedTransactions.filter((entry) => String(entry.type || '').toLowerCase() === 'deposit');
+        const withdrawals = normalizedTransactions.filter((entry) => String(entry.type || '').toLowerCase() === 'withdrawal');
+
+        res.json({
+            success: true,
+            data: {
+                account: {
+                    id: selectedAccount.id,
+                    accountNumber: selectedAccount.account_number,
+                    accountType: selectedAccount.account_type,
+                    currency: selectedAccount.currency,
+                    leverage: selectedAccount.leverage,
+                },
+                metrics: {
+                    totalBalance,
+                    equity,
+                    freeMargin,
+                    usedMargin,
+                    marginLevel,
+                    credit: Number.parseFloat(selectedAccount.credit) || 0,
+                    realizedPnl,
+                    unrealizedPnl,
+                    totalPnl,
+                },
+                totals: {
+                    depositsCount: deposits.length,
+                    withdrawalsCount: withdrawals.length,
+                    openPositionsCount: openPositions.length,
+                    closedTradesCount: closedPositions.length,
+                    depositAmount: deposits.reduce((sum, entry) => sum + Math.abs(Number.parseFloat(entry.amount) || 0), 0),
+                    withdrawalAmount: withdrawals.reduce((sum, entry) => sum + Math.abs(Number.parseFloat(entry.amount) || 0), 0),
+                },
+                recentTransactions: normalizedTransactions.slice(0, 8),
+                deposits: deposits.slice(0, 6),
+                withdrawals: withdrawals.slice(0, 6),
+            }
+        });
+    } catch (error) {
+        console.error('Get Account Overview Error:', error);
+        res.status(500).json({ success: false, message: 'Failed to fetch account overview' });
+    }
+};
+
 module.exports = {
     getProfile,
     updateProfile,
     changePassword,
     getSettings,
-    updateSettings
+    updateSettings,
+    getAccountOverview
 };

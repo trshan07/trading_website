@@ -51,6 +51,13 @@ const userService = {
         };
     },
 
+    getAccountOverview: async (accountId) => {
+        const response = await api.get('/users/account-overview', {
+            params: accountId ? { accountId } : undefined,
+        });
+        return response.data;
+    },
+
     /**
      * Update user settings
      * @param {Object} settingsData - { theme, chartPreferences, notificationSettings }

@@ -1,4 +1,5 @@
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
+import userService from '../../services/userService';
 
 const formatMoney = (value) => `$${Number(value || 0).toLocaleString(undefined, {
   minimumFractionDigits: 2,
@@ -37,13 +38,19 @@ const TransactionTable = ({ title, rows = [] }) => (
             </tr>
           </thead>
           <tbody>
-            {rows.map((row) => (
-              <tr key={row.id} className="border-b border-slate-100 last:border-b-0 dark:border-slate-800">
-                <td className="px-5 py-4 text-sm text-slate-600 dark:text-slate-300">{row.date || '-'}</td>
-                <td className="px-5 py-4 text-sm text-slate-900 dark:text-white">{row.reference || '-'}</td>
-                <td className="px-5 py-4 text-sm text-slate-500 dark:text-slate-400">{row.status}</td>
+            {rows.map((row, index) => (
+              <tr key={`${row.source_type || 'row'}-${row.id || index}`} className="border-b border-slate-100 last:border-b-0 dark:border-slate-800">
+                <td className="px-5 py-4 text-sm text-slate-600 dark:text-slate-300">
+                  {row.created_at ? new Date(row.created_at).toLocaleDateString() : '-'}
+                </td>
+                <td className="px-5 py-4 text-sm text-slate-900 dark:text-white">
+                  {row.reference || row.bank_reference || row.reference_id || '-'}
+                </td>
+                <td className="px-5 py-4 text-sm capitalize text-slate-500 dark:text-slate-400">
+                  {row.status || 'completed'}
+                </td>
                 <td className="px-5 py-4 text-right text-sm font-medium text-slate-900 dark:text-white">
-                  {formatMoney(row.amount)}
+                  {formatMoney(Math.abs(Number(row.amount || 0)))}
                 </td>
               </tr>
             ))}
@@ -54,20 +61,82 @@ const TransactionTable = ({ title, rows = [] }) => (
   </section>
 );
 
-const MyAccountTab = ({ portfolio = {}, positions = [], closedTrades = [], transactions = [] }) => {
-  const { deposits, withdrawals, totalPnl, recentTransactions } = useMemo(() => {
-    const depositsList = transactions.filter((item) => item.type === 'Deposit');
-    const withdrawalsList = transactions.filter((item) => item.type === 'Withdrawal');
-    const pnlFromClosed = closedTrades.reduce((sum, trade) => sum + Number(trade.pnl || 0), 0);
-    const pnlFromOpen = positions.reduce((sum, position) => sum + Number(position.pnl || 0), 0);
+const LoadingBlock = () => (
+  <div className="space-y-6">
+    <div className="h-36 animate-pulse rounded-[2rem] bg-slate-200 dark:bg-slate-800" />
+    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      {[...Array(4)].map((_, index) => (
+        <div key={index} className="h-32 animate-pulse rounded-3xl bg-slate-200 dark:bg-slate-800" />
+      ))}
+    </div>
+  </div>
+);
 
-    return {
-      deposits: depositsList,
-      withdrawals: withdrawalsList,
-      totalPnl: pnlFromClosed + pnlFromOpen,
-      recentTransactions: transactions.slice(0, 8),
+const MyAccountTab = ({ accountId }) => {
+  const [overview, setOverview] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    let active = true;
+
+    const loadOverview = async () => {
+      setLoading(true);
+      setError('');
+
+      try {
+        const response = await userService.getAccountOverview(accountId);
+        if (!active) {
+          return;
+        }
+        setOverview(response.data || null);
+      } catch (requestError) {
+        if (!active) {
+          return;
+        }
+        setError(requestError.response?.data?.message || 'Failed to load account overview');
+      } finally {
+        if (active) {
+          setLoading(false);
+        }
+      }
     };
-  }, [closedTrades, positions, transactions]);
+
+    loadOverview();
+    return () => {
+      active = false;
+    };
+  }, [accountId]);
+
+  const metrics = overview?.metrics || {};
+  const totals = overview?.totals || {};
+  const recentTransactions = overview?.recentTransactions || [];
+  const deposits = overview?.deposits || [];
+  const withdrawals = overview?.withdrawals || [];
+  const totalPnl = Number(metrics.totalPnl || 0);
+
+  const cards = useMemo(() => ([
+    { label: 'Total Balance', value: formatMoney(metrics.totalBalance) },
+    { label: 'Equity', value: formatMoney(metrics.equity) },
+    { label: 'Free Margin', value: formatMoney(metrics.freeMargin) },
+    {
+      label: 'Total P&L',
+      value: formatMoney(totalPnl),
+      tone: totalPnl >= 0 ? 'text-emerald-600 dark:text-emerald-300' : 'text-rose-600 dark:text-rose-300',
+    },
+  ]), [metrics.equity, metrics.freeMargin, metrics.totalBalance, totalPnl]);
+
+  if (loading) {
+    return <LoadingBlock />;
+  }
+
+  if (error) {
+    return (
+      <div className="rounded-[2rem] border border-rose-200 bg-rose-50 p-6 text-sm text-rose-700 dark:border-rose-500/20 dark:bg-rose-500/10 dark:text-rose-300">
+        {error}
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -75,39 +144,34 @@ const MyAccountTab = ({ portfolio = {}, positions = [], closedTrades = [], trans
         <p className="text-sm font-medium text-slate-500 dark:text-slate-400">My Account</p>
         <h2 className="mt-2 text-2xl font-semibold text-slate-900 dark:text-white">Trading account overview</h2>
         <p className="mt-2 max-w-2xl text-sm text-slate-500 dark:text-slate-400">
-          Review balances, transaction flow, and performance without the extra dashboard clutter.
+          This panel is now sourced from a dedicated backend account overview endpoint for the selected trading account.
         </p>
       </section>
 
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <OverviewCard label="Total Balance" value={formatMoney(portfolio.totalBalance)} />
-        <OverviewCard label="Equity" value={formatMoney(portfolio.equity)} />
-        <OverviewCard label="Free Margin" value={formatMoney(portfolio.freeMargin)} />
-        <OverviewCard
-          label="Total P&L"
-          value={formatMoney(totalPnl)}
-          tone={totalPnl >= 0 ? 'text-emerald-600 dark:text-emerald-300' : 'text-rose-600 dark:text-rose-300'}
-        />
+        {cards.map((card) => (
+          <OverviewCard key={card.label} label={card.label} value={card.value} tone={card.tone} />
+        ))}
       </section>
 
       <section className="grid gap-4 xl:grid-cols-2">
         <TransactionTable title="Transactions" rows={recentTransactions} />
         <div className="grid gap-4">
-          <OverviewCard label="Deposits" value={`${deposits.length} requests`} />
-          <OverviewCard label="Withdrawals" value={`${withdrawals.length} requests`} />
-          <OverviewCard label="Open Positions" value={`${positions.length}`} />
-          <OverviewCard label="Closed Trades" value={`${closedTrades.length}`} />
+          <OverviewCard label="Deposits" value={`${totals.depositsCount || 0} requests`} />
+          <OverviewCard label="Withdrawals" value={`${totals.withdrawalsCount || 0} requests`} />
+          <OverviewCard label="Open Positions" value={`${totals.openPositionsCount || 0}`} />
+          <OverviewCard label="Closed Trades" value={`${totals.closedTradesCount || 0}`} />
         </div>
       </section>
 
       <section className="grid gap-4 xl:grid-cols-2">
         {deposits.length ? (
-          <TransactionTable title="Deposits" rows={deposits.slice(0, 6)} />
+          <TransactionTable title="Deposits" rows={deposits} />
         ) : (
           <EmptyState label="No deposit history yet." />
         )}
         {withdrawals.length ? (
-          <TransactionTable title="Withdrawals" rows={withdrawals.slice(0, 6)} />
+          <TransactionTable title="Withdrawals" rows={withdrawals} />
         ) : (
           <EmptyState label="No withdrawal history yet." />
         )}

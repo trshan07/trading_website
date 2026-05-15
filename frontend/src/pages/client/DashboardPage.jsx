@@ -273,11 +273,7 @@ const DashboardPage = () => {
 
         {activeMainTab === 'account' && (
           <MyAccountTab
-            portfolio={livePortfolio}
-            positions={positions}
-            closedTrades={closedTrades}
-            transactions={transactions}
-            activityLogs={activityLogs}
+            accountId={activeAccount?.id}
           />
         )}
 
