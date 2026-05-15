@@ -24,6 +24,8 @@ const formatCurrency = (value) => {
 const Header = ({
   portfolio = {},
   showBalance = true,
+  onDepositFunds = () => {},
+  onWithdrawFunds = () => {},
   unreadNotifications = 0,
   notifications = [],
   onMarkNotificationRead = () => {},
@@ -63,14 +65,16 @@ const Header = ({
   const headerMetrics = [
     { label: 'Balance', value: portfolio.totalBalance },
     { label: 'Equity', value: portfolio.equity },
-    { label: 'Free Margin', value: portfolio.freeMargin },
-    { label: 'Margin Level', value: `${Number(portfolio.marginLevel || 0).toFixed(2)}%`, raw: true },
     {
       label: 'P/L',
       value: formatCurrency(portfolio.dailyPnL),
       raw: true,
       tone: (portfolio.dailyPnL || 0) >= 0 ? 'text-emerald-600 dark:text-emerald-300' : 'text-rose-600 dark:text-rose-300',
     },
+    { label: 'Free Margin', value: portfolio.freeMargin },
+    { label: 'Used Margin', value: portfolio.margin },
+    { label: 'Margin Level', value: `${Number(portfolio.marginLevel || 0).toFixed(2)}%`, raw: true },
+    { label: 'Credit', value: portfolio.credit },
   ];
 
   useEffect(() => {
@@ -167,6 +171,18 @@ const Header = ({
           </div>
 
           <div className="ml-auto flex items-center gap-2">
+            <button
+              onClick={onDepositFunds}
+              className="hidden h-11 items-center rounded-2xl bg-emerald-500 px-4 text-sm font-medium text-white transition-colors hover:bg-emerald-600 dark:bg-emerald-400 dark:text-slate-950 dark:hover:bg-emerald-300 sm:inline-flex"
+            >
+              Deposit
+            </button>
+            <button
+              onClick={onWithdrawFunds}
+              className="hidden h-11 items-center rounded-2xl border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800 sm:inline-flex"
+            >
+              Withdrawal
+            </button>
             <div className="relative" ref={notificationRef}>
               <button
                 onClick={() => setShowNotifications((current) => !current)}

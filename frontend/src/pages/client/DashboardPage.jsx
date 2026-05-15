@@ -216,6 +216,8 @@ const DashboardPage = () => {
       <Header
         portfolio={livePortfolio}
         showBalance={showBalance}
+        onDepositFunds={() => setShowDepositModal(true)}
+        onWithdrawFunds={() => setShowWithdrawalModal(true)}
         unreadNotifications={unreadNotifications}
         notifications={notifications}
         instruments={instruments}
