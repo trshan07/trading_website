@@ -32,8 +32,8 @@ const VerificationCenterTab = ({ documents = [], onUpload }) => {
   };
 
   const UploadCard = ({ title, hint, file, setFile, existingDocument }) => (
-    <div className="rounded-[2rem] border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900">
-      <div className="flex items-start justify-between gap-4">
+    <div className="rounded-[2rem] border border-slate-200 bg-white p-5 sm:p-6 dark:border-slate-800 dark:bg-slate-900">
+      <div className="flex flex-col items-start justify-between gap-4 sm:flex-row">
         <div>
           <h3 className="text-lg font-semibold text-slate-900 dark:text-white">{title}</h3>
           <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">{hint}</p>
@@ -71,9 +71,9 @@ const VerificationCenterTab = ({ documents = [], onUpload }) => {
 
   return (
     <div className="space-y-6">
-      <section className="rounded-[2rem] border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900">
+      <section className="rounded-[2rem] border border-slate-200 bg-white p-5 sm:p-6 dark:border-slate-800 dark:bg-slate-900">
         <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Verification Center</p>
-        <h2 className="mt-2 text-2xl font-semibold text-slate-900 dark:text-white">Upload your KYC documents</h2>
+        <h2 className="mt-2 text-xl font-semibold text-slate-900 sm:text-2xl dark:text-white">Upload your KYC documents</h2>
         <p className="mt-2 max-w-2xl text-sm text-slate-500 dark:text-slate-400">
           Keep the process simple: one upload for identity, one upload for proof of residence, with status shown clearly.
         </p>

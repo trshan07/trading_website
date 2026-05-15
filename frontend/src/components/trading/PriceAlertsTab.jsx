@@ -23,7 +23,7 @@ const PriceAlertsTab = ({ alerts = [], onCreateAlert, onDeleteAlert }) => {
   return (
     <div className="space-y-6">
       {/* List Header & Action */}
-      <div className="flex justify-between items-center sm:px-4">
+      <div className="flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center sm:px-4">
         <div>
           <h3 className="text-xs font-black uppercase text-slate-900 dark:text-white tracking-widest italic">Price Monitoring</h3>
           <p className="text-[10px] font-medium text-slate-400 mt-1 uppercase tracking-tighter">Active triggers for market movements</p>
@@ -31,7 +31,7 @@ const PriceAlertsTab = ({ alerts = [], onCreateAlert, onDeleteAlert }) => {
         {!showForm && (
           <button 
             onClick={() => setShowForm(true)}
-            className="flex items-center space-x-2 px-6 py-3 bg-gold-500 text-slate-900 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-gold-400 transition-all shadow-xl shadow-gold-500/10"
+            className="flex w-full items-center justify-center space-x-2 rounded-2xl bg-gold-500 px-6 py-3 text-[10px] font-black uppercase tracking-widest text-slate-900 shadow-xl shadow-gold-500/10 transition-all hover:bg-gold-400 sm:w-auto"
           >
             <FaPlus />
             <span>Set New Alert</span>
@@ -41,8 +41,8 @@ const PriceAlertsTab = ({ alerts = [], onCreateAlert, onDeleteAlert }) => {
 
       {/* Creation Form */}
       {showForm && (
-        <div className="bg-slate-50/50 dark:bg-slate-800/30 border border-slate-100 dark:border-slate-800 p-8 rounded-[2.5rem] animate-in zoom-in-95 duration-300">
-          <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-4 gap-6 items-end">
+        <div className="bg-slate-50/50 dark:bg-slate-800/30 border border-slate-100 dark:border-slate-800 p-5 sm:p-8 rounded-[2.5rem] animate-in zoom-in-95 duration-300">
+          <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-5 md:grid-cols-4 md:gap-6 items-end">
             <div className="space-y-2">
               <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 block ml-1">Instrument</label>
               <select 
@@ -79,7 +79,7 @@ const PriceAlertsTab = ({ alerts = [], onCreateAlert, onDeleteAlert }) => {
               />
             </div>
 
-            <div className="flex space-x-3">
+            <div className="flex flex-col gap-3 sm:flex-row sm:space-x-0">
               <button 
                 type="submit"
                 className="flex-1 py-4 bg-emerald-500 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-emerald-500/10 hover:bg-emerald-600 transition-all"

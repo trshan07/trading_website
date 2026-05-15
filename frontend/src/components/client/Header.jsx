@@ -97,7 +97,7 @@ const Header = ({
   return (
     <header className="sticky top-0 z-40 border-b border-slate-200/80 bg-white/92 backdrop-blur-xl dark:border-slate-800/80 dark:bg-[#0d1420]/92">
       <div className="px-3 sm:px-5 lg:px-6">
-        <div className="flex min-h-[72px] items-center gap-3">
+        <div className="flex min-h-[72px] flex-wrap items-center gap-3 py-3 sm:flex-nowrap sm:py-0">
           <button
             onClick={onMenuClick}
             className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-700 transition-colors hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-800"
@@ -112,6 +112,18 @@ const Header = ({
               alt="TikTrades"
               className="h-7 w-auto object-contain"
             />
+          </div>
+
+          <div className="flex min-w-0 flex-1 items-center gap-3 sm:hidden">
+            <div className="min-w-0">
+              <p className="truncate text-sm font-semibold text-slate-900 dark:text-white">
+                {user?.firstName} {user?.lastName}
+              </p>
+              <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
+                <span className={`inline-block h-1.5 w-1.5 rounded-full ${isDemo ? 'bg-amber-400' : 'bg-emerald-400'}`} />
+                {isDemo ? 'Demo account' : 'Live account'}
+              </div>
+            </div>
           </div>
 
           <div className="relative hidden min-w-0 flex-1 xl:block" ref={searchRef}>
@@ -298,12 +310,27 @@ const Header = ({
             </div>
           </div>
         </div>
+
+        <div className="grid grid-cols-2 gap-2 pb-3 sm:hidden">
+          <button
+            onClick={onDepositFunds}
+            className="inline-flex h-11 items-center justify-center rounded-2xl bg-emerald-500 px-4 text-sm font-medium text-white transition-colors hover:bg-emerald-600"
+          >
+            Deposit
+          </button>
+          <button
+            onClick={onWithdrawFunds}
+            className="inline-flex h-11 items-center justify-center rounded-2xl border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+          >
+            Withdrawal
+          </button>
+        </div>
       </div>
 
       <div className="border-t border-slate-100 bg-slate-50/80 dark:border-slate-800 dark:bg-slate-900/40">
-        <div className="flex gap-6 overflow-x-auto px-3 py-3 sm:px-5 lg:px-6">
+        <div className="grid grid-cols-2 gap-x-4 gap-y-3 px-3 py-3 sm:flex sm:gap-6 sm:overflow-x-auto sm:px-5 lg:px-6">
           {headerMetrics.map((metric) => (
-            <div key={metric.label} className="min-w-fit">
+            <div key={metric.label} className="min-w-0 sm:min-w-fit">
               <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400">{metric.label}</p>
               <p className={`mt-1 text-sm font-semibold tabular-nums ${metric.tone || 'text-slate-900 dark:text-white'}`}>
                 {showBalance

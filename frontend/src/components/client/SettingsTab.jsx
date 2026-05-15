@@ -128,26 +128,26 @@ const SettingsTab = () => {
     };
 
     const renderOverview = () => (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div onClick={() => setActiveView('security')} className="p-8 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-gold-500/50 hover:shadow-2xl transition-all cursor-pointer group relative overflow-hidden">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-6">
+            <div onClick={() => setActiveView('security')} className="p-6 sm:p-8 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-gold-500/50 hover:shadow-2xl transition-all cursor-pointer group relative overflow-hidden">
                 <FaLock className="text-slate-300 dark:text-slate-600 group-hover:text-gold-500 text-3xl mb-6 transition-colors" />
                 <h3 className="text-xl font-black text-slate-900 dark:text-white mb-2 uppercase tracking-tighter italic">Security</h3>
                 <p className="text-sm text-slate-500 dark:text-slate-400 mb-6 font-medium">Change your password and keep your account safe.</p>
                 <span className="text-[10px] font-black text-gold-500 uppercase tracking-widest flex items-center">Open Security →</span>
             </div>
-            <div onClick={() => setActiveView('profile')} className="p-8 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-gold-500/50 hover:shadow-2xl transition-all cursor-pointer group relative overflow-hidden">
+            <div onClick={() => setActiveView('profile')} className="p-6 sm:p-8 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-gold-500/50 hover:shadow-2xl transition-all cursor-pointer group relative overflow-hidden">
                 <FaUser className="text-slate-300 dark:text-slate-600 group-hover:text-gold-500 text-3xl mb-6 transition-colors" />
                 <h3 className="text-xl font-black text-slate-900 dark:text-white mb-2 uppercase tracking-tighter italic">Profile</h3>
                 <p className="text-sm text-slate-500 dark:text-slate-400 mb-6 font-medium">Update your personal details.</p>
                 <span className="text-[10px] font-black text-gold-500 uppercase tracking-widest flex items-center">Edit Profile →</span>
             </div>
-            <div onClick={() => setActiveView('preferences')} className="p-8 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-gold-500/50 hover:shadow-2xl transition-all cursor-pointer group relative overflow-hidden">
+            <div onClick={() => setActiveView('preferences')} className="p-6 sm:p-8 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-gold-500/50 hover:shadow-2xl transition-all cursor-pointer group relative overflow-hidden">
                 <FaPalette className="text-slate-300 dark:text-slate-600 group-hover:text-gold-500 text-3xl mb-6 transition-colors" />
                 <h3 className="text-xl font-black text-slate-900 dark:text-white mb-2 uppercase tracking-tighter italic">Appearance</h3>
                 <p className="text-sm text-slate-500 dark:text-slate-400 mb-6 font-medium">Choose how the app looks.</p>
                 <span className="text-[10px] font-black text-gold-500 uppercase tracking-widest flex items-center">Change Look →</span>
             </div>
-            <div onClick={() => setActiveView('notifications')} className="p-8 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-gold-500/50 hover:shadow-2xl transition-all cursor-pointer group relative overflow-hidden">
+            <div onClick={() => setActiveView('notifications')} className="p-6 sm:p-8 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-gold-500/50 hover:shadow-2xl transition-all cursor-pointer group relative overflow-hidden">
                 <FaBell className="text-slate-300 dark:text-slate-600 group-hover:text-gold-500 text-3xl mb-6 transition-colors" />
                 <h3 className="text-xl font-black text-slate-900 dark:text-white mb-2 uppercase tracking-tighter italic">Notifications</h3>
                 <p className="text-sm text-slate-500 dark:text-slate-400 mb-6 font-medium">Manage your alerts and updates.</p>
@@ -157,16 +157,16 @@ const SettingsTab = () => {
     );
 
     const renderPreferencesForm = () => (
-        <div className="bg-white dark:bg-slate-900 rounded-[3rem] p-10 border border-slate-100 dark:border-slate-800 shadow-2xl transition-all animate-in fade-in slide-in-from-right-4 duration-500">
-            <div className="flex items-center justify-between mb-10">
+        <div className="bg-white dark:bg-slate-900 rounded-[3rem] p-5 sm:p-8 lg:p-10 border border-slate-100 dark:border-slate-800 shadow-2xl transition-all animate-in fade-in slide-in-from-right-4 duration-500">
+            <div className="mb-8 flex flex-col gap-3 sm:mb-10 sm:flex-row sm:items-center sm:justify-between">
                 <button onClick={() => setActiveView('overview')} className="flex items-center text-[10px] font-black uppercase text-slate-400 hover:text-gold-500 transition-colors tracking-[0.2em]"><FaChevronLeft className="mr-2" /> Back</button>
                 <h3 className="text-xs font-black uppercase text-gold-500 tracking-[0.3em] italic">Appearance Settings</h3>
             </div>
             <div className="space-y-8">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="grid grid-cols-1 gap-6 md:grid-cols-2 md:gap-8">
                     <div className="space-y-4">
                         <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Theme</label>
-                        <div className="flex gap-4">
+                        <div className="grid grid-cols-2 gap-4">
                             <button 
                                 onClick={() => {
                                     setSettingsForm({...settingsForm, theme: 'light'});
@@ -191,7 +191,7 @@ const SettingsTab = () => {
                     </div>
                 </div>
                 <div className="flex items-center space-x-4 pt-6">
-                    <button onClick={handleSettingsSubmit} disabled={loading} className="px-10 py-5 bg-slate-900 dark:bg-gold-500 text-white dark:text-slate-900 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] hover:scale-105 transition-all shadow-xl disabled:opacity-50">
+                    <button onClick={handleSettingsSubmit} disabled={loading} className="w-full sm:w-auto px-8 py-4 sm:px-10 sm:py-5 bg-slate-900 dark:bg-gold-500 text-white dark:text-slate-900 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] hover:scale-105 transition-all shadow-xl disabled:opacity-50">
                         {loading ? 'Syncing...' : 'Save Preferences'}
                     </button>
                 </div>
@@ -201,9 +201,9 @@ const SettingsTab = () => {
 
     return (
         <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+            <div className="flex flex-col items-start justify-between gap-4 md:flex-row md:items-center md:gap-6">
                 <div>
-                    <h2 className="text-4xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter">Settings</h2>
+                    <h2 className="text-3xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter sm:text-4xl">Settings</h2>
                     <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.3em] mt-3">Manage your account settings</p>
                 </div>
             </div>
@@ -213,7 +213,7 @@ const SettingsTab = () => {
                 {activeView === 'security' && renderSecurityForm()}
                 {activeView === 'preferences' && renderPreferencesForm()}
                 {(activeView === 'notifications') && (
-                    <div className="bg-white dark:bg-slate-900 rounded-[3rem] p-20 border border-slate-100 dark:border-slate-800 shadow-2xl flex flex-col items-center justify-center text-center">
+                    <div className="bg-white dark:bg-slate-900 rounded-[3rem] p-8 sm:p-12 lg:p-20 border border-slate-100 dark:border-slate-800 shadow-2xl flex flex-col items-center justify-center text-center">
                         <FaCog className="text-slate-200 dark:text-slate-700 text-4xl animate-spin mb-8" />
                         <h3 className="text-xl font-black text-slate-900 dark:text-white uppercase italic mb-3">Notifications</h3>
                         <p className="text-sm text-slate-400 font-medium max-w-sm">Notification settings will be available here soon.</p>
@@ -227,17 +227,17 @@ const SettingsTab = () => {
     // Re-use existing renders from previous but with updated logic
     function renderProfileForm() {
         return (
-            <div className="bg-white dark:bg-slate-900 rounded-[3rem] p-10 border border-slate-100 dark:border-slate-800 shadow-2xl transition-all">
-                <div className="flex items-center justify-between mb-10">
+            <div className="bg-white dark:bg-slate-900 rounded-[3rem] p-5 sm:p-8 lg:p-10 border border-slate-100 dark:border-slate-800 shadow-2xl transition-all">
+                <div className="mb-8 flex flex-col gap-3 sm:mb-10 sm:flex-row sm:items-center sm:justify-between">
                     <button onClick={() => setActiveView('overview')} className="flex items-center text-[10px] font-black uppercase text-slate-400 tracking-[0.2em]"><FaChevronLeft className="mr-2" /> Back</button>
                     <h3 className="text-xs font-black uppercase text-gold-500 tracking-[0.3em] italic">Profile Settings</h3>
                 </div>
                 <form onSubmit={handleProfileSubmit} className="space-y-8">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div className="grid grid-cols-1 gap-5 md:grid-cols-2 md:gap-8">
                         <input type="text" value={profileForm.firstName} onChange={(e) => setProfileForm({...profileForm, firstName: e.target.value})} className="w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 p-4 rounded-2xl text-sm font-bold placeholder:text-slate-300" placeholder="First Name" />
                         <input type="text" value={profileForm.lastName} onChange={(e) => setProfileForm({...profileForm, lastName: e.target.value})} className="w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 p-4 rounded-2xl text-sm font-bold" placeholder="Last Name" />
                     </div>
-                    <button type="submit" disabled={loading} className="px-10 py-5 bg-slate-900 dark:bg-gold-500 text-white dark:text-slate-900 rounded-2xl text-[10px] font-black uppercase shadow-xl disabled:opacity-50">Save Changes</button>
+                    <button type="submit" disabled={loading} className="w-full sm:w-auto px-8 py-4 sm:px-10 sm:py-5 bg-slate-900 dark:bg-gold-500 text-white dark:text-slate-900 rounded-2xl text-[10px] font-black uppercase shadow-xl disabled:opacity-50">Save Changes</button>
                 </form>
             </div>
         );
@@ -245,18 +245,18 @@ const SettingsTab = () => {
 
     function renderSecurityForm() {
         return (
-            <div className="bg-white dark:bg-slate-900 rounded-[3rem] p-10 border border-slate-100 dark:border-slate-800 shadow-2xl">
-                <div className="flex items-center justify-between mb-10">
+            <div className="bg-white dark:bg-slate-900 rounded-[3rem] p-5 sm:p-8 lg:p-10 border border-slate-100 dark:border-slate-800 shadow-2xl">
+                <div className="mb-8 flex flex-col gap-3 sm:mb-10 sm:flex-row sm:items-center sm:justify-between">
                     <button onClick={() => setActiveView('overview')} className="flex items-center text-[10px] font-black uppercase text-slate-400 tracking-[0.2em]"><FaChevronLeft className="mr-2" /> Back</button>
                     <h3 className="text-xs font-black uppercase text-rose-500 tracking-[0.3em] italic">Password Settings</h3>
                 </div>
                 <form onSubmit={handleSecuritySubmit} className="space-y-8">
                     <input type="password" required value={securityForm.currentPassword} onChange={(e) => setSecurityForm({...securityForm, currentPassword: e.target.value})} className="w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 p-4 rounded-2xl text-sm font-bold" placeholder="Current Password" />
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div className="grid grid-cols-1 gap-5 md:grid-cols-2 md:gap-8">
                         <input type="password" required value={securityForm.newPassword} onChange={(e) => setSecurityForm({...securityForm, newPassword: e.target.value})} className="w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 p-4 rounded-2xl text-sm font-bold" placeholder="New Password" />
                         <input type="password" required value={securityForm.confirmPassword} onChange={(e) => setSecurityForm({...securityForm, confirmPassword: e.target.value})} className="w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 p-4 rounded-2xl text-sm font-bold" placeholder="Confirm Password" />
                     </div>
-                    <button type="submit" disabled={loading} className="px-10 py-5 bg-rose-500 text-white rounded-2xl text-[10px] font-black uppercase shadow-xl disabled:opacity-50">Update Password</button>
+                    <button type="submit" disabled={loading} className="w-full sm:w-auto px-8 py-4 sm:px-10 sm:py-5 bg-rose-500 text-white rounded-2xl text-[10px] font-black uppercase shadow-xl disabled:opacity-50">Update Password</button>
                 </form>
             </div>
         );

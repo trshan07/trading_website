@@ -59,9 +59,9 @@ const BankingZoneTab = ({
 
   return (
     <div className="space-y-6">
-      <section className="rounded-[2rem] border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900">
+      <section className="rounded-[2rem] border border-slate-200 bg-white p-5 sm:p-6 dark:border-slate-800 dark:bg-slate-900">
         <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Banking Zone</p>
-        <h2 className="mt-2 text-2xl font-semibold text-slate-900 dark:text-white">Funding and payout controls</h2>
+        <h2 className="mt-2 text-xl font-semibold text-slate-900 sm:text-2xl dark:text-white">Funding and payout controls</h2>
         <p className="mt-2 max-w-2xl text-sm text-slate-500 dark:text-slate-400">
           A simpler banking workspace for withdrawals, linked bank accounts, and wallet details.
         </p>
@@ -72,7 +72,7 @@ const BankingZoneTab = ({
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
-            className={`rounded-2xl px-4 py-2.5 text-sm font-medium transition-colors ${
+            className={`whitespace-nowrap rounded-2xl px-4 py-2.5 text-sm font-medium transition-colors ${
               activeTab === tab.id
                 ? 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-950'
                 : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-white'
@@ -85,13 +85,13 @@ const BankingZoneTab = ({
 
       {activeTab === 'withdrawal' && (
         <section className="grid gap-4 xl:grid-cols-[0.9fr_1.1fr]">
-          <div className="rounded-[2rem] border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900">
+          <div className="rounded-[2rem] border border-slate-200 bg-white p-5 sm:p-6 dark:border-slate-800 dark:bg-slate-900">
             <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Available balance</p>
-            <p className="mt-2 text-3xl font-semibold text-slate-900 dark:text-white">{formatMoney(availableBalance)}</p>
+            <p className="mt-2 break-words text-2xl font-semibold text-slate-900 sm:text-3xl dark:text-white">{formatMoney(availableBalance)}</p>
             <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">Withdrawals are submitted in USD.</p>
           </div>
 
-          <div className="rounded-[2rem] border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900">
+          <div className="rounded-[2rem] border border-slate-200 bg-white p-5 sm:p-6 dark:border-slate-800 dark:bg-slate-900">
             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">Withdrawal amount (USD)</label>
             <input
               type="number"
@@ -119,8 +119,8 @@ const BankingZoneTab = ({
 
       {activeTab === 'bank' && (
         <section className="grid gap-4 xl:grid-cols-[1.1fr_0.9fr]">
-          <form onSubmit={handleBankSubmit} className="rounded-[2rem] border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900">
-            <div className="grid gap-4 md:grid-cols-2">
+          <form onSubmit={handleBankSubmit} className="rounded-[2rem] border border-slate-200 bg-white p-5 sm:p-6 dark:border-slate-800 dark:bg-slate-900">
+            <div className="grid gap-4 sm:grid-cols-2">
               <input
                 type="text"
                 placeholder="Country"
@@ -171,7 +171,7 @@ const BankingZoneTab = ({
             </button>
           </form>
 
-          <div className="rounded-[2rem] border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900">
+          <div className="rounded-[2rem] border border-slate-200 bg-white p-5 sm:p-6 dark:border-slate-800 dark:bg-slate-900">
             <h3 className="text-lg font-semibold text-slate-900 dark:text-white">Verification status</h3>
             {primaryBank ? (
               <div className="mt-5 space-y-3">
@@ -202,7 +202,7 @@ const BankingZoneTab = ({
       )}
 
       {activeTab === 'wallet' && (
-        <section className="rounded-[2rem] border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900">
+        <section className="rounded-[2rem] border border-slate-200 bg-white p-5 sm:p-6 dark:border-slate-800 dark:bg-slate-900">
           <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">Crypto wallet ID</label>
           <input
             type="text"

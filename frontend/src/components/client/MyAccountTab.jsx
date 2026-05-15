@@ -7,9 +7,9 @@ const formatMoney = (value) => `$${Number(value || 0).toLocaleString(undefined, 
 })}`;
 
 const OverviewCard = ({ label, value, tone = '' }) => (
-  <div className="rounded-3xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
+  <div className="rounded-3xl border border-slate-200 bg-white p-4 sm:p-5 dark:border-slate-800 dark:bg-slate-900">
     <p className="text-xs font-medium text-slate-500 dark:text-slate-400">{label}</p>
-    <p className={`mt-2 text-2xl font-semibold ${tone || 'text-slate-900 dark:text-white'}`}>{value}</p>
+    <p className={`mt-2 break-words text-xl font-semibold sm:text-2xl ${tone || 'text-slate-900 dark:text-white'}`}>{value}</p>
   </div>
 );
 
@@ -20,36 +20,36 @@ const EmptyState = ({ label }) => (
 );
 
 const TransactionTable = ({ title, rows = [] }) => (
-  <section className="rounded-[2rem] border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
-    <div className="border-b border-slate-100 px-5 py-4 dark:border-slate-800">
+    <section className="rounded-[2rem] border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
+    <div className="border-b border-slate-100 px-4 py-4 sm:px-5 dark:border-slate-800">
       <h3 className="text-base font-semibold text-slate-900 dark:text-white">{title}</h3>
     </div>
     {rows.length === 0 ? (
-      <div className="px-5 py-16 text-center text-sm text-slate-500 dark:text-slate-400">No records available.</div>
+      <div className="px-4 py-16 text-center text-sm text-slate-500 sm:px-5 dark:text-slate-400">No records available.</div>
     ) : (
       <div className="overflow-x-auto">
         <table className="min-w-full">
           <thead>
             <tr className="border-b border-slate-100 text-left text-xs text-slate-500 dark:border-slate-800 dark:text-slate-400">
-              <th className="px-5 py-3 font-medium">Date</th>
-              <th className="px-5 py-3 font-medium">Reference</th>
-              <th className="px-5 py-3 font-medium">Status</th>
-              <th className="px-5 py-3 text-right font-medium">Amount</th>
+              <th className="px-4 py-3 font-medium sm:px-5">Date</th>
+              <th className="px-4 py-3 font-medium sm:px-5">Reference</th>
+              <th className="px-4 py-3 font-medium sm:px-5">Status</th>
+              <th className="px-4 py-3 text-right font-medium sm:px-5">Amount</th>
             </tr>
           </thead>
           <tbody>
             {rows.map((row, index) => (
               <tr key={`${row.source_type || 'row'}-${row.id || index}`} className="border-b border-slate-100 last:border-b-0 dark:border-slate-800">
-                <td className="px-5 py-4 text-sm text-slate-600 dark:text-slate-300">
+                <td className="px-4 py-4 text-sm text-slate-600 sm:px-5 dark:text-slate-300">
                   {row.created_at ? new Date(row.created_at).toLocaleDateString() : '-'}
                 </td>
-                <td className="px-5 py-4 text-sm text-slate-900 dark:text-white">
+                <td className="px-4 py-4 text-sm text-slate-900 sm:px-5 dark:text-white">
                   {row.reference || row.bank_reference || row.reference_id || '-'}
                 </td>
-                <td className="px-5 py-4 text-sm capitalize text-slate-500 dark:text-slate-400">
+                <td className="px-4 py-4 text-sm capitalize text-slate-500 sm:px-5 dark:text-slate-400">
                   {row.status || 'completed'}
                 </td>
-                <td className="px-5 py-4 text-right text-sm font-medium text-slate-900 dark:text-white">
+                <td className="px-4 py-4 text-right text-sm font-medium text-slate-900 sm:px-5 dark:text-white">
                   {formatMoney(Math.abs(Number(row.amount || 0)))}
                 </td>
               </tr>
@@ -140,15 +140,15 @@ const MyAccountTab = ({ accountId }) => {
 
   return (
     <div className="space-y-6">
-      <section className="rounded-[2rem] border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900">
+      <section className="rounded-[2rem] border border-slate-200 bg-white p-5 sm:p-6 dark:border-slate-800 dark:bg-slate-900">
         <p className="text-sm font-medium text-slate-500 dark:text-slate-400">My Account</p>
-        <h2 className="mt-2 text-2xl font-semibold text-slate-900 dark:text-white">Trading account overview</h2>
+        <h2 className="mt-2 text-xl font-semibold text-slate-900 sm:text-2xl dark:text-white">Trading account overview</h2>
         <p className="mt-2 max-w-2xl text-sm text-slate-500 dark:text-slate-400">
           This panel is now sourced from a dedicated backend account overview endpoint for the selected trading account.
         </p>
       </section>
 
-      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {cards.map((card) => (
           <OverviewCard key={card.label} label={card.label} value={card.value} tone={card.tone} />
         ))}
@@ -156,7 +156,7 @@ const MyAccountTab = ({ accountId }) => {
 
       <section className="grid gap-4 xl:grid-cols-2">
         <TransactionTable title="Transactions" rows={recentTransactions} />
-        <div className="grid gap-4">
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-1">
           <OverviewCard label="Deposits" value={`${totals.depositsCount || 0} requests`} />
           <OverviewCard label="Withdrawals" value={`${totals.withdrawalsCount || 0} requests`} />
           <OverviewCard label="Open Positions" value={`${totals.openPositionsCount || 0}`} />
