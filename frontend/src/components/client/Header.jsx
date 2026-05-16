@@ -9,8 +9,8 @@ import {
   FaSlidersH,
 } from 'react-icons/fa';
 import { buildInstrumentSnapshot } from '../../utils/marketSymbols';
-import logoLight from '../../assets/images/logos/logo-light.jpg';
 import logoDark from '../../assets/images/logos/logo-dark.png';
+import logoLight from '../../assets/logo/Horizontal Color/PDF/Vertical/Black/PDF/2x/Asset 7@2x-20.jpg';
 import { useTheme } from '../../context/ThemeContext';
 import ThemeToggle from '../ui/ThemeToggle';
 
