@@ -12,6 +12,7 @@ import { buildInstrumentSnapshot } from '../../utils/marketSymbols';
 import logoLight from '../../assets/images/logos/logo-light.jpg';
 import logoDark from '../../assets/images/logos/logo-dark.png';
 import { useTheme } from '../../context/ThemeContext';
+import ThemeToggle from '../ui/ThemeToggle';
 
 const formatCurrency = (value) => {
   const numericValue = Number.parseFloat(value ?? 0) || 0;
@@ -196,6 +197,9 @@ const Header = ({
             >
               Withdrawal
             </button>
+            <div className="shrink-0">
+              <ThemeToggle />
+            </div>
             <div className="relative" ref={notificationRef}>
               <button
                 onClick={() => setShowNotifications((current) => !current)}

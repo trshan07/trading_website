@@ -11,6 +11,7 @@ import {
 import logoLight from '../../assets/images/logos/logo-light.jpg';
 import logoDark from '../../assets/images/logos/logo-dark.png';
 import { useTheme } from '../../context/ThemeContext';
+import ThemeToggle from '../ui/ThemeToggle';
 
 const menuItems = [
   { id: 'webtrader', label: 'WebTrader', icon: FaChartLine },
@@ -58,12 +59,19 @@ const MobileSidebar = ({
         </div>
 
         <div className="border-b border-slate-100 px-5 py-5 dark:border-slate-800">
-          <p className="text-sm font-semibold text-slate-900 dark:text-white">
-            {user?.firstName} {user?.lastName}
-          </p>
-          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-            Client workspace
-          </p>
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <p className="text-sm font-semibold text-slate-900 dark:text-white">
+                {user?.firstName} {user?.lastName}
+              </p>
+              <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                Client workspace
+              </p>
+            </div>
+            <div className="shrink-0">
+              <ThemeToggle />
+            </div>
+          </div>
         </div>
 
         <nav className="flex-1 space-y-1 px-3 py-4">
