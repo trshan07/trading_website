@@ -1,3 +1,4 @@
+const path = require('path');
 const nodemailer = require('nodemailer');
 
 let cachedTransporter = null;
@@ -17,9 +18,17 @@ const getBrandName = () =>
   || process.env.BRAND_NAME
   || 'TIK TRADES';
 
-const getLogoUrl = (clientUrl) =>
-  process.env.BRAND_LOGO_URL
-  || `${clientUrl.replace(/\/$/, '')}/favicon.jpg`;
+const EMAIL_LOGO_CID = 'tiktrades-horizontal-logo';
+const EMAIL_LOGO_PATH = path.resolve(
+  __dirname,
+  '../../../frontend/src/assets/logo/Horizontal Color/PDF/Vertical/White/JPG copy.jpg'
+);
+
+const getEmbeddedLogo = () => ({
+  filename: 'tiktrades-horizontal-logo.jpg',
+  path: EMAIL_LOGO_PATH,
+  cid: EMAIL_LOGO_CID
+});
 
 const formatMoney = (value, currency = 'USD') =>
   new Intl.NumberFormat('en-US', {
@@ -88,14 +97,6 @@ const getTransporter = async () => {
 const sendPasswordResetEmail = async ({ to, resetUrl, firstName = '' }) => {
   const appName = getBrandName();
   const fromEmail = process.env.MAIL_FROM || process.env.SMTP_USER || 'no-reply@tiktrades.com';
-  const baseClientUrl = (() => {
-    try {
-      return new URL(resetUrl).origin;
-    } catch (_) {
-      return (process.env.CLIENT_URL || process.env.FRONTEND_URL || 'http://localhost:5173').replace(/\/$/, '');
-    }
-  })();
-  const logoUrl = getLogoUrl(baseClientUrl);
   const helpEmail = process.env.CONTACT_RECEIVER_EMAIL || fromEmail;
   const { transporter, isTestTransport } = await getTransporter();
 
@@ -103,7 +104,6 @@ const sendPasswordResetEmail = async ({ to, resetUrl, firstName = '' }) => {
   const safeDisplayName = escapeHtml(displayName);
   const safeAppName = escapeHtml(appName);
   const safeResetUrl = escapeHtml(resetUrl);
-  const safeLogoUrl = escapeHtml(logoUrl);
   const safeHelpEmail = escapeHtml(helpEmail);
   const subject = `${appName} Password Reset Request`;
   const text = [
@@ -124,7 +124,7 @@ const sendPasswordResetEmail = async ({ to, resetUrl, firstName = '' }) => {
       <div style="max-width:640px; margin:0 auto; background:linear-gradient(180deg,#0d1723 0%,#09121c 100%); border:1px solid #1a2a3d; border-radius:20px; overflow:hidden; box-shadow:0 24px 80px rgba(0,0,0,0.35);">
         <div style="padding:28px 32px; background:radial-gradient(circle at top right, rgba(212,168,67,0.24), transparent 40%), linear-gradient(135deg,#101b29 0%,#0a131d 100%); border-bottom:1px solid #1a2a3d;">
           <div style="margin-bottom:18px;">
-            <img src="${safeLogoUrl}" alt="${safeAppName}" style="display:block; width:56px; height:56px; border-radius:14px; object-fit:cover; background:#0b1520; border:1px solid #1a2a3d;" />
+            <img src="cid:${EMAIL_LOGO_CID}" alt="${safeAppName}" style="display:block; width:220px; max-width:100%; height:auto;" />
           </div>
           <div style="display:inline-block; padding:7px 12px; border-radius:999px; background:rgba(212,168,67,0.14); color:#f2c96b; font-size:12px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase;">Security Notice</div>
           <h1 style="margin:18px 0 10px; font-size:30px; line-height:1.15; color:#f5efe2;">Reset your password</h1>
@@ -184,7 +184,8 @@ const sendPasswordResetEmail = async ({ to, resetUrl, firstName = '' }) => {
     to,
     subject,
     text,
-    html
+    html,
+    attachments: [getEmbeddedLogo()]
   });
 
   const previewUrl = nodemailer.getTestMessageUrl(info) || null;
@@ -216,7 +217,6 @@ const sendWelcomeEmail = async ({
   const fundingUrl = `${clientUrl}/deposits-withdrawals`;
   const marketsUrl = `${clientUrl}/markets`;
   const helpEmail = supportEmail || process.env.CONTACT_RECEIVER_EMAIL || fromEmail;
-  const logoUrl = getLogoUrl(clientUrl);
   const { transporter, isTestTransport } = await getTransporter();
 
   const fullName = `${firstName || ''} ${lastName || ''}`.trim();
@@ -227,7 +227,6 @@ const sendWelcomeEmail = async ({
   const safeLoginUrl = escapeHtml(resolvedLoginUrl);
   const safeFundingUrl = escapeHtml(fundingUrl);
   const safeMarketsUrl = escapeHtml(marketsUrl);
-  const safeLogoUrl = escapeHtml(logoUrl);
   const joinedOn = new Date(createdAt).toLocaleDateString('en-US', {
     year: 'numeric',
     month: 'short',
@@ -301,7 +300,7 @@ const sendWelcomeEmail = async ({
       <div style="max-width:640px; margin:0 auto; background:linear-gradient(180deg,#0d1723 0%,#09121c 100%); border:1px solid #1a2a3d; border-radius:20px; overflow:hidden; box-shadow:0 24px 80px rgba(0,0,0,0.35);">
         <div style="padding:28px 32px; background:radial-gradient(circle at top right, rgba(212,168,67,0.24), transparent 40%), linear-gradient(135deg,#101b29 0%,#0a131d 100%); border-bottom:1px solid #1a2a3d;">
           <div style="margin-bottom:18px;">
-            <img src="${safeLogoUrl}" alt="${safeAppName}" style="display:block; width:56px; height:56px; border-radius:14px; object-fit:cover; background:#0b1520; border:1px solid #1a2a3d;" />
+            <img src="cid:${EMAIL_LOGO_CID}" alt="${safeAppName}" style="display:block; width:220px; max-width:100%; height:auto;" />
           </div>
           <div style="display:inline-block; padding:7px 12px; border-radius:999px; background:rgba(212,168,67,0.14); color:#f2c96b; font-size:12px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase;">Welcome to ${safeAppName}</div>
           <h1 style="margin:18px 0 10px; font-size:30px; line-height:1.15; color:#f5efe2;">Your journey starts here</h1>
@@ -382,7 +381,8 @@ const sendWelcomeEmail = async ({
     to,
     subject,
     text,
-    html
+    html,
+    attachments: [getEmbeddedLogo()]
   });
 
   const previewUrl = nodemailer.getTestMessageUrl(info) || null;
@@ -436,15 +436,29 @@ const sendContactFormEmail = async ({ fullName, email, subject = '', message = '
     .replace(/>/g, '&gt;');
 
   const html = `
-    <div style="font-family: Arial, sans-serif; color: #111827; line-height: 1.5;">
-      <h2 style="margin-bottom: 8px;">New Contact Form Submission</h2>
-      <p><strong>Name:</strong> ${fullName || 'N/A'}</p>
-      <p><strong>Email:</strong> ${email || 'N/A'}</p>
-      <p><strong>Subject:</strong> ${safeSubject}</p>
-      <p><strong>Submitted At:</strong> ${submittedAt}</p>
-      <hr style="border:none; border-top:1px solid #e5e7eb; margin:16px 0;" />
-      <p><strong>Message:</strong></p>
-      <pre style="white-space: pre-wrap; font-family: inherit;">${safeMessage}</pre>
+    <div style="margin:0; padding:32px 16px; background:#07111b; font-family:Arial,Helvetica,sans-serif; color:#dbe7f5;">
+      <div style="max-width:640px; margin:0 auto; background:linear-gradient(180deg,#0d1723 0%,#09121c 100%); border:1px solid #1a2a3d; border-radius:20px; overflow:hidden; box-shadow:0 24px 80px rgba(0,0,0,0.35);">
+        <div style="padding:28px 32px; background:radial-gradient(circle at top right, rgba(212,168,67,0.24), transparent 40%), linear-gradient(135deg,#101b29 0%,#0a131d 100%); border-bottom:1px solid #1a2a3d;">
+          <div style="margin-bottom:18px;">
+            <img src="cid:${EMAIL_LOGO_CID}" alt="${escapeHtml(appName)}" style="display:block; width:220px; max-width:100%; height:auto;" />
+          </div>
+          <div style="display:inline-block; padding:7px 12px; border-radius:999px; background:rgba(212,168,67,0.14); color:#f2c96b; font-size:12px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase;">Contact Form</div>
+          <h2 style="margin:18px 0 8px; color:#f5efe2; font-size:28px;">New contact submission</h2>
+          <p style="margin:0; color:#9eb2c8; font-size:14px; line-height:1.7;">A new website enquiry was submitted through TIK TRADES.</p>
+        </div>
+        <div style="padding:32px;">
+          <div style="display:grid; grid-template-columns:1fr; gap:12px; margin-bottom:24px;">
+            <div style="padding:16px 18px; border-radius:14px; background:#0b1520; border:1px solid #152535;"><div style="font-size:12px; color:#7f95ab; text-transform:uppercase; letter-spacing:0.08em; margin-bottom:6px;">Name</div><div style="font-size:14px; color:#e7eef7;">${fullName || 'N/A'}</div></div>
+            <div style="padding:16px 18px; border-radius:14px; background:#0b1520; border:1px solid #152535;"><div style="font-size:12px; color:#7f95ab; text-transform:uppercase; letter-spacing:0.08em; margin-bottom:6px;">Email</div><div style="font-size:14px; color:#e7eef7;">${email || 'N/A'}</div></div>
+            <div style="padding:16px 18px; border-radius:14px; background:#0b1520; border:1px solid #152535;"><div style="font-size:12px; color:#7f95ab; text-transform:uppercase; letter-spacing:0.08em; margin-bottom:6px;">Subject</div><div style="font-size:14px; color:#e7eef7;">${safeSubject}</div></div>
+            <div style="padding:16px 18px; border-radius:14px; background:#0b1520; border:1px solid #152535;"><div style="font-size:12px; color:#7f95ab; text-transform:uppercase; letter-spacing:0.08em; margin-bottom:6px;">Submitted At</div><div style="font-size:14px; color:#e7eef7;">${submittedAt}</div></div>
+          </div>
+          <div style="padding:18px; border-radius:14px; background:#060d15; border:1px solid #162638;">
+            <div style="font-size:12px; color:#7f95ab; text-transform:uppercase; letter-spacing:0.08em; margin-bottom:10px;">Message</div>
+            <pre style="white-space:pre-wrap; margin:0; font-family:Arial,Helvetica,sans-serif; font-size:14px; line-height:1.7; color:#e7eef7;">${safeMessage}</pre>
+          </div>
+        </div>
+      </div>
     </div>
   `;
 
@@ -454,7 +468,8 @@ const sendContactFormEmail = async ({ fullName, email, subject = '', message = '
     replyTo: email || undefined,
     subject: mailSubject,
     text,
-    html
+    html,
+    attachments: [getEmbeddedLogo()]
   });
 
   const previewUrl = nodemailer.getTestMessageUrl(info) || null;

@@ -20,7 +20,6 @@ const RegisterPage = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
   
-  const [accountType, setAccountType] = useState('demo'); // 'demo' or 'real'
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -60,9 +59,9 @@ const RegisterPage = () => {
       
       if (response.success && response.data) {
         const userData = response.data;
-        // Automatically log them in. Use the selected account type.
+        // New registrations land in the live account by default.
         const loginResult = await contextLogin(
-          { ...userData, selectedAccountType: accountType },
+          { ...userData, selectedAccountType: 'real' },
           userData.token
         );
         if (!loginResult?.success) {
@@ -185,32 +184,11 @@ const RegisterPage = () => {
           </div>
 
           <div className="p-6 md:p-8">
-            {/* Account Type Selector for Registration */}
-            <div className="flex p-1 bg-navy/80 rounded-xl border border-white/10 mb-8 group transition-all hover:border-gold/30">
-              <button
-                type="button"
-                onClick={() => setAccountType('demo')}
-                className={`flex-1 py-3 px-4 rounded-lg text-[10px] font-bold uppercase tracking-[0.2em] transition-all flex items-center justify-center space-x-2 ${
-                  accountType === 'demo' 
-                  ? 'bg-gold text-navy-dark shadow-gold-glow-sm' 
-                  : 'text-white/40 hover:text-white/70'
-                }`}
-              >
-                <div className={`w-1.5 h-1.5 rounded-full ${accountType === 'demo' ? 'bg-navy-dark animate-pulse' : 'bg-white/20'}`} />
-                <span>Demo Account Registration</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setAccountType('real')}
-                className={`flex-1 py-3 px-4 rounded-lg text-[10px] font-bold uppercase tracking-[0.2em] transition-all flex items-center justify-center space-x-2 ${
-                  accountType === 'real' 
-                  ? 'bg-green-500 text-navy-dark shadow-[0_0_15px_rgba(34,197,94,0.3)]' 
-                  : 'text-white/40 hover:text-white/70'
-                }`}
-              >
-                <div className={`w-1.5 h-1.5 rounded-full ${accountType === 'real' ? 'bg-navy-dark animate-pulse' : 'bg-white/20'}`} />
-                <span>Real Account Registration</span>
-              </button>
+            <div className="mb-8 rounded-xl border border-green-500/20 bg-green-500/8 px-4 py-4 text-center">
+              <div className="text-[10px] font-bold uppercase tracking-[0.22em] text-green-400">Live Account Registration</div>
+              <div className="mt-2 text-xs text-white/65">
+                Your account will open in live mode by default. Demo mode remains available inside the client dashboard whenever you want to switch.
+              </div>
             </div>
 
             <form className="space-y-5" onSubmit={handleSubmit}>
