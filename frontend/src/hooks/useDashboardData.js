@@ -11,6 +11,7 @@ import websocketService from '../services/websocketService';
 import { maskAccountNumber } from '../components/client/banking/utils';
 import { getUploadUrl } from '../utils/uploadUrl';
 import { buildInstrumentSnapshot } from '../utils/marketSymbols';
+import { getMarketSessionState } from '../utils/marketHours';
 import { calculateLotsFromQuantity, calculateProjectedPnL, calculateUsdFromLots } from '../utils/tradingUtils';
 import { calculateSpreads } from '../utils/spreadCalculator';
 
@@ -1027,6 +1028,16 @@ export const useDashboardData = (accountType = 'demo', activeSymbol = null, opti
     if (!accountId) {
         toast.error("No active account found");
         return false;
+    }
+
+    const marketSession = getMarketSessionState({
+      symbol: order.symbol || 'BTCUSDT',
+      category: order.category,
+    });
+
+    if (!marketSession.isOpen) {
+      toast.error(marketSession.reason);
+      return false;
     }
 
     try {

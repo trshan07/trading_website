@@ -13,6 +13,20 @@ const {
     evaluateAccountRisk,
 } = require('../../services/tradingEngine');
 const Account = require('../../models/Account');
+const { getMarketSessionState } = require('../../utils/marketHours');
+
+const ensureMarketIsOpenForOrder = ({ symbol, category }) => {
+    const marketState = getMarketSessionState({ symbol, category });
+
+    if (!marketState.isOpen) {
+        const error = new Error(marketState.reason);
+        error.statusCode = 403;
+        error.marketState = marketState;
+        throw error;
+    }
+
+    return marketState;
+};
 
 const executeTrade = async (req, res) => {
     const { accountId } = req.body;
@@ -23,6 +37,11 @@ const executeTrade = async (req, res) => {
     }
 
     try {
+        ensureMarketIsOpenForOrder({
+            symbol: req.body.symbol,
+            category: req.body.category,
+        });
+
         const result = await placeTrade({
             userId,
             accountId,
@@ -50,9 +69,10 @@ const executeTrade = async (req, res) => {
             },
         });
     } catch (error) {
-        return res.status(400).json({
+        return res.status(error.statusCode || 400).json({
             success: false,
             message: error.message || 'Execution failed',
+            marketState: error.marketState,
         });
     }
 };
@@ -66,6 +86,11 @@ const previewTrade = async (req, res) => {
     }
 
     try {
+        ensureMarketIsOpenForOrder({
+            symbol: req.body.symbol,
+            category: req.body.category,
+        });
+
         const accounts = await Account.findByUserId(userId);
         const account = accounts.find((item) => item.id == accountId);
         if (!account) {
@@ -83,9 +108,10 @@ const previewTrade = async (req, res) => {
             data: preview,
         });
     } catch (error) {
-        return res.status(400).json({
+        return res.status(error.statusCode || 400).json({
             success: false,
             message: error.message || 'Preview failed',
+            marketState: error.marketState,
         });
     }
 };
@@ -99,6 +125,11 @@ const previewTradeAudit = async (req, res) => {
     }
 
     try {
+        ensureMarketIsOpenForOrder({
+            symbol: req.body.symbol,
+            category: req.body.category,
+        });
+
         const accounts = await Account.findByUserId(userId);
         const account = accounts.find((item) => item.id == accountId);
         if (!account) {
@@ -117,9 +148,10 @@ const previewTradeAudit = async (req, res) => {
             preview,
         });
     } catch (error) {
-        return res.status(400).json({
+        return res.status(error.statusCode || 400).json({
             success: false,
             message: error.message || 'Preview audit failed',
+            marketState: error.marketState,
         });
     }
 };

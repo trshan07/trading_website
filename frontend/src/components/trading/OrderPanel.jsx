@@ -13,6 +13,7 @@ import {
 } from '../../utils/tradingUtils';
 import { MARKET_INSTRUMENTS } from '../../constants/marketData';
 import { buildInstrumentSnapshot, formatInstrumentDisplaySymbol } from '../../utils/marketSymbols';
+import { getMarketSessionState } from '../../utils/marketHours';
 
 const clamp = (value, minimum, maximum = Number.POSITIVE_INFINITY) => Math.min(Math.max(value, minimum), maximum);
 
@@ -149,6 +150,10 @@ const OrderPanel = ({
   );
 
   const category = instrument.category || 'General';
+  const marketSession = useMemo(
+    () => getMarketSessionState({ symbol, category }),
+    [category, symbol]
+  );
   const precision = Number.isInteger(instrument.precision) ? instrument.precision : 2;
   const tradingMeta = useMemo(
     () => getInstrumentTradingMeta({ symbol, category, instrument }),
@@ -226,7 +231,13 @@ const OrderPanel = ({
   const previewHasEnoughMargin = typeof preview?.hasEnoughMargin === 'boolean' ? preview.hasEnoughMargin : null;
   const hasEnoughMargin = previewHasEnoughMargin ?? (effectiveRequiredMargin > 0 && effectiveRequiredMargin <= freeMargin);
   const hasValidEntryPrice = Number.isFinite(finalPrice) && finalPrice > 0;
-  const canSubmit = Boolean(accountId) && lots >= minLot && quantity > 0 && hasValidEntryPrice && hasEnoughMargin && !previewError;
+  const canSubmit = Boolean(accountId)
+    && marketSession.isOpen
+    && lots >= minLot
+    && quantity > 0
+    && hasValidEntryPrice
+    && hasEnoughMargin
+    && !previewError;
 
   useEffect(() => {
     onIntentChange?.({
@@ -242,6 +253,12 @@ const OrderPanel = ({
     if (!accountId || !hasValidEntryPrice || lots < minLot || quantity <= 0) {
       setPreview(null);
       setPreviewError('');
+      return undefined;
+    }
+
+    if (!marketSession.isOpen) {
+      setPreview(null);
+      setPreviewError(marketSession.reason);
       return undefined;
     }
 
@@ -315,6 +332,8 @@ const OrderPanel = ({
     selectedSide,
     slEnabled,
     slValue,
+    marketSession.isOpen,
+    marketSession.reason,
     symbol,
     tpEnabled,
     tpValue,
@@ -543,6 +562,9 @@ const OrderPanel = ({
           {!accountId && (
             <p className="text-xs font-semibold text-amber-300">No active trading account selected.</p>
           )}
+          {!marketSession.isOpen && (
+            <p className="text-xs font-semibold text-amber-300">{marketSession.reason}</p>
+          )}
           {isPendingMode && accountId && !previewError && !hasValidEntryPrice && (
             <p className="text-xs font-semibold text-amber-300">Enter a valid trigger price to place this pending order.</p>
           )}
@@ -599,7 +621,7 @@ const OrderPanel = ({
           className={`w-full rounded-lg px-4 py-4 text-base font-semibold transition-all ${
             canSubmit
               ? 'bg-[#35b6ad] text-white hover:brightness-105'
-              : 'cursor-not-allowed bg-slate-700 text-slate-400'
+              : 'cursor-not-allowed bg-slate-700 text-slate-400 opacity-70'
           }`}
         >
           {submitLabel}
