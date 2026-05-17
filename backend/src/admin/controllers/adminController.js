@@ -220,14 +220,23 @@ const sendCsv = (res, filename, csv) => {
     res.status(200).send(csv);
 };
 
-const sendClientWelcomeEmail = async ({ email, firstName, lastName, accountTypeLabel = 'trading account' }) => {
+const sendClientWelcomeEmail = async ({
+    email,
+    firstName,
+    lastName,
+    accountTypeLabel = 'trading account',
+    accounts = [],
+    createdAt
+}) => {
     try {
         await verifyEmailTransport();
         return await sendWelcomeEmail({
             to: email,
             firstName,
             lastName,
-            accountTypeLabel
+            accountTypeLabel,
+            accounts,
+            createdAt
         });
     } catch (mailError) {
         console.error('Admin-created welcome email delivery failed:', {
@@ -376,7 +385,9 @@ const createUser = async (req, res) => {
         const emailResult = await sendClientWelcomeEmail({
             email: user.email,
             firstName: user.first_name || payload.firstName,
-            lastName: user.last_name || payload.lastName
+            lastName: user.last_name || payload.lastName,
+            accounts: createdUser.accounts || [],
+            createdAt: createdUser.created_at || user.created_at
         });
 
         res.status(201).json({

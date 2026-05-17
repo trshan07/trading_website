@@ -13,14 +13,23 @@ const generateToken = (id, role) => {
     });
 };
 
-const queueWelcomeEmail = async ({ email, firstName, lastName, accountTypeLabel = 'trading account' }) => {
+const queueWelcomeEmail = async ({
+    email,
+    firstName,
+    lastName,
+    accountTypeLabel = 'trading account',
+    accounts = [],
+    createdAt
+}) => {
     try {
         await verifyEmailTransport();
         return await sendWelcomeEmail({
             to: email,
             firstName,
             lastName,
-            accountTypeLabel
+            accountTypeLabel,
+            accounts,
+            createdAt
         });
     } catch (mailError) {
         console.error('Welcome email delivery failed:', {
@@ -73,7 +82,9 @@ const register = async (req, res) => {
             const emailResult = await queueWelcomeEmail({
                 email: user.email,
                 firstName: user.first_name,
-                lastName: user.last_name
+                lastName: user.last_name,
+                accounts,
+                createdAt: user.created_at
             });
 
             res.status(201).json({
