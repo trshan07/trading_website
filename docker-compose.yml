@@ -39,6 +39,7 @@ services:
       SMTP_USER: ${SMTP_USER}
       SMTP_PASS: ${SMTP_PASS}
       MAIL_FROM: ${MAIL_FROM}
+      MAIL_FROM_NAME: ${MAIL_FROM_NAME}
       CONTACT_RECEIVER_EMAIL: ${CONTACT_RECEIVER_EMAIL}
     ports:
       - "5000:5000"
