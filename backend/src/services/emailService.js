@@ -21,7 +21,7 @@ const getBrandName = () =>
 const EMAIL_LOGO_CID = 'tiktrades-horizontal-logo';
 const EMAIL_LOGO_PATH = path.resolve(
   __dirname,
-  '../../../frontend/src/assets/logo/Horizontal Color/PDF/Vertical/White/JPG copy.jpg'
+  '../assets/email/tiktrades-horizontal-logo.jpg'
 );
 
 const getEmbeddedLogo = () => ({
