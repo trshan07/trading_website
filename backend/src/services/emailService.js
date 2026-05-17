@@ -21,11 +21,11 @@ const getBrandName = () =>
 const EMAIL_LOGO_CID = 'tiktrades-horizontal-logo';
 const EMAIL_LOGO_PATH = path.resolve(
   __dirname,
-  '../assets/email/tiktrades-horizontal-logo.jpg'
+  '../assets/email/tiktrades-horizontal-logo.png'
 );
 
 const getEmbeddedLogo = () => ({
-  filename: 'tiktrades-horizontal-logo.jpg',
+  filename: 'tiktrades-horizontal-logo.png',
   path: EMAIL_LOGO_PATH,
   cid: EMAIL_LOGO_CID
 });
