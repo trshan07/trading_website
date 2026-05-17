@@ -4,13 +4,34 @@ const bcrypt = require('bcryptjs');
 const User = require('../../models/User');
 const Admin = require('../../models/Admin');
 const Account = require('../../models/Account');
-const { verifyEmailTransport, sendPasswordResetEmail } = require('../../services/emailService');
+const { verifyEmailTransport, sendPasswordResetEmail, sendWelcomeEmail } = require('../../services/emailService');
 
 // Generate JWT
 const generateToken = (id, role) => {
     return jwt.sign({ id, role }, process.env.JWT_SECRET, {
         expiresIn: process.env.JWT_EXPIRE || '7d',
     });
+};
+
+const queueWelcomeEmail = async ({ email, firstName, lastName, accountTypeLabel = 'trading account' }) => {
+    try {
+        await verifyEmailTransport();
+        return await sendWelcomeEmail({
+            to: email,
+            firstName,
+            lastName,
+            accountTypeLabel
+        });
+    } catch (mailError) {
+        console.error('Welcome email delivery failed:', {
+            to: email,
+            message: mailError.message,
+            code: mailError.code,
+            command: mailError.command,
+            response: mailError.response
+        });
+        return null;
+    }
 };
 
 // @desc    Register new client
@@ -49,6 +70,11 @@ const register = async (req, res) => {
 
             // Fetch the newly created accounts
             const accounts = await Account.findByUserId(user.id);
+            const emailResult = await queueWelcomeEmail({
+                email: user.email,
+                firstName: user.first_name,
+                lastName: user.last_name
+            });
 
             res.status(201).json({
                 success: true,
@@ -60,6 +86,7 @@ const register = async (req, res) => {
                     role: user.role,
                     accounts: accounts,
                     token: generateToken(user.id, user.role),
+                    welcomeEmailPreviewUrl: emailResult?.previewUrl || null
                 }
             });
         } else {

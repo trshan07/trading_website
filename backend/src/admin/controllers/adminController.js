@@ -13,6 +13,7 @@ const PlatformSettings = require('../../models/PlatformSettings');
 const { normalizeStoredUploadPath } = require('../../utils/uploadPath');
 const { createNotification } = require('../../client/controllers/notificationController');
 const { createActivityLog } = require('../../client/controllers/activityController');
+const { verifyEmailTransport, sendWelcomeEmail } = require('../../services/emailService');
 
 const toNumber = (value, fallback = 0) => {
     const parsed = Number(value);
@@ -219,6 +220,27 @@ const sendCsv = (res, filename, csv) => {
     res.status(200).send(csv);
 };
 
+const sendClientWelcomeEmail = async ({ email, firstName, lastName, accountTypeLabel = 'trading account' }) => {
+    try {
+        await verifyEmailTransport();
+        return await sendWelcomeEmail({
+            to: email,
+            firstName,
+            lastName,
+            accountTypeLabel
+        });
+    } catch (mailError) {
+        console.error('Admin-created welcome email delivery failed:', {
+            to: email,
+            message: mailError.message,
+            code: mailError.code,
+            command: mailError.command,
+            response: mailError.response
+        });
+        return null;
+    }
+};
+
 // @desc    Get all users
 // @route   GET /api/admin/users
 // @access  Private/Admin
@@ -351,10 +373,16 @@ const createUser = async (req, res) => {
             role: payload.role,
             is_active: payload.is_active
         });
+        const emailResult = await sendClientWelcomeEmail({
+            email: user.email,
+            firstName: user.first_name || payload.firstName,
+            lastName: user.last_name || payload.lastName
+        });
 
         res.status(201).json({
             success: true,
-            data: createdUser
+            data: createdUser,
+            welcomeEmailPreviewUrl: emailResult?.previewUrl || null
         });
     } catch (error) {
         console.error(error);
