@@ -55,6 +55,9 @@ const normalizeUserAccounts = (user) => {
   const demoBalance = user?.demoBalance != null ? toNum(user.demoBalance) : 0;
   const realCredit = user?.realCredit != null ? toNum(user.realCredit) : toNum(user?.credit);
   const demoCredit = user?.demoCredit != null ? toNum(user.demoCredit) : 0;
+  const balance = realBalance + demoBalance;
+  const equity = user?.equity != null ? toNum(user.equity) : balance;
+  const profit = user?.profit != null ? toNum(user.profit) : (equity - balance);
   const realAccountId = user?.realAccountId || generateAccountId("real", user?.id);
   const demoAccountId = user?.demoAccountId || generateAccountId("demo", user?.id);
 
@@ -97,13 +100,16 @@ const normalizeUserAccounts = (user) => {
     creditHistory: user?.creditHistory || [],
     totalTrades: user?.totalTrades || 0,
     joinDate: user?.created_at || user?.joined || "",
+    joined: user?.joined || user?.created_at || "",
     realBalance,
     demoBalance,
     realCredit,
     demoCredit,
     realAccountId,
     demoAccountId,
-    balance: realBalance + demoBalance,
+    balance,
+    equity,
+    profit,
     credit: realCredit + demoCredit,
     bankAccounts,
     creditCards,
