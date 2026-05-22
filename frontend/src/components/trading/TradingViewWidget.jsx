@@ -16,9 +16,6 @@ const TradingViewWidget = ({
   const [isOnline, setIsOnline] = useState(
     typeof navigator === 'undefined' ? true : navigator.onLine
   );
-  const [isCompactViewport, setIsCompactViewport] = useState(
-    typeof window === 'undefined' ? false : window.innerWidth < 640
-  );
   const instrumentCategory = instrument?.category || '';
   const instrumentTradingViewSymbol = instrument?.tradingViewSymbol || instrument?.trading_view_symbol || '';
   const tvSymbol = useMemo(
@@ -51,15 +48,6 @@ const TradingViewWidget = ({
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
     };
-  }, []);
-
-  useEffect(() => {
-    const handleResize = () => setIsCompactViewport(window.innerWidth < 640);
-
-    handleResize();
-    window.addEventListener('resize', handleResize);
-
-    return () => window.removeEventListener('resize', handleResize);
   }, []);
 
   useEffect(() => {
@@ -103,13 +91,13 @@ const TradingViewWidget = ({
       style: '1',
       locale: 'en',
       backgroundColor: isDark ? '#0f172a' : '#ffffff',
-      withdateranges: !isCompactViewport,
-      hide_side_toolbar: isCompactViewport,
+      withdateranges: true,
+      hide_side_toolbar: false,
       allow_symbol_change: false,
       save_image: false,
       calendar: false,
       details: true,
-      hotlist: !isCompactViewport,
+      hotlist: true,
       support_host: 'https://www.tradingview.com',
     });
 
@@ -121,7 +109,7 @@ const TradingViewWidget = ({
         containerRef.current.innerHTML = '';
       }
     };
-  }, [isCompactViewport, isOnline, symbol, theme, tvSymbol]);
+  }, [isOnline, symbol, theme, tvSymbol]);
 
   const isDark = theme === 'dark';
   const normalizedSymbol = normalizeSymbol(symbol);

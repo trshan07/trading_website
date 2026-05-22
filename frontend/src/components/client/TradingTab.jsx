@@ -247,15 +247,17 @@ const TradingTab = ({
                   <p className="text-xs text-slate-500 dark:text-slate-400">Primary execution view</p>
                 </div>
               </div>
-              <div className="h-[22rem] sm:h-[26rem] md:h-[38rem] xl:h-[44rem]">
-                <TradingViewWidget
-                  key={`terminal-${activeSymbol}-${theme}`}
-                  symbol={activeSymbol}
-                  theme={theme}
-                  instrument={selectedInstrument}
-                  positions={positions}
-                  marketStatus={marketSession.isOpen ? 'LIVE MARKET DATA' : 'MARKET CLOSED'}
-                />
+              <div className="overflow-x-auto overflow-y-hidden">
+                <div className="h-[22rem] min-w-[820px] sm:min-w-0 sm:h-[26rem] md:h-[38rem] xl:h-[44rem]">
+                  <TradingViewWidget
+                    key={`terminal-${activeSymbol}-${theme}`}
+                    symbol={activeSymbol}
+                    theme={theme}
+                    instrument={selectedInstrument}
+                    positions={positions}
+                    marketStatus={marketSession.isOpen ? 'LIVE MARKET DATA' : 'MARKET CLOSED'}
+                  />
+                </div>
               </div>
             </div>
           </div>
