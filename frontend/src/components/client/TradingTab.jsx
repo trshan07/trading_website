@@ -248,7 +248,7 @@ const TradingTab = ({
                 </div>
               </div>
               <div className="overflow-x-auto overflow-y-hidden">
-                <div className="h-[22rem] min-w-[820px] sm:min-w-0 sm:h-[26rem] md:h-[38rem] xl:h-[44rem]">
+                <div className="h-[28rem] min-w-[820px] sm:min-w-0 sm:h-[32rem] md:h-[44rem] xl:h-[50rem]">
                   <TradingViewWidget
                     key={`terminal-${activeSymbol}-${theme}`}
                     symbol={activeSymbol}
