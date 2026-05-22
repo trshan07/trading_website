@@ -193,7 +193,7 @@ const Header = ({
             </button>
             <button
               onClick={onWithdrawFunds}
-              className="hidden h-11 items-center rounded-2xl border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800 sm:inline-flex"
+              className="hidden h-11 items-center rounded-2xl bg-rose-500 px-4 text-sm font-medium text-white transition-colors hover:bg-rose-600 dark:bg-rose-500 dark:text-white dark:hover:bg-rose-400 sm:inline-flex"
             >
               Withdrawal
             </button>
@@ -325,7 +325,7 @@ const Header = ({
           </button>
           <button
             onClick={onWithdrawFunds}
-            className="inline-flex h-11 items-center justify-center rounded-2xl border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+            className="inline-flex h-11 items-center justify-center rounded-2xl bg-rose-500 px-4 text-sm font-medium text-white transition-colors hover:bg-rose-600 dark:bg-rose-500 dark:text-white dark:hover:bg-rose-400"
           >
             Withdrawal
           </button>
