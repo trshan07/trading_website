@@ -1948,7 +1948,33 @@ function ReportsPage({ users, trades, funding, toast }) {
 function SettingsPage({ toast }) {
   const [tab, setTab] = useState("platform");
   const [alertToggles, setAlertToggles] = useState([true, true, true, false, true]);
-  const [settings, setSettings] = useState({ platformName: "TIK TRADES Platform", supportEmail: "support@tiktrades.com", defaultLeverage: "100", maxLeverage: "500", defaultAccountType: "Standard", minDeposit: "100", maxWithdrawal: "50000", maintenanceMode: false, emailNotifications: true, smsAlerts: false, autoKyc: false, tradingEnabled: true, withdrawalsEnabled: true, depositsEnabled: true, twoFaRequired: true, maxCreditPerUser: "50000" });
+  const [settings, setSettings] = useState({
+    platformName: "TIK TRADES Platform",
+    supportEmail: "support@tiktrades.com",
+    defaultLeverage: "100",
+    maxLeverage: "500",
+    defaultAccountType: "Standard",
+    minDeposit: "100",
+    maxWithdrawal: "50000",
+    maintenanceMode: false,
+    emailNotifications: true,
+    smsAlerts: false,
+    autoKyc: false,
+    tradingEnabled: true,
+    withdrawalsEnabled: true,
+    depositsEnabled: true,
+    twoFaRequired: true,
+    maxCreditPerUser: "50000",
+    depositBankName: "Apex Global Trust",
+    depositAccountName: "Tik Trades Liquidity Pool",
+    depositAccountNumber: "992833774401",
+    depositIban: "GB29APEX0000992833774401",
+    depositSwiftBic: "TIKTR22",
+    depositBranch: "London Main Branch",
+    depositCountry: "United Kingdom",
+    depositReferenceFormat: "TT-[USER_ID]-[TIMESTAMP]",
+    depositInstructions: "Please include your User ID in the transfer reference to ensure rapid processing.",
+  });
   const [saving, setSaving] = useState(false);
   const set = (k, v) => setSettings(p => ({ ...p, [k]: v }));
   const toggle = (k) => setSettings(p => ({ ...p, [k]: !p[k] }));
@@ -1979,6 +2005,15 @@ function SettingsPage({ toast }) {
           depositsEnabled: data.deposits_enabled ?? prev.depositsEnabled,
           twoFaRequired: data.two_fa_required ?? prev.twoFaRequired,
           maxCreditPerUser: String(data.max_credit_per_user ?? prev.maxCreditPerUser),
+          depositBankName: data.deposit_bank_name ?? prev.depositBankName,
+          depositAccountName: data.deposit_account_name ?? prev.depositAccountName,
+          depositAccountNumber: data.deposit_account_number ?? prev.depositAccountNumber,
+          depositIban: data.deposit_iban ?? prev.depositIban,
+          depositSwiftBic: data.deposit_swift_bic ?? prev.depositSwiftBic,
+          depositBranch: data.deposit_branch ?? prev.depositBranch,
+          depositCountry: data.deposit_country ?? prev.depositCountry,
+          depositReferenceFormat: data.deposit_reference_format ?? prev.depositReferenceFormat,
+          depositInstructions: data.deposit_instructions ?? prev.depositInstructions,
         }));
 
         if (data.alert_triggers) {
@@ -2018,6 +2053,15 @@ function SettingsPage({ toast }) {
         max_leverage: String(settings.maxLeverage),
         default_account_type: settings.defaultAccountType,
         two_fa_required: !!settings.twoFaRequired,
+        deposit_bank_name: settings.depositBankName,
+        deposit_account_name: settings.depositAccountName,
+        deposit_account_number: settings.depositAccountNumber,
+        deposit_iban: settings.depositIban,
+        deposit_swift_bic: settings.depositSwiftBic,
+        deposit_branch: settings.depositBranch,
+        deposit_country: settings.depositCountry,
+        deposit_reference_format: settings.depositReferenceFormat,
+        deposit_instructions: settings.depositInstructions,
         alert_triggers: {
           large_deposit: !!alertToggles[0],
           withdrawal_pending: !!alertToggles[1],
@@ -2057,6 +2101,15 @@ function SettingsPage({ toast }) {
               <Input label="Minimum Deposit (USD)" type="number" value={settings.minDeposit} onChange={e => set("minDeposit", e.target.value)} />
               <Input label="Maximum Withdrawal (USD)" type="number" value={settings.maxWithdrawal} onChange={e => set("maxWithdrawal", e.target.value)} />
               <Input label="Max Credit Per User (USD)" type="number" value={settings.maxCreditPerUser} onChange={e => set("maxCreditPerUser", e.target.value)} />
+              <Input label="Deposit Bank Name" value={settings.depositBankName} onChange={e => set("depositBankName", e.target.value)} />
+              <Input label="Deposit Account Name" value={settings.depositAccountName} onChange={e => set("depositAccountName", e.target.value)} />
+              <Input label="Deposit Account Number" value={settings.depositAccountNumber} onChange={e => set("depositAccountNumber", e.target.value)} />
+              <Input label="Deposit IBAN" value={settings.depositIban} onChange={e => set("depositIban", e.target.value.toUpperCase())} />
+              <Input label="Deposit SWIFT / BIC" value={settings.depositSwiftBic} onChange={e => set("depositSwiftBic", e.target.value.toUpperCase())} />
+              <Input label="Deposit Branch" value={settings.depositBranch} onChange={e => set("depositBranch", e.target.value)} />
+              <Input label="Deposit Country" value={settings.depositCountry} onChange={e => set("depositCountry", e.target.value)} />
+              <Input label="Reference Format" value={settings.depositReferenceFormat} onChange={e => set("depositReferenceFormat", e.target.value)} hint="Shown to clients for bank transfer references" />
+              <Textarea label="Deposit Instructions" value={settings.depositInstructions} onChange={e => set("depositInstructions", e.target.value)} placeholder="Instructions shown to clients before they make a transfer" rows={3} />
               <Btn onClick={() => saveSettings("Platform settings updated")} fullWidth disabled={saving}>{saving ? "Saving..." : "Save Settings"}</Btn>
             </Card>
             <Card title="Platform Controls">
