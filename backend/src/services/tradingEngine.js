@@ -22,6 +22,11 @@ const {
     calculateMovementValue,
     getInstrumentTradingMeta,
 } = require('../utils/calculators');
+const {
+    calculateNetPositionPnl,
+    calculatePositionFees,
+    calculatePositionNetState,
+} = require('../utils/tradingFees');
 
 const MARGIN_CALL_LEVEL = Number.parseFloat(process.env.MARGIN_CALL_LEVEL ?? '100') || 100;
 const STOP_OUT_LEVEL = Number.parseFloat(process.env.STOP_OUT_LEVEL ?? '50') || 50;
@@ -333,6 +338,17 @@ const buildTradePreview = async ({ account = null, payload = {}, side = null }) 
         exitPrice: trade.stopLoss,
         quantity: trade.quantity,
     });
+    const feeSnapshot = calculatePositionFees({
+        symbol: trade.symbol,
+        category: trade.category,
+        instrument: marketContext.instrumentConfig,
+        side: trade.side,
+        lots: trade.lots,
+        quantity: trade.quantity,
+        entryPrice: previewEntryPrice,
+        accountType: account?.account_type || 'real',
+        openedAt: new Date(),
+    });
     const risk = account ? await evaluateAccountRisk(account.id) : null;
     const freeMargin = risk ? risk.risk.freeMargin : (account ? (Number.parseFloat(account.balance) + Number.parseFloat(account.credit)) : null);
     const tradeSide = String(trade.side).toLowerCase();
@@ -375,6 +391,7 @@ const buildTradePreview = async ({ account = null, payload = {}, side = null }) 
         bid: Number.parseFloat(marketContext.quote?.bid) || null,
         ask: Number.parseFloat(marketContext.quote?.ask) || null,
         quoteSource: marketContext.quote?.source || null,
+        instrumentConfig: marketContext.instrumentConfig,
         lots: trade.lots,
         quantity: trade.quantity,
         amount: trade.amount,
@@ -399,6 +416,9 @@ const buildTradePreview = async ({ account = null, payload = {}, side = null }) 
         calculationMode: meta.calculationMode,
         calculationVerified: meta.calculationVerified,
         pipValue,
+        projectedCommission: feeSnapshot.commission,
+        projectedSwap: feeSnapshot.swap,
+        projectedFeeTotal: feeSnapshot.feeTotal,
         takeProfit: trade.takeProfit,
         stopLoss: trade.stopLoss,
         projectedTakeProfitPnl: tpPnl,
@@ -438,6 +458,12 @@ const buildTradePreview = async ({ account = null, payload = {}, side = null }) 
                 valueLabel: meta.movementValueLabel,
                 size: meta.movementSize,
                 valuePerMovement: pipValue,
+            },
+            fees: {
+                commission: feeSnapshot.commission,
+                swap: feeSnapshot.swap,
+                total: feeSnapshot.feeTotal,
+                daysHeld: feeSnapshot.daysHeld,
             },
             margin: {
                 notional: trade.amount,
@@ -532,7 +558,22 @@ const creditMarginAndPnlToAccount = async ({ accountId, userId, realizedMargin, 
     };
 };
 
-const createExecutedPosition = async ({ userId, accountId, symbol, side, amount, quantity, entryPrice, leverage, takeProfit, stopLoss, margin, orderType = 'market', existingOrderId = null }) => {
+const createExecutedPosition = async ({
+    userId,
+    accountId,
+    symbol,
+    side,
+    amount,
+    quantity,
+    entryPrice,
+    leverage,
+    takeProfit,
+    stopLoss,
+    margin,
+    orderType = 'market',
+    existingOrderId = null,
+    instrumentConfig = null,
+}) => {
     const accounts = await Account.findByUserId(userId);
     const account = accounts.find((item) => item.id == accountId);
     if (!account) {
@@ -543,6 +584,15 @@ const createExecutedPosition = async ({ userId, accountId, symbol, side, amount,
         accountId,
         account,
         requiredMargin: margin,
+    });
+    const feeSnapshot = calculatePositionFees({
+        symbol,
+        instrument: instrumentConfig || {},
+        side,
+        quantity,
+        entryPrice,
+        accountType: account.account_type || 'real',
+        openedAt: new Date(),
     });
 
     let order = null;
@@ -576,6 +626,10 @@ const createExecutedPosition = async ({ userId, accountId, symbol, side, amount,
         amount,
         quantity,
         entryPrice,
+        grossPnl: 0,
+        commission: feeSnapshot.commission,
+        swap: feeSnapshot.swap,
+        pnl: feeSnapshot.commission + feeSnapshot.swap,
         margin,
         leverage,
         takeProfit,
@@ -661,6 +715,7 @@ const placeTrade = async ({ userId, accountId, payload }) => {
         stopLoss: preview.stopLoss,
         margin: preview.requiredMargin,
         orderType: 'market',
+        instrumentConfig: preview.instrumentConfig,
     });
 
     return {
@@ -803,27 +858,51 @@ const syncOpenPositionsWithMarket = async () => {
         preferChartAligned: true,
         refresh: true,
     });
+    const accountIds = Array.from(new Set(positions.map((position) => position.account_id).filter(Boolean)));
+    const accountPairs = await Promise.all(
+        accountIds.map(async (accountId) => [accountId, await Account.findById(accountId)])
+    );
+    const accountById = new Map(accountPairs);
+    const instrumentConfigs = await Promise.all(
+        symbols.map(async (symbol) => [symbol, await getMergedInstrumentConfig(symbol)])
+    );
+    const instrumentConfigBySymbol = new Map(instrumentConfigs);
 
     const priceUpdates = [];
     const autoClosed = [];
 
     for (const position of positions) {
+        const instrumentConfig = instrumentConfigBySymbol.get(position.symbol) || {};
+        const account = accountById.get(position.account_id) || {};
         const quote = quotes[normalizeSymbol(position.symbol)] || quotes[position.symbol] || {};
         const markPrice = getMarkPriceForSide(quote, position.side)
             || Number.parseFloat(position.current_price)
             || Number.parseFloat(position.entry_price)
             || 0;
-        const pnl = calculatePositionPnl({
+        const netState = calculatePositionNetState({
+            symbol: position.symbol,
+            category: instrumentConfig.category || position.category || '',
+            instrument: instrumentConfig,
             side: position.side,
             entryPrice: Number.parseFloat(position.entry_price) || 0,
             exitPrice: markPrice,
             quantity: Number.parseFloat(position.quantity) || 0,
+            lots: Number.parseFloat(position.quantity) && instrumentConfig.contractSize
+                ? (Number.parseFloat(position.quantity) / instrumentConfig.contractSize)
+                : null,
+            accountType: account.account_type || 'real',
+            openedAt: position.created_at || position.opened_at,
+            commission: position.commission,
+            swap: position.swap,
         });
 
         priceUpdates.push({
             id: position.id,
             current_price: markPrice,
-            pnl,
+            grossPnl: netState.grossPnl,
+            commission: netState.commission,
+            swap: netState.swap,
+            pnl: netState.pnl,
         });
 
         const autoClose = shouldAutoClosePosition({ position, markPrice });
@@ -911,6 +990,7 @@ const processPendingOrders = async ({ accountId = null, userId = null, symbols =
                 margin,
                 orderType: normalizeOrderType(order.type, order.side),
                 existingOrderId: order.id,
+                instrumentConfig: await getMergedInstrumentConfig(order.symbol),
             });
 
             executed.push({
@@ -989,6 +1069,8 @@ const closePosition = async ({ positionId, userId, exitPrice, quantity = null })
         throw new Error('Open position not found');
     }
 
+    const account = await Account.findById(position.account_id);
+
     let closePrice = Number.parseFloat(exitPrice);
     if (!Number.isFinite(closePrice) || closePrice <= 0) {
         const quote = await fetchPreferredQuote(position.symbol);
@@ -1010,12 +1092,25 @@ const closePosition = async ({ positionId, userId, exitPrice, quantity = null })
     const ratio = closeQuantity / positionQuantity;
     const realizedAmount = positionAmount * ratio;
     const realizedMargin = positionMargin * ratio;
-    const pnl = calculatePositionPnl({
+    const instrumentConfig = await getMergedInstrumentConfig(position.symbol);
+    const netState = calculatePositionNetState({
+        symbol: position.symbol,
+        category: instrumentConfig.category || position.category || '',
+        instrument: instrumentConfig,
         side: position.side,
         entryPrice,
         exitPrice: closePrice,
-        quantity: closeQuantity,
+        quantity: positionQuantity,
+        lots: position.lots != null ? Number.parseFloat(position.lots) || null : null,
+        accountType: account?.account_type || 'real',
+        openedAt: position.created_at || position.opened_at,
+        commission: position.commission,
+        swap: position.swap,
     });
+    const pnl = netState.pnl * ratio;
+    const grossPnl = netState.grossPnl * ratio;
+    const commission = netState.commission * ratio;
+    const swap = netState.swap * ratio;
 
     const funds = await creditMarginAndPnlToAccount({
         accountId: position.account_id,
@@ -1027,13 +1122,17 @@ const closePosition = async ({ positionId, userId, exitPrice, quantity = null })
     let updatedPosition;
     let mode = 'full';
     if (closeQuantity === positionQuantity) {
-        updatedPosition = await Position.close(positionId, closePrice, pnl);
+        updatedPosition = await Position.close(positionId, closePrice, pnl, grossPnl, commission, swap);
     } else {
         updatedPosition = await Position.reduce(positionId, {
             quantity: positionQuantity - closeQuantity,
             amount: positionAmount - realizedAmount,
             margin: positionMargin - realizedMargin,
             currentPrice: closePrice,
+            grossPnl: netState.grossPnl - grossPnl,
+            commission: netState.commission - commission,
+            swap: netState.swap - swap,
+            pnl: netState.pnl - pnl,
         });
         mode = 'partial';
     }
@@ -1105,6 +1204,13 @@ const calculateAccountRisk = ({ account = {}, positions = [], quotes = {} }) => 
     let unrealizedPnl = 0;
 
     for (const position of positions) {
+        const storedPnl = Number.parseFloat(position.pnl);
+        if (Number.isFinite(storedPnl)) {
+            usedMargin += Number.parseFloat(position.margin) || 0;
+            unrealizedPnl += storedPnl;
+            continue;
+        }
+
         const side = position.side;
         const entryPrice = Number.parseFloat(position.entry_price) || 0;
         const quantity = Number.parseFloat(position.quantity) || 0;
@@ -1163,6 +1269,12 @@ const evaluateAccountRisk = async (accountId, userId = null) => {
     }
 
     const sortedPositions = [...positions].sort((left, right) => {
+        const leftStoredPnl = Number.parseFloat(left.pnl);
+        const rightStoredPnl = Number.parseFloat(right.pnl);
+        if (Number.isFinite(leftStoredPnl) && Number.isFinite(rightStoredPnl)) {
+            return leftStoredPnl - rightStoredPnl;
+        }
+
         const leftQuote = quotes[normalizeSymbol(left.symbol)] || quotes[left.symbol] || {};
         const rightQuote = quotes[normalizeSymbol(right.symbol)] || quotes[right.symbol] || {};
         const leftPnl = calculatePositionPnl({

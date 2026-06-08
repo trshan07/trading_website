@@ -167,6 +167,13 @@ const mapInstrumentConfigRow = (row = {}) => ({
     defaultPrice: toNullableNumber(row.default_price),
     defaultChange: toNullableNumber(row.default_change),
     defaultVolume: row.default_volume || null,
+    commissionRate: toNullableNumber(row.commission_rate),
+    commissionPerLotSide: toNullableNumber(row.commission_per_lot_side),
+    commissionMin: toNullableNumber(row.commission_min),
+    swapLongPerLotDay: toNullableNumber(row.swap_long_per_lot_day),
+    swapShortPerLotDay: toNullableNumber(row.swap_short_per_lot_day),
+    swapLongRate: toNullableNumber(row.swap_long_rate),
+    swapShortRate: toNullableNumber(row.swap_short_rate),
 });
 
 const getCachedInstrumentConfigs = async () => {
@@ -195,12 +202,19 @@ const getCachedInstrumentConfigs = async () => {
                     category_name,
                     default_price,
                     default_change,
-                    default_volume
+                    default_volume,
+                    commission_rate,
+                    commission_per_lot_side,
+                    commission_min,
+                    swap_long_per_lot_day,
+                    swap_short_per_lot_day,
+                    swap_long_rate,
+                    swap_short_rate
                 FROM instruments
                 WHERE is_active = TRUE
             `));
         } catch (error) {
-            if (!(isMissingColumnError(error) && error?.message?.includes('data_symbol'))) {
+            if (!isMissingColumnError(error)) {
                 throw error;
             }
 
@@ -221,7 +235,14 @@ const getCachedInstrumentConfigs = async () => {
                     category_name,
                     default_price,
                     default_change,
-                    default_volume
+                    default_volume,
+                    NULL::numeric AS commission_rate,
+                    NULL::numeric AS commission_per_lot_side,
+                    NULL::numeric AS commission_min,
+                    NULL::numeric AS swap_long_per_lot_day,
+                    NULL::numeric AS swap_short_per_lot_day,
+                    NULL::numeric AS swap_long_rate,
+                    NULL::numeric AS swap_short_rate
                 FROM instruments
                 WHERE is_active = TRUE
             `));
@@ -280,6 +301,13 @@ const getMergedInstrumentConfig = async (symbol = '') => {
         defaultPrice: dbConfig.defaultPrice ?? null,
         defaultChange: dbConfig.defaultChange ?? null,
         defaultVolume: dbConfig.defaultVolume ?? null,
+        commissionRate: dbConfig.commissionRate ?? toNullableNumber(staticConfig.commissionRate),
+        commissionPerLotSide: dbConfig.commissionPerLotSide ?? toNullableNumber(staticConfig.commissionPerLotSide),
+        commissionMin: dbConfig.commissionMin ?? toNullableNumber(staticConfig.commissionMin),
+        swapLongPerLotDay: dbConfig.swapLongPerLotDay ?? toNullableNumber(staticConfig.swapLongPerLotDay),
+        swapShortPerLotDay: dbConfig.swapShortPerLotDay ?? toNullableNumber(staticConfig.swapShortPerLotDay),
+        swapLongRate: dbConfig.swapLongRate ?? toNullableNumber(staticConfig.swapLongRate),
+        swapShortRate: dbConfig.swapShortRate ?? toNullableNumber(staticConfig.swapShortRate),
     };
 };
 

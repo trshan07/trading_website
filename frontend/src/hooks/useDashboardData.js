@@ -429,7 +429,7 @@ const mapPositionToLiveView = (position = {}, instruments = [], marketData = {},
     quantity,
   });
   const lots = calculateLotsFromQuantity(quantity, position.symbol, snapshot.category, snapshot);
-  const fees = calculatePositionFees({
+  const feeEstimate = calculatePositionFees({
     symbol: position.symbol,
     category: snapshot.category,
     instrument: snapshot,
@@ -440,11 +440,22 @@ const mapPositionToLiveView = (position = {}, instruments = [], marketData = {},
     accountType: account?.account_type || account?.type || 'real',
     openedAt: position.created_at || position.createdAt,
   });
-  const netPnl = calculateNetPositionPnl({
-    grossPnl: pnl,
-    commission: fees.commission,
-    swap: fees.swap,
-  });
+  const grossPnl = Number.isFinite(Number.parseFloat(position.gross_pnl ?? position.grossPnl))
+    ? Number.parseFloat(position.gross_pnl ?? position.grossPnl)
+    : pnl;
+  const commission = Number.isFinite(Number.parseFloat(position.commission))
+    ? Number.parseFloat(position.commission)
+    : feeEstimate.commission;
+  const swap = Number.isFinite(Number.parseFloat(position.swap))
+    ? Number.parseFloat(position.swap)
+    : feeEstimate.swap;
+  const netPnl = Number.isFinite(Number.parseFloat(position.pnl))
+    ? Number.parseFloat(position.pnl)
+    : calculateNetPositionPnl({
+        grossPnl,
+        commission,
+        swap,
+      });
   const totalPositionValue = calculateUsdFromLots(lots, entryPrice, snapshot.category, position.symbol, snapshot)
     || Number.parseFloat(position.amount)
     || (quantity * entryPrice);
@@ -459,7 +470,7 @@ const mapPositionToLiveView = (position = {}, instruments = [], marketData = {},
     lots,
     entryPrice,
     currentPrice: markPrice,
-    grossPnl: pnl,
+    grossPnl,
     pnl: netPnl,
     pnlPercent: totalPositionValue > 0 ? (netPnl / totalPositionValue) * 100 : 0,
     margin: Number.parseFloat(position.margin) || 0,
@@ -474,10 +485,10 @@ const mapPositionToLiveView = (position = {}, instruments = [], marketData = {},
       : (position.stopLoss != null ? Number.parseFloat(position.stopLoss) : null),
     createdAt: position.created_at || position.createdAt,
     entryTime: position.created_at || position.createdAt,
-    swap: fees.swap,
-    commission: fees.commission,
-    feeTotal: fees.feeTotal,
-    feeDaysHeld: fees.daysHeld,
+    swap,
+    commission,
+    feeTotal: commission + swap,
+    feeDaysHeld: feeEstimate.daysHeld,
   };
 };
 

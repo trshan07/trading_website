@@ -91,13 +91,25 @@ CREATE TABLE IF NOT EXISTS positions (
     user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
     account_id INTEGER REFERENCES accounts(id) ON DELETE CASCADE,
     symbol VARCHAR(50),
+    side VARCHAR(10),
     type VARCHAR(10),
-    volume DECIMAL(15,4),
-    open_price DECIMAL(15,5),
+    amount DECIMAL(15,8),
+    quantity DECIMAL(15,8),
+    entry_price DECIMAL(15,8),
     current_price DECIMAL(15,5),
-    profit_loss DECIMAL(15,2) DEFAULT 0,
+    close_price DECIMAL(15,8),
+    gross_pnl DECIMAL(15,8) DEFAULT 0,
+    commission DECIMAL(15,8) DEFAULT 0,
+    swap DECIMAL(15,8) DEFAULT 0,
+    pnl DECIMAL(15,8) DEFAULT 0,
+    margin DECIMAL(15,8) DEFAULT 0,
+    leverage INTEGER,
+    take_profit DECIMAL(15,8),
+    stop_loss DECIMAL(15,8),
     status VARCHAR(20) DEFAULT 'open',
     opened_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     closed_at TIMESTAMP
 );
 
@@ -108,8 +120,21 @@ CREATE TABLE IF NOT EXISTS instruments (
     name VARCHAR(100),
     type VARCHAR(50),
     category VARCHAR(50),
+    spread DECIMAL(15,8),
+    contract_size DECIMAL(15,8),
+    lot_step DECIMAL(15,8),
+    min_lot DECIMAL(15,8),
+    quantity_label VARCHAR(50),
+    commission_rate DECIMAL(15,8),
+    commission_per_lot_side DECIMAL(15,8),
+    commission_min DECIMAL(15,8),
+    swap_long_per_lot_day DECIMAL(15,8),
+    swap_short_per_lot_day DECIMAL(15,8),
+    swap_long_rate DECIMAL(15,8),
+    swap_short_rate DECIMAL(15,8),
     is_active BOOLEAN DEFAULT true,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- ── Alerts ───────────────────────────────────────────────────

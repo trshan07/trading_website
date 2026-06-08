@@ -14,6 +14,180 @@ BEGIN
     END;
 END $$;
 
+DO $$
+BEGIN
+    BEGIN
+        ALTER TABLE positions ADD COLUMN side VARCHAR(10);
+    EXCEPTION
+        WHEN duplicate_column THEN RAISE NOTICE 'column side already exists in positions.';
+    END;
+
+    BEGIN
+        ALTER TABLE positions ADD COLUMN amount DECIMAL(15,8);
+    EXCEPTION
+        WHEN duplicate_column THEN RAISE NOTICE 'column amount already exists in positions.';
+    END;
+
+    BEGIN
+        ALTER TABLE positions ADD COLUMN quantity DECIMAL(15,8);
+    EXCEPTION
+        WHEN duplicate_column THEN RAISE NOTICE 'column quantity already exists in positions.';
+    END;
+
+    BEGIN
+        ALTER TABLE positions ADD COLUMN entry_price DECIMAL(15,8);
+    EXCEPTION
+        WHEN duplicate_column THEN RAISE NOTICE 'column entry_price already exists in positions.';
+    END;
+
+    BEGIN
+        ALTER TABLE positions ADD COLUMN close_price DECIMAL(15,8);
+    EXCEPTION
+        WHEN duplicate_column THEN RAISE NOTICE 'column close_price already exists in positions.';
+    END;
+
+    BEGIN
+        ALTER TABLE positions ADD COLUMN gross_pnl DECIMAL(15,8) DEFAULT 0;
+    EXCEPTION
+        WHEN duplicate_column THEN RAISE NOTICE 'column gross_pnl already exists in positions.';
+    END;
+
+    BEGIN
+        ALTER TABLE positions ADD COLUMN commission DECIMAL(15,8) DEFAULT 0;
+    EXCEPTION
+        WHEN duplicate_column THEN RAISE NOTICE 'column commission already exists in positions.';
+    END;
+
+    BEGIN
+        ALTER TABLE positions ADD COLUMN swap DECIMAL(15,8) DEFAULT 0;
+    EXCEPTION
+        WHEN duplicate_column THEN RAISE NOTICE 'column swap already exists in positions.';
+    END;
+
+    BEGIN
+        ALTER TABLE positions ADD COLUMN pnl DECIMAL(15,8) DEFAULT 0;
+    EXCEPTION
+        WHEN duplicate_column THEN RAISE NOTICE 'column pnl already exists in positions.';
+    END;
+
+    BEGIN
+        ALTER TABLE positions ADD COLUMN margin DECIMAL(15,8) DEFAULT 0;
+    EXCEPTION
+        WHEN duplicate_column THEN RAISE NOTICE 'column margin already exists in positions.';
+    END;
+
+    BEGIN
+        ALTER TABLE positions ADD COLUMN leverage INTEGER;
+    EXCEPTION
+        WHEN duplicate_column THEN RAISE NOTICE 'column leverage already exists in positions.';
+    END;
+
+    BEGIN
+        ALTER TABLE positions ADD COLUMN take_profit DECIMAL(15,8);
+    EXCEPTION
+        WHEN duplicate_column THEN RAISE NOTICE 'column take_profit already exists in positions.';
+    END;
+
+    BEGIN
+        ALTER TABLE positions ADD COLUMN stop_loss DECIMAL(15,8);
+    EXCEPTION
+        WHEN duplicate_column THEN RAISE NOTICE 'column stop_loss already exists in positions.';
+    END;
+
+    BEGIN
+        ALTER TABLE positions ADD COLUMN created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
+    EXCEPTION
+        WHEN duplicate_column THEN RAISE NOTICE 'column created_at already exists in positions.';
+    END;
+
+    BEGIN
+        ALTER TABLE positions ADD COLUMN updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
+    EXCEPTION
+        WHEN duplicate_column THEN RAISE NOTICE 'column updated_at already exists in positions.';
+    END;
+END $$;
+
+DO $$
+BEGIN
+    BEGIN
+        ALTER TABLE instruments ADD COLUMN spread DECIMAL(15,8);
+    EXCEPTION
+        WHEN duplicate_column THEN RAISE NOTICE 'column spread already exists in instruments.';
+    END;
+
+    BEGIN
+        ALTER TABLE instruments ADD COLUMN contract_size DECIMAL(15,8);
+    EXCEPTION
+        WHEN duplicate_column THEN RAISE NOTICE 'column contract_size already exists in instruments.';
+    END;
+
+    BEGIN
+        ALTER TABLE instruments ADD COLUMN lot_step DECIMAL(15,8);
+    EXCEPTION
+        WHEN duplicate_column THEN RAISE NOTICE 'column lot_step already exists in instruments.';
+    END;
+
+    BEGIN
+        ALTER TABLE instruments ADD COLUMN min_lot DECIMAL(15,8);
+    EXCEPTION
+        WHEN duplicate_column THEN RAISE NOTICE 'column min_lot already exists in instruments.';
+    END;
+
+    BEGIN
+        ALTER TABLE instruments ADD COLUMN quantity_label VARCHAR(50);
+    EXCEPTION
+        WHEN duplicate_column THEN RAISE NOTICE 'column quantity_label already exists in instruments.';
+    END;
+
+    BEGIN
+        ALTER TABLE instruments ADD COLUMN commission_rate DECIMAL(15,8);
+    EXCEPTION
+        WHEN duplicate_column THEN RAISE NOTICE 'column commission_rate already exists in instruments.';
+    END;
+
+    BEGIN
+        ALTER TABLE instruments ADD COLUMN commission_per_lot_side DECIMAL(15,8);
+    EXCEPTION
+        WHEN duplicate_column THEN RAISE NOTICE 'column commission_per_lot_side already exists in instruments.';
+    END;
+
+    BEGIN
+        ALTER TABLE instruments ADD COLUMN commission_min DECIMAL(15,8);
+    EXCEPTION
+        WHEN duplicate_column THEN RAISE NOTICE 'column commission_min already exists in instruments.';
+    END;
+
+    BEGIN
+        ALTER TABLE instruments ADD COLUMN swap_long_per_lot_day DECIMAL(15,8);
+    EXCEPTION
+        WHEN duplicate_column THEN RAISE NOTICE 'column swap_long_per_lot_day already exists in instruments.';
+    END;
+
+    BEGIN
+        ALTER TABLE instruments ADD COLUMN swap_short_per_lot_day DECIMAL(15,8);
+    EXCEPTION
+        WHEN duplicate_column THEN RAISE NOTICE 'column swap_short_per_lot_day already exists in instruments.';
+    END;
+
+    BEGIN
+        ALTER TABLE instruments ADD COLUMN swap_long_rate DECIMAL(15,8);
+    EXCEPTION
+        WHEN duplicate_column THEN RAISE NOTICE 'column swap_long_rate already exists in instruments.';
+    END;
+
+    BEGIN
+        ALTER TABLE instruments ADD COLUMN swap_short_rate DECIMAL(15,8);
+    EXCEPTION
+        WHEN duplicate_column THEN RAISE NOTICE 'column swap_short_rate already exists in instruments.';
+    END;
+
+    BEGIN
+        ALTER TABLE instruments ADD COLUMN updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
+    EXCEPTION
+        WHEN duplicate_column THEN RAISE NOTICE 'column updated_at already exists in instruments.';
+    END;
+END $$;
+
 -- Create kyc_submissions table
 CREATE TABLE IF NOT EXISTS kyc_submissions (
     id SERIAL PRIMARY KEY,

@@ -69,6 +69,10 @@ class Position {
             amount,
             quantity,
             entryPrice,
+            grossPnl = 0,
+            commission = 0,
+            swap = 0,
+            pnl = 0,
             margin,
             leverage = null,
             takeProfit = null,
@@ -78,12 +82,12 @@ class Position {
         const query = `
             INSERT INTO positions (
                 user_id, account_id, symbol, side, amount, quantity, entry_price, current_price,
-                margin, leverage, take_profit, stop_loss, status
+                gross_pnl, commission, swap, pnl, margin, leverage, take_profit, stop_loss, status
             )
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, 'open')
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, 'open')
             RETURNING *
         `;
-        const values = [userId, accountId, symbol, side, amount, quantity, entryPrice, entryPrice, margin, leverage, takeProfit, stopLoss];
+        const values = [userId, accountId, symbol, side, amount, quantity, entryPrice, entryPrice, grossPnl, commission, swap, pnl, margin, leverage, takeProfit, stopLoss];
         const legacyQuery = `
             INSERT INTO positions (user_id, account_id, symbol, side, amount, quantity, entry_price, current_price, margin, status)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'open')
@@ -105,19 +109,40 @@ class Position {
         }
     }
 
-    static async close(id, closePrice, pnl) {
+    static async close(id, closePrice, pnl, grossPnl = null, commission = null, swap = null) {
         const query = `
             UPDATE positions 
             SET status = 'closed', 
                 close_price = $1, 
                 pnl = $2, 
+                gross_pnl = COALESCE($3, gross_pnl),
+                commission = COALESCE($4, commission),
+                swap = COALESCE($5, swap),
                 closed_at = CURRENT_TIMESTAMP,
                 updated_at = CURRENT_TIMESTAMP
-            WHERE id = $3 
+            WHERE id = $6 
             RETURNING *
         `;
-        const { rows } = await db.query(query, [closePrice, pnl, id]);
-        return rows[0];
+        try {
+            const { rows } = await db.query(query, [closePrice, pnl, grossPnl, commission, swap, id]);
+            return rows[0];
+        } catch (error) {
+            if (isMissingColumnError(error)) {
+                const legacyQuery = `
+                    UPDATE positions 
+                    SET status = 'closed', 
+                        close_price = $1, 
+                        pnl = $2, 
+                        closed_at = CURRENT_TIMESTAMP,
+                        updated_at = CURRENT_TIMESTAMP
+                    WHERE id = $3 
+                    RETURNING *
+                `;
+                const { rows } = await db.query(legacyQuery, [closePrice, pnl, id]);
+                return rows[0];
+            }
+            throw error;
+        }
     }
 
     static async updateProtection(id, takeProfit, stopLoss) {
@@ -139,6 +164,10 @@ class Position {
             amount,
             margin,
             currentPrice,
+            grossPnl,
+            commission,
+            swap,
+            pnl,
         } = updates;
 
         const query = `
@@ -147,12 +176,34 @@ class Position {
                 amount = $2,
                 margin = $3,
                 current_price = COALESCE($4, current_price),
+                gross_pnl = COALESCE($5, gross_pnl),
+                commission = COALESCE($6, commission),
+                swap = COALESCE($7, swap),
+                pnl = COALESCE($8, pnl),
                 updated_at = CURRENT_TIMESTAMP
-            WHERE id = $5 AND status = 'open'
+            WHERE id = $9 AND status = 'open'
             RETURNING *
         `;
-        const { rows } = await db.query(query, [quantity, amount, margin, currentPrice, id]);
-        return rows[0];
+        try {
+            const { rows } = await db.query(query, [quantity, amount, margin, currentPrice, grossPnl, commission, swap, pnl, id]);
+            return rows[0];
+        } catch (error) {
+            if (isMissingColumnError(error)) {
+                const legacyQuery = `
+                    UPDATE positions
+                    SET quantity = $1,
+                        amount = $2,
+                        margin = $3,
+                        current_price = COALESCE($4, current_price),
+                        updated_at = CURRENT_TIMESTAMP
+                    WHERE id = $5 AND status = 'open'
+                    RETURNING *
+                `;
+                const { rows } = await db.query(legacyQuery, [quantity, amount, margin, currentPrice, id]);
+                return rows[0];
+            }
+            throw error;
+        }
     }
 
     static async updatePrices(updates) {
@@ -167,18 +218,45 @@ class Position {
                     const query = `
                         UPDATE positions
                         SET current_price = $1,
-                            pnl = $2,
+                            gross_pnl = COALESCE($2, gross_pnl),
+                            commission = COALESCE($3, commission),
+                            swap = COALESCE($4, swap),
+                            pnl = COALESCE($5, pnl),
                             updated_at = CURRENT_TIMESTAMP
-                        WHERE id = $3 AND status = 'open'
+                        WHERE id = $6 AND status = 'open'
                         RETURNING *
                     `;
                     const values = [
                         update.current_price ?? update.currentPrice ?? null,
+                        update.grossPnl ?? update.gross_pnl ?? update.pnl ?? 0,
+                        update.commission ?? null,
+                        update.swap ?? null,
                         update.pnl ?? 0,
                         update.id,
                     ];
-                    const { rows } = await db.query(query, values);
-                    return rows[0] || null;
+                    try {
+                        const { rows } = await db.query(query, values);
+                        return rows[0] || null;
+                    } catch (error) {
+                        if (isMissingColumnError(error)) {
+                            const legacyQuery = `
+                                UPDATE positions
+                                SET current_price = $1,
+                                    pnl = $2,
+                                    updated_at = CURRENT_TIMESTAMP
+                                WHERE id = $3 AND status = 'open'
+                                RETURNING *
+                            `;
+                            const legacyValues = [
+                                update.current_price ?? update.currentPrice ?? null,
+                                update.pnl ?? 0,
+                                update.id,
+                            ];
+                            const { rows } = await db.query(legacyQuery, legacyValues);
+                            return rows[0] || null;
+                        }
+                        throw error;
+                    }
                 })
         );
 

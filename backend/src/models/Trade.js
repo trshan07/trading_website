@@ -67,6 +67,7 @@ class Trade {
             SELECT p.id, p.user_id, p.account_id, p.symbol, p.side, 
                    p.amount as usd_amount, p.quantity as amount, 
                    p.entry_price, p.close_price as exit_price, p.pnl, 
+                   p.gross_pnl, p.swap, p.commission,
                    p.status, p.created_at, p.updated_at,
                    u.email as user_email, u.first_name, u.last_name,
                    a.account_number
