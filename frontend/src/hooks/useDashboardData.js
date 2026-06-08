@@ -14,6 +14,7 @@ import { buildInstrumentSnapshot } from '../utils/marketSymbols';
 import { getMarketSessionState } from '../utils/marketHours';
 import { calculateLotsFromQuantity, calculateProjectedPnL, calculateUsdFromLots } from '../utils/tradingUtils';
 import { calculateSpreads } from '../utils/spreadCalculator';
+import { calculateNetPositionPnl, calculatePositionFees } from '../utils/tradingFees';
 
 const GLOBAL_CHART_QUOTES_REFRESH_MS = 5000;
 const ACTIVE_CHART_SYMBOL_REFRESH_MS = 1000;
@@ -401,7 +402,7 @@ const normalizeTransaction = (transaction = {}) => {
   };
 };
 
-const mapPositionToLiveView = (position = {}, instruments = [], marketData = {}) => {
+const mapPositionToLiveView = (position = {}, instruments = [], marketData = {}, account = {}) => {
   const instrument = instruments.find((item) => item.symbol === position.symbol);
   const snapshot = buildInstrumentSnapshot({
     symbol: position.symbol,
@@ -428,6 +429,22 @@ const mapPositionToLiveView = (position = {}, instruments = [], marketData = {})
     quantity,
   });
   const lots = calculateLotsFromQuantity(quantity, position.symbol, snapshot.category, snapshot);
+  const fees = calculatePositionFees({
+    symbol: position.symbol,
+    category: snapshot.category,
+    instrument: snapshot,
+    side,
+    lots,
+    quantity,
+    entryPrice,
+    accountType: account?.account_type || account?.type || 'real',
+    openedAt: position.created_at || position.createdAt,
+  });
+  const netPnl = calculateNetPositionPnl({
+    grossPnl: pnl,
+    commission: fees.commission,
+    swap: fees.swap,
+  });
   const totalPositionValue = calculateUsdFromLots(lots, entryPrice, snapshot.category, position.symbol, snapshot)
     || Number.parseFloat(position.amount)
     || (quantity * entryPrice);
@@ -442,8 +459,9 @@ const mapPositionToLiveView = (position = {}, instruments = [], marketData = {})
     lots,
     entryPrice,
     currentPrice: markPrice,
-    pnl,
-    pnlPercent: totalPositionValue > 0 ? (pnl / totalPositionValue) * 100 : 0,
+    grossPnl: pnl,
+    pnl: netPnl,
+    pnlPercent: totalPositionValue > 0 ? (netPnl / totalPositionValue) * 100 : 0,
     margin: Number.parseFloat(position.margin) || 0,
     category: snapshot.category,
     instrument: snapshot,
@@ -456,8 +474,10 @@ const mapPositionToLiveView = (position = {}, instruments = [], marketData = {})
       : (position.stopLoss != null ? Number.parseFloat(position.stopLoss) : null),
     createdAt: position.created_at || position.createdAt,
     entryTime: position.created_at || position.createdAt,
-    swap: Number.parseFloat(position.swap) || 0,
-    commission: Number.parseFloat(position.commission) || 0,
+    swap: fees.swap,
+    commission: fees.commission,
+    feeTotal: fees.feeTotal,
+    feeDaysHeld: fees.daysHeld,
   };
 };
 
@@ -543,8 +563,8 @@ export const useDashboardData = (accountType = 'demo', activeSymbol = null, opti
   );
 
   const positions = useMemo(
-    () => rawPositions.map((position) => mapPositionToLiveView(position, instruments, marketData)),
-    [instruments, marketData, rawPositions]
+    () => rawPositions.map((position) => mapPositionToLiveView(position, instruments, marketData, activeAccount)),
+    [activeAccount, instruments, marketData, rawPositions]
   );
 
   const orders = useMemo(
