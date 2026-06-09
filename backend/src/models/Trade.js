@@ -64,47 +64,130 @@ class Trade {
     }
 
     static async findAll(statusFilter = null) {
-        const buildQuery = (includeFeeColumns) => {
+        const buildQuery = ({ includeFeeColumns, includeLegacyTrades }) => {
             const feeProjection = includeFeeColumns
                 ? 'p.gross_pnl, p.swap, p.commission,'
                 : 'p.gross_pnl, 0 AS swap, 0 AS commission,';
 
-            let query = `
-                SELECT p.id, p.user_id, p.account_id, p.symbol, p.side,
-                       p.amount as usd_amount, p.quantity as amount,
-                       p.entry_price, p.close_price as exit_price, p.pnl,
-                       ${feeProjection}
-                       p.status, p.created_at, p.updated_at,
-                       u.email as user_email, u.first_name, u.last_name,
-                       a.account_number
+            const positionSelect = `
+                SELECT
+                    p.id,
+                    p.user_id,
+                    p.account_id,
+                    p.symbol,
+                    p.side,
+                    p.amount as usd_amount,
+                    p.quantity as amount,
+                    p.entry_price,
+                    p.close_price as exit_price,
+                    p.pnl,
+                    ${feeProjection}
+                    p.status,
+                    p.created_at,
+                    p.updated_at,
+                    u.email as user_email,
+                    u.first_name,
+                    u.last_name,
+                    a.account_number
                 FROM positions p
                 JOIN users u ON p.user_id = u.id
                 JOIN accounts a ON p.account_id = a.id
             `;
-            const values = [];
 
-            if (statusFilter && statusFilter !== 'all') {
-                query += ' WHERE p.status = $1';
-                values.push(statusFilter);
+            const legacySelect = includeLegacyTrades
+                ? `
+                    SELECT
+                        t.id,
+                        t.user_id,
+                        t.account_id,
+                        t.symbol,
+                        t.side,
+                        t.amount as usd_amount,
+                        CASE
+                            WHEN COALESCE(t.entry_price, 0) = 0 THEN 0
+                            ELSE t.amount / t.entry_price
+                        END as amount,
+                        t.entry_price,
+                        t.exit_price,
+                        COALESCE(t.pnl, 0) as pnl,
+                        0 as gross_pnl,
+                        0 as swap,
+                        0 as commission,
+                        t.status,
+                        t.created_at,
+                        t.updated_at,
+                        u.email as user_email,
+                        u.first_name,
+                        u.last_name,
+                        a.account_number
+                    FROM trades t
+                    JOIN users u ON t.user_id = u.id
+                    JOIN accounts a ON t.account_id = a.id
+                    WHERE NOT EXISTS (
+                        SELECT 1
+                        FROM positions p
+                        WHERE p.user_id = t.user_id
+                          AND p.account_id = t.account_id
+                          AND p.symbol = t.symbol
+                          AND p.side = t.side
+                          AND p.amount = t.amount
+                          AND p.entry_price = t.entry_price
+                          AND p.created_at = t.created_at
+                    )
+                `
+                : null;
+
+            const whereClause = statusFilter && statusFilter !== 'all'
+                ? ` WHERE status = $1`
+                : '';
+
+            const orderClause = ' ORDER BY created_at DESC';
+
+            if (legacySelect) {
+                return {
+                    query: `
+                        WITH combined_trades AS (
+                            ${positionSelect}
+                            UNION ALL
+                            ${legacySelect}
+                        )
+                        SELECT * FROM combined_trades${whereClause}${orderClause}
+                    `,
+                    values: statusFilter && statusFilter !== 'all' ? [statusFilter] : [],
+                };
             }
 
-            query += ' ORDER BY p.created_at DESC';
+            return {
+                query: `${positionSelect}${whereClause}${orderClause}`,
+                values: statusFilter && statusFilter !== 'all' ? [statusFilter] : [],
+            };
+        };
 
-            return { query, values };
+        const runQuery = async (options) => {
+            const { query, values } = buildQuery(options);
+            const { rows } = await db.query(query, values);
+            return rows;
         };
 
         try {
-            const { query, values } = buildQuery(true);
-            const { rows } = await db.query(query, values);
-            return rows;
+            return await runQuery({ includeFeeColumns: true, includeLegacyTrades: true });
         } catch (error) {
-            if (!isMissingColumnError(error)) {
-                throw error;
+            if (isMissingColumnError(error)) {
+                try {
+                    return await runQuery({ includeFeeColumns: false, includeLegacyTrades: true });
+                } catch (legacyError) {
+                    if (legacyError?.code === '42P01') {
+                        return await runQuery({ includeFeeColumns: false, includeLegacyTrades: false });
+                    }
+                    throw legacyError;
+                }
             }
 
-            const { query, values } = buildQuery(false);
-            const { rows } = await db.query(query, values);
-            return rows;
+            if (error?.code === '42P01') {
+                return await runQuery({ includeFeeColumns: true, includeLegacyTrades: false });
+            }
+
+            throw error;
         }
     }
 

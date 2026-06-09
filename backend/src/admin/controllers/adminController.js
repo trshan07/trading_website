@@ -684,21 +684,13 @@ const getDashboardStats = async (req, res) => {
             admins,
             kycPending,
             fundingPending,
-            openTrades,
-            totals
+            trades
         ] = await Promise.all([
             User.findAll('client'),
             Admin.findAll(),
             KyCSubmission.findAll('pending'),
             FundingRequest.findAll('pending'),
-            Trade.findAll('open'),
-            db.query(`
-                SELECT 
-                    (SELECT SUM(balance) FROM accounts) as total_balance,
-                    (SELECT SUM(credit) FROM accounts) as total_credit,
-                    (SELECT COUNT(*) FROM positions) as total_trades,
-                    (SELECT SUM(quantity) FROM positions) as total_volume
-            `)
+            Trade.findAll()
         ]);
 
         const stats = {
@@ -707,11 +699,11 @@ const getDashboardStats = async (req, res) => {
             activeUsers: clients.filter((user) => user.is_active).length,
             pendingKyc: kycPending.length,
             pendingFunding: fundingPending.length,
-            openTrades: openTrades.length,
-            totalBalance: toNumber(totals.rows[0]?.total_balance),
-            totalCredit: toNumber(totals.rows[0]?.total_credit),
-            totalTrades: parseInt(totals.rows[0]?.total_trades || 0, 10),
-            totalVolume: toNumber(totals.rows[0]?.total_volume)
+            openTrades: trades.filter((trade) => trade.status === 'open').length,
+            totalBalance: toNumber((await db.query('SELECT SUM(balance) AS total_balance FROM accounts')).rows[0]?.total_balance),
+            totalCredit: toNumber((await db.query('SELECT SUM(credit) AS total_credit FROM accounts')).rows[0]?.total_credit),
+            totalTrades: trades.length,
+            totalVolume: trades.reduce((sum, trade) => sum + toNumber(trade.amount), 0)
         };
 
         res.json({
@@ -1066,40 +1058,39 @@ const getTrades = async (req, res) => {
 // @access  Private/Admin
 const getTradeStats = async (req, res) => {
     try {
-        const [aggregate, volumeRows] = await Promise.all([
-            db.query(`
-                SELECT
-                    COUNT(*)::int AS total_trades,
-                    COALESCE(SUM(quantity), 0) AS total_volume,
-                    COUNT(*) FILTER (WHERE status = 'open')::int AS active_trades,
-                    COUNT(*) FILTER (WHERE status = 'closed')::int AS completed_trades
-                FROM positions
-            `),
-            db.query(`
-                SELECT TO_CHAR(DATE_TRUNC('day', created_at), 'YYYY-MM-DD') AS date,
-                       COALESCE(SUM(quantity), 0) AS volume
-                FROM positions
-                WHERE created_at >= CURRENT_DATE - INTERVAL '6 days'
-                GROUP BY DATE_TRUNC('day', created_at)
-                ORDER BY DATE_TRUNC('day', created_at)
-            `)
-        ]);
+        const trades = await Trade.findAll();
+        const totalTrades = trades.length;
+        const completedTrades = trades.filter((trade) => trade.status === 'closed').length;
+        const activeTrades = trades.filter((trade) => trade.status === 'open').length;
 
-        const row = aggregate.rows[0] || {};
-        const completedTrades = parseInt(row.completed_trades || 0, 10);
-        const totalTrades = parseInt(row.total_trades || 0, 10);
+        const startOfToday = new Date();
+        startOfToday.setHours(0, 0, 0, 0);
+        const startOfWindow = new Date(startOfToday);
+        startOfWindow.setDate(startOfWindow.getDate() - 6);
+
+        const volumeMap = new Map();
+        for (const trade of trades) {
+            const tradeDate = trade.created_at ? new Date(trade.created_at) : null;
+            if (!tradeDate || Number.isNaN(tradeDate.getTime()) || tradeDate < startOfWindow) {
+                continue;
+            }
+
+            const dateKey = tradeDate.toISOString().slice(0, 10);
+            volumeMap.set(dateKey, (volumeMap.get(dateKey) || 0) + toNumber(trade.amount));
+        }
+
+        const volumeData = Array.from(volumeMap.entries())
+            .sort(([a], [b]) => a.localeCompare(b))
+            .map(([date, volume]) => ({ date, volume }));
 
         res.json({
             success: true,
             data: {
                 totalTrades,
-                totalVolume: toNumber(row.total_volume),
-                activeTrades: parseInt(row.active_trades || 0, 10),
+                totalVolume: trades.reduce((sum, trade) => sum + toNumber(trade.amount), 0),
+                activeTrades,
                 successRate: totalTrades ? (completedTrades / totalTrades) * 100 : 0,
-                volumeData: volumeRows.rows.map((item) => ({
-                    date: item.date,
-                    volume: toNumber(item.volume)
-                }))
+                volumeData
             }
         });
     } catch (error) {

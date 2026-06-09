@@ -149,8 +149,8 @@ const TradesPage = () => {
       key: 'status',
       render: (status) => (
         <Tag color={
-          status === 'completed' ? '#52c41a' :
-          status === 'pending' ? '#faad14' :
+          status === 'closed' ? '#52c41a' :
+          status === 'open' ? '#faad14' :
           status === 'cancelled' ? '#f5222d' : '#1890ff'
         }>
           {status.toUpperCase()}
@@ -262,8 +262,8 @@ const TradesPage = () => {
               onChange={(value) => setFilters({ ...filters, status: value })}
             >
               <Option value="all">All Status</Option>
-              <Option value="pending">Pending</Option>
-              <Option value="completed">Completed</Option>
+              <Option value="open">Open</Option>
+              <Option value="closed">Closed</Option>
               <Option value="cancelled">Cancelled</Option>
             </Select>
             <Select
@@ -330,8 +330,8 @@ const TradesPage = () => {
             <Descriptions.Item label="Total">${selectedTrade.total.toLocaleString()}</Descriptions.Item>
             <Descriptions.Item label="Status">
               <Tag color={
-                selectedTrade.status === 'completed' ? '#52c41a' :
-                selectedTrade.status === 'pending' ? '#faad14' : '#f5222d'
+                selectedTrade.status === 'closed' ? '#52c41a' :
+                selectedTrade.status === 'open' ? '#faad14' : '#f5222d'
               }>
                 {selectedTrade.status.toUpperCase()}
               </Tag>
