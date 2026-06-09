@@ -11,6 +11,7 @@ const AdminLog = require('../../models/AdminLog');
 const Trade = require('../../models/Trade');
 const PlatformSettings = require('../../models/PlatformSettings');
 const { normalizeStoredUploadPath } = require('../../utils/uploadPath');
+const { calculatePositionFees } = require('../../utils/tradingFees');
 const { createNotification } = require('../../client/controllers/notificationController');
 const { createActivityLog } = require('../../client/controllers/activityController');
 const { verifyEmailTransport, sendWelcomeEmail } = require('../../services/emailService');
@@ -1019,6 +1020,19 @@ const getTrades = async (req, res) => {
         const mappedTrades = rawTrades.map((trade) => {
             const amount = toNumber(trade.amount);
             const price = toNumber(trade.entry_price);
+            const feeSnapshot = trade.status === 'open'
+                ? calculatePositionFees({
+                    symbol: trade.symbol,
+                    category: trade.category || '',
+                    side: trade.side,
+                    quantity: amount,
+                    entryPrice: price,
+                    accountType: trade.account_type || 'real',
+                    openedAt: trade.created_at || trade.updated_at,
+                })
+                : null;
+            const swap = trade.status === 'open' ? feeSnapshot.swap : toNumber(trade.swap);
+            const commission = toNumber(trade.commission);
 
             return {
                 id: trade.id,
@@ -1034,8 +1048,8 @@ const getTrades = async (req, res) => {
                 openPrice: price,
                 closePrice: trade.exit_price ? toNumber(trade.exit_price) : null,
                 total: amount * price,
-                swap: toNumber(trade.swap),
-                commission: toNumber(trade.commission),
+                swap,
+                commission,
                 profit: toNumber(trade.pnl),
                 status: trade.status,
                 createdAt: trade.created_at,

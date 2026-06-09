@@ -443,19 +443,27 @@ const mapPositionToLiveView = (position = {}, instruments = [], marketData = {},
   const grossPnl = Number.isFinite(Number.parseFloat(position.gross_pnl ?? position.grossPnl))
     ? Number.parseFloat(position.gross_pnl ?? position.grossPnl)
     : pnl;
-  const commission = Number.isFinite(Number.parseFloat(position.commission))
-    ? Number.parseFloat(position.commission)
+  const storedCommission = Number.parseFloat(position.commission);
+  const storedSwap = Number.parseFloat(position.swap);
+  const commission = Number.isFinite(storedCommission)
+    ? storedCommission
     : feeEstimate.commission;
-  const swap = Number.isFinite(Number.parseFloat(position.swap))
-    ? Number.parseFloat(position.swap)
-    : feeEstimate.swap;
-  const netPnl = Number.isFinite(Number.parseFloat(position.pnl))
-    ? Number.parseFloat(position.pnl)
-    : calculateNetPositionPnl({
+  const swap = position.status === 'open'
+    ? feeEstimate.swap
+    : (Number.isFinite(storedSwap) ? storedSwap : feeEstimate.swap);
+  const netPnl = position.status === 'open'
+    ? calculateNetPositionPnl({
         grossPnl,
         commission,
         swap,
-      });
+      })
+    : (Number.isFinite(Number.parseFloat(position.pnl))
+        ? Number.parseFloat(position.pnl)
+        : calculateNetPositionPnl({
+            grossPnl,
+            commission,
+            swap,
+          }));
   const totalPositionValue = calculateUsdFromLots(lots, entryPrice, snapshot.category, position.symbol, snapshot)
     || Number.parseFloat(position.amount)
     || (quantity * entryPrice);
