@@ -4,11 +4,14 @@ const db = require('../config/database');
 class KyCSubmission {
     static async findAll(status = null) {
         let query = `
-            SELECT ks.*, u.email as user_email, u.first_name, u.last_name, 
-                   admins.email as admin_email
+            SELECT ks.*, u.email as user_email, u.first_name, u.last_name,
+                   COALESCE(admins.email, admin_users.email) as admin_email,
+                   COALESCE(admins.first_name, admin_users.first_name) as admin_first_name,
+                   COALESCE(admins.last_name, admin_users.last_name) as admin_last_name
             FROM kyc_submissions ks
             JOIN users u ON ks.user_id = u.id
             LEFT JOIN admins ON ks.reviewed_by = admins.id
+            LEFT JOIN users admin_users ON ks.reviewed_by = admin_users.id
         `;
         const values = [];
         
@@ -25,9 +28,14 @@ class KyCSubmission {
 
     static async findById(id) {
         const query = `
-            SELECT ks.*, u.email as user_email, u.first_name, u.last_name
+            SELECT ks.*, u.email as user_email, u.first_name, u.last_name,
+                   COALESCE(admins.email, admin_users.email) as admin_email,
+                   COALESCE(admins.first_name, admin_users.first_name) as admin_first_name,
+                   COALESCE(admins.last_name, admin_users.last_name) as admin_last_name
             FROM kyc_submissions ks
             JOIN users u ON ks.user_id = u.id
+            LEFT JOIN admins ON ks.reviewed_by = admins.id
+            LEFT JOIN users admin_users ON ks.reviewed_by = admin_users.id
             WHERE ks.id = $1
         `;
         const { rows } = await db.query(query, [id]);

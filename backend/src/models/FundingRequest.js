@@ -1,15 +1,19 @@
 // backend/src/models/FundingRequest.js
 const db = require('../config/database');
+const { isMissingColumnError } = require('../utils/dbCompat');
 
 class FundingRequest {
     static async findAll(status = null) {
         let query = `
             SELECT fr.*, u.email as user_email, u.first_name, u.last_name, a.account_number,
-                   admins.email as admin_email
+                   COALESCE(admins.email, admin_users.email) as admin_email,
+                   COALESCE(admins.first_name, admin_users.first_name) as admin_first_name,
+                   COALESCE(admins.last_name, admin_users.last_name) as admin_last_name
             FROM funding_requests fr
             JOIN users u ON fr.user_id = u.id
             JOIN accounts a ON fr.account_id = a.id
             LEFT JOIN admins ON fr.processed_by = admins.id
+            LEFT JOIN users admin_users ON fr.processed_by = admin_users.id
         `;
         const values = [];
         
@@ -68,9 +72,28 @@ class FundingRequest {
             WHERE id = $4
             RETURNING *
         `;
+        const legacyQuery = `
+            UPDATE funding_requests 
+            SET status = $1, 
+                rejection_reason = $2, 
+                processed_at = CURRENT_TIMESTAMP,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE id = $3
+            RETURNING *
+        `;
         const values = [status, processed_by, rejection_reason, id];
-        const { rows } = await db.query(query, values);
-        return rows[0];
+
+        try {
+            const { rows } = await db.query(query, values);
+            return rows[0];
+        } catch (error) {
+            if (error?.code !== '23503' && !isMissingColumnError(error)) {
+                throw error;
+            }
+
+            const { rows } = await db.query(legacyQuery, [status, rejection_reason, id]);
+            return rows[0];
+        }
     }
 }
 

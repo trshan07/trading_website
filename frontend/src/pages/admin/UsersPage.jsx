@@ -39,14 +39,10 @@ const UsersPage = () => {
       setUsers(response.users || []);
       setPagination({ ...pagination, total: response.total || 0 });
     } catch (error) {
-      // Demo data for development
-      setUsers([
-        { id: '1', name: 'John Doe', email: 'john@example.com', role: 'user', balance: 12500, status: 'active', totalTrades: 45, createdAt: new Date(), lastLogin: new Date() },
-        { id: '2', name: 'Jane Smith', email: 'jane@example.com', role: 'user', balance: 8900, status: 'active', totalTrades: 32, createdAt: new Date(), lastLogin: new Date() },
-        { id: '3', name: 'Bob Johnson', email: 'bob@example.com', role: 'user', balance: 3400, status: 'pending', totalTrades: 18, createdAt: new Date(), lastLogin: null },
-        { id: '4', name: 'Alice Brown', email: 'alice@example.com', role: 'admin', balance: 50000, status: 'active', totalTrades: 0, createdAt: new Date(), lastLogin: new Date() },
-      ]);
-      setPagination({ ...pagination, total: 4 });
+      console.error('Failed to fetch users:', error);
+      setUsers([]);
+      setPagination({ ...pagination, total: 0 });
+      message.error(error.response?.data?.message || 'Failed to fetch users');
     } finally {
       setLoading(false);
     }
@@ -61,7 +57,8 @@ const UsersPage = () => {
         totalBalance: response.totalBalance || 0,
       });
     } catch (error) {
-      setStats({ totalUsers: 4, activeUsers: 3, totalBalance: 74800 });
+      console.error('Failed to fetch user stats:', error);
+      setStats({ totalUsers: 0, activeUsers: 0, totalBalance: 0 });
     }
   };
 
