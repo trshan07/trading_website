@@ -305,6 +305,16 @@ const calculateQuantityFromLots = (lots, symbol, category, instrument) => {
     return (Number.parseFloat(lots) || 0) * meta.contractSize;
 };
 
+const calculateUsdFromLots = (lots, price, category, symbol, instrument) => {
+    return calculateAccountCurrencyNotional({
+        symbol,
+        category,
+        instrument,
+        quantity: calculateQuantityFromLots(lots, symbol, category, instrument),
+        price,
+    });
+};
+
 const calculateNotionalValue = ({ quantity = 0, price = 0 }) => {
     const parsedQuantity = Number.parseFloat(quantity) || 0;
     const parsedPrice = Number.parseFloat(price) || 0;
@@ -424,6 +434,7 @@ module.exports = {
     resolveCategoryKey,
     getInstrumentTradingMeta,
     calculateQuantityFromLots,
+    calculateUsdFromLots,
     calculateNotionalValue,
     calculateMarginRequired,
     calculateProjectedPnl,
