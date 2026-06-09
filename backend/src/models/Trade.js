@@ -1,8 +1,159 @@
 // backend/src/models/Trade.js
 const db = require('../config/database');
-const { isMissingColumnError } = require('../utils/dbCompat');
 
 class Trade {
+    static async getTableColumns(tableName) {
+        const { rows } = await db.query(
+            `
+                SELECT column_name
+                FROM information_schema.columns
+                WHERE table_schema = 'public' AND table_name = $1
+            `,
+            [tableName]
+        );
+
+        return new Set(rows.map((row) => row.column_name));
+    }
+
+    static columnExpr(columns, preferredNames, fallback = 'NULL') {
+        for (const name of preferredNames) {
+            if (columns.has(name)) {
+                return name;
+            }
+        }
+
+        return fallback;
+    }
+
+    static buildPositionSelect(columns, statusFilter = null) {
+        const exitPriceExpr = this.columnExpr(columns, ['close_price', 'exit_price']);
+        const grossPnlExpr = columns.has('gross_pnl') ? 'p.gross_pnl' : '0';
+        const swapExpr = columns.has('swap') ? 'p.swap' : '0';
+        const commissionExpr = columns.has('commission') ? 'p.commission' : '0';
+        const createdAtExpr = this.columnExpr(columns, ['created_at', 'opened_at']);
+        const updatedAtExpr = this.columnExpr(columns, ['updated_at', 'created_at', 'opened_at']);
+
+        let query = `
+            SELECT
+                p.id,
+                p.user_id,
+                p.account_id,
+                p.symbol,
+                p.side,
+                p.amount AS usd_amount,
+                p.quantity AS amount,
+                p.entry_price,
+                ${exitPriceExpr === 'NULL' ? 'NULL' : `p.${exitPriceExpr}`} AS exit_price,
+                COALESCE(p.pnl, 0) AS pnl,
+                ${grossPnlExpr} AS gross_pnl,
+                ${swapExpr} AS swap,
+                ${commissionExpr} AS commission,
+                p.status,
+                ${createdAtExpr === 'NULL' ? 'NULL' : `p.${createdAtExpr}`} AS created_at,
+                ${updatedAtExpr === 'NULL' ? 'NULL' : `p.${updatedAtExpr}`} AS updated_at,
+                u.email AS user_email,
+                u.first_name,
+                u.last_name,
+                a.account_number
+            FROM positions p
+            JOIN users u ON p.user_id = u.id
+            JOIN accounts a ON p.account_id = a.id
+        `;
+        const values = [];
+
+        if (statusFilter && statusFilter !== 'all') {
+            query += ' WHERE p.status = $1';
+            values.push(statusFilter);
+        }
+
+        query += ` ORDER BY ${createdAtExpr === 'NULL' ? 'p.id' : `p.${createdAtExpr}` } DESC, p.id DESC`;
+
+        return { query, values };
+    }
+
+    static buildLegacyTradeSelect(columns, statusFilter = null) {
+        const exitPriceExpr = this.columnExpr(columns, ['exit_price', 'close_price']);
+        const createdAtExpr = this.columnExpr(columns, ['created_at', 'opened_at']);
+        const updatedAtExpr = this.columnExpr(columns, ['updated_at', 'created_at', 'opened_at']);
+
+        let query = `
+            SELECT
+                t.id,
+                t.user_id,
+                t.account_id,
+                t.symbol,
+                t.side,
+                t.amount AS usd_amount,
+                CASE
+                    WHEN COALESCE(t.entry_price, 0) = 0 THEN 0
+                    ELSE t.amount / t.entry_price
+                END AS amount,
+                t.entry_price,
+                ${exitPriceExpr === 'NULL' ? 'NULL' : `t.${exitPriceExpr}`} AS exit_price,
+                COALESCE(t.pnl, 0) AS pnl,
+                0 AS gross_pnl,
+                0 AS swap,
+                0 AS commission,
+                t.status,
+                ${createdAtExpr === 'NULL' ? 'NULL' : `t.${createdAtExpr}`} AS created_at,
+                ${updatedAtExpr === 'NULL' ? 'NULL' : `t.${updatedAtExpr}`} AS updated_at,
+                u.email AS user_email,
+                u.first_name,
+                u.last_name,
+                a.account_number
+            FROM trades t
+            JOIN users u ON t.user_id = u.id
+            JOIN accounts a ON t.account_id = a.id
+        `;
+        const values = [];
+
+        if (statusFilter && statusFilter !== 'all') {
+            query += ' WHERE t.status = $1';
+            values.push(statusFilter);
+        }
+
+        query += ` ORDER BY ${createdAtExpr === 'NULL' ? 't.id' : `t.${createdAtExpr}` } DESC, t.id DESC`;
+
+        return { query, values };
+    }
+
+    static normalizeTradeRows(rows) {
+        const seen = new Set();
+        const normalized = [];
+
+        const sortKey = (row) => {
+            const dateValue = row.created_at || row.updated_at || null;
+            const time = dateValue ? new Date(dateValue).getTime() : 0;
+            return Number.isFinite(time) ? time : 0;
+        };
+
+        rows
+            .sort((a, b) => sortKey(b) - sortKey(a))
+            .forEach((row) => {
+                const key = [
+                    row.user_id,
+                    row.account_id,
+                    row.symbol,
+                    row.side,
+                    row.usd_amount,
+                    row.entry_price,
+                    row.exit_price,
+                    row.status,
+                    row.created_at || '',
+                    row.updated_at || '',
+                ].join('|');
+
+                if (seen.has(key)) {
+                    return;
+                }
+
+                seen.add(key);
+                normalized.push(row);
+            });
+
+        return normalized;
+    }
+
     static async create(tradeData) {
         const { userId, accountId, symbol, side, amount, entryPrice, quantity, margin } = tradeData;
         const query = `
@@ -64,129 +215,28 @@ class Trade {
     }
 
     static async findAll(statusFilter = null) {
-        const buildQuery = ({ includeFeeColumns, includeLegacyTrades }) => {
-            const feeProjection = includeFeeColumns
-                ? 'p.gross_pnl, p.swap, p.commission,'
-                : 'p.gross_pnl, 0 AS swap, 0 AS commission,';
-
-            const positionSelect = `
-                SELECT
-                    p.id,
-                    p.user_id,
-                    p.account_id,
-                    p.symbol,
-                    p.side,
-                    p.amount as usd_amount,
-                    p.quantity as amount,
-                    p.entry_price,
-                    p.close_price as exit_price,
-                    p.pnl,
-                    ${feeProjection}
-                    p.status,
-                    p.created_at,
-                    p.updated_at,
-                    u.email as user_email,
-                    u.first_name,
-                    u.last_name,
-                    a.account_number
-                FROM positions p
-                JOIN users u ON p.user_id = u.id
-                JOIN accounts a ON p.account_id = a.id
-            `;
-
-            const legacySelect = includeLegacyTrades
-                ? `
-                    SELECT
-                        t.id,
-                        t.user_id,
-                        t.account_id,
-                        t.symbol,
-                        t.side,
-                        t.amount as usd_amount,
-                        CASE
-                            WHEN COALESCE(t.entry_price, 0) = 0 THEN 0
-                            ELSE t.amount / t.entry_price
-                        END as amount,
-                        t.entry_price,
-                        t.exit_price,
-                        COALESCE(t.pnl, 0) as pnl,
-                        0 as gross_pnl,
-                        0 as swap,
-                        0 as commission,
-                        t.status,
-                        t.created_at,
-                        t.updated_at,
-                        u.email as user_email,
-                        u.first_name,
-                        u.last_name,
-                        a.account_number
-                    FROM trades t
-                    JOIN users u ON t.user_id = u.id
-                    JOIN accounts a ON t.account_id = a.id
-                    WHERE NOT EXISTS (
-                        SELECT 1
-                        FROM positions p
-                        WHERE p.user_id = t.user_id
-                          AND p.account_id = t.account_id
-                          AND p.symbol = t.symbol
-                          AND p.side = t.side
-                          AND p.amount = t.amount
-                          AND p.entry_price = t.entry_price
-                          AND p.created_at = t.created_at
-                    )
-                `
-                : null;
-
-            const whereClause = statusFilter && statusFilter !== 'all'
-                ? ` WHERE status = $1`
-                : '';
-
-            const orderClause = ' ORDER BY created_at DESC';
-
-            if (legacySelect) {
-                return {
-                    query: `
-                        WITH combined_trades AS (
-                            ${positionSelect}
-                            UNION ALL
-                            ${legacySelect}
-                        )
-                        SELECT * FROM combined_trades${whereClause}${orderClause}
-                    `,
-                    values: statusFilter && statusFilter !== 'all' ? [statusFilter] : [],
-                };
-            }
-
-            return {
-                query: `${positionSelect}${whereClause}${orderClause}`,
-                values: statusFilter && statusFilter !== 'all' ? [statusFilter] : [],
-            };
-        };
-
-        const runQuery = async (options) => {
-            const { query, values } = buildQuery(options);
-            const { rows } = await db.query(query, values);
-            return rows;
-        };
-
         try {
-            return await runQuery({ includeFeeColumns: true, includeLegacyTrades: true });
+            const [positionsColumns, tradesColumns] = await Promise.all([
+                this.getTableColumns('positions'),
+                this.getTableColumns('trades'),
+            ]);
+
+            const rows = [];
+
+            if (positionsColumns.size > 0) {
+                const { query, values } = this.buildPositionSelect(positionsColumns, statusFilter);
+                const positionRows = await db.query(query, values);
+                rows.push(...positionRows.rows);
+            }
+
+            if (tradesColumns.size > 0) {
+                const { query, values } = this.buildLegacyTradeSelect(tradesColumns, statusFilter);
+                const legacyRows = await db.query(query, values);
+                rows.push(...legacyRows.rows);
+            }
+
+            return this.normalizeTradeRows(rows);
         } catch (error) {
-            if (isMissingColumnError(error)) {
-                try {
-                    return await runQuery({ includeFeeColumns: false, includeLegacyTrades: true });
-                } catch (legacyError) {
-                    if (legacyError?.code === '42P01') {
-                        return await runQuery({ includeFeeColumns: false, includeLegacyTrades: false });
-                    }
-                    throw legacyError;
-                }
-            }
-
-            if (error?.code === '42P01') {
-                return await runQuery({ includeFeeColumns: true, includeLegacyTrades: false });
-            }
-
             throw error;
         }
     }
