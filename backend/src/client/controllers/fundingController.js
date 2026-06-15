@@ -159,11 +159,15 @@ const deposit = async (req, res) => {
 const withdraw = async (req, res) => {
     try {
         const { amount, method, accountId } = req.body;
+
+        if (!accountId) {
+            return res.status(400).json({ success: false, message: 'Account is required' });
+        }
         
         // 1. Check balance
         const account = await Account.findById(accountId);
         
-        if (!account || account.user_id !== req.user.id || parseFloat(account.balance) < parseFloat(amount)) {
+        if (!account || String(account.user_id) !== String(req.user.id) || parseFloat(account.balance) < parseFloat(amount)) {
             return res.status(400).json({ success: false, message: 'Insufficient funds or invalid account' });
         }
 

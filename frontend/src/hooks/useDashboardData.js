@@ -19,6 +19,17 @@ import { calculateNetPositionPnl, calculatePositionFees } from '../utils/trading
 const GLOBAL_CHART_QUOTES_REFRESH_MS = 5000;
 const ACTIVE_CHART_SYMBOL_REFRESH_MS = 1000;
 const TRADING_DATA_REFRESH_MS = 3000;
+const DEFAULT_PLATFORM_INFO = {
+  bank_name: 'Apex Global Trust',
+  account_name: 'Tik Trades Liquidity Pool',
+  account_number: '992833774401',
+  iban: 'GB29APEX0000992833774401',
+  swift_bic: 'TIKTR22',
+  branch: 'London Main Branch',
+  country: 'United Kingdom',
+  reference_format: 'TT-[USER_ID]-[TIMESTAMP]',
+  instructions: 'Please include your User ID in the transfer reference to ensure rapid processing.',
+};
 
 const normalizeInstrument = (instrument = {}) => ({
   symbol: instrument.symbol,
@@ -571,7 +582,7 @@ export const useDashboardData = (accountType = 'demo', activeSymbol = null, opti
   const [favorites, setFavorites] = useState([]);
   const [instruments, setInstruments] = useState([]);
   const [categories, setCategories] = useState([]);
-  const [platformInfo, setPlatformInfo] = useState(null);
+  const [platformInfo, setPlatformInfo] = useState(DEFAULT_PLATFORM_INFO);
   
   const [portfolioHistory, setPortfolioHistory] = useState([]);
   
@@ -681,6 +692,20 @@ export const useDashboardData = (accountType = 'demo', activeSymbol = null, opti
     }
   }, []);
 
+  const fetchPlatformInfo = useCallback(async () => {
+    try {
+      const res = await fundingService.getPlatformInfo();
+      if (res.success && res.data) {
+        setPlatformInfo({ ...DEFAULT_PLATFORM_INFO, ...res.data });
+      } else {
+        setPlatformInfo(DEFAULT_PLATFORM_INFO);
+      }
+    } catch (error) {
+      console.error('Platform Info Fetch Failed:', error);
+      setPlatformInfo(DEFAULT_PLATFORM_INFO);
+    }
+  }, []);
+
   const fetchSettings = useCallback(async () => {
     try {
       const res = await userService.getSettings();
@@ -692,7 +717,7 @@ export const useDashboardData = (accountType = 'demo', activeSymbol = null, opti
 
   const fetchInfrastructure = useCallback(async () => {
     try {
-      const [instRes, catRes, notifRes, logRes, favRes] = await Promise.all([
+      const [instRes, catRes, notifRes, logRes, favRes] = await Promise.allSettled([
         infraService.getInstruments(),
         infraService.getCategories(),
         infraService.getNotifications(),
@@ -701,14 +726,14 @@ export const useDashboardData = (accountType = 'demo', activeSymbol = null, opti
       ]);
 
       const mergedInstruments = mergeInstrumentSources(
-        instRes.success ? instRes.data : [],
+        instRes.status === 'fulfilled' && instRes.value.success ? instRes.value.data : [],
         fallbackInstruments
       );
 
       setInstruments(mergedInstruments);
       setCategories(
-        catRes.success && Array.isArray(catRes.data) && catRes.data.length > 0
-          ? catRes.data
+        catRes.status === 'fulfilled' && catRes.value.success && Array.isArray(catRes.value.data) && catRes.value.data.length > 0
+          ? catRes.value.data
           : deriveCategories(mergedInstruments)
       );
       setMarketData((prev) => ({
@@ -716,13 +741,9 @@ export const useDashboardData = (accountType = 'demo', activeSymbol = null, opti
         ...buildMarketSnapshot(mergedInstruments),
       }));
 
-      if (notifRes.success) setNotifications(notifRes.data);
-      if (logRes.success) setActivityLogs(logRes.data);
-      if (favRes.success) setFavorites(favRes.data);
-
-      // Fetch Platform Banking Info
-      const platRes = await fundingService.getPlatformInfo();
-      if (platRes.success) setPlatformInfo(platRes.data);
+      if (notifRes.status === 'fulfilled' && notifRes.value.success) setNotifications(notifRes.value.data);
+      if (logRes.status === 'fulfilled' && logRes.value.success) setActivityLogs(logRes.value.data);
+      if (favRes.status === 'fulfilled' && favRes.value.success) setFavorites(favRes.value.data);
     } catch (error) {
       console.error('Infrastructure Fetch Failed:', error);
       setInstruments(fallbackInstruments);
@@ -827,8 +848,9 @@ export const useDashboardData = (accountType = 'demo', activeSymbol = null, opti
       fetchAlerts();
       fetchSettings();
       fetchInfrastructure();
+      fetchPlatformInfo();
     }
-  }, [user, fetchBanking, fetchTransactions, fetchDocuments, fetchAlerts, fetchSettings, fetchInfrastructure]);
+  }, [user, fetchBanking, fetchTransactions, fetchDocuments, fetchAlerts, fetchSettings, fetchInfrastructure, fetchPlatformInfo]);
 
   useEffect(() => {
     if (!user || !instrumentSymbolKey) {
@@ -1006,6 +1028,11 @@ export const useDashboardData = (accountType = 'demo', activeSymbol = null, opti
 
   const handleDeposit = async (amount, method, reference, proof = null) => {
     try {
+      if (!accountId) {
+        toast.error("No active account found");
+        return false;
+      }
+
       const res = await fundingService.deposit({
         amount: parseFloat(amount),
         method,
@@ -1028,6 +1055,11 @@ export const useDashboardData = (accountType = 'demo', activeSymbol = null, opti
 
   const handleWithdraw = async (amount, method) => {
     try {
+      if (!accountId) {
+        toast.error("No active account found");
+        return false;
+      }
+
       const res = await fundingService.withdraw({
         amount: parseFloat(amount),
         method,

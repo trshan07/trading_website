@@ -9,6 +9,16 @@ const DepositFundsModal = ({
   onDeposit = async () => false,
   platformInfo = null,
 }) => {
+  const bankingInfo = {
+    bank_name: 'Apex Global Trust',
+    account_name: 'Tik Trades Liquidity Pool',
+    account_number: '992833774401',
+    iban: 'GB29APEX0000992833774401',
+    swift_bic: 'TIKTR22',
+    reference_format: 'TT-[USER_ID]-[TIMESTAMP]',
+    instructions: 'Please include your User ID in the transfer reference to ensure rapid processing.',
+    ...platformInfo,
+  };
   const [selectedMethod, setSelectedMethod] = useState('bank');
   const [depositAmount, setDepositAmount] = useState('');
   const [depositReference, setDepositReference] = useState('');
@@ -40,7 +50,7 @@ const DepositFundsModal = ({
     }
 
     if (selectedMethod === 'bank' && !depositReference.trim()) {
-      setErrorMessage('Transfer reference is required');
+      setErrorMessage('Transfer reference is required for bank transfers');
       return;
     }
 
@@ -128,7 +138,7 @@ const DepositFundsModal = ({
             </div>
           </div>
 
-          {selectedMethod === 'bank' && platformInfo && (
+          {selectedMethod === 'bank' && (
             <div className="bg-gradient-to-br from-white via-slate-50 to-amber-50/60 dark:from-slate-900 dark:to-slate-800 rounded-[2rem] p-6 sm:p-8 border border-slate-200 dark:border-slate-800 space-y-6 relative overflow-hidden transition-colors">
               <div className="absolute top-0 right-0 w-32 h-32 bg-gold-500/5 blur-3xl rounded-full translate-x-16 -translate-y-16"></div>
               <div className="flex items-center justify-between mb-2">
@@ -139,23 +149,29 @@ const DepositFundsModal = ({
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 <div className="space-y-1">
                   <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest">Bank Name</p>
-                  <p className="text-sm font-black text-slate-900 dark:text-white italic">{platformInfo.bank_name}</p>
+                  <p className="text-sm font-black text-slate-900 dark:text-white italic">{bankingInfo.bank_name}</p>
                 </div>
                 <div className="space-y-1">
                   <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest">Account Name</p>
-                  <p className="text-sm font-black text-slate-900 dark:text-white italic">{platformInfo.account_name}</p>
+                  <p className="text-sm font-black text-slate-900 dark:text-white italic">{bankingInfo.account_name}</p>
                 </div>
                 <div className="space-y-1">
                   <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest">IBAN / Account No</p>
-                  <p className="text-sm font-black text-slate-900 dark:text-white italic tracking-tighter">{platformInfo.iban || platformInfo.account_number}</p>
+                  <p className="text-sm font-black text-slate-900 dark:text-white italic tracking-tighter">{bankingInfo.iban || bankingInfo.account_number}</p>
                 </div>
                 <div className="space-y-1">
                   <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest">SWIFT / BIC</p>
-                  <p className="text-sm font-black text-slate-900 dark:text-white italic">{platformInfo.swift_bic}</p>
+                  <p className="text-sm font-black text-slate-900 dark:text-white italic">{bankingInfo.swift_bic}</p>
                 </div>
               </div>
 
               <div className="pt-4 border-t border-slate-200 dark:border-slate-800 flex flex-col gap-4">
+                <div className="rounded-2xl border border-gold-500/20 bg-gold-500/5 px-4 py-3 text-[10px] font-bold uppercase tracking-[0.18em] text-slate-600 dark:text-slate-300">
+                  Reference format: <span className="text-slate-900 dark:text-white">{bankingInfo.reference_format}</span>
+                  <div className="mt-2 normal-case tracking-normal text-[11px] font-medium">
+                    {bankingInfo.instructions}
+                  </div>
+                </div>
                 <div className="space-y-2">
                   <label className="text-[9px] uppercase font-black text-slate-400 tracking-[0.2em] ml-1">Transfer Reference *</label>
                   <input
@@ -163,7 +179,7 @@ const DepositFundsModal = ({
                     value={depositReference}
                     onChange={(e) => setDepositReference(e.target.value)}
                     className="w-full px-4 py-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-gold-500/20"
-                    placeholder="RT-XXXXXX"
+                    placeholder={bankingInfo.reference_format}
                   />
                 </div>
 
