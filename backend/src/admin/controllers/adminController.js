@@ -1048,6 +1048,7 @@ const getTrades = async (req, res) => {
                 openPrice: price,
                 closePrice: trade.exit_price ? toNumber(trade.exit_price) : null,
                 total: amount * price,
+                leverage: toNumber(trade.leverage) || toNumber(trade.account_leverage) || null,
                 swap,
                 commission,
                 profit: toNumber(trade.pnl),

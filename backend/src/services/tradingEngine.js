@@ -1167,7 +1167,7 @@ const getClosedPositions = async (accountId) => {
             `
             SELECT *
             FROM positions
-            WHERE account_id = $1 AND status = 'closed'
+            WHERE account_id = $1 AND status IN ('closed', 'cancelled')
             ORDER BY closed_at DESC NULLS LAST, updated_at DESC NULLS LAST, created_at DESC
             `,
             accountValue
@@ -1183,7 +1183,7 @@ const getClosedPositions = async (accountId) => {
                 `
                 SELECT *
                 FROM positions
-                WHERE account_id = $1 AND status = 'closed'
+                WHERE account_id = $1 AND status IN ('closed', 'cancelled')
                 ORDER BY id DESC
                 `,
                 accountValue

@@ -484,7 +484,7 @@ const mapPositionToLiveView = (position = {}, instruments = [], marketData = {},
     margin: Number.parseFloat(position.margin) || 0,
     category: snapshot.category,
     instrument: snapshot,
-    leverage: Number.parseFloat(position.leverage) || null,
+    leverage: Number.parseFloat(position.leverage) || Number.parseFloat(account?.leverage) || null,
     takeProfit: position.take_profit != null
       ? Number.parseFloat(position.take_profit)
       : (position.takeProfit != null ? Number.parseFloat(position.takeProfit) : null),
@@ -500,7 +500,7 @@ const mapPositionToLiveView = (position = {}, instruments = [], marketData = {},
   };
 };
 
-const mapOrderToLiveView = (order = {}, instruments = [], marketData = {}) => {
+const mapOrderToLiveView = (order = {}, instruments = [], marketData = {}, account = {}) => {
   const instrument = instruments.find((item) => item.symbol === order.symbol);
   const snapshot = buildInstrumentSnapshot({
     symbol: order.symbol,
@@ -524,7 +524,7 @@ const mapOrderToLiveView = (order = {}, instruments = [], marketData = {}) => {
     quantity,
     lots,
     entryPrice,
-    leverage: Number.parseFloat(order.leverage) || null,
+    leverage: Number.parseFloat(order.leverage) || Number.parseFloat(account?.leverage) || null,
     takeProfit: order.take_profit != null
       ? Number.parseFloat(order.take_profit)
       : (order.takeProfit != null ? Number.parseFloat(order.takeProfit) : null),
@@ -587,8 +587,8 @@ export const useDashboardData = (accountType = 'demo', activeSymbol = null, opti
   );
 
   const orders = useMemo(
-    () => rawOrders.map((order) => mapOrderToLiveView(order, instruments, marketData)),
-    [instruments, marketData, rawOrders]
+    () => rawOrders.map((order) => mapOrderToLiveView(order, instruments, marketData, activeAccount)),
+    [activeAccount, instruments, marketData, rawOrders]
   );
 
   const closedTrades = useMemo(
