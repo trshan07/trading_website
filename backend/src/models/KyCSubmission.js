@@ -14,10 +14,11 @@ class KyCSubmission {
             LEFT JOIN users admin_users ON ks.reviewed_by = admin_users.id
         `;
         const values = [];
-        
+
         if (status && status !== 'all') {
+            const normalizedStatus = status === 'approved' ? 'verified' : status;
             query += ' WHERE ks.status = $1';
-            values.push(status);
+            values.push(normalizedStatus);
         }
         
         query += ' ORDER BY ks.created_at DESC';

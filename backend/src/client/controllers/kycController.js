@@ -16,12 +16,19 @@ const uploadDocument = async (req, res) => {
     try {
         // The frontend sends 'category' and 'name'
         const { category, name, document_type, document_number } = req.body;
-        
+
+        if (!req.file) {
+            return res.status(400).json({
+                success: false,
+                message: 'KYC document file is required'
+            });
+        }
+
         // Handling file upload metadata from multer
         const docData = {
             document_type: category || document_type || 'Identity Proof',
-            document_number: name || document_number || 'N/A',
-            file_path: getUploadPathFromFile(req.file) || '/uploads/mock_proof.jpg'
+            document_number: name || document_number || req.file.originalname || 'N/A',
+            file_path: getUploadPathFromFile(req.file)
         };
 
         const submission = await KyCSubmission.create(req.user.id, docData);

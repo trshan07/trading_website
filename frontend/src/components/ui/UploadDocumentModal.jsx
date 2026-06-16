@@ -7,7 +7,7 @@ const UploadDocumentModal = ({ show, onClose, onUpload }) => {
 
   if (!show) return null;
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!file) return;
     
@@ -16,10 +16,11 @@ const UploadDocumentModal = ({ show, onClose, onUpload }) => {
     formData.append('category', category);
     formData.append('name', file.name);
 
-    onUpload(formData);
-    
-    setFile(null);
-    onClose();
+    const uploaded = await onUpload(formData);
+    if (uploaded) {
+      setFile(null);
+      onClose();
+    }
   };
 
   const categories = ['Identity Proof', 'Address Proof', 'Income Proof', 'Bank Statement'];

@@ -1237,9 +1237,12 @@ export const useDashboardData = (accountType = 'demo', activeSymbol = null, opti
       if (res.success) {
         setDocuments(prev => [normalizeDocument(res.data), ...prev]);
         toast.success("Document uploaded");
+        return true;
       }
+      return false;
     } catch (error) {
       toast.error("Failed to upload document");
+      return false;
     }
   };
 

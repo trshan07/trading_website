@@ -9,9 +9,6 @@ const kycService = {
   
   uploadDocument: async (formData) => {
     const response = await api.post('/kyc/upload', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
     });
     return response.data;
   },
