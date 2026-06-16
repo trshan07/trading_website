@@ -48,27 +48,20 @@ exports.getAllInstruments = async (req, res) => {
     try {
         let result;
         try {
-            result = await pool.query(`
-                SELECT 
-                    i.*, 
-                    mq.price,
-                    mq.bid,
-                    mq.ask,
-                    mq.change,
-                    mq.volume,
-                    mq.updated_at AS quote_updated_at,
-                    mq.source AS quote_source,
-                    i.commission_rate,
-                    i.commission_per_lot_side,
-                    i.commission_min,
-                    i.swap_long_per_lot_day,
-                    i.swap_short_per_lot_day,
-                    i.swap_long_rate,
-                    i.swap_short_rate,
-                    c.text_color, 
-                    c.bg_color, 
-                    c.border_color
-                FROM instruments i
+                result = await pool.query(`
+                    SELECT 
+                        i.*, 
+                        mq.price,
+                        mq.bid,
+                        mq.ask,
+                        mq.change,
+                        mq.volume,
+                        mq.updated_at AS quote_updated_at,
+                        mq.source AS quote_source,
+                        c.text_color, 
+                        c.bg_color, 
+                        c.border_color
+                    FROM instruments i
                 LEFT JOIN market_quotes mq ON mq.symbol = i.symbol
                 LEFT JOIN instrument_categories c ON i.category_name = c.name
                 WHERE i.is_active = TRUE
@@ -87,13 +80,6 @@ exports.getAllInstruments = async (req, res) => {
                             mq.volume,
                             mq.updated_at AS quote_updated_at,
                             mq.source AS quote_source,
-                            i.commission_rate,
-                            i.commission_per_lot_side,
-                            i.commission_min,
-                            i.swap_long_per_lot_day,
-                            i.swap_short_per_lot_day,
-                            i.swap_long_rate,
-                            i.swap_short_rate,
                             c.text_color,
                             c.bg_color,
                             c.border_color
@@ -117,13 +103,6 @@ exports.getAllInstruments = async (req, res) => {
                             NULL AS volume,
                             NULL AS quote_updated_at,
                             NULL AS quote_source,
-                            NULL AS commission_rate,
-                            NULL AS commission_per_lot_side,
-                            NULL AS commission_min,
-                            NULL AS swap_long_per_lot_day,
-                            NULL AS swap_short_per_lot_day,
-                            NULL AS swap_long_rate,
-                            NULL AS swap_short_rate,
                             NULL AS text_color,
                             NULL AS bg_color,
                             NULL AS border_color
@@ -146,13 +125,6 @@ exports.getAllInstruments = async (req, res) => {
                             NULL AS volume,
                             NULL AS quote_updated_at,
                             NULL AS quote_source,
-                            NULL AS commission_rate,
-                            NULL AS commission_per_lot_side,
-                            NULL AS commission_min,
-                            NULL AS swap_long_per_lot_day,
-                            NULL AS swap_short_per_lot_day,
-                            NULL AS swap_long_rate,
-                            NULL AS swap_short_rate,
                             NULL AS text_color,
                             NULL AS bg_color,
                             NULL AS border_color
