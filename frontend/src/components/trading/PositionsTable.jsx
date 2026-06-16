@@ -11,6 +11,12 @@ const formatUnits = (value) => Number(value || 0).toLocaleString(undefined, {
   maximumFractionDigits: 4,
 });
 
+const getProtectionValue = (item = {}, camelKey, snakeKey) => {
+  const rawValue = item?.[camelKey] ?? item?.[snakeKey];
+  const value = Number.parseFloat(rawValue);
+  return Number.isFinite(value) ? value : null;
+};
+
 const PositionsTable = ({ positions = [], onClose, onModify = () => {}, compact = false }) => {
   const getLotText = (position) => formatLots(
     position.lots,
@@ -64,6 +70,8 @@ const PositionsTable = ({ positions = [], onClose, onModify = () => {}, compact 
         {positions.map((position) => {
           const isProfit = Number(position.pnl || 0) >= 0;
           const isBuy = position.type === 'BUY';
+          const takeProfit = getProtectionValue(position, 'takeProfit', 'take_profit');
+          const stopLoss = getProtectionValue(position, 'stopLoss', 'stop_loss');
 
           return (
             <div key={position.id} className="rounded-3xl border border-slate-200 bg-white p-4 dark:border-slate-700/60 dark:bg-[#131925]">
@@ -97,8 +105,8 @@ const PositionsTable = ({ positions = [], onClose, onModify = () => {}, compact 
                   ['Units', `${formatUnits(position.quantity)} ${getQuantityLabel(position)}`],
                   ['Entry', formatMoney(position.entryPrice)],
                   ['Market', formatMoney(position.currentPrice)],
-                  ['TP', position.takeProfit ? formatMoney(position.takeProfit) : 'Off'],
-                  ['SL', position.stopLoss ? formatMoney(position.stopLoss) : 'Off'],
+                  ['TP', takeProfit != null ? formatMoney(takeProfit) : 'Off'],
+                  ['SL', stopLoss != null ? formatMoney(stopLoss) : 'Off'],
                 ].map(([label, value]) => (
                   <div key={label} className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2.5 dark:border-slate-800 dark:bg-[#0e1420]">
                     <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">{label}</p>
@@ -154,6 +162,8 @@ const PositionsTable = ({ positions = [], onClose, onModify = () => {}, compact 
             {positions.map((position) => {
               const isProfit = Number(position.pnl || 0) >= 0;
               const isBuy = position.type === 'BUY';
+              const takeProfit = getProtectionValue(position, 'takeProfit', 'take_profit');
+              const stopLoss = getProtectionValue(position, 'stopLoss', 'stop_loss');
 
               return (
                 <tr key={position.id} className="border-b border-slate-200/80 align-top transition-colors hover:bg-slate-50 dark:border-slate-800/80 dark:hover:bg-white/[0.03]">
@@ -187,8 +197,8 @@ const PositionsTable = ({ positions = [], onClose, onModify = () => {}, compact 
                     <p className="mt-1 text-xs text-slate-500">Live</p>
                   </td>
                   <td className="px-4 py-4 text-sm font-semibold text-slate-900 dark:text-slate-100">1:{position.leverage || 1}</td>
-                  <td className="px-4 py-4 text-sm font-semibold tabular-nums text-slate-900 dark:text-slate-100">{position.takeProfit ? formatMoney(position.takeProfit) : 'Off'}</td>
-                  <td className="px-4 py-4 text-sm font-semibold tabular-nums text-slate-900 dark:text-slate-100">{position.stopLoss ? formatMoney(position.stopLoss) : 'Off'}</td>
+                  <td className="px-4 py-4 text-sm font-semibold tabular-nums text-slate-900 dark:text-slate-100">{takeProfit != null ? formatMoney(takeProfit) : 'Off'}</td>
+                  <td className="px-4 py-4 text-sm font-semibold tabular-nums text-slate-900 dark:text-slate-100">{stopLoss != null ? formatMoney(stopLoss) : 'Off'}</td>
                   <td className="px-4 py-4 text-sm font-semibold tabular-nums text-slate-900 dark:text-slate-100">{formatMoney(position.swap)}</td>
                   <td className="px-4 py-4 text-sm font-semibold tabular-nums text-slate-900 dark:text-slate-100">{formatMoney(position.commission)}</td>
                   <td className={`px-4 py-4 text-sm font-semibold tabular-nums ${isProfit ? 'text-emerald-400' : 'text-rose-400'}`}>

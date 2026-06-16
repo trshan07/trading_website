@@ -11,6 +11,12 @@ const formatUnits = (value) => Number(value || 0).toLocaleString(undefined, {
   maximumFractionDigits: 4,
 });
 
+const getProtectionValue = (item = {}, camelKey, snakeKey) => {
+  const rawValue = item?.[camelKey] ?? item?.[snakeKey];
+  const value = Number.parseFloat(rawValue);
+  return Number.isFinite(value) ? value : null;
+};
+
 const OpenOrders = ({ orders = [], onCancel, onModify = () => {}, compact = false }) => {
   const getLotText = (order) => formatLots(
     order.lots,
@@ -50,6 +56,8 @@ const OpenOrders = ({ orders = [], onCancel, onModify = () => {}, compact = fals
       <div className="space-y-3">
         {orders.map((order) => {
           const isBuy = order.side === 'BUY';
+          const takeProfit = getProtectionValue(order, 'takeProfit', 'take_profit');
+          const stopLoss = getProtectionValue(order, 'stopLoss', 'stop_loss');
 
           return (
             <div key={order.id} className="rounded-3xl border border-slate-200 bg-white p-4 dark:border-slate-700/60 dark:bg-[#131925]">
@@ -78,8 +86,8 @@ const OpenOrders = ({ orders = [], onCancel, onModify = () => {}, compact = fals
                   ['Size', `${getLotText(order)} lots`],
                   ['Units', `${formatUnits(order.quantity)} ${getQuantityLabel(order)}`],
                   ['Trigger', formatMoney(order.entryPrice || order.price)],
-                  ['TP', order.takeProfit ? formatMoney(order.takeProfit) : 'Off'],
-                  ['SL', order.stopLoss ? formatMoney(order.stopLoss) : 'Off'],
+                  ['TP', takeProfit != null ? formatMoney(takeProfit) : 'Off'],
+                  ['SL', stopLoss != null ? formatMoney(stopLoss) : 'Off'],
                 ].map(([label, value]) => (
                   <div key={label} className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2.5 dark:border-slate-800 dark:bg-[#0e1420]">
                     <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">{label}</p>
@@ -125,6 +133,8 @@ const OpenOrders = ({ orders = [], onCancel, onModify = () => {}, compact = fals
           <tbody>
             {orders.map((order) => {
               const isBuy = order.side === 'BUY';
+              const takeProfit = getProtectionValue(order, 'takeProfit', 'take_profit');
+              const stopLoss = getProtectionValue(order, 'stopLoss', 'stop_loss');
 
               return (
                 <tr key={order.id} className="border-b border-slate-200/80 align-top transition-colors hover:bg-slate-50 dark:border-slate-800/80 dark:hover:bg-white/[0.03]">
@@ -158,8 +168,8 @@ const OpenOrders = ({ orders = [], onCancel, onModify = () => {}, compact = fals
                   </td>
                   <td className="px-4 py-4 text-sm font-semibold tabular-nums text-slate-900 dark:text-slate-100">{formatMoney(order.entryPrice || order.price)}</td>
                   <td className="px-4 py-4 text-sm font-semibold text-slate-900 dark:text-slate-100">1:{order.leverage || 1}</td>
-                  <td className="px-4 py-4 text-sm font-semibold tabular-nums text-slate-900 dark:text-slate-100">{order.takeProfit ? formatMoney(order.takeProfit) : 'Off'}</td>
-                  <td className="px-4 py-4 text-sm font-semibold tabular-nums text-slate-900 dark:text-slate-100">{order.stopLoss ? formatMoney(order.stopLoss) : 'Off'}</td>
+                  <td className="px-4 py-4 text-sm font-semibold tabular-nums text-slate-900 dark:text-slate-100">{takeProfit != null ? formatMoney(takeProfit) : 'Off'}</td>
+                  <td className="px-4 py-4 text-sm font-semibold tabular-nums text-slate-900 dark:text-slate-100">{stopLoss != null ? formatMoney(stopLoss) : 'Off'}</td>
                   <td className="px-4 py-4">
                     <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">
                       {new Date(order.createdAt || order.created).toLocaleTimeString()}
