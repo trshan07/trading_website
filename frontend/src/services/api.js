@@ -33,6 +33,16 @@ api.interceptors.request.use(
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+
+    const isFormData =
+      typeof FormData !== 'undefined' &&
+      (config.data instanceof FormData || config.data?.constructor?.name === 'FormData');
+
+    if (isFormData && config.headers) {
+      delete config.headers['Content-Type'];
+      delete config.headers['content-type'];
+    }
+
     return config;
   },
   (error) => Promise.reject(error)
