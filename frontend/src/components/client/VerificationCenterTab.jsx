@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useId, useMemo, useState } from 'react';
 
 const statusTone = {
   Verified: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300',
@@ -31,8 +31,11 @@ const VerificationCenterTab = ({ documents = [], onUpload }) => {
     onUpload(formData);
   };
 
-  const UploadCard = ({ title, hint, file, setFile, existingDocument }) => (
-    <div className="rounded-[2rem] border border-slate-200 bg-white p-5 sm:p-6 dark:border-slate-800 dark:bg-slate-900">
+  const UploadCard = ({ title, hint, file, setFile, existingDocument }) => {
+    const inputId = useId();
+
+    return (
+      <div className="rounded-[2rem] border border-slate-200 bg-white p-5 sm:p-6 dark:border-slate-800 dark:bg-slate-900">
       <div className="flex flex-col items-start justify-between gap-4 sm:flex-row">
         <div>
           <h3 className="text-lg font-semibold text-slate-900 dark:text-white">{title}</h3>
@@ -43,10 +46,15 @@ const VerificationCenterTab = ({ documents = [], onUpload }) => {
         </span>
       </div>
 
-      <label className="mt-6 flex min-h-[170px] cursor-pointer flex-col items-center justify-center rounded-3xl border border-dashed border-slate-300 bg-slate-50 px-6 text-center transition-colors hover:border-slate-400 hover:bg-white dark:border-slate-700 dark:bg-slate-950/50 dark:hover:border-slate-600 dark:hover:bg-slate-950">
+      <label
+        htmlFor={inputId}
+        className="mt-6 relative flex min-h-[170px] cursor-pointer flex-col items-center justify-center rounded-3xl border border-dashed border-slate-300 bg-slate-50 px-6 text-center transition-colors hover:border-slate-400 hover:bg-white dark:border-slate-700 dark:bg-slate-950/50 dark:hover:border-slate-600 dark:hover:bg-slate-950"
+      >
         <input
+          id={inputId}
           type="file"
-          className="hidden"
+          className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+          accept=".pdf,.jpg,.jpeg,.png"
           onChange={(event) => setFile(event.target.files?.[0] || null)}
         />
         <p className="text-sm font-medium text-slate-900 dark:text-white">
@@ -63,11 +71,12 @@ const VerificationCenterTab = ({ documents = [], onUpload }) => {
             ? 'bg-slate-900 text-white hover:bg-slate-800 dark:bg-slate-100 dark:text-slate-950 dark:hover:bg-white'
             : 'cursor-not-allowed bg-slate-200 text-slate-400 dark:bg-slate-800 dark:text-slate-500'
         }`}
-      >
+        >
         Upload {title}
       </button>
     </div>
-  );
+    );
+  };
 
   return (
     <div className="space-y-6">
