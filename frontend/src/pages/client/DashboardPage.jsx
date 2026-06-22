@@ -131,7 +131,7 @@ const DashboardPage = () => {
     portfolioHistory,
     unreadNotifications,
   } = useDashboardData(selectedAccountType, marketSymbol, {
-    shouldPollTrading: activeMainTab === 'webtrader' || activeMainTab === 'account',
+    shouldPollTrading: Boolean(activeAccount?.id),
   });
 
   const livePortfolio = useMemo(() => {
