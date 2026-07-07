@@ -11,6 +11,7 @@ const AdminLog = require('../../models/AdminLog');
 const Trade = require('../../models/Trade');
 const PlatformSettings = require('../../models/PlatformSettings');
 const { normalizeStoredUploadPath } = require('../../utils/uploadPath');
+const { isMissingColumnError } = require('../../utils/dbCompat');
 const { calculatePositionFees } = require('../../utils/tradingFees');
 const { createNotification } = require('../../client/controllers/notificationController');
 const { createActivityLog } = require('../../client/controllers/activityController');
@@ -1143,6 +1144,141 @@ const cancelTrade = async (req, res) => {
     }
 };
 
+const createTradeDeletionTransaction = async (client, trade, amount, balanceBefore, balanceAfter, description) => {
+    const query = `
+        INSERT INTO transactions (
+            user_id, account_id, type, amount, balance_before, balance_after, reference_id, description
+        )
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+    `;
+    const values = [
+        trade.user_id,
+        trade.account_id,
+        'trade',
+        amount,
+        balanceBefore,
+        balanceAfter,
+        trade.id,
+        description
+    ];
+
+    try {
+        await client.query(query, values);
+    } catch (error) {
+        if (!isMissingColumnError(error)) {
+            throw error;
+        }
+
+        await client.query(
+            `INSERT INTO transactions (user_id, account_id, type, amount, description)
+            VALUES ($1, $2, $3, $4, $5)`,
+            [trade.user_id, trade.account_id, 'trade', amount, description]
+        );
+    }
+};
+
+// @desc    Delete a trade and reverse realized P&L if needed
+// @route   DELETE /api/admin/trades/:id
+// @access  Private/Admin
+const deleteTrade = async (req, res) => {
+    const client = await db.pool.connect();
+
+    try {
+        await client.query('BEGIN');
+
+        const { rows: tradeRows } = await client.query(
+            'SELECT * FROM positions WHERE id = $1 FOR UPDATE',
+            [req.params.id]
+        );
+        const trade = tradeRows[0];
+
+        if (!trade) {
+            await client.query('ROLLBACK');
+            return res.status(404).json({ success: false, message: 'Trade not found' });
+        }
+
+        const pnl = toNumber(trade.pnl);
+        let accountBefore = null;
+        let accountAfter = null;
+
+        if (trade.status === 'closed' && pnl !== 0) {
+            const { rows: accountRows } = await client.query(
+                'SELECT * FROM accounts WHERE id = $1 FOR UPDATE',
+                [trade.account_id]
+            );
+            const account = accountRows[0];
+
+            if (!account) {
+                await client.query('ROLLBACK');
+                return res.status(404).json({ success: false, message: 'Trade account not found' });
+            }
+
+            accountBefore = toNumber(account.balance);
+            accountAfter = accountBefore - pnl;
+
+            await client.query(
+                'UPDATE accounts SET balance = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2',
+                [accountAfter, trade.account_id]
+            );
+
+            await createTradeDeletionTransaction(
+                client,
+                trade,
+                -pnl,
+                accountBefore,
+                accountAfter,
+                `Deleted trade #${trade.id}; reversed realized P&L ${pnl.toFixed(2)}`
+            );
+        }
+
+        const deleted = await Trade.deleteById(req.params.id, client);
+
+        await client.query('COMMIT');
+
+        try {
+            await AdminLog.create(req.user.id, {
+                action: 'DELETE_TRADE',
+                target_id: trade.user_id,
+                details: `Deleted trade #${trade.id} (${trade.symbol} ${trade.side}). Reversed P&L: ${trade.status === 'closed' ? pnl : 0}`,
+                ip_address: req.ip
+            });
+        } catch (logError) {
+            console.error('AdminLog Error (DELETE_TRADE):', logError);
+        }
+
+        try {
+            await createActivityLog(trade.user_id, 'EXECUTION', `Admin deleted ${trade.symbol} trade #${trade.id}`);
+            await createNotification(trade.user_id, 'info', `Trade #${trade.id} was removed by an administrator.`);
+        } catch (notifyError) {
+            console.error('Delete trade notification error:', notifyError.message);
+        }
+
+        res.json({
+            success: true,
+            data: {
+                deleted,
+                accountAdjustment: accountBefore == null ? null : {
+                    accountId: trade.account_id,
+                    balanceBefore: accountBefore,
+                    balanceAfter: accountAfter,
+                    reversedPnl: pnl
+                }
+            }
+        });
+    } catch (error) {
+        try {
+            await client.query('ROLLBACK');
+        } catch (rollbackError) {
+            console.error('Delete trade rollback error:', rollbackError);
+        }
+
+        console.error(error);
+        res.status(500).json({ success: false, message: 'Server error' });
+    } finally {
+        client.release();
+    }
+};
+
 // @desc    Get transactions
 // @route   GET /api/admin/transactions
 // @access  Private/Admin
@@ -1463,6 +1599,7 @@ module.exports = {
     getTrades,
     getTradeStats,
     cancelTrade,
+    deleteTrade,
     getTransactions,
     getTransactionStats,
     exportTransactions,

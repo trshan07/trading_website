@@ -190,6 +190,7 @@ export const adminService = {
   },
 
   cancelTrade: (tradeId) => api.post(`/admin/trades/${tradeId}/cancel`),
+  deleteTrade: (tradeId) => api.delete(`/admin/trades/${tradeId}`),
 
   getPlatformSettings: () => api.get('/admin/settings'),
   updatePlatformSettings: (settings) => api.put('/admin/settings', settings),

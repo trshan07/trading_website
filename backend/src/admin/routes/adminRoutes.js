@@ -20,6 +20,7 @@ const {
     getTrades,
     getTradeStats,
     cancelTrade,
+    deleteTrade,
     getTransactions,
     getTransactionStats,
     exportTransactions,
@@ -63,6 +64,7 @@ router.post('/funding/:id/process', processFunding);
 router.get('/trades', getTrades);
 router.get('/trades/stats', getTradeStats);
 router.post('/trades/:id/cancel', cancelTrade);
+router.delete('/trades/:id', deleteTrade);
 
 // Transactions
 router.get('/transactions', getTransactions);

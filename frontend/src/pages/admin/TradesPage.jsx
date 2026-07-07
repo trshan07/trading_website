@@ -16,10 +16,12 @@ import {
   Col,
   message,
   Tooltip,
+  Popconfirm,
 } from 'antd';
 import {
   EyeOutlined,
   StopOutlined,
+  DeleteOutlined,
   ReloadOutlined,
   BarChartOutlined,
   SearchOutlined,
@@ -86,6 +88,17 @@ const TradesPage = () => {
       fetchTradeStats();
     } catch (error) {
       message.error('Failed to cancel trade');
+    }
+  };
+
+  const handleDeleteTrade = async (tradeId) => {
+    try {
+      await adminService.deleteTrade(tradeId);
+      message.success('Trade deleted and totals recalculated');
+      fetchTrades();
+      fetchTradeStats();
+    } catch (error) {
+      message.error(error?.response?.data?.message || 'Failed to delete trade');
     }
   };
 
@@ -186,6 +199,17 @@ const TradesPage = () => {
               />
             </Tooltip>
           )}
+          <Popconfirm
+            title="Delete trade?"
+            description="Closed trade P&L will be reversed from the client balance."
+            okText="Delete"
+            okButtonProps={{ danger: true }}
+            onConfirm={() => handleDeleteTrade(record.id)}
+          >
+            <Tooltip title="Delete Trade">
+              <Button icon={<DeleteOutlined />} danger />
+            </Tooltip>
+          </Popconfirm>
         </Space>
       ),
     },

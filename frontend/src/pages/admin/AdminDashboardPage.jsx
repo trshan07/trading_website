@@ -1,4 +1,4 @@
-import { useContext, useState, useEffect, useRef } from "react";
+import { useCallback, useContext, useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../../context/AuthContext";
 import { adminService } from "../../services/adminService";
@@ -296,37 +296,37 @@ export default function AdminCRM() {
   });
   const [growthStats, setGrowthStats] = useState({ userGrowth: [], tradingVolume: [] });
 
-  useEffect(() => {
-    const fetchDashboardData = async () => {
-      try {
-        setLoading(true);
-        const [statsRes, usersRes, fundingRes, tradesRes, growthStatsRes, kycRes] = await Promise.all([
-          adminService.getDashboardStats().catch(() => ({ data: { data: {} } })),
-          adminService.getUsers().catch(() => ({ data: { data: [] } })),
-          adminService.getFundingRequests().catch(() => ({ data: { data: [] } })),
-          adminService.getTrades().catch(() => ({ data: { data: [] } })),
-          adminService.getGrowthStats().catch(() => ({ data: { data: { userGrowth: [], tradingVolume: [] } } })),
-          adminService.getKYCSubmissions({ status: 'pending' }).catch(() => ({ data: { data: [] } }))
-        ]);
-        
-        if (statsRes.data?.success) {
-            const s = statsRes.data.data;
-            setStats(prev => ({...prev, ...s}));
-        }
-        if (usersRes.data?.success) setUsers(usersRes.data.data.map(normalizeUserAccounts));
-        if (fundingRes.data?.success) setFunding(fundingRes.data.data);
-        if (tradesRes.data?.success) setTrades(tradesRes.data.data);
-        if (growthStatsRes?.data?.success) setGrowthStats(growthStatsRes.data.data);
-        // Store pending KYC submissions for the Overview alerts card
-        if (kycRes?.data?.success) setKycAlerts(kycRes.data.data || []);
-      } catch (err) {
-        console.error("Failed to load dashboard data", err);
-      } finally {
-        setLoading(false);
+  const fetchDashboardData = useCallback(async ({ showLoading = true } = {}) => {
+    try {
+      if (showLoading) setLoading(true);
+      const [statsRes, usersRes, fundingRes, tradesRes, growthStatsRes, kycRes] = await Promise.all([
+        adminService.getDashboardStats().catch(() => ({ data: { data: {} } })),
+        adminService.getUsers().catch(() => ({ data: { data: [] } })),
+        adminService.getFundingRequests().catch(() => ({ data: { data: [] } })),
+        adminService.getTrades().catch(() => ({ data: { data: [] } })),
+        adminService.getGrowthStats().catch(() => ({ data: { data: { userGrowth: [], tradingVolume: [] } } })),
+        adminService.getKYCSubmissions({ status: 'pending' }).catch(() => ({ data: { data: [] } }))
+      ]);
+      
+      if (statsRes.data?.success) {
+          const s = statsRes.data.data;
+          setStats(prev => ({...prev, ...s}));
       }
-    };
-    fetchDashboardData();
+      if (usersRes.data?.success) setUsers(usersRes.data.data.map(normalizeUserAccounts));
+      if (fundingRes.data?.success) setFunding(fundingRes.data.data);
+      if (tradesRes.data?.success) setTrades(tradesRes.data.data);
+      if (growthStatsRes?.data?.success) setGrowthStats(growthStatsRes.data.data);
+      if (kycRes?.data?.success) setKycAlerts(kycRes.data.data || []);
+    } catch (err) {
+      console.error("Failed to load dashboard data", err);
+    } finally {
+      if (showLoading) setLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    fetchDashboardData();
+  }, [fetchDashboardData]);
 
   const toast = (title, msg = "", type = "success") => {
     const id = ++toastId.current;
@@ -464,7 +464,7 @@ export default function AdminCRM() {
             {page === "kyc" && <KYCPage toast={toast} />}
             {page === "credits" && <CreditsPage users={users} setUsers={setUsers} toast={toast} />}
             {page === "funding" && <FundingPage funding={funding} setFunding={setFunding} users={users} setUsers={setUsers} toast={toast} />}
-            {page === "trades" && <TradesPage trades={trades} />}
+            {page === "trades" && <TradesPage trades={trades} refreshDashboardData={fetchDashboardData} toast={toast} />}
             {page === "reports" && <ReportsPage users={users} trades={trades} funding={funding} toast={toast} />}
             {page === "settings" && <SettingsPage toast={toast} />}
           </main>
@@ -1702,12 +1702,30 @@ function FundingPage({ funding, setFunding, users, setUsers, toast }) {
 // ═══════════════════════════════════════════════════════════════════════════
 // TRADES PAGE
 // ═══════════════════════════════════════════════════════════════════════════
-function TradesPage({ trades }) {
+function TradesPage({ trades, refreshDashboardData, toast }) {
   const [filter, setFilter] = useState("all");
   const [search, setSearch] = useState("");
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [deleting, setDeleting] = useState(false);
 
   const filtered = trades.filter(t => (filter === "all" || t.status === filter) && (t.userName.toLowerCase().includes(search.toLowerCase()) || t.symbol.toLowerCase().includes(search.toLowerCase())));
   const totalPnl = filtered.reduce((s, t) => s + t.profit, 0);
+
+  const confirmDeleteTrade = async () => {
+    if (!deleteTarget) return;
+
+    try {
+      setDeleting(true);
+      await adminService.deleteTrade(deleteTarget.id);
+      await refreshDashboardData?.({ showLoading: false });
+      toast?.("Trade deleted", `Trade #${deleteTarget.id} was removed and totals were recalculated.`);
+      setDeleteTarget(null);
+    } catch (error) {
+      toast?.("Delete failed", error?.response?.data?.message || "Unable to delete this trade.", "error");
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   return (
     <div>
@@ -1747,13 +1765,13 @@ function TradesPage({ trades }) {
           <table style={{ borderCollapse: "collapse", width: "100%", minWidth: "800px" }}>
             <thead>
               <tr style={{ borderBottom: `1px solid ${C.border}` }}>
-                {["#", "User", "Symbol", "Dir", "Lots", "Open", "Close", "Swap", "P&L", "Status", "Opened"].map(h => (
+                {["#", "User", "Symbol", "Dir", "Lots", "Open", "Close", "Swap", "P&L", "Status", "Opened", "Actions"].map(h => (
                   <th key={h} style={{ padding: "11px 14px", fontSize: "10px", color: C.textMuted, textTransform: "uppercase", letterSpacing: "0.1em", fontWeight: 700, textAlign: "left", background: C.bg }}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
-              {filtered.length === 0 && <tr><td colSpan={11} style={{ padding: "48px", textAlign: "center", color: C.textDim }}>No trades found</td></tr>}
+              {filtered.length === 0 && <tr><td colSpan={12} style={{ padding: "48px", textAlign: "center", color: C.textDim }}>No trades found</td></tr>}
               {filtered.map(t => (
                 <tr key={t.id} style={{ borderBottom: `1px solid ${C.border}` }}
                   onMouseEnter={e => e.currentTarget.style.background = C.bgHover}
@@ -1769,12 +1787,47 @@ function TradesPage({ trades }) {
                   <td style={{ padding: "11px 14px" }}><span className="mono" style={{ fontSize: "13px", color: t.profit >= 0 ? C.green : C.red, fontWeight: 700 }}>{t.profit >= 0 ? "+" : ""}{fmt(t.profit)}</span></td>
                   <td style={{ padding: "11px 14px" }}><StatusBadge status={t.status} /></td>
                   <td style={{ padding: "11px 14px" }}><span className="mono" style={{ fontSize: "10px", color: C.textDim }}>{timeAgo(t.opened)}</span></td>
+                  <td style={{ padding: "11px 14px" }}>
+                    <Btn size="sm" danger onClick={() => setDeleteTarget(t)}>Delete</Btn>
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
       </Card>
+
+      <Modal
+        open={!!deleteTarget}
+        onClose={() => !deleting && setDeleteTarget(null)}
+        title="Delete Trade"
+        subtitle={deleteTarget ? `#${deleteTarget.id} · ${deleteTarget.symbol}` : ""}
+        width="440px"
+      >
+        {deleteTarget && (
+          <>
+            <p style={{ color: C.textMuted, fontSize: "13px", lineHeight: 1.6 }}>
+              This removes the trade from admin and client trade history. If the trade is closed, its realized P&L will be reversed from the client account balance before totals are recalculated.
+            </p>
+            <div style={{ background: C.bg, border: `1px solid ${C.border}`, borderRadius: "8px", padding: "12px", marginTop: "14px", display: "grid", gap: "8px" }}>
+              {[
+                ["Client", deleteTarget.userName],
+                ["Status", deleteTarget.status],
+                ["P&L", `${deleteTarget.profit >= 0 ? "+" : ""}${fmt(deleteTarget.profit)}`],
+              ].map(([label, value]) => (
+                <div key={label} style={{ display: "flex", justifyContent: "space-between", gap: "12px", fontSize: "12px" }}>
+                  <span style={{ color: C.textMuted }}>{label}</span>
+                  <span className="mono" style={{ color: label === "P&L" ? (deleteTarget.profit >= 0 ? C.green : C.red) : C.text }}>{value}</span>
+                </div>
+              ))}
+            </div>
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", marginTop: "20px" }}>
+              <Btn variant="secondary" onClick={() => setDeleteTarget(null)} disabled={deleting}>Cancel</Btn>
+              <Btn danger onClick={confirmDeleteTrade} disabled={deleting}>{deleting ? "Deleting..." : "Delete Trade"}</Btn>
+            </div>
+          </>
+        )}
+      </Modal>
     </div>
   );
 }

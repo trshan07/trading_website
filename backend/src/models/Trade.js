@@ -253,6 +253,12 @@ class Trade {
         const { rows } = await db.query(query, [tradeId]);
         return rows[0];
     }
+
+    static async deleteById(tradeId, client = db) {
+        const query = 'DELETE FROM positions WHERE id = $1 RETURNING *';
+        const { rows } = await client.query(query, [tradeId]);
+        return rows[0];
+    }
 }
 
 module.exports = Trade;
