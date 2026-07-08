@@ -328,6 +328,13 @@ export default function AdminCRM() {
     fetchDashboardData();
   }, [fetchDashboardData]);
 
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetchDashboardData({ showLoading: false });
+    }, 10000);
+    return () => clearInterval(interval);
+  }, [fetchDashboardData]);
+
   const toast = (title, msg = "", type = "success") => {
     const id = ++toastId.current;
     setToasts(p => [...p, { id, title, msg, type }]);
