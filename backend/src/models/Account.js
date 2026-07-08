@@ -1,6 +1,11 @@
 // src/models/Account.js
 const db = require('../config/database');
 
+const expireDueCredits = async (filter) => {
+    const { expireDueCreditGrants } = require('../services/creditExpiryService');
+    await expireDueCreditGrants(filter);
+};
+
 class Account {
     static async create(userId, accountType) {
         const accountNumber = this.generateAccountNumber();
@@ -17,6 +22,7 @@ class Account {
     }
 
     static async findByUserId(userId) {
+        await expireDueCredits({ userId });
         const query = `
             SELECT * FROM accounts 
             WHERE user_id = $1 
@@ -44,6 +50,7 @@ class Account {
     }
 
     static async findById(id) {
+        await expireDueCredits({ accountId: id });
         const query = 'SELECT * FROM accounts WHERE id = $1';
         const { rows } = await db.query(query, [id]);
         return rows[0];
@@ -52,6 +59,11 @@ class Account {
     static async findByAccountNumber(accountNumber) {
         const query = 'SELECT * FROM accounts WHERE account_number = $1';
         const { rows } = await db.query(query, [accountNumber]);
+        if (rows[0]) {
+            await expireDueCredits({ accountId: rows[0].id });
+            const refreshed = await db.query(query, [accountNumber]);
+            return refreshed.rows[0];
+        }
         return rows[0];
     }
 

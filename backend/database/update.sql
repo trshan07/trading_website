@@ -405,6 +405,21 @@ CREATE TABLE IF NOT EXISTS notifications (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE IF NOT EXISTS credit_grants (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+    account_id INTEGER REFERENCES accounts(id) ON DELETE CASCADE,
+    amount DECIMAL(15,2) NOT NULL,
+    remaining_amount DECIMAL(15,2) NOT NULL,
+    expiry_date DATE,
+    status VARCHAR(20) DEFAULT 'active',
+    source_transaction_id INTEGER REFERENCES transactions(id) ON DELETE SET NULL,
+    expired_transaction_id INTEGER REFERENCES transactions(id) ON DELETE SET NULL,
+    note TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE TABLE IF NOT EXISTS price_alerts (
     id SERIAL PRIMARY KEY,
     user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,

@@ -1296,6 +1296,7 @@ function CreditsPage({ users, setUsers, toast }) {
         amount: amt,
         reason: form.note,
         description: form.note,
+        expiryDate: form.type === "credit" && form.expiry ? form.expiry : null,
       });
 
       const usersRes = await adminService.getUsers();

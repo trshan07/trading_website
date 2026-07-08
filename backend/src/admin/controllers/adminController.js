@@ -16,6 +16,12 @@ const { calculatePositionFees } = require('../../utils/tradingFees');
 const { createNotification } = require('../../client/controllers/notificationController');
 const { createActivityLog } = require('../../client/controllers/activityController');
 const { verifyEmailTransport, sendWelcomeEmail } = require('../../services/emailService');
+const {
+    consumeCreditGrants,
+    createCreditGrant,
+    expireDueCreditGrants,
+    isValidExpiryDate
+} = require('../../services/creditExpiryService');
 
 const toNumber = (value, fallback = 0) => {
     const parsed = Number(value);
@@ -545,7 +551,7 @@ const updateUserStatus = async (req, res) => {
 // @access  Private/Admin
 const adjustBalance = async (req, res) => {
     try {
-        const { accountId, type, amount, description, reason } = req.body;
+        const { accountId, type, amount, description, reason, expiryDate, expiry } = req.body;
         const userId = req.params.id;
         const account = await findAdjustableAccount(userId, accountId);
 
@@ -560,8 +566,16 @@ const adjustBalance = async (req, res) => {
 
         const normalizedType = String(type || 'balance').toLowerCase();
         const label = description || reason || 'Admin balance adjustment';
+        const requestedExpiryDate = expiryDate || expiry || null;
 
         if (normalizedType === 'credit' || normalizedType === 'debit') {
+            if (normalizedType === 'credit' && requestedExpiryDate && !isValidExpiryDate(requestedExpiryDate)) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Invalid credit expiry date'
+                });
+            }
+
             const signedCredit = normalizedType === 'debit'
                 ? -Math.abs(requestedAmount)
                 : Math.abs(requestedAmount);
@@ -575,9 +589,10 @@ const adjustBalance = async (req, res) => {
             }
 
             const updatedAccount = await Account.updateCredit(account.id, nextCredit);
+            let transaction = null;
             
             try {
-                await Transaction.create(userId, {
+                transaction = await Transaction.create(userId, {
                     account_id: account.id,
                     type: normalizedType,
                     amount: Math.abs(signedCredit),
@@ -589,6 +604,23 @@ const adjustBalance = async (req, res) => {
                 console.error('[AdminController] Transaction logging failed:', tError.message);
                 // We don't fail the whole request if only transaction logging fails, 
                 // but we should know about it.
+            }
+
+            if (normalizedType === 'credit') {
+                await createCreditGrant({
+                    userId,
+                    accountId: account.id,
+                    amount: signedCredit,
+                    expiryDate: requestedExpiryDate,
+                    sourceTransactionId: transaction?.id || null,
+                    note: label
+                });
+                await expireDueCreditGrants({ accountId: account.id });
+            } else {
+                await consumeCreditGrants({
+                    accountId: account.id,
+                    amount: Math.abs(signedCredit)
+                });
             }
 
             try {
