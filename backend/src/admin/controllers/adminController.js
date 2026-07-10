@@ -588,7 +588,7 @@ const adjustBalance = async (req, res) => {
                 });
             }
 
-            const updatedAccount = await Account.updateCredit(account.id, nextCredit);
+            let updatedAccount = await Account.updateCredit(account.id, nextCredit);
             let transaction = null;
             
             try {
@@ -616,6 +616,7 @@ const adjustBalance = async (req, res) => {
                     note: label
                 });
                 await expireDueCreditGrants({ accountId: account.id });
+                updatedAccount = await Account.findById(account.id);
             } else {
                 await consumeCreditGrants({
                     accountId: account.id,
@@ -713,6 +714,8 @@ const adjustBalance = async (req, res) => {
 // @access  Private/Admin
 const getDashboardStats = async (req, res) => {
     try {
+        await expireDueCreditGrants();
+
         const [
             clients,
             admins,

@@ -103,7 +103,7 @@ const expireDueCreditGrants = async ({ userId = null, accountId = null } = {}) =
         "cg.status = 'active'",
         'cg.remaining_amount > 0',
         'cg.expiry_date IS NOT NULL',
-        'cg.expiry_date < CURRENT_DATE'
+        'cg.expiry_date <= CURRENT_DATE'
     ];
 
     if (userId) {
@@ -116,59 +116,72 @@ const expireDueCreditGrants = async ({ userId = null, accountId = null } = {}) =
         filters.push(`cg.account_id = $${params.length}`);
     }
 
-    const { rows: accountsWithExpiredCredits } = await db.query(
-        `SELECT
-            cg.account_id,
-            cg.user_id,
-            SUM(cg.remaining_amount) AS expired_amount,
-            a.credit AS current_credit
-         FROM credit_grants cg
-         JOIN accounts a ON a.id = cg.account_id
-         WHERE ${filters.join(' AND ')}
-         GROUP BY cg.account_id, cg.user_id, a.credit`,
-        params
-    );
+    const client = await db.pool.connect();
 
-    for (const row of accountsWithExpiredCredits) {
-        const expiredAmount = Math.min(toNumber(row.expired_amount), toNumber(row.current_credit));
-        const nextCredit = Math.max(0, toNumber(row.current_credit) - expiredAmount);
+    try {
+        await client.query('BEGIN');
 
-        await db.query('UPDATE accounts SET credit = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2', [
-            nextCredit,
-            row.account_id
-        ]);
+        const { rows: accountsWithExpiredCredits } = await client.query(
+            `SELECT
+                cg.account_id,
+                cg.user_id,
+                SUM(cg.remaining_amount) AS expired_amount,
+                a.credit AS current_credit
+             FROM credit_grants cg
+             JOIN accounts a ON a.id = cg.account_id
+             WHERE ${filters.join(' AND ')}
+             GROUP BY cg.account_id, cg.user_id, a.credit`,
+            params
+        );
 
-        let transactionId = null;
-        if (expiredAmount > 0) {
-            const { rows: transactions } = await db.query(
-                `INSERT INTO transactions (user_id, account_id, type, amount, balance_before, balance_after, description)
-                 VALUES ($1, $2, 'credit_expiry', $3, $4, $5, $6)
-                 RETURNING id`,
-                [
-                    row.user_id,
-                    row.account_id,
-                    expiredAmount,
-                    toNumber(row.current_credit),
-                    nextCredit,
-                    'Credit expired automatically'
-                ]
+        for (const row of accountsWithExpiredCredits) {
+            const expiredAmount = Math.min(toNumber(row.expired_amount), toNumber(row.current_credit));
+            const nextCredit = Math.max(0, toNumber(row.current_credit) - expiredAmount);
+
+            await client.query('UPDATE accounts SET credit = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2', [
+                nextCredit,
+                row.account_id
+            ]);
+
+            let transactionId = null;
+            if (expiredAmount > 0) {
+                const { rows: transactions } = await client.query(
+                    `INSERT INTO transactions (user_id, account_id, type, amount, balance_before, balance_after, description)
+                     VALUES ($1, $2, 'credit_expiry', $3, $4, $5, $6)
+                     RETURNING id`,
+                    [
+                        row.user_id,
+                        row.account_id,
+                        expiredAmount,
+                        toNumber(row.current_credit),
+                        nextCredit,
+                        'Credit expired automatically'
+                    ]
+                );
+                transactionId = transactions[0]?.id || null;
+            }
+
+            await client.query(
+                `UPDATE credit_grants
+                 SET remaining_amount = 0,
+                     status = 'expired',
+                     expired_transaction_id = $1,
+                     updated_at = CURRENT_TIMESTAMP
+                 WHERE account_id = $2
+                   AND status = 'active'
+                   AND remaining_amount > 0
+                   AND expiry_date IS NOT NULL
+                   AND expiry_date <= CURRENT_DATE`,
+                [transactionId, row.account_id]
             );
-            transactionId = transactions[0]?.id || null;
         }
 
-        await db.query(
-            `UPDATE credit_grants
-             SET remaining_amount = 0,
-                 status = 'expired',
-                 expired_transaction_id = $1,
-                 updated_at = CURRENT_TIMESTAMP
-             WHERE account_id = $2
-               AND status = 'active'
-               AND remaining_amount > 0
-               AND expiry_date IS NOT NULL
-               AND expiry_date < CURRENT_DATE`,
-            [transactionId, row.account_id]
-        );
+        await client.query('COMMIT');
+    } catch (error) {
+        await client.query('ROLLBACK');
+        throw error;
+    } finally {
+        client.release();
     }
 };
 

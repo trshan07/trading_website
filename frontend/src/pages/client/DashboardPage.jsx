@@ -37,6 +37,11 @@ const normalizeLeverage = (value, fallback = 100) => {
   return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
 };
 
+const finiteNumber = (value, fallback = 0) => {
+  const parsed = Number.parseFloat(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
+};
+
 const routeToTabMap = {
   trading: 'webtrader',
   webtrader: 'webtrader',
@@ -135,15 +140,15 @@ const DashboardPage = () => {
   });
 
   const livePortfolio = useMemo(() => {
-    const balance = Number.parseFloat(activeAccount?.balance) || 0;
-    const credit = Number.parseFloat(activeAccount?.credit) || 0;
-    const totalFunds = balance + credit;
     const backendRisk = accountRisk?.risk || null;
+    const balance = finiteNumber(backendRisk?.balance, finiteNumber(activeAccount?.balance));
+    const credit = finiteNumber(backendRisk?.credit, finiteNumber(activeAccount?.credit));
+    const totalFunds = balance + credit;
     const totalUnrealizedPnL = positions.reduce((sum, position) => sum + (Number.parseFloat(position.pnl) || 0), 0);
     const totalMargin = positions.reduce((sum, position) => sum + (Number.parseFloat(position.margin) || 0), 0);
-    const equity = totalFunds + totalUnrealizedPnL;
-    const freeMargin = equity - totalMargin;
-    const marginLevel = totalMargin > 0 ? (equity / totalMargin) * 100 : 0;
+    const equity = finiteNumber(backendRisk?.equity, totalFunds + totalUnrealizedPnL);
+    const freeMargin = finiteNumber(backendRisk?.freeMargin, equity - totalMargin);
+    const marginLevel = finiteNumber(backendRisk?.marginLevel, totalMargin > 0 ? (equity / totalMargin) * 100 : 0);
 
     return {
       totalBalance: totalFunds,
@@ -151,9 +156,9 @@ const DashboardPage = () => {
       availableBalance: freeMargin,
       freeMargin,
       equity,
-      margin: totalMargin,
+      margin: finiteNumber(backendRisk?.usedMargin, totalMargin),
       marginLevel,
-      dailyPnL: totalUnrealizedPnL,
+      dailyPnL: finiteNumber(backendRisk?.unrealizedPnl, totalUnrealizedPnL),
       positionsCount: positions.length,
       credit,
       leverage: activeAccount?.leverage || 100,

@@ -1,4 +1,4 @@
-import { useState, useEffect, useContext, useCallback, useMemo } from 'react';
+import { useState, useEffect, useContext, useCallback, useMemo, useRef } from 'react';
 import tradingService from '../services/tradingService';
 import fundingService from '../services/fundingService';
 import kycService from '../services/kycService';
@@ -553,6 +553,7 @@ export const useDashboardData = (accountType = 'demo', activeSymbol = null, opti
   const { user, refreshUser } = useContext(AuthContext);
   const isDemo = accountType === 'demo';
   const shouldPollTrading = options.shouldPollTrading ?? true;
+  const lastAccountRefreshRef = useRef(0);
 
   // Find the active account ID based on the type
   const activeAccount = user?.accounts?.find(acc => {
@@ -935,6 +936,22 @@ export const useDashboardData = (accountType = 'demo', activeSymbol = null, opti
     }, TRADING_DATA_REFRESH_MS);
     return () => clearInterval(pollInterval);
   }, [fetchPositions, fetchOrders, fetchClosedTrades, accountId, shouldPollTrading]);
+
+  useEffect(() => {
+    const riskCredit = Number.parseFloat(accountRisk?.risk?.credit);
+    const accountCredit = Number.parseFloat(activeAccount?.credit);
+    if (!Number.isFinite(riskCredit) || !Number.isFinite(accountCredit) || riskCredit === accountCredit) {
+      return;
+    }
+
+    const now = Date.now();
+    if (now - lastAccountRefreshRef.current < 30000) {
+      return;
+    }
+
+    lastAccountRefreshRef.current = now;
+    refreshUser();
+  }, [accountRisk?.risk?.credit, activeAccount?.credit, refreshUser]);
 
   useEffect(() => {
     setPortfolioHistory(buildPortfolioHistory({
