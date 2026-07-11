@@ -8,6 +8,12 @@ class PriceAlert {
         return rows;
     }
 
+    static async findActive() {
+        const query = "SELECT * FROM price_alerts WHERE status = 'active' ORDER BY created_at ASC";
+        const { rows } = await db.query(query);
+        return rows;
+    }
+
     static async create(userId, alertData) {
         const { symbol, price, condition } = alertData;
         
@@ -24,6 +30,17 @@ class PriceAlert {
     static async updateStatus(id, userId, status) {
         const query = 'UPDATE price_alerts SET status = $1 WHERE id = $2 AND user_id = $3 RETURNING *';
         const { rows } = await db.query(query, [status, id, userId]);
+        return rows[0];
+    }
+
+    static async markTriggered(id) {
+        const query = `
+            UPDATE price_alerts
+            SET status = 'triggered'
+            WHERE id = $1 AND status = 'active'
+            RETURNING *
+        `;
+        const { rows } = await db.query(query, [id]);
         return rows[0];
     }
 

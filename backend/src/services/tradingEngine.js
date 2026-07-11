@@ -2,6 +2,7 @@ const db = require('../config/database');
 const Account = require('../models/Account');
 const Order = require('../models/Order');
 const Position = require('../models/Position');
+const PriceAlert = require('../models/PriceAlert');
 const Transaction = require('../models/Transaction');
 const { isMissingColumnError, getMissingColumnName } = require('../utils/dbCompat');
 const { createActivityLog } = require('../client/controllers/activityController');
@@ -1339,6 +1340,11 @@ const runTradingEngineCycle = async () => {
 
     engineRunning = true;
     try {
+        await processPriceAlerts().catch((error) => {
+            if (error?.code !== '42P01') {
+                console.error('Price alert processing failed:', error.message);
+            }
+        });
         const executed = await processPendingOrders();
         const syncResult = await syncOpenPositionsWithMarket().catch((error) => {
             console.error('Open position sync failed:', error.message);
@@ -1355,6 +1361,51 @@ const runTradingEngineCycle = async () => {
     } finally {
         engineRunning = false;
     }
+};
+
+const processPriceAlerts = async () => {
+    const alerts = await PriceAlert.findActive();
+    if (alerts.length === 0) {
+        return [];
+    }
+
+    const symbols = Array.from(new Set(alerts.map((alert) => normalizeSymbol(alert.symbol)).filter(Boolean)));
+    const quotes = await getCanonicalMarketQuotes(symbols, {
+        preferChartAligned: true,
+        refresh: true,
+    });
+    const triggered = [];
+
+    for (const alert of alerts) {
+        const symbol = normalizeSymbol(alert.symbol);
+        const currentPrice = Number.parseFloat(quotes[symbol]?.price);
+        const targetPrice = Number.parseFloat(alert.price);
+        if (!Number.isFinite(currentPrice) || !Number.isFinite(targetPrice)) {
+            continue;
+        }
+
+        const reached = alert.condition === 'above'
+            ? currentPrice >= targetPrice
+            : alert.condition === 'below' && currentPrice <= targetPrice;
+        if (!reached) {
+            continue;
+        }
+
+        // The conditional update prevents duplicate notifications when cycles overlap.
+        const updated = await PriceAlert.markTriggered(alert.id);
+        if (!updated) {
+            continue;
+        }
+
+        await createNotification(
+            alert.user_id,
+            'success',
+            `${symbol} price alert triggered at ${currentPrice}. Target was ${alert.condition} ${targetPrice}.`
+        );
+        triggered.push(updated);
+    }
+
+    return triggered;
 };
 
 const startTradingEngine = () => {
@@ -1380,6 +1431,7 @@ module.exports = {
     parseTradeInputs,
     placeTrade,
     processPendingOrders,
+    processPriceAlerts,
     updatePositionProtection,
     updateOrderProtection,
     closePosition,

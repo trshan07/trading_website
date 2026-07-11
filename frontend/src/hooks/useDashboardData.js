@@ -854,6 +854,30 @@ export const useDashboardData = (accountType = 'demo', activeSymbol = null, opti
   }, [user, fetchBanking, fetchTransactions, fetchDocuments, fetchAlerts, fetchSettings, fetchInfrastructure, fetchPlatformInfo]);
 
   useEffect(() => {
+    if (!user) return undefined;
+
+    let inFlight = false;
+    const refreshAlertState = async () => {
+      if (inFlight) return;
+      inFlight = true;
+      try {
+        const [, notificationResult] = await Promise.allSettled([
+          fetchAlerts(),
+          infraService.getNotifications(),
+        ]);
+        if (notificationResult.status === 'fulfilled' && notificationResult.value.success) {
+          setNotifications(notificationResult.value.data || []);
+        }
+      } finally {
+        inFlight = false;
+      }
+    };
+
+    const alertInterval = setInterval(refreshAlertState, GLOBAL_CHART_QUOTES_REFRESH_MS);
+    return () => clearInterval(alertInterval);
+  }, [fetchAlerts, user]);
+
+  useEffect(() => {
     if (!user || !instrumentSymbolKey) {
       return undefined;
     }
@@ -1269,10 +1293,12 @@ export const useDashboardData = (accountType = 'demo', activeSymbol = null, opti
       if (res.success) {
         setPriceAlerts(prev => [res.data, ...prev]);
         toast.success("Price alert set");
+        return true;
       }
     } catch (error) {
       toast.error("Failed to create alert");
     }
+    return false;
   };
 
   const handleDeleteAlert = async (id) => {

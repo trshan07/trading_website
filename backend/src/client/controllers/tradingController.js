@@ -295,16 +295,34 @@ const getAlerts = async (req, res) => {
 
 const createAlert = async (req, res) => {
     try {
-        const alert = await PriceAlert.create(req.user.id, req.body);
+        const symbol = String(req.body?.symbol || '').trim().toUpperCase().replace(/[^A-Z0-9!]/g, '');
+        const condition = String(req.body?.condition || '').trim().toLowerCase();
+        const price = Number.parseFloat(req.body?.price);
+
+        if (!symbol || symbol.length > 20) {
+            return res.status(400).json({ success: false, message: 'A valid instrument is required' });
+        }
+        if (!['above', 'below'].includes(condition)) {
+            return res.status(400).json({ success: false, message: 'Condition must be above or below' });
+        }
+        if (!Number.isFinite(price) || price <= 0) {
+            return res.status(400).json({ success: false, message: 'Target price must be greater than zero' });
+        }
+
+        const alert = await PriceAlert.create(req.user.id, { symbol, condition, price });
         res.status(201).json({ success: true, data: alert });
     } catch (error) {
+        console.error('Create price alert failed:', error.message);
         res.status(500).json({ success: false, message: 'Failed to create alert' });
     }
 };
 
 const deleteAlert = async (req, res) => {
     try {
-        await PriceAlert.delete(req.params.id, req.user.id);
+        const deleted = await PriceAlert.delete(req.params.id, req.user.id);
+        if (!deleted) {
+            return res.status(404).json({ success: false, message: 'Alert not found' });
+        }
         res.json({ success: true, message: 'Alert deleted' });
     } catch (error) {
         res.status(500).json({ success: false, message: 'Failed to delete alert' });

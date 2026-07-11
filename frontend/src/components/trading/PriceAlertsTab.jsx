@@ -10,14 +10,23 @@ const PriceAlertsTab = ({ alerts = [], onCreateAlert, onDeleteAlert }) => {
     condition: 'above'
   });
 
-  const handleSubmit = (e) => {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    onCreateAlert({
-      ...newAlert,
-      price: parseFloat(newAlert.price)
-    });
-    setNewAlert({ ...newAlert, price: '' });
-    setShowForm(false);
+    const price = Number.parseFloat(newAlert.price);
+    if (!Number.isFinite(price) || price <= 0 || isSubmitting) return;
+
+    setIsSubmitting(true);
+    try {
+      const created = await onCreateAlert({ ...newAlert, price });
+      if (created) {
+        setNewAlert((current) => ({ ...current, price: '' }));
+        setShowForm(false);
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -71,7 +80,10 @@ const PriceAlertsTab = ({ alerts = [], onCreateAlert, onDeleteAlert }) => {
             <div className="space-y-2">
               <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 block ml-1">Target Price</label>
               <input 
-                type="text"
+                type="number"
+                min="0"
+                step="any"
+                required
                 value={newAlert.price}
                 onChange={(e) => setNewAlert({...newAlert, price: e.target.value})}
                 placeholder="0.0000"
@@ -82,9 +94,10 @@ const PriceAlertsTab = ({ alerts = [], onCreateAlert, onDeleteAlert }) => {
             <div className="flex flex-col gap-3 sm:flex-row sm:space-x-0">
               <button 
                 type="submit"
+                disabled={isSubmitting}
                 className="flex-1 py-4 bg-emerald-500 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-emerald-500/10 hover:bg-emerald-600 transition-all"
               >
-                Create
+                {isSubmitting ? 'Creating...' : 'Create'}
               </button>
               <button 
                 type="button"
@@ -133,7 +146,7 @@ const PriceAlertsTab = ({ alerts = [], onCreateAlert, onDeleteAlert }) => {
             </div>
 
             <p className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter border-t border-slate-50 dark:border-slate-800 pt-4 mt-4">
-              Created: {alert.createdAt ? new Date(alert.createdAt).toLocaleDateString() : 'N/A'}
+              Created: {alert.createdAt || alert.created_at ? new Date(alert.createdAt || alert.created_at).toLocaleDateString() : 'N/A'}
             </p>
           </div>
         ))}
