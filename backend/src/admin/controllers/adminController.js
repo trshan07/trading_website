@@ -16,6 +16,7 @@ const { calculatePositionFees } = require('../../utils/tradingFees');
 const { createNotification } = require('../../client/controllers/notificationController');
 const { createActivityLog } = require('../../client/controllers/activityController');
 const { verifyEmailTransport, sendWelcomeEmail } = require('../../services/emailService');
+const { sendAdminAlert } = require('../../services/adminAlertService');
 const {
     consumeCreditGrants,
     createCreditGrant,
@@ -532,6 +533,10 @@ const updateUserStatus = async (req, res) => {
             details: `Set status to ${status} for ${user.email}`,
             ip_address: req.ip
         });
+
+        if (status === 'suspended') {
+            await sendAdminAlert('account_suspended', 'Account suspended', `${user.email} was suspended by ${req.user.email || 'an administrator'}.`);
+        }
 
         res.json({
             success: true,
@@ -1493,6 +1498,48 @@ const updateSettings = async (req, res) => {
     }
 };
 
+const clearAllSessions = async (req, res) => {
+    try {
+        await PlatformSettings.update('sessions_invalid_before', Date.now());
+        await AdminLog.create(req.user.id, { action: 'CLEAR_ALL_SESSIONS', target_id: null, details: 'Revoked all active sessions', ip_address: req.ip });
+        res.json({ success: true, message: 'All active sessions have been revoked' });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ success: false, message: 'Failed to revoke sessions' });
+    }
+};
+
+const purgeAuditLogs = async (req, res) => {
+    try {
+        const deleted = await AdminLog.purgeOlderThan(90);
+        await AdminLog.create(req.user.id, { action: 'PURGE_AUDIT_LOGS', target_id: null, details: `Deleted ${deleted} audit logs older than 90 days`, ip_address: req.ip });
+        res.json({ success: true, message: `${deleted} old audit log${deleted === 1 ? '' : 's'} deleted`, data: { deleted } });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ success: false, message: 'Failed to purge audit logs' });
+    }
+};
+
+const downloadDatabaseBackup = async (req, res) => {
+    try {
+        const { rows: tableRows } = await db.query(`SELECT tablename FROM pg_tables WHERE schemaname = 'public' ORDER BY tablename`);
+        const backup = { created_at: new Date().toISOString(), format: 'tik-trades-json-v1', tables: {} };
+        for (const { tablename } of tableRows) {
+            if (!/^[a-zA-Z0-9_]+$/.test(tablename)) continue;
+            const { rows } = await db.query(`SELECT * FROM "${tablename}"`);
+            backup.tables[tablename] = rows;
+        }
+        await AdminLog.create(req.user.id, { action: 'DATABASE_BACKUP', target_id: null, details: 'Created full JSON database backup', ip_address: req.ip });
+        const filename = `tik-trades-backup-${new Date().toISOString().slice(0, 10)}.json`;
+        res.setHeader('Content-Type', 'application/json');
+        res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+        res.send(JSON.stringify(backup, null, 2));
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ success: false, message: 'Failed to create database backup' });
+    }
+};
+
 // @desc    Reset a user's password
 // @route   POST /api/admin/users/:id/reset-password
 // @access  Private/Admin
@@ -1643,6 +1690,9 @@ module.exports = {
     getGrowthStats,
     getAdminLogs,
     exportAdminLogs,
+    clearAllSessions,
+    purgeAuditLogs,
+    downloadDatabaseBackup,
     deleteUser,
     createAdmin
 };

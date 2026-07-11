@@ -56,6 +56,14 @@ class AdminLog {
         const { rows } = await db.query(query, [targetId]);
         return rows;
     }
+
+    static async purgeOlderThan(days = 90) {
+        const { rowCount } = await db.query(
+            `DELETE FROM admin_logs WHERE created_at < CURRENT_TIMESTAMP - ($1 * INTERVAL '1 day')`,
+            [days]
+        );
+        return rowCount;
+    }
 }
 
 module.exports = AdminLog;

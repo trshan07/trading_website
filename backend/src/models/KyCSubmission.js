@@ -50,14 +50,15 @@ class KyCSubmission {
     }
 
     static async create(userId, docData) {
-        const { document_type, document_number, file_path } = docData;
+        const { document_type, document_number, file_path, status = 'pending' } = docData;
+        const normalizedStatus = status === 'approved' ? 'verified' : status;
         
         const query = `
             INSERT INTO kyc_submissions (user_id, document_type, document_number, file_path, status)
-            VALUES ($1, $2, $3, $4, 'pending')
+            VALUES ($1, $2, $3, $4, $5)
             RETURNING *
         `;
-        const values = [userId, document_type, document_number, file_path];
+        const values = [userId, document_type, document_number, file_path, normalizedStatus];
         const { rows } = await db.query(query, values);
         return rows[0];
     }

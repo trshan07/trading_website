@@ -3,6 +3,7 @@ const User = require('../models/User');
 const Admin = require('../models/Admin');
 const db = require('../config/database');
 const { isMissingColumnError } = require('../utils/dbCompat');
+const PlatformSettings = require('../models/PlatformSettings');
 
 const findLegacyAdminById = async (id) => {
     const { rows } = await db.query(
@@ -44,6 +45,12 @@ const protect = async (req, res, next) => {
     try {
         // Verify token
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        const settings = await PlatformSettings.getAll();
+        const revokedBefore = Number(settings.sessions_invalid_before || 0);
+        const timeoutMinutes = Math.max(Number(settings.session_timeout_minutes || 30), 1);
+        if ((decoded.iat * 1000) < revokedBefore || ((Date.now() / 1000) - decoded.iat) > timeoutMinutes * 60) {
+            return res.status(401).json({ message: 'Session expired or revoked' });
+        }
         console.log('Auth Debug - Decoded Token:', { id: decoded.id, role: decoded.role });
 
         // Get user from the token based on the encoded role to avoid ID collisions

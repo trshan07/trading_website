@@ -6,6 +6,7 @@ const Account = require('../../models/Account');
 const { createNotification } = require('./notificationController');
 const { createActivityLog } = require('./activityController');
 const { getUploadPathFromFile } = require('../../utils/uploadPath');
+const { sendAdminAlert } = require('../../services/adminAlertService');
 
 // --- Bank Account Methods ---
 
@@ -150,6 +151,7 @@ const deposit = async (req, res) => {
 
         await createActivityLog(req.user.id, 'FUNDING', `Deposit Initiated: $${amount} via ${method}`);
         await createNotification(req.user.id, 'info', `Deposit of $${amount} is pending admin approval.`);
+        if (Number(amount) > 10000) await sendAdminAlert('large_deposit', 'Large deposit submitted', `${req.user.email || `User ${req.user.id}`} submitted a deposit request for $${Number(amount).toLocaleString()}.`);
     } catch (error) {
         console.error('Deposit Error:', error);
         res.status(500).json({ success: false, message: 'Deposit failed' });
@@ -188,6 +190,7 @@ const withdraw = async (req, res) => {
 
         await createActivityLog(req.user.id, 'FUNDING', `Withdrawal Requested: $${amount} via ${method}`);
         await createNotification(req.user.id, 'info', `Withdrawal of $${amount} has been requested.`);
+        await sendAdminAlert('withdrawal_pending', 'Withdrawal awaiting approval', `${req.user.email || `User ${req.user.id}`} requested a withdrawal of $${Number(amount).toLocaleString()}.`);
     } catch (error) {
         console.error('Withdrawal Error:', error);
         res.status(500).json({ success: false, message: 'Withdrawal failed' });

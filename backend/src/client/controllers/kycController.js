@@ -2,6 +2,8 @@
 const KyCSubmission = require('../../models/KyCSubmission');
 const User = require('../../models/User');
 const { getUploadPathFromFile } = require('../../utils/uploadPath');
+const PlatformSettings = require('../../models/PlatformSettings');
+const { sendAdminAlert } = require('../../services/adminAlertService');
 
 const getDocuments = async (req, res) => {
     try {
@@ -25,20 +27,26 @@ const uploadDocument = async (req, res) => {
         }
 
         // Handling file upload metadata from multer
+        const settings = await PlatformSettings.getAll();
+        const autoVerified = settings.auto_kyc === true;
         const docData = {
             document_type: category || document_type || 'Identity Proof',
             document_number: name || document_number || req.file.originalname || 'N/A',
-            file_path: getUploadPathFromFile(req.file)
+            file_path: getUploadPathFromFile(req.file),
+            status: autoVerified ? 'verified' : 'pending'
         };
 
         const submission = await KyCSubmission.create(req.user.id, docData);
+        if (!autoVerified) await sendAdminAlert('kyc_submitted', 'KYC submission received', `${req.user.email || `User ${req.user.id}`} submitted ${docData.document_type} for review.`);
 
         // Optional: Notify user or update profile status if needed
         // The admin review will actually change the 'verified' status later
 
         res.status(201).json({ 
             success: true, 
-            message: 'KYC Document submitted successfully and pending review',
+            message: autoVerified
+                ? 'KYC document submitted and automatically verified'
+                : 'KYC document submitted successfully and pending review',
             data: submission 
         });
     } catch (error) {

@@ -484,9 +484,23 @@ const sendContactFormEmail = async ({ fullName, email, subject = '', message = '
   };
 };
 
+const sendAdminAlertEmail = async ({ to, title, message }) => {
+  const appName = getBrandName();
+  const fromEmail = process.env.MAIL_FROM || process.env.SMTP_USER || 'no-reply@tiktrades.com';
+  const { transporter } = await getTransporter();
+  return transporter.sendMail({
+    from: `"${appName}" <${fromEmail}>`,
+    to,
+    subject: `[${appName}] ${title}`,
+    text: `${title}\n\n${message}`,
+    html: `<div style="font-family:Arial,sans-serif;background:#07111b;color:#dbe7f5;padding:28px"><div style="max-width:620px;margin:auto;background:#0d1723;border:1px solid #243449;border-radius:14px;padding:28px"><h2 style="color:#f2c96b">${escapeHtml(title)}</h2><p style="line-height:1.7">${escapeHtml(message)}</p></div></div>`
+  });
+};
+
 module.exports = {
   verifyEmailTransport,
   sendPasswordResetEmail,
   sendContactFormEmail,
-  sendWelcomeEmail
+  sendWelcomeEmail,
+  sendAdminAlertEmail
 };

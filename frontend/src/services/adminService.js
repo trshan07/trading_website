@@ -269,6 +269,10 @@ export const adminService = {
 
   getSettings: () => api.get('/admin/settings'),
   updateSettings: (data) => api.put('/admin/settings', data),
+  clearAllSessions: () => api.post('/admin/security/clear-sessions'),
+  purgeAuditLogs: () => api.delete('/admin/security/audit-logs'),
+  downloadDatabaseBackup: () =>
+    exportBlob(api.get('/admin/security/database-backup', { responseType: 'blob' }), 'tik-trades-database-backup.json'),
 
   getAuditLogs: async (params) => {
     const response = await api.get('/admin/logs', { params });

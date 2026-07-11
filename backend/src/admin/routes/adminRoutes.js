@@ -29,7 +29,10 @@ const {
     getGrowthStats,
     getAdminLogs,
     exportAdminLogs,
-    getAdminProfile
+    getAdminProfile,
+    clearAllSessions,
+    purgeAuditLogs,
+    downloadDatabaseBackup
 } = require('../controllers/adminController');
 const { protect, admin, superAdmin } = require('../../middleware/authMiddleware');
 
@@ -79,5 +82,8 @@ router.get('/growth-stats', getGrowthStats);
 // Audit Logs
 router.get('/logs', getAdminLogs);
 router.get('/logs/export', exportAdminLogs);
+router.post('/security/clear-sessions', clearAllSessions);
+router.delete('/security/audit-logs', purgeAuditLogs);
+router.get('/security/database-backup', downloadDatabaseBackup);
 
 module.exports = router;

@@ -5,6 +5,11 @@ const User = require('../../models/User');
 const Admin = require('../../models/Admin');
 const Account = require('../../models/Account');
 const { verifyEmailTransport, sendPasswordResetEmail, sendWelcomeEmail } = require('../../services/emailService');
+const PlatformSettings = require('../../models/PlatformSettings');
+const { sendAdminAlert } = require('../../services/adminAlertService');
+
+const loginFailures = new Map();
+const LOGIN_LOCK_MS = 15 * 60 * 1000;
 
 // Generate JWT
 const generateToken = (id, role) => {
@@ -167,6 +172,14 @@ const registerAdmin = async (req, res) => {
 const login = async (req, res) => {
     try {
         const { email, password } = req.body;
+        const loginKey = String(email || '').trim().toLowerCase();
+        const securitySettings = await PlatformSettings.getAll();
+        const maxLoginAttempts = Math.max(Number(securitySettings.max_login_attempts || 5), 1);
+        const failureState = loginFailures.get(loginKey);
+        if (failureState?.lockedUntil > Date.now()) {
+            return res.status(429).json({ success: false, message: 'Too many failed login attempts. Try again in 15 minutes.' });
+        }
+        if (failureState?.lockedUntil && failureState.lockedUntil <= Date.now()) loginFailures.delete(loginKey);
         console.log(`[LOGIN] Attempt for: ${email}`);
 
         // Prefer the admins table first so admin/super-admin accounts do not
@@ -183,6 +196,9 @@ const login = async (req, res) => {
         }
 
         if (!user) {
+            const nextCount = (loginFailures.get(loginKey)?.count || 0) + 1;
+            loginFailures.set(loginKey, { count: nextCount, lockedUntil: nextCount >= maxLoginAttempts ? Date.now() + LOGIN_LOCK_MS : 0 });
+            await sendAdminAlert('failed_login', 'Failed login attempt', `A failed login attempt was made for ${loginKey || 'an empty email address'}.`);
             console.log(`[LOGIN] User not found in either table: ${email}`);
             return res.status(401).json({ 
                 success: false,
@@ -203,11 +219,16 @@ const login = async (req, res) => {
         console.log(`[LOGIN] Password valid: ${isValidPassword}`);
         
         if (!isValidPassword) {
+            const nextCount = (loginFailures.get(loginKey)?.count || 0) + 1;
+            loginFailures.set(loginKey, { count: nextCount, lockedUntil: nextCount >= maxLoginAttempts ? Date.now() + LOGIN_LOCK_MS : 0 });
+            await sendAdminAlert('failed_login', 'Failed login attempt', `A failed login attempt was made for ${loginKey}.`);
             return res.status(401).json({ 
                 success: false,
                 message: 'Invalid credentials' 
             });
         }
+
+        loginFailures.delete(loginKey);
 
         // Get accounts only for clients
         let accounts = [];

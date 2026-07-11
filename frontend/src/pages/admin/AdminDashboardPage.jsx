@@ -2025,6 +2025,8 @@ function SettingsPage({ toast }) {
     withdrawalsEnabled: true,
     depositsEnabled: true,
     twoFaRequired: true,
+    sessionTimeoutMinutes: "30",
+    maxLoginAttempts: "5",
     maxCreditPerUser: "50000",
     depositBankName: "Apex Global Trust",
     depositAccountName: "Tik Trades Liquidity Pool",
@@ -2038,6 +2040,8 @@ function SettingsPage({ toast }) {
   });
   const [saving, setSaving] = useState(false);
   const [savingControl, setSavingControl] = useState(null);
+  const [securityAction, setSecurityAction] = useState(null);
+  const [confirm, setConfirm] = useState(null);
   const set = (k, v) => setSettings(p => ({ ...p, [k]: v }));
   const toggle = (k) => setSettings(p => ({ ...p, [k]: !p[k] }));
 
@@ -2085,6 +2089,8 @@ function SettingsPage({ toast }) {
           withdrawalsEnabled: data.withdrawals_enabled ?? prev.withdrawalsEnabled,
           depositsEnabled: data.deposits_enabled ?? prev.depositsEnabled,
           twoFaRequired: data.two_fa_required ?? prev.twoFaRequired,
+          sessionTimeoutMinutes: String(data.session_timeout_minutes ?? prev.sessionTimeoutMinutes),
+          maxLoginAttempts: String(data.max_login_attempts ?? prev.maxLoginAttempts),
           maxCreditPerUser: String(data.max_credit_per_user ?? prev.maxCreditPerUser),
           depositBankName: data.deposit_bank_name ?? prev.depositBankName,
           depositAccountName: data.deposit_account_name ?? prev.depositAccountName,
@@ -2125,7 +2131,7 @@ function SettingsPage({ toast }) {
         max_credit_per_user: Number(settings.maxCreditPerUser) || 0,
         maintenance_mode: !!settings.maintenanceMode,
         email_notifications: !!settings.emailNotifications,
-        sms_alerts: !!settings.smsAlerts,
+        sms_alerts: false,
         auto_kyc: !!settings.autoKyc,
         trading_enabled: !!settings.tradingEnabled,
         withdrawals_enabled: !!settings.withdrawalsEnabled,
@@ -2133,7 +2139,9 @@ function SettingsPage({ toast }) {
         default_leverage: String(settings.defaultLeverage),
         max_leverage: String(settings.maxLeverage),
         default_account_type: settings.defaultAccountType,
-        two_fa_required: !!settings.twoFaRequired,
+        two_fa_required: false,
+        session_timeout_minutes: Math.max(Number(settings.sessionTimeoutMinutes) || 30, 1),
+        max_login_attempts: Math.max(Number(settings.maxLoginAttempts) || 5, 1),
         deposit_bank_name: settings.depositBankName,
         deposit_account_name: settings.depositAccountName,
         deposit_account_number: settings.depositAccountNumber,
@@ -2156,6 +2164,32 @@ function SettingsPage({ toast }) {
       toast("Save Failed", err.response?.data?.message || "Could not update settings", "error");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const runSecurityAction = async (action) => {
+    setConfirm(null);
+    setSecurityAction(action);
+    try {
+      if (action === "sessions") {
+        await adminService.clearAllSessions();
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+        localStorage.removeItem("trading_mode");
+        window.location.href = "/login";
+        return;
+      }
+      if (action === "logs") {
+        const response = await adminService.purgeAuditLogs();
+        toast("Audit Logs Purged", response.data?.message || "Old audit logs deleted");
+      } else if (action === "backup") {
+        await adminService.downloadDatabaseBackup();
+        toast("Backup Created", "The database backup download has started");
+      }
+    } catch (err) {
+      toast("Action Failed", err.response?.data?.message || "Security action could not be completed", "error");
+    } finally {
+      setSecurityAction(null);
     }
   };
 
@@ -2210,28 +2244,37 @@ function SettingsPage({ toast }) {
               <Btn onClick={() => saveSettings("Trading config updated")} fullWidth disabled={saving}>{saving ? "Saving..." : "Save"}</Btn>
             </Card>
             <Card title="Trading Rules">
-              {[["Auto KYC Verification", "Automatically approve matching KYC", "autoKyc"], ["Trading Enabled", "Allow live trading", "tradingEnabled"]].map(([l, d, k]) => (
-                <SettingsToggle key={k} label={l} desc={d} active={settings[k]} onToggle={() => toggle(k)} />
-              ))}
+              <SettingsToggle
+                label="Auto KYC Verification"
+                desc={savingControl === "autoKyc" ? "Saving..." : "Automatically verify new KYC document submissions"}
+                active={settings.autoKyc}
+                onToggle={() => togglePlatformControl("autoKyc", "auto_kyc", "Auto KYC verification")}
+              />
+              <SettingsToggle
+                label="Trading Enabled"
+                desc={savingControl === "tradingEnabled" ? "Saving..." : "Allow live trading"}
+                active={settings.tradingEnabled}
+                onToggle={() => togglePlatformControl("tradingEnabled", "trading_enabled", "Trading")}
+              />
             </Card>
           </>
         )}
         {tab === "security" && (
           <>
             <Card title="Security Settings">
-              <SettingsToggle label="2FA Required" desc="Force 2-factor auth for all admins" active={settings.twoFaRequired} onToggle={() => toggle("twoFaRequired")} />
+              <SettingsToggle label="2FA Required" desc="Unavailable until an OTP provider is configured" active={false} onToggle={() => toast("2FA Not Configured", "Configure an OTP provider before enabling mandatory 2FA", "error")} />
               <div style={{ marginTop: "16px" }}>
-                <Input label="Session Timeout (minutes)" value="30" onChange={() => {}} />
-                <Input label="Max Login Attempts" value="5" onChange={() => {}} />
+                <Input label="Session Timeout (minutes)" type="number" value={settings.sessionTimeoutMinutes} onChange={e => set("sessionTimeoutMinutes", e.target.value)} />
+                <Input label="Max Login Attempts" type="number" value={settings.maxLoginAttempts} onChange={e => set("maxLoginAttempts", e.target.value)} hint="Locks an email address for 15 minutes after this many failures" />
                 <Btn onClick={() => saveSettings("Security settings updated")} fullWidth disabled={saving}>{saving ? "Saving..." : "Save"}</Btn>
               </div>
             </Card>
             <Card title="Danger Zone" style={{ border: `1px solid ${C.red}30` }}>
               <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-                {[["Clear All Sessions", "Force logout all users"], ["Purge Audit Logs", "Delete logs older than 90 days"], ["Database Backup", "Create full backup now"]].map(([l, d], i) => (
+                {[["Clear All Sessions", "Force logout all users", "sessions"], ["Purge Audit Logs", "Delete logs older than 90 days", "logs"], ["Database Backup", "Create full backup now", "backup"]].map(([l, d, action], i) => (
                   <div key={i} style={{ display: "flex", justify: "space-between", alignItems: "center", justifyContent: "space-between" }}>
                     <div><div style={{ fontSize: "12px", color: C.text }}>{l}</div><div style={{ fontSize: "11px", color: C.textMuted }}>{d}</div></div>
-                    <Btn size="sm" danger onClick={() => toast(l, d)}>{i === 2 ? "Run" : "Execute"}</Btn>
+                    <Btn size="sm" danger disabled={!!securityAction} onClick={() => setConfirm({ msg: action === "sessions" ? "This will immediately sign out every user, including you. Continue?" : action === "logs" ? "Permanently delete audit logs older than 90 days?" : "Create and download a full database backup containing sensitive data?", onConfirm: () => runSecurityAction(action) })}>{securityAction === action ? "Working..." : i === 2 ? "Run" : "Execute"}</Btn>
                   </div>
                 ))}
               </div>
@@ -2241,8 +2284,8 @@ function SettingsPage({ toast }) {
         {tab === "notifications" && (
           <>
             <Card title="Notification Channels">
-              <SettingsToggle label="Email Notifications" desc="Send alerts via email" active={settings.emailNotifications} onToggle={() => toggle("emailNotifications")} />
-              <SettingsToggle label="SMS Alerts" desc="Send critical alerts via SMS" active={settings.smsAlerts} onToggle={() => toggle("smsAlerts")} />
+              <SettingsToggle label="Email Notifications" desc={savingControl === "emailNotifications" ? "Saving..." : "Send enabled admin alerts via email"} active={settings.emailNotifications} onToggle={() => togglePlatformControl("emailNotifications", "email_notifications", "Email notifications")} />
+              <SettingsToggle label="SMS Alerts" desc="Unavailable until an SMS provider is configured" active={false} onToggle={() => toast("SMS Not Configured", "Configure an SMS provider before enabling SMS alerts", "error")} />
             </Card>
             <Card title="Alert Triggers">
               <div style={{ fontSize: "12px", color: C.textMuted, marginBottom: "12px" }}>Configure which events trigger admin alerts</div>
@@ -2261,6 +2304,7 @@ function SettingsPage({ toast }) {
           </>
         )}
       </div>
+      <ConfirmBox confirm={confirm} setConfirm={setConfirm} />
     </div>
   );
 }
