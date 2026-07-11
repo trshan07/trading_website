@@ -2037,8 +2037,28 @@ function SettingsPage({ toast }) {
     depositInstructions: "Please include your User ID in the transfer reference to ensure rapid processing.",
   });
   const [saving, setSaving] = useState(false);
+  const [savingControl, setSavingControl] = useState(null);
   const set = (k, v) => setSettings(p => ({ ...p, [k]: v }));
   const toggle = (k) => setSettings(p => ({ ...p, [k]: !p[k] }));
+
+  const togglePlatformControl = async (stateKey, apiKey, label) => {
+    if (savingControl) return;
+
+    const previousValue = settings[stateKey];
+    const nextValue = !previousValue;
+    setSettings(prev => ({ ...prev, [stateKey]: nextValue }));
+    setSavingControl(stateKey);
+
+    try {
+      await adminService.updatePlatformSettings({ [apiKey]: nextValue });
+      toast("Control Updated", `${label} ${nextValue ? "enabled" : "disabled"}`);
+    } catch (err) {
+      setSettings(prev => ({ ...prev, [stateKey]: previousValue }));
+      toast("Update Failed", err.response?.data?.message || `Could not update ${label.toLowerCase()}`, "error");
+    } finally {
+      setSavingControl(null);
+    }
+  };
 
   const TABS = [["platform", "Platform"], ["trading", "Trading"], ["security", "Security"], ["notifications", "Notifications"]];
 
@@ -2174,10 +2194,10 @@ function SettingsPage({ toast }) {
               <Btn onClick={() => saveSettings("Platform settings updated")} fullWidth disabled={saving}>{saving ? "Saving..." : "Save Settings"}</Btn>
             </Card>
             <Card title="Platform Controls">
-              <SettingsToggle label="Maintenance Mode" desc="Redirect all users to maintenance page" danger active={settings.maintenanceMode} onToggle={() => toggle("maintenanceMode")} />
-              <SettingsToggle label="Trading Enabled" desc="Allow users to open and close trades" active={settings.tradingEnabled} onToggle={() => toggle("tradingEnabled")} />
-              <SettingsToggle label="Deposits Enabled" desc="Accept new deposit requests" active={settings.depositsEnabled} onToggle={() => toggle("depositsEnabled")} />
-              <SettingsToggle label="Withdrawals Enabled" desc="Process withdrawal requests" active={settings.withdrawalsEnabled} onToggle={() => toggle("withdrawalsEnabled")} />
+              <SettingsToggle label="Maintenance Mode" desc={savingControl === "maintenanceMode" ? "Saving..." : "Redirect all users to maintenance page"} danger active={settings.maintenanceMode} onToggle={() => togglePlatformControl("maintenanceMode", "maintenance_mode", "Maintenance mode")} />
+              <SettingsToggle label="Trading Enabled" desc={savingControl === "tradingEnabled" ? "Saving..." : "Allow users to open and close trades"} active={settings.tradingEnabled} onToggle={() => togglePlatformControl("tradingEnabled", "trading_enabled", "Trading")} />
+              <SettingsToggle label="Deposits Enabled" desc={savingControl === "depositsEnabled" ? "Saving..." : "Accept new deposit requests"} active={settings.depositsEnabled} onToggle={() => togglePlatformControl("depositsEnabled", "deposits_enabled", "Deposits")} />
+              <SettingsToggle label="Withdrawals Enabled" desc={savingControl === "withdrawalsEnabled" ? "Saving..." : "Process withdrawal requests"} active={settings.withdrawalsEnabled} onToggle={() => togglePlatformControl("withdrawalsEnabled", "withdrawals_enabled", "Withdrawals")} />
             </Card>
           </>
         )}

@@ -11,6 +11,7 @@ import { NotificationProvider } from './context/NotificationContext';
 // Routes
 import AppRoutes from './router/AppRoutes';
 import ScrollToTop from './components/common/ScrollToTop';
+import MaintenanceGate from './components/common/MaintenanceGate';
 
 function App() {
   return (
@@ -30,7 +31,9 @@ function App() {
                 },
               }}
             />
-            <AppRoutes />
+            <MaintenanceGate>
+              <AppRoutes />
+            </MaintenanceGate>
           </NotificationProvider>
         </ThemeProvider>
       </AuthProvider>

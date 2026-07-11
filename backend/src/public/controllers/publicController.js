@@ -2,6 +2,7 @@
 const ContactMessage = require('../models/ContactMessage');
 const Promotion = require('../models/Promotion');
 const AccountTypeInfo = require('../models/AccountTypeInfo');
+const PlatformSettings = require('../../models/PlatformSettings');
 const { sendContactFormEmail } = require('../../services/emailService');
 
 // @desc    Get all market assets
@@ -104,10 +105,29 @@ const getAccountTypes = async (req, res) => {
     }
 };
 
+const getPlatformStatus = async (req, res) => {
+    try {
+        const settings = await PlatformSettings.getAll();
+        res.json({
+            success: true,
+            data: {
+                maintenance_mode: settings.maintenance_mode === true,
+                trading_enabled: settings.trading_enabled !== false,
+                deposits_enabled: settings.deposits_enabled !== false,
+                withdrawals_enabled: settings.withdrawals_enabled !== false,
+            },
+        });
+    } catch (error) {
+        console.error('Error fetching platform status:', error);
+        res.status(500).json({ success: false, message: 'Unable to fetch platform status' });
+    }
+};
+
 module.exports = {
     getMarkets,
     getMarketsByCategory,
     submitContactForm,
     getPromotions,
-    getAccountTypes
+    getAccountTypes,
+    getPlatformStatus
 };

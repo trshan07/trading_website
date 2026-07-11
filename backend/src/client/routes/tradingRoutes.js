@@ -18,13 +18,15 @@ const {
     deleteAlert
 } = require('../controllers/tradingController');
 const { protect } = require('../../middleware/authMiddleware');
+const { blockDuringMaintenance, requireTradingEnabled } = require('../../middleware/platformControls');
 
 router.use(protect);
+router.use(blockDuringMaintenance);
 
 // Trades and Positions
 router.post('/preview-audit', previewTradeAudit);
 router.post('/preview', previewTrade);
-router.post('/execute', executeTrade);
+router.post('/execute', requireTradingEnabled, executeTrade);
 router.get('/orders', getOpenOrders);
 router.delete('/orders/:orderId', cancelOrder);
 router.patch('/orders/:orderId', modifyOrder);
@@ -32,7 +34,7 @@ router.get('/positions', getOpenPositions);
 router.get('/positions/history', getClosedTradeHistory);
 router.get('/risk', getRiskSnapshot);
 router.patch('/positions/:positionId', modifyPosition);
-router.post('/positions/:positionId/close', closePosition);
+router.post('/positions/:positionId/close', requireTradingEnabled, closePosition);
 
 // Price Alerts
 router.get('/alerts', getAlerts);
