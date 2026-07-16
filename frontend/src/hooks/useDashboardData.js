@@ -495,7 +495,7 @@ const mapPositionToLiveView = (position = {}, instruments = [], marketData = {},
     margin: Number.parseFloat(position.margin) || 0,
     category: snapshot.category,
     instrument: snapshot,
-    leverage: Number.parseFloat(position.leverage) || Number.parseFloat(account?.leverage) || null,
+    leverage: Number.parseFloat(account?.leverage) || Number.parseFloat(position.leverage) || null,
     takeProfit: position.take_profit != null
       ? Number.parseFloat(position.take_profit)
       : (position.takeProfit != null ? Number.parseFloat(position.takeProfit) : null),
@@ -535,7 +535,7 @@ const mapOrderToLiveView = (order = {}, instruments = [], marketData = {}, accou
     quantity,
     lots,
     entryPrice,
-    leverage: Number.parseFloat(order.leverage) || Number.parseFloat(account?.leverage) || null,
+    leverage: Number.parseFloat(account?.leverage) || Number.parseFloat(order.leverage) || null,
     takeProfit: order.take_profit != null
       ? Number.parseFloat(order.take_profit)
       : (order.takeProfit != null ? Number.parseFloat(order.takeProfit) : null),

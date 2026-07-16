@@ -163,8 +163,20 @@ const getOpenPositions = async (req, res) => {
     }
 
     try {
+        const account = await Account.findById(accountId);
+        if (!account || String(account.user_id) !== String(req.user.id)) {
+            return res.status(404).json({ success: false, message: 'Account not found for this user' });
+        }
+
         const positions = await Position.findByAccountId(accountId, 'open');
-        return res.json({ success: true, data: positions });
+        const allocatedLeverage = Number.parseFloat(account.leverage) || 10;
+        const normalizedPositions = positions.map((position) => ({
+            ...position,
+            leverage: allocatedLeverage,
+            margin: (Number.parseFloat(position.amount) || 0) / allocatedLeverage,
+        }));
+
+        return res.json({ success: true, data: normalizedPositions });
     } catch (error) {
         if (isMissingRelationError(error)) {
             return res.json({ success: true, data: [] });

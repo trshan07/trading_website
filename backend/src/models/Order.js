@@ -98,13 +98,41 @@ class Order {
             RETURNING *
         `;
         const legacyValues = [userId, accountId, symbol, side, type, amount, quantity, entryPrice, status];
+        const compatibleQuery = `
+            INSERT INTO orders (
+                user_id, account_id, symbol, side, type, amount, quantity,
+                entry_price, leverage, status
+            )
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+            RETURNING *
+        `;
+        const compatibleValues = [
+            userId,
+            accountId,
+            symbol,
+            side,
+            type,
+            amount,
+            quantity,
+            entryPrice,
+            leverage,
+            status
+        ];
         try {
             const { rows } = await db.query(query, values);
             return rows[0];
         } catch (error) {
             if (isMissingColumnError(error)) {
-                const { rows } = await db.query(legacyQuery, legacyValues);
-                return rows[0];
+                try {
+                    const { rows } = await db.query(compatibleQuery, compatibleValues);
+                    return rows[0];
+                } catch (compatibleError) {
+                    if (isMissingColumnError(compatibleError) && getMissingColumnName(compatibleError) === 'leverage') {
+                        const { rows } = await db.query(legacyQuery, legacyValues);
+                        return rows[0];
+                    }
+                    throw compatibleError;
+                }
             }
             if (isMissingRelationError(error)) {
                 const friendlyError = new Error('Orders table is not available');
