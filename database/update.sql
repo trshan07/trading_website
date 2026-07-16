@@ -8,11 +8,13 @@ BEGIN
     END;
 
     BEGIN
-        ALTER TABLE accounts ADD COLUMN leverage INTEGER DEFAULT 50;
+        ALTER TABLE accounts ADD COLUMN leverage INTEGER DEFAULT 10;
     EXCEPTION
         WHEN duplicate_column THEN RAISE NOTICE 'column leverage already exists in accounts.';
     END;
 END $$;
+
+ALTER TABLE accounts ALTER COLUMN leverage SET DEFAULT 10;
 
 DO $$
 BEGIN
@@ -330,3 +332,12 @@ CREATE TABLE IF NOT EXISTS admin_logs (
     ip_address VARCHAR(45),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+UPDATE positions p
+SET leverage = a.leverage,
+    margin = COALESCE(p.amount, 0) / a.leverage,
+    updated_at = CURRENT_TIMESTAMP
+FROM accounts a
+WHERE p.account_id = a.id
+  AND p.status = 'open'
+  AND a.leverage > 0;

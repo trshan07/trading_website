@@ -67,6 +67,9 @@ CREATE TABLE IF NOT EXISTS orders (
 ALTER TABLE orders
 ADD COLUMN IF NOT EXISTS leverage NUMERIC(10, 2) DEFAULT 100;
 
+ALTER TABLE accounts
+ALTER COLUMN leverage SET DEFAULT 10;
+
 ALTER TABLE orders
 ADD COLUMN IF NOT EXISTS take_profit NUMERIC(18, 8);
 
@@ -443,3 +446,25 @@ INSERT INTO instrument_categories (name, text_color, bg_color, border_color) VAL
 ('Futures', 'text-cyan-500', 'bg-cyan-50 dark:bg-cyan-500/10', 'border-cyan-100 dark:border-cyan-500/20'),
 ('Brazilian Index', 'text-green-500', 'bg-green-50 dark:bg-green-500/10', 'border-green-100 dark:border-green-500/20')
 ON CONFLICT (name) DO NOTHING;
+
+UPDATE orders o
+SET leverage = a.leverage,
+    updated_at = CURRENT_TIMESTAMP
+FROM accounts a
+WHERE o.account_id = a.id
+  AND o.status = 'pending'
+  AND a.leverage > 0
+  AND o.leverage IS DISTINCT FROM a.leverage;
+
+UPDATE positions p
+SET leverage = a.leverage,
+    margin = COALESCE(p.amount, 0) / a.leverage,
+    updated_at = CURRENT_TIMESTAMP
+FROM accounts a
+WHERE p.account_id = a.id
+  AND p.status = 'open'
+  AND a.leverage > 0
+  AND (
+      p.leverage IS DISTINCT FROM a.leverage
+      OR p.margin IS DISTINCT FROM (COALESCE(p.amount, 0) / a.leverage)
+  );

@@ -236,7 +236,7 @@ const sendWelcomeEmail = async ({
   const realAccount = normalizedAccounts.find((account) => String(account.account_type || account.accountType).toLowerCase() === 'real');
   const demoAccount = normalizedAccounts.find((account) => String(account.account_type || account.accountType).toLowerCase() === 'demo');
   const primaryCurrency = realAccount?.currency || demoAccount?.currency || 'USD';
-  const leverage = realAccount?.leverage || demoAccount?.leverage || 50;
+  const leverage = realAccount?.leverage || demoAccount?.leverage || 10;
   const totalBalance = normalizedAccounts.reduce((sum, account) => sum + (Number(account.balance) || 0), 0);
   const renderAccountRow = (account) => {
     if (!account) {

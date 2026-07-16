@@ -285,6 +285,7 @@ const getMarketExecutionContext = async ({ symbol, side }) => {
 const buildTradePreview = async ({ account = null, payload = {}, side = null }) => {
     const normalizedSide = normalizeSide(side || payload.side);
     const requestedType = normalizeOrderType(payload.type, normalizedSide);
+    const accountLeverage = parseLeverageValue(account?.leverage, 10);
     const triggerKind = getTriggerKind(requestedType);
     const marketContext = await getMarketExecutionContext({
         symbol: payload.symbol,
@@ -308,6 +309,7 @@ const buildTradePreview = async ({ account = null, payload = {}, side = null }) 
         type: requestedType,
         entryPrice: previewEntryPrice,
         price: previewEntryPrice,
+        leverage: accountLeverage,
     });
     const meta = getInstrumentTradingMeta({
         symbol: trade.symbol,
@@ -396,6 +398,7 @@ const buildTradePreview = async ({ account = null, payload = {}, side = null }) 
         lots: trade.lots,
         quantity: trade.quantity,
         amount: trade.amount,
+        leverage: trade.leverage,
         requiredMargin: trade.margin,
         freeMargin,
         hasEnoughMargin: freeMargin == null ? true : trade.margin <= freeMargin,
@@ -581,10 +584,19 @@ const createExecutedPosition = async ({
         throw new Error('Account not found for this user');
     }
 
+    const accountLeverage = parseLeverageValue(account.leverage, 10);
+    const authoritativeMargin = calculateMarginRequired({
+        symbol,
+        instrument: instrumentConfig || {},
+        quantity,
+        price: entryPrice,
+        leverage: accountLeverage,
+    });
+
     const funds = await deductMarginFromAccount({
         accountId,
         account,
-        requiredMargin: margin,
+        requiredMargin: authoritativeMargin,
     });
     const feeSnapshot = calculatePositionFees({
         symbol,
@@ -613,7 +625,7 @@ const createExecutedPosition = async ({
             amount,
             quantity,
             entryPrice,
-            leverage,
+            leverage: accountLeverage,
             takeProfit,
             stopLoss,
             status: 'executed',
@@ -631,8 +643,8 @@ const createExecutedPosition = async ({
         commission: feeSnapshot.commission,
         swap: feeSnapshot.swap,
         pnl: feeSnapshot.commission + feeSnapshot.swap,
-        margin,
-        leverage,
+        margin: authoritativeMargin,
+        leverage: accountLeverage,
         takeProfit,
         stopLoss,
     });
@@ -686,7 +698,7 @@ const placeTrade = async ({ userId, accountId, payload }) => {
             amount: preview.amount,
             quantity: preview.quantity,
             entryPrice: preview.executionPrice,
-            leverage: parseLeverageValue(payload.leverage, 100),
+            leverage: preview.leverage,
             takeProfit: preview.takeProfit,
             stopLoss: preview.stopLoss,
             status: 'pending',
@@ -711,7 +723,7 @@ const placeTrade = async ({ userId, accountId, payload }) => {
         amount: preview.amount,
         quantity: preview.quantity,
         entryPrice: preview.executionPrice,
-        leverage: parseLeverageValue(payload.leverage, 100),
+        leverage: preview.leverage,
         takeProfit: preview.takeProfit,
         stopLoss: preview.stopLoss,
         margin: preview.requiredMargin,

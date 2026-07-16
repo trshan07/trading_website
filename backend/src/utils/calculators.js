@@ -208,7 +208,7 @@ const getInstrumentTradingMeta = ({ symbol = '', category = '', instrument = {} 
 
     return {
         categoryKey,
-        contractSize: Number.parseFloat(instrument.contractSize ?? DEFAULT_CONTRACT_SIZES[categoryKey]) || 1,
+        contractSize: Number.parseFloat(instrument.contractSize ?? override.contractSize ?? DEFAULT_CONTRACT_SIZES[categoryKey]) || 1,
         quantityLabel: instrument.quantityLabel || override.quantityLabel || DEFAULT_QUANTITY_LABELS[categoryKey],
         lotStep: Number.parseFloat(instrument.lotStep ?? DEFAULT_LOT_STEP[categoryKey]) || 0.01,
         minLot: Math.max(resolvedMinLot, MIN_ALLOWED_LOT),

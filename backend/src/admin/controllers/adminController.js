@@ -13,6 +13,7 @@ const PlatformSettings = require('../../models/PlatformSettings');
 const { normalizeStoredUploadPath } = require('../../utils/uploadPath');
 const { isMissingColumnError } = require('../../utils/dbCompat');
 const { calculatePositionFees } = require('../../utils/tradingFees');
+const { getInstrumentTradingMeta } = require('../../utils/calculators');
 const { createNotification } = require('../../client/controllers/notificationController');
 const { createActivityLog } = require('../../client/controllers/activityController');
 const { verifyEmailTransport, sendWelcomeEmail } = require('../../services/emailService');
@@ -160,7 +161,7 @@ const attachAccountsAndHistory = async (user) => {
         demoAccountId: demoAcc.id || null,
         realAccountNumber: realAcc.account_number || null,
         demoAccountNumber: demoAcc.account_number || null,
-        leverage: realAcc.leverage || demoAcc.leverage || 50,
+        leverage: realAcc.leverage || demoAcc.leverage || 10,
         accounts,
         creditHistory,
         bankAccounts: fundingSources.bankAccounts,
@@ -1061,6 +1062,13 @@ const getTrades = async (req, res) => {
         const mappedTrades = rawTrades.map((trade) => {
             const amount = toNumber(trade.amount);
             const price = toNumber(trade.entry_price);
+            const instrumentMeta = getInstrumentTradingMeta({
+                symbol: trade.symbol,
+                category: trade.category || '',
+            });
+            const lots = instrumentMeta.contractSize > 0
+                ? amount / instrumentMeta.contractSize
+                : 0;
             const feeSnapshot = trade.status === 'open'
                 ? calculatePositionFees({
                     symbol: trade.symbol,
@@ -1084,7 +1092,7 @@ const getTrades = async (req, res) => {
                 symbol: trade.symbol,
                 type: String(trade.side || '').toLowerCase(),
                 amount,
-                lots: amount,
+                lots,
                 price,
                 openPrice: price,
                 closePrice: trade.exit_price ? toNumber(trade.exit_price) : null,

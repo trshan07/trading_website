@@ -632,7 +632,7 @@ function UsersPage({ users, setUsers, toast }) {
   });
 
   const openEdit = (u) => { setForm({ ...u }); setModal("edit"); };
-  const openAdd = () => { setForm({ name: "", email: "", password: "", phone: "", country: "", accountType: "Basic", status: "pending", kyc: "pending", balance: 0, credit: 0, realBalance: 0, demoBalance: 0, realCredit: 0, demoCredit: 0, leverage: 50, notes: "" }); setModal("add"); };
+  const openAdd = () => { setForm({ name: "", email: "", password: "", phone: "", country: "", accountType: "Basic", status: "pending", kyc: "pending", balance: 0, credit: 0, realBalance: 0, demoBalance: 0, realCredit: 0, demoCredit: 0, leverage: 10, notes: "" }); setModal("add"); };
   const openView = (u) => { setForm({ ...u }); setModal("view"); };
 
   const saveUser = async () => {

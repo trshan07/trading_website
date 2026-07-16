@@ -30,6 +30,7 @@ class Trade {
         const grossPnlExpr = columns.has('gross_pnl') ? 'p.gross_pnl' : '0';
         const swapExpr = columns.has('swap') ? 'p.swap' : '0';
         const commissionExpr = columns.has('commission') ? 'p.commission' : '0';
+        const leverageExpr = columns.has('leverage') ? 'p.leverage' : 'NULL';
         const createdAtExpr = this.columnExpr(columns, ['created_at', 'opened_at']);
         const updatedAtExpr = this.columnExpr(columns, ['updated_at', 'created_at', 'opened_at']);
 
@@ -48,10 +49,12 @@ class Trade {
                 ${grossPnlExpr} AS gross_pnl,
                 ${swapExpr} AS swap,
                 ${commissionExpr} AS commission,
+                ${leverageExpr} AS leverage,
                 p.status,
                 ${createdAtExpr === 'NULL' ? 'NULL' : `p.${createdAtExpr}`} AS created_at,
                 ${updatedAtExpr === 'NULL' ? 'NULL' : `p.${updatedAtExpr}`} AS updated_at,
                 a.account_type,
+                a.leverage AS account_leverage,
                 u.email AS user_email,
                 u.first_name,
                 u.last_name,
@@ -74,6 +77,7 @@ class Trade {
 
     static buildLegacyTradeSelect(columns, statusFilter = null) {
         const exitPriceExpr = this.columnExpr(columns, ['exit_price', 'close_price']);
+        const leverageExpr = columns.has('leverage') ? 't.leverage' : 'NULL';
         const createdAtExpr = this.columnExpr(columns, ['created_at', 'opened_at']);
         const updatedAtExpr = this.columnExpr(columns, ['updated_at', 'created_at', 'opened_at']);
 
@@ -95,10 +99,12 @@ class Trade {
                 0 AS gross_pnl,
                 0 AS swap,
                 0 AS commission,
+                ${leverageExpr} AS leverage,
                 t.status,
                 ${createdAtExpr === 'NULL' ? 'NULL' : `t.${createdAtExpr}`} AS created_at,
                 ${updatedAtExpr === 'NULL' ? 'NULL' : `t.${updatedAtExpr}`} AS updated_at,
                 a.account_type,
+                a.leverage AS account_leverage,
                 u.email AS user_email,
                 u.first_name,
                 u.last_name,

@@ -15,7 +15,7 @@ class Account {
             RETURNING *
         `;
         const balance = accountType === 'demo' ? 1000 : 0;
-        const leverage = 50; // Default leverage
+        const leverage = 10; // Default leverage (1:10)
         const values = [userId, accountNumber, accountType, balance, 0, 'USD', 'active', leverage];
         const { rows } = await db.query(query, values);
         return rows[0];
