@@ -32,6 +32,7 @@ const {
 const MARGIN_CALL_LEVEL = Number.parseFloat(process.env.MARGIN_CALL_LEVEL ?? '100') || 100;
 const STOP_OUT_LEVEL = Number.parseFloat(process.env.STOP_OUT_LEVEL ?? '50') || 50;
 const ENGINE_INTERVAL_MS = Number.parseInt(process.env.TRADING_ENGINE_INTERVAL_MS ?? '5000', 10) || 5000;
+const STREAM_CYCLE_DEBOUNCE_MS = Number.parseInt(process.env.TRADING_STREAM_CYCLE_DEBOUNCE_MS ?? '150', 10) || 150;
 
 const parseLeverageValue = (value, fallback = 100) => {
     if (typeof value === 'number' && Number.isFinite(value) && value > 0) {
@@ -828,8 +829,12 @@ const listOpenPositions = async () => {
 
 const shouldAutoClosePosition = ({ position = {}, markPrice = 0 }) => {
     const normalizedSide = normalizeSide(position.side);
-    const takeProfit = position.take_profit != null ? Number.parseFloat(position.take_profit) : null;
-    const stopLoss = position.stop_loss != null ? Number.parseFloat(position.stop_loss) : null;
+    const rawTakeProfit = position.take_profit ?? position.takeProfit;
+    const rawStopLoss = position.stop_loss ?? position.stopLoss;
+    const parsedTakeProfit = rawTakeProfit == null ? null : Number.parseFloat(rawTakeProfit);
+    const parsedStopLoss = rawStopLoss == null ? null : Number.parseFloat(rawStopLoss);
+    const takeProfit = Number.isFinite(parsedTakeProfit) && parsedTakeProfit > 0 ? parsedTakeProfit : null;
+    const stopLoss = Number.isFinite(parsedStopLoss) && parsedStopLoss > 0 ? parsedStopLoss : null;
     const price = Number.parseFloat(markPrice) || 0;
 
     if (!price) {
@@ -867,10 +872,14 @@ const syncOpenPositionsWithMarket = async () => {
     }
 
     const symbols = Array.from(new Set(positions.map((position) => position.symbol).filter(Boolean)));
-    const quotes = await getCanonicalMarketQuotes(symbols, {
+    const canonicalQuotes = await getCanonicalMarketQuotes(symbols, {
         preferChartAligned: true,
         refresh: true,
     });
+    const quotes = {
+        ...canonicalQuotes,
+        ...marketStreamService.getLatestQuotes(symbols),
+    };
     const accountIds = Array.from(new Set(positions.map((position) => position.account_id).filter(Boolean)));
     const accountPairs = await Promise.all(
         accountIds.map(async (accountId) => [accountId, await Account.findById(accountId)])
@@ -968,10 +977,14 @@ const processPendingOrders = async ({ accountId = null, userId = null, symbols =
         ? symbols.map(normalizeSymbol)
         : pendingOrders.map((order) => order.symbol);
     const uniqueSymbols = Array.from(new Set(requestedSymbols));
-    const quotes = await getCanonicalMarketQuotes(uniqueSymbols, {
+    const canonicalQuotes = await getCanonicalMarketQuotes(uniqueSymbols, {
         preferChartAligned: true,
         refresh: true,
     });
+    const quotes = {
+        ...canonicalQuotes,
+        ...marketStreamService.getLatestQuotes(uniqueSymbols),
+    };
     const executed = [];
 
     for (const order of pendingOrders) {
@@ -1344,9 +1357,13 @@ const evaluateAccountRisk = async (accountId, userId = null) => {
 
 let engineTimer = null;
 let engineRunning = false;
+let engineCycleQueued = false;
+let streamCycleTimer = null;
+let unsubscribeFromQuotes = null;
 
 const runTradingEngineCycle = async () => {
     if (engineRunning) {
+        engineCycleQueued = true;
         return;
     }
 
@@ -1372,7 +1389,28 @@ const runTradingEngineCycle = async () => {
         }
     } finally {
         engineRunning = false;
+        if (engineCycleQueued) {
+            engineCycleQueued = false;
+            setImmediate(() => {
+                runTradingEngineCycle().catch((error) => {
+                    console.error('Queued trading engine cycle failed:', error.message);
+                });
+            });
+        }
     }
+};
+
+const scheduleStreamTradingCycle = () => {
+    if (streamCycleTimer) {
+        return;
+    }
+
+    streamCycleTimer = setTimeout(() => {
+        streamCycleTimer = null;
+        runTradingEngineCycle().catch((error) => {
+            console.error('Stream-triggered trading engine cycle failed:', error.message);
+        });
+    }, STREAM_CYCLE_DEBOUNCE_MS);
 };
 
 const processPriceAlerts = async () => {
@@ -1382,10 +1420,16 @@ const processPriceAlerts = async () => {
     }
 
     const symbols = Array.from(new Set(alerts.map((alert) => normalizeSymbol(alert.symbol)).filter(Boolean)));
-    const quotes = await getCanonicalMarketQuotes(symbols, {
+    const canonicalQuotes = await getCanonicalMarketQuotes(symbols, {
         preferChartAligned: true,
         refresh: true,
     });
+    // Stream ticks can arrive before their asynchronous database snapshot is written.
+    // Prefer the in-memory tick so brief TP/SL crossings are not missed.
+    const quotes = {
+        ...canonicalQuotes,
+        ...marketStreamService.getLatestQuotes(symbols),
+    };
     const triggered = [];
 
     for (const alert of alerts) {
@@ -1434,11 +1478,16 @@ const startTradingEngine = () => {
             console.error('Trading engine cycle failed:', error.message);
         });
     }, ENGINE_INTERVAL_MS);
+
+    if (!unsubscribeFromQuotes) {
+        unsubscribeFromQuotes = marketStreamService.subscribeToQuotes(scheduleStreamTradingCycle);
+    }
 };
 
 module.exports = {
     MARGIN_CALL_LEVEL,
     STOP_OUT_LEVEL,
+    shouldAutoClosePosition,
     normalizeOrderType,
     parseTradeInputs,
     placeTrade,

@@ -101,9 +101,9 @@ class Order {
         const compatibleQuery = `
             INSERT INTO orders (
                 user_id, account_id, symbol, side, type, amount, quantity,
-                entry_price, leverage, status
+                entry_price, leverage, take_profit, stop_loss, status
             )
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
             RETURNING *
         `;
         const compatibleValues = [
@@ -116,8 +116,30 @@ class Order {
             quantity,
             entryPrice,
             leverage,
+            takeProfit,
+            stopLoss,
             status
         ];
+        const protectedLegacyQuery = `
+            INSERT INTO orders (
+                user_id, account_id, symbol, side, type, amount, quantity,
+                entry_price, take_profit, stop_loss, status
+            )
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+            RETURNING *
+        `;
+        const protectedLegacyValues = [
+            userId, accountId, symbol, side, type, amount, quantity,
+            entryPrice, takeProfit, stopLoss, status
+        ];
+        const protectionWasRequested = takeProfit !== null || stopLoss !== null;
+        const protectionSchemaError = (column) => {
+            const schemaError = new Error(
+                `Cannot create a protected order because the database column ${column} is missing. Apply the latest database migrations.`
+            );
+            schemaError.code = 'PROTECTION_SCHEMA_MISMATCH';
+            return schemaError;
+        };
         try {
             const { rows } = await db.query(query, values);
             return rows[0];
@@ -128,6 +150,30 @@ class Order {
                     return rows[0];
                 } catch (compatibleError) {
                     if (isMissingColumnError(compatibleError) && getMissingColumnName(compatibleError) === 'leverage') {
+                        try {
+                            const { rows } = await db.query(protectedLegacyQuery, protectedLegacyValues);
+                            return rows[0];
+                        } catch (protectedLegacyError) {
+                            const missingColumn = getMissingColumnName(protectedLegacyError);
+                            if (isMissingColumnError(protectedLegacyError)
+                                && protectionWasRequested
+                                && ['take_profit', 'stop_loss'].includes(missingColumn)) {
+                                throw protectionSchemaError(missingColumn);
+                            }
+                            if (isMissingColumnError(protectedLegacyError) && !protectionWasRequested) {
+                                const { rows } = await db.query(legacyQuery, legacyValues);
+                                return rows[0];
+                            }
+                            throw protectedLegacyError;
+                        }
+                    }
+                    const missingColumn = getMissingColumnName(compatibleError);
+                    if (isMissingColumnError(compatibleError)
+                        && protectionWasRequested
+                        && ['take_profit', 'stop_loss'].includes(missingColumn)) {
+                        throw protectionSchemaError(missingColumn);
+                    }
+                    if (isMissingColumnError(compatibleError) && !protectionWasRequested) {
                         const { rows } = await db.query(legacyQuery, legacyValues);
                         return rows[0];
                     }

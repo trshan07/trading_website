@@ -97,9 +97,9 @@ class Position {
         const compatibleQuery = `
             INSERT INTO positions (
                 user_id, account_id, symbol, side, amount, quantity,
-                entry_price, current_price, margin, leverage, status
+                entry_price, current_price, margin, leverage, take_profit, stop_loss, status
             )
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'open')
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, 'open')
             RETURNING *
         `;
         const compatibleValues = [
@@ -112,8 +112,30 @@ class Position {
             entryPrice,
             entryPrice,
             margin,
-            leverage
+            leverage,
+            takeProfit,
+            stopLoss
         ];
+        const protectedLegacyQuery = `
+            INSERT INTO positions (
+                user_id, account_id, symbol, side, amount, quantity,
+                entry_price, current_price, margin, take_profit, stop_loss, status
+            )
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, 'open')
+            RETURNING *
+        `;
+        const protectedLegacyValues = [
+            userId, accountId, symbol, side, amount, quantity,
+            entryPrice, entryPrice, margin, takeProfit, stopLoss
+        ];
+        const protectionWasRequested = takeProfit !== null || stopLoss !== null;
+        const protectionSchemaError = (column) => {
+            const schemaError = new Error(
+                `Cannot create a protected position because the database column ${column} is missing. Apply the latest database migrations.`
+            );
+            schemaError.code = 'PROTECTION_SCHEMA_MISMATCH';
+            return schemaError;
+        };
         try {
             const { rows } = await db.query(query, values);
             return rows[0];
@@ -124,8 +146,36 @@ class Position {
                     return rows[0];
                 } catch (compatibleError) {
                     if (isMissingColumnError(compatibleError) && getMissingColumnName(compatibleError) === 'leverage') {
-                        const { rows } = await db.query(legacyQuery, legacyValues);
-                        return rows[0];
+                        try {
+                            const { rows } = await db.query(protectedLegacyQuery, protectedLegacyValues);
+                            return rows[0];
+                        } catch (protectedLegacyError) {
+                            const missingColumn = getMissingColumnName(protectedLegacyError);
+                            if (isMissingColumnError(protectedLegacyError)
+                                && protectionWasRequested
+                                && ['take_profit', 'stop_loss'].includes(missingColumn)) {
+                                throw protectionSchemaError(missingColumn);
+                            }
+                            if (isMissingColumnError(protectedLegacyError) && !protectionWasRequested) {
+                                const { rows } = await db.query(legacyQuery, legacyValues);
+                                return rows[0];
+                            }
+                            throw protectedLegacyError;
+                        }
+                    }
+                    const missingColumn = getMissingColumnName(compatibleError);
+                    if (isMissingColumnError(compatibleError)
+                        && protectionWasRequested
+                        && ['take_profit', 'stop_loss'].includes(missingColumn)) {
+                        throw protectionSchemaError(missingColumn);
+                    }
+                    if (isMissingColumnError(compatibleError) && !protectionWasRequested) {
+                        try {
+                            const { rows } = await db.query(legacyQuery, legacyValues);
+                            return rows[0];
+                        } catch (legacyError) {
+                            throw legacyError;
+                        }
                     }
                     throw compatibleError;
                 }

@@ -18,6 +18,7 @@ const REST_POLLING_INTERVAL_MS = 8000;
 class MarketStreamService {
   constructor() {
     this.clients = new Set();
+    this.quoteListeners = new Set();
     this.latestQuotes = {};
     this.twelveDataSocket = null;
     this.twelveDataReconnectAttempts = 0;
@@ -155,11 +156,25 @@ class MarketStreamService {
 
     Object.assign(this.latestQuotes, quotes);
     writeQuotes(quotes).catch(() => null);
+    this.quoteListeners.forEach((listener) => {
+      try {
+        listener(quotes);
+      } catch (error) {}
+    });
     this.broadcast({
       type: 'market-quotes',
       data: quotes,
       asOf: new Date().toISOString(),
     });
+  }
+
+  subscribeToQuotes(listener) {
+    if (typeof listener !== 'function') {
+      return () => {};
+    }
+
+    this.quoteListeners.add(listener);
+    return () => this.quoteListeners.delete(listener);
   }
 
   getLatestQuote(symbol = '') {

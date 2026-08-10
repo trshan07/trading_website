@@ -22,8 +22,8 @@ const requiredTables = [
 
 const requiredColumns = {
     admins: ['id', 'email', 'role', 'is_active', 'created_at', 'first_name', 'last_name', 'password_hash'],
-    positions: ['id', 'account_id', 'status', 'created_at', 'updated_at', 'side', 'quantity', 'entry_price', 'margin', 'pnl'],
-    orders: ['id', 'account_id', 'status', 'created_at', 'updated_at', 'side', 'type', 'quantity', 'entry_price'],
+    positions: ['id', 'account_id', 'status', 'created_at', 'updated_at', 'side', 'quantity', 'entry_price', 'margin', 'pnl', 'take_profit', 'stop_loss'],
+    orders: ['id', 'account_id', 'status', 'created_at', 'updated_at', 'side', 'type', 'quantity', 'entry_price', 'take_profit', 'stop_loss'],
     instruments: ['id', 'symbol', 'is_active', 'category_name', 'default_price', 'default_change', 'default_volume', 'provider', 'quote_symbol', 'data_symbol', 'trading_view_symbol', 'use_bid_ask', 'price_precision'],
     user_settings: ['user_id', 'chart_preferences', 'notification_settings'],
     bank_accounts: [
