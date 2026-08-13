@@ -18,7 +18,7 @@ const LoginPage = () => {
   const [capsLockOn, setCapsLockOn] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
-  const [accountType, setAccountType] = useState('demo'); // 'demo' or 'real'
+  const accountType = 'real';
   const [formData, setFormData] = useState({ email: "", password: "" });
 
   const handleKeyUp = (e) => {
@@ -192,32 +192,10 @@ const handleSubmit = async (e) => {
                 )}
               </AnimatePresence>
 
-              {/* Account Type Selector */}
-              <div className="flex p-1 bg-navy/80 rounded-xl border border-white/10 mb-6 group transition-all hover:border-gold/30">
-                <button
-                  type="button"
-                  onClick={() => setAccountType('demo')}
-                  className={`flex-1 py-2.5 px-4 rounded-lg text-[10px] font-bold uppercase tracking-[0.2em] transition-all flex items-center justify-center space-x-2 ${
-                    accountType === 'demo' 
-                    ? 'bg-gold text-navy-dark shadow-gold-glow-sm' 
-                    : 'text-white/75 hover:text-white border border-transparent hover:border-white/10'
-                  }`}
-                >
-                  <span className={`w-1.5 h-1.5 rounded-full ${accountType === 'demo' ? 'bg-navy-dark animate-pulse' : 'bg-white/20'}`} />
-                  <span>Demo Account</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setAccountType('real')}
-                  className={`flex-1 py-2.5 px-4 rounded-lg text-[10px] font-bold uppercase tracking-[0.2em] transition-all flex items-center justify-center space-x-2 ${
-                    accountType === 'real' 
-                    ? 'bg-green-500 text-navy-dark shadow-[0_0_15px_rgba(34,197,94,0.3)]' 
-                    : 'text-white/75 hover:text-white border border-transparent hover:border-white/10'
-                  }`}
-                >
-                  <span className={`w-1.5 h-1.5 rounded-full ${accountType === 'real' ? 'bg-navy-dark animate-pulse' : 'bg-white/20'}`} />
-                  <span>Real Account</span>
-                </button>
+              {/* Login always starts in the real account. Users can switch after signing in. */}
+              <div className="flex items-center justify-center space-x-2 py-3 px-4 bg-green-500 text-navy-dark rounded-xl text-[10px] font-bold uppercase tracking-[0.2em] shadow-[0_0_15px_rgba(34,197,94,0.3)] mb-6">
+                <span className="w-1.5 h-1.5 rounded-full bg-navy-dark animate-pulse" />
+                <span>Real Account</span>
               </div>
 
               <div>
