@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node ../scripts/run-backend.js start",
     "dev": "node ../scripts/run-backend.js dev",
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "node --test test/*.test.js",
     "db:check": "node src/scripts/checkDatabaseReadiness.js",
     "db:update": "node run_migration.js",
     "db:migrate": "sequelize-cli db:migrate",

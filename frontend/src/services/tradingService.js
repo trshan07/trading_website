@@ -39,24 +39,24 @@ const tradingService = {
     return response.data;
   },
 
-  cancelOrder: async (orderId) => {
-    const response = await api.delete(`/trading/orders/${orderId}`);
+  cancelOrder: async (orderId, accountId) => {
+    const response = await api.delete(`/trading/orders/${orderId}`, { params: { accountId } });
     return response.data;
   },
 
-  updateOrder: async (orderId, orderData) => {
-    const response = await api.patch(`/trading/orders/${orderId}`, orderData);
+  updateOrder: async (orderId, orderData, accountId) => {
+    const response = await api.patch(`/trading/orders/${orderId}`, { ...orderData, accountId });
     return response.data;
   },
 
-  updatePosition: async (positionId, positionData) => {
-    const response = await api.patch(`/trading/positions/${positionId}`, positionData);
+  updatePosition: async (positionId, positionData, accountId) => {
+    const response = await api.patch(`/trading/positions/${positionId}`, { ...positionData, accountId });
     return response.data;
   },
 
   // Close an active position
-  closePosition: async (positionId, exitPrice, quantity = null) => {
-    const response = await api.post(`/trading/positions/${positionId}/close`, { exitPrice, quantity });
+  closePosition: async (positionId, exitPrice, quantity = null, accountId = null) => {
+    const response = await api.post(`/trading/positions/${positionId}/close`, { exitPrice, quantity, accountId });
     return response.data;
   },
 

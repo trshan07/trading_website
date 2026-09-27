@@ -33,6 +33,25 @@ const toCandles = (rows = []) => rows.reduce((acc, row) => {
   return acc;
 }, []);
 
+const syncLatestCandlePrice = (candles = [], price = 0) => {
+  const nextPrice = Number.parseFloat(price);
+  if (candles.length === 0 || !Number.isFinite(nextPrice) || nextPrice <= 0) {
+    return candles;
+  }
+
+  const lastIndex = candles.length - 1;
+  const lastCandle = candles[lastIndex];
+  return [
+    ...candles.slice(0, lastIndex),
+    {
+      ...lastCandle,
+      high: Math.max(lastCandle.high, nextPrice),
+      low: Math.min(lastCandle.low, nextPrice),
+      close: nextPrice,
+    },
+  ];
+};
+
 const createFallbackCandles = (price = 100, interval = '15m', count = 120) => {
   const safePrice = Number.parseFloat(price) || 100;
   const intervalSecondsMap = {
@@ -79,6 +98,7 @@ const RealTimeChart = ({
   const priceLinesRef = useRef([]);
   const syncChartSizeRef = useRef(() => {});
   const fallbackPriceRef = useRef(Number.parseFloat(livePrice || initialPrice || 0) || 0);
+  const livePriceRef = useRef(Number.parseFloat(livePrice) || 0);
   const [interval, setInterval] = useState('15m');
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [lastPrice, setLastPrice] = useState(null);
@@ -129,6 +149,9 @@ const RealTimeChart = ({
     if (Number.isFinite(nextFallbackPrice) && nextFallbackPrice > 0) {
       fallbackPriceRef.current = nextFallbackPrice;
     }
+
+    const nextLivePrice = Number.parseFloat(livePrice);
+    livePriceRef.current = Number.isFinite(nextLivePrice) && nextLivePrice > 0 ? nextLivePrice : 0;
   }, [initialPrice, instrumentSnapshot.price, livePrice, symbol]);
 
   useEffect(() => {
@@ -263,11 +286,15 @@ const RealTimeChart = ({
         setIsLoading(true);
         const response = await infraService.getMarketHistory(symbol, interval, initialPrice);
         const candles = toCandles(response?.data || []);
-        const usableCandles = candles.length > 0
+        const loadedCandles = candles.length > 0
           ? candles
           : canUseQuoteFallback
             ? createFallbackCandles(fallbackPrice, interval)
             : [];
+        // History is candle data and may trail the live quote until the provider
+        // closes or refreshes the current candle. Keep the visible last candle on
+        // the same canonical quote used by the instrument list and order panel.
+        const usableCandles = syncLatestCandlePrice(loadedCandles, livePriceRef.current);
 
         if (!active || !seriesRef.current) {
           return;
@@ -298,9 +325,6 @@ const RealTimeChart = ({
           setPriceChange(first?.open ? (((last.close - first.open) / first.open) * 100).toFixed(2) : null);
           setLiveStatus(candles.length > 0 ? 'live' : (canUseQuoteFallback ? 'quote-sync' : 'delayed'));
 
-          window.dispatchEvent(new CustomEvent('active_price_update', {
-            detail: { symbol, price: last.close, source: 'platform-feed' },
-          }));
           return;
         }
 
@@ -441,9 +465,6 @@ const RealTimeChart = ({
       setLastPrice(nextPrice);
       setLastQuoteAt(Date.now());
       setLiveStatus(navigator.onLine ? (historySource === 'quote-fallback' ? 'quote-sync' : 'live') : 'offline');
-      window.dispatchEvent(new CustomEvent('active_price_update', {
-        detail: { symbol, price: nextPrice, source: 'platform-feed' },
-      }));
     } catch (error) {}
   }, [historySource, interval, livePrice, symbol]);
 

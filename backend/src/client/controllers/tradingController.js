@@ -14,6 +14,7 @@ const {
 } = require('../../services/tradingEngine');
 const Account = require('../../models/Account');
 const { getMarketSessionState } = require('../../utils/marketHours');
+const vertexfx = require('../../integrations/vertexfx/gateway');
 
 const ensureMarketIsOpenForOrder = ({ symbol, category }) => {
     const marketState = getMarketSessionState({ symbol, category });
@@ -41,6 +42,15 @@ const executeTrade = async (req, res) => {
             symbol: req.body.symbol,
             category: req.body.category,
         });
+
+        if (vertexfx.enabled()) {
+            const result = await vertexfx.placeTrade(userId, req.body);
+            return res.status(201).json({
+                success: true,
+                message: result.mode === 'pending' ? 'Pending order sent to VertexFX' : 'Order sent to VertexFX',
+                data: { vertexfx: result.response, mode: result.mode },
+            });
+        }
 
         const result = await placeTrade({
             userId,
@@ -163,6 +173,10 @@ const getOpenPositions = async (req, res) => {
     }
 
     try {
+        if (vertexfx.enabled()) {
+            const positions = await vertexfx.getOpenPositions(accountId, req.user.id);
+            return res.json({ success: true, data: positions });
+        }
         const account = await Account.findById(accountId);
         if (!account || String(account.user_id) !== String(req.user.id)) {
             return res.status(404).json({ success: false, message: 'Account not found for this user' });
@@ -189,6 +203,10 @@ const getOpenPositions = async (req, res) => {
 const getOpenOrders = async (req, res) => {
     try {
         const { accountId } = req.query;
+        if (vertexfx.enabled()) {
+            const orders = await vertexfx.getPendingOrders(accountId, req.user.id);
+            return res.json({ success: true, data: orders });
+        }
         const orders = await Order.findByAccountId(accountId, 'pending');
         res.json({ success: true, data: orders });
     } catch (error) {
@@ -203,6 +221,10 @@ const getOpenOrders = async (req, res) => {
 const getClosedTradeHistory = async (req, res) => {
     try {
         const { accountId } = req.query;
+        if (vertexfx.enabled()) {
+            const history = await vertexfx.getHistory(accountId, req.user.id, Number(req.query.days) || 30);
+            return res.json({ success: true, data: history });
+        }
         const history = await getClosedPositions(accountId);
         res.json({ success: true, data: history });
     } catch (error) {
@@ -216,6 +238,13 @@ const getClosedTradeHistory = async (req, res) => {
 
 const cancelOrder = async (req, res) => {
     try {
+        if (vertexfx.enabled()) {
+            const account = await vertexfx.requireExternalAccount(req.query.accountId, req.user.id);
+            const data = await vertexfx.clientService.cancelLimitOrder(
+                Number(account.vertexfx_account_id), Number(req.params.orderId)
+            );
+            return res.json({ success: true, message: 'Order cancellation sent to VertexFX', data });
+        }
         const order = await Order.delete(req.params.orderId, req.user.id);
         if (!order) {
             return res.status(404).json({ success: false, message: 'Order not found' });
@@ -231,6 +260,15 @@ const cancelOrder = async (req, res) => {
 
 const modifyOrder = async (req, res) => {
     try {
+        if (vertexfx.enabled()) {
+            const account = await vertexfx.requireExternalAccount(req.body.accountId, req.user.id);
+            const data = await vertexfx.clientService.updateLimitOrder({
+                AccountId: Number(account.vertexfx_account_id), OrderId: Number(req.params.orderId),
+                Price: Number(req.body.entryPrice || 0), lots: Number(req.body.quantity || req.body.lots || 0),
+                SL: Number(req.body.stopLoss || 0), TP: Number(req.body.takeProfit || 0),
+            });
+            return res.json({ success: true, data });
+        }
         const updated = await updateOrderProtection({
             orderId: req.params.orderId,
             userId: req.user.id,
@@ -251,6 +289,15 @@ const modifyOrder = async (req, res) => {
 
 const modifyPosition = async (req, res) => {
     try {
+        if (vertexfx.enabled()) {
+            const account = await vertexfx.requireExternalAccount(req.body.accountId, req.user.id);
+            const data = await vertexfx.clientService.updateSltp({
+                AccountId: Number(account.vertexfx_account_id), OrderId: Number(req.params.positionId),
+                lots: Number(req.body.quantity || req.body.lots || 0),
+                SL: Number(req.body.stopLoss || 0), TP: Number(req.body.takeProfit || 0),
+            });
+            return res.json({ success: true, data });
+        }
         const updated = await updatePositionProtection({
             positionId: req.params.positionId,
             userId: req.user.id,
@@ -270,6 +317,13 @@ const modifyPosition = async (req, res) => {
 
 const closePosition = async (req, res) => {
     try {
+        if (vertexfx.enabled()) {
+            const account = await vertexfx.requireExternalAccount(req.body.accountId, req.user.id);
+            const data = await vertexfx.clientService.closeOrder(
+                Number(account.vertexfx_account_id), Number(req.body.quantity || 0), Number(req.params.positionId)
+            );
+            return res.json({ success: true, data });
+        }
         const result = await closePositionThroughEngine({
             positionId: req.params.positionId,
             userId: req.user.id,

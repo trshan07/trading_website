@@ -37,6 +37,7 @@ const marketStreamService = require('./src/services/marketStreamService');
 const { corsOptions, allowedOrigins, isOriginAllowed } = require('./src/config/cors');
 const { normalizeStoredUploadPath } = require('./src/utils/uploadPath');
 const { getUploadDirectories } = require('./src/utils/uploadStorage');
+const { config: vertexfxConfig, validateConfiguration: validateVertexFxConfiguration } = require('./src/integrations/vertexfx/config');
 
 app.use(cors(corsOptions));
 app.options(/.*/, cors(corsOptions));
@@ -284,6 +285,7 @@ const PORT = process.env.PORT || 5000;
 
 const startServer = async () => {
     try {
+        validateVertexFxConfiguration();
         await applyStartupMigrations();
     } catch (error) {
         console.error('Failed to apply startup database migrations:', error);
@@ -300,7 +302,11 @@ const startServer = async () => {
         console.log(`Allowed CORS origins: ${allowedOrigins.join(', ')}`);
     });
 
-    startTradingEngine();
+    if (vertexfxConfig.enabled) {
+        console.log('VertexFX authoritative mode enabled; local trade execution engine is disabled');
+    } else {
+        startTradingEngine();
+    }
     marketStreamService.start();
 };
 

@@ -7,6 +7,8 @@ const Account = require('../../models/Account');
 const { verifyEmailTransport, sendPasswordResetEmail, sendWelcomeEmail } = require('../../services/emailService');
 const PlatformSettings = require('../../models/PlatformSettings');
 const { sendAdminAlert } = require('../../services/adminAlertService');
+const { config: vertexfxConfig } = require('../../integrations/vertexfx/config');
+const { provisionUser } = require('../../integrations/vertexfx/provisioning');
 
 const loginFailures = new Map();
 const LOGIN_LOCK_MS = 15 * 60 * 1000;
@@ -84,6 +86,18 @@ const register = async (req, res) => {
 
             // Fetch the newly created accounts
             const accounts = await Account.findByUserId(user.id);
+            let vertexfxProvisioning = vertexfxConfig.enabled ? 'pending' : 'disabled';
+            let vertexfxWarning = null;
+            if (vertexfxConfig.enabled) {
+                try {
+                    await provisionUser({ user: { ...user, phone, country }, password, accounts });
+                    vertexfxProvisioning = 'synced';
+                } catch (vertexfxError) {
+                    vertexfxProvisioning = 'failed';
+                    vertexfxWarning = 'Website registration succeeded, but trading-account provisioning is pending';
+                    console.error('[VertexFX] Registration provisioning failed:', vertexfxError.message);
+                }
+            }
             const emailResult = await queueWelcomeEmail({
                 email: user.email,
                 firstName: user.first_name,
@@ -101,6 +115,8 @@ const register = async (req, res) => {
                     lastName: user.last_name,
                     role: user.role,
                     accounts: accounts,
+                    vertexfxProvisioning,
+                    vertexfxWarning,
                     token: generateToken(user.id, user.role),
                     welcomeEmailPreviewUrl: emailResult?.previewUrl || null
                 }

@@ -468,3 +468,20 @@ WHERE p.account_id = a.id
       p.leverage IS DISTINCT FROM a.leverage
       OR p.margin IS DISTINCT FROM (COALESCE(p.amount, 0) / a.leverage)
   );
+
+-- VertexFX external identifiers. Local IDs remain stable website API identifiers.
+ALTER TABLE users ADD COLUMN IF NOT EXISTS vertexfx_client_id VARCHAR(64);
+ALTER TABLE accounts ADD COLUMN IF NOT EXISTS vertexfx_account_id VARCHAR(64);
+ALTER TABLE accounts ADD COLUMN IF NOT EXISTS vertexfx_sync_status VARCHAR(20) DEFAULT 'local';
+ALTER TABLE accounts ADD COLUMN IF NOT EXISTS vertexfx_synced_at TIMESTAMP;
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS vertexfx_order_id VARCHAR(64);
+ALTER TABLE positions ADD COLUMN IF NOT EXISTS vertexfx_position_id VARCHAR(64);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_users_vertexfx_client_id
+    ON users(vertexfx_client_id) WHERE vertexfx_client_id IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_accounts_vertexfx_account_id
+    ON accounts(vertexfx_account_id) WHERE vertexfx_account_id IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_orders_vertexfx_order_id
+    ON orders(vertexfx_order_id) WHERE vertexfx_order_id IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_positions_vertexfx_position_id
+    ON positions(vertexfx_position_id) WHERE vertexfx_position_id IS NOT NULL;

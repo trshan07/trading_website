@@ -130,10 +130,6 @@ const toUpdateStamp = (value) => {
 const getQuoteSourcePriority = (source = '') => {
   const normalizedSource = String(source || '').toLowerCase();
 
-  if (normalizedSource === 'platform-feed') {
-    return 6;
-  }
-
   if (normalizedSource === 'twelvedata-stream') {
     return 5;
   }
@@ -1186,7 +1182,7 @@ export const useDashboardData = (accountType = 'demo', activeSymbol = null, opti
               });
             }
 
-            const responseMode = executedPosition?.id ? 'market' : 'pending';
+            const responseMode = response.data?.mode || (executedPosition?.id ? 'market' : 'pending');
             toast.success(response.message || (responseMode === 'pending'
               ? `${order.side} pending order placed`
               : `${order.side} order executed`));
@@ -1209,7 +1205,7 @@ export const useDashboardData = (accountType = 'demo', activeSymbol = null, opti
 
   const handleCancelOrder = async (id) => {
     try {
-      const res = await tradingService.cancelOrder(id);
+      const res = await tradingService.cancelOrder(id, accountId);
       if (!res.success) {
         throw new Error('Cancel failed');
       }
@@ -1224,7 +1220,7 @@ export const useDashboardData = (accountType = 'demo', activeSymbol = null, opti
 
   const handleModifyPosition = async (id, updates) => {
     try {
-      const response = await tradingService.updatePosition(id, updates);
+      const response = await tradingService.updatePosition(id, updates, accountId);
       if (response.success) {
         await fetchPositions();
         toast.success("Position updated");
@@ -1238,7 +1234,7 @@ export const useDashboardData = (accountType = 'demo', activeSymbol = null, opti
 
   const handleModifyOrder = async (id, updates) => {
     try {
-      const response = await tradingService.updateOrder(id, updates);
+      const response = await tradingService.updateOrder(id, updates, accountId);
       if (response.success) {
         await fetchOrders();
         toast.success("Pending order updated");
@@ -1257,7 +1253,7 @@ export const useDashboardData = (accountType = 'demo', activeSymbol = null, opti
       const exitPrice = position.currentPrice || marketData[position.symbol]?.price || position.entryPrice;
 
       try {
-          const response = await tradingService.closePosition(id, exitPrice, closeQuantity);
+          const response = await tradingService.closePosition(id, exitPrice, closeQuantity, accountId);
           if (response.success) {
               await fetchPositions();
               await fetchClosedTrades();
@@ -1364,36 +1360,6 @@ export const useDashboardData = (accountType = 'demo', activeSymbol = null, opti
       toast.error("Failed to update watchlist");
     }
   };
-
-  // --- Chart Sync Integration ---
-  useEffect(() => {
-    const handleChartUpdate = (e) => {
-      const source = e.detail?.source;
-      if (source && source !== 'platform-feed') {
-        return;
-      }
-
-      const symbol = e.detail?.symbol;
-      const price = Number.parseFloat(e.detail?.price);
-      if (!symbol || !Number.isFinite(price)) {
-        return;
-      }
-
-      const chartQuote = {
-        [symbol]: {
-          price,
-          source: source || 'platform-feed',
-          updatedAt: Date.now(),
-        },
-      };
-
-      setMarketData((prev) => mergeQuoteSnapshot(prev, chartQuote));
-      setInstruments((prev) => syncInstrumentsWithQuotes(prev, chartQuote));
-    };
-
-    window.addEventListener('active_price_update', handleChartUpdate);
-    return () => window.removeEventListener('active_price_update', handleChartUpdate);
-  }, []);
 
   // --- WebSocket Price Integration (Kept as is for UX) ---
   useEffect(() => {
