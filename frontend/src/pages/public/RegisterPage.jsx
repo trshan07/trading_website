@@ -386,7 +386,7 @@ const RegisterPage = () => {
           
            {/* Login Link inside card bottom */}
           <div className="bg-navy-dark/60 py-4 px-6 border-t border-white/10 flex justify-center items-center text-[10px] uppercase font-bold tracking-widest">
-             <Link to="/webtrader" className="text-gold hover:text-white transition-colors">Already have an account? Login</Link>
+             <Link to="/webtrader" target="_blank" rel="noopener noreferrer" className="text-gold hover:text-white transition-colors">Already have an account? Login</Link>
           </div>
         </motion.div>
       </div>

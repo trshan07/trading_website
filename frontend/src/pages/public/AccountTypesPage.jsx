@@ -138,7 +138,7 @@ const AccountTypesPage = () => {
                                 </div>
 
                                 <div className="mt-auto">
-                                    <Link to="/webtrader" className="relative group/btn block">
+                                    <Link to="/webtrader" target="_blank" rel="noopener noreferrer" className="relative group/btn block">
                                         <div className="absolute -inset-1 rounded-2xl blur opacity-25 group-hover/btn:opacity-60 transition duration-500 bg-gold" />
                                         <button className="relative w-full py-4 rounded-2xl text-xs font-black tracking-[0.2em] uppercase transition-all duration-300 border bg-gold text-navy border-gold hover:translate-y-[-2px]">
                                             Secure {acc.name.split(' ')[0]} Access

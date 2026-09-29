@@ -74,12 +74,16 @@ const Header = () => {
             
             <Link
               to="/webtrader"
+              target="_blank"
+              rel="noopener noreferrer"
               className="text-slate-600 dark:text-slate-300 hover:text-gold-500 font-medium transition-colors duration-300"
             >
               Login
             </Link>
             <Link
               to="/webtrader"
+              target="_blank"
+              rel="noopener noreferrer"
               className="btn-gold dark:bg-gold-500 dark:text-slate-900 px-6 py-2.5 rounded-full font-bold shadow-lg shadow-gold-500/20"
             >
               Get Started
@@ -123,6 +127,8 @@ const Header = () => {
             <div className="pt-4 flex flex-col space-y-4">
               <Link
                 to="/webtrader"
+                target="_blank"
+                rel="noopener noreferrer"
                 onClick={() => setIsOpen(false)}
                 className="text-slate-900 dark:text-white hover:text-gold-500 font-bold transition-colors text-center py-2"
               >
@@ -130,6 +136,8 @@ const Header = () => {
               </Link>
               <Link
                 to="/webtrader"
+                target="_blank"
+                rel="noopener noreferrer"
                 onClick={() => setIsOpen(false)}
                 className="btn-gold text-center w-full py-4 rounded-2xl"
               >

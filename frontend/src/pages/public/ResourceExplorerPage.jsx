@@ -237,7 +237,7 @@ const ResourceExplorerPage = () => {
                             </div>
                             
                             <div className="flex-shrink-0">
-                                <a href="/webtrader" className="inline-block relative group">
+                                <a href="/webtrader" target="_blank" rel="noopener noreferrer" className="inline-block relative group">
                                     <div className="absolute -inset-1 bg-gold rounded-full blur opacity-40 group-hover:opacity-100 transition duration-500" />
                                     <button className="relative btn-gold py-5 px-12 text-lg flex items-center justify-center gap-2 m-0 border border-gold/50 shadow-2xl">
                                         Open Live Account <HiArrowRight />

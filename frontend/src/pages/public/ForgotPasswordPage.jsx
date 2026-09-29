@@ -227,7 +227,7 @@ const ForgotPasswordPage = () => {
           
            {/* Back to Login Link */}
           <div className="bg-navy-dark/60 py-4 px-6 border-t border-white/10 flex justify-center items-center text-[10px] uppercase font-bold tracking-widest">
-             <Link to="/webtrader" className="text-white/40 hover:text-gold transition-colors block text-center w-full">Cancel and return to Login</Link>
+             <Link to="/webtrader" target="_blank" rel="noopener noreferrer" className="text-white/40 hover:text-gold transition-colors block text-center w-full">Cancel and return to Login</Link>
           </div>
         </motion.div>
       </div>       {/* Footer Status Bar - Visible on mobile */}
