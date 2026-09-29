@@ -75,7 +75,7 @@ const AccountTypes = () => {
                             </div>
 
                             <div className="mt-auto space-y-6">
-                                <Link to="/register">
+                                <Link to="/webtrader">
                                     <Button 
                                         variant="gold"
                                         className={`w-full py-4 text-xs md:text-sm uppercase tracking-[0.2em] font-bold ${account.popular ? 'animate-pulse-subtle shadow-gold-glow' : ''}`}

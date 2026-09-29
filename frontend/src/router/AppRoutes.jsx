@@ -13,7 +13,6 @@ const AccountTypesPage = lazy(() => import("../pages/public/AccountTypesPage"));
 const ConditionsPage = lazy(() => import("../pages/public/ConditionsPage"));
 const TermsPage = lazy(() => import("../pages/public/TermsPage"));
 const LoginPage = lazy(() => import("../pages/public/LoginPage"));
-const RegisterPage = lazy(() => import("../pages/public/RegisterPage"));
 const PrivacyPage = lazy(() => import("../pages/public/PrivacyPage"));
 const RiskDisclaimerPage = lazy(() => import("../pages/public/RiskDisclaimerPage"));
 const KYCPolicyPage = lazy(() => import("../pages/public/KYCPolicyPage"));
@@ -41,6 +40,7 @@ const TransactionsPage = lazy(() => import("../pages/admin/TransactionsPage"));
 import ProtectedRoute from "../components/common/ProtectedRoute";
 import PageLoader from "../components/common/PageLoader";
 import SeoHead from "../components/common/SeoHead";
+import ExternalRedirect from "../components/common/ExternalRedirect";
 import { seoConfig } from "../config/seo";
 
 const withSeo = (page, seo) => (
@@ -72,8 +72,10 @@ const AppRoutes = () => {
         <Route path="/kyc-policy" element={withSeo(<KYCPolicyPage />, seoConfig.kycPolicy)} />
         <Route path="/aml-policy" element={withSeo(<AMLPolicyPage />, seoConfig.amlPolicy)} />
         <Route path="/deposits-withdrawals" element={withSeo(<DepositsWithdrawalsPage />, seoConfig.depositsWithdrawals)} />
-        <Route path="/login" element={withSeo(<LoginPage />, seoConfig.login)} />
-        <Route path="/register" element={withSeo(<RegisterPage />, seoConfig.register)} />
+        <Route path="/login" element={<ExternalRedirect />} />
+        <Route path="/register" element={<ExternalRedirect />} />
+        <Route path="/webtrader" element={<ExternalRedirect />} />
+        <Route path="/admin/login" element={withSeo(<LoginPage />, seoConfig.login)} />
         <Route path="/forgot-password" element={withSeo(<ForgotPasswordPage />, seoConfig.forgotPassword)} />
         <Route path="/reset-password" element={withSeo(<ResetPasswordPage />, seoConfig.resetPassword)} />
 

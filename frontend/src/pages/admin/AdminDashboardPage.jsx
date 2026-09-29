@@ -351,7 +351,7 @@ export default function AdminCRM() {
         localStorage.removeItem("trading_mode");
       }
     } finally {
-      navigate("/login");
+      navigate("/admin/login");
     }
   };
 
@@ -2176,7 +2176,7 @@ function SettingsPage({ toast }) {
         localStorage.removeItem("token");
         localStorage.removeItem("user");
         localStorage.removeItem("trading_mode");
-        window.location.href = "/login";
+        window.location.href = "/admin/login";
         return;
       }
       if (action === "logs") {

@@ -24,7 +24,8 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
     }
     
     if (!user) {
-        return <Navigate to="/login" replace />;
+        const isAdminRoute = allowedRoles?.some((role) => role === 'admin' || role === 'super_admin');
+        return <Navigate to={isAdminRoute ? "/admin/login" : "/webtrader"} replace />;
     }
     
     if (allowedRoles && !allowedRoles.includes(user.role)) {

@@ -62,8 +62,8 @@ const MobileMenu = ({ isOpen, setIsOpen }) => {
                     </div>
                 ))}
                 <hr className="border-white/10" />
-                <Link to="/login" className="text-center py-3 text-white/70" onClick={() => setIsOpen(false)}>Login</Link>
-                <Link to="/register" className="btn-gold text-center py-3" onClick={() => setIsOpen(false)}>Register</Link>
+                <Link to="/webtrader" className="text-center py-3 text-white/70" onClick={() => setIsOpen(false)}>Login</Link>
+                <Link to="/webtrader" className="btn-gold text-center py-3" onClick={() => setIsOpen(false)}>Register</Link>
             </div>
         </div>
     );

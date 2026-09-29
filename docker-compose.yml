@@ -69,6 +69,7 @@ services:
       dockerfile: Dockerfile
       args:
         VITE_API_URL: ${VITE_API_URL}
+        VITE_WEBTRADER_URL: ${VITE_WEBTRADER_URL:-https://tiktrades.webtraderhs.com/}
     depends_on:
       - backend
     networks:

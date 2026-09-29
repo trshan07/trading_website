@@ -203,7 +203,7 @@ const ConditionsPage = () => {
                             </div>
                             
                             <div className="shrink-0 z-10">
-                                <a href="/register" className="inline-block relative group/btn">
+                                <a href="/webtrader" className="inline-block relative group/btn">
                                     <div className="absolute -inset-1 bg-gold rounded-full blur opacity-40 group-hover/btn:opacity-100 transition duration-500" />
                                     <button className="relative btn-gold py-4 px-10 text-base font-black tracking-widest uppercase flex items-center gap-3 m-0">
                                         Open Live Account <HiArrowRight className="group-hover/btn:translate-x-2 transition-transform" />

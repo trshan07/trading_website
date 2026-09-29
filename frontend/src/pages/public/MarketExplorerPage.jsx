@@ -142,7 +142,7 @@ const MarketExplorerPage = () => {
                 <Container className="relative z-10">
                     <h2 className="text-4xl font-display font-bold mb-6">Ready to trade {marketTitle.toLowerCase()}?</h2>
                     <p className="text-white/60 mb-10">Open your account in under 3 minutes and access global markets.</p>
-                    <a href="/register" className="inline-block relative group">
+                    <a href="/webtrader" className="inline-block relative group">
                         <div className="absolute -inset-1 bg-gold rounded-full blur opacity-40 group-hover:opacity-100 transition duration-500" />
                         <button className="relative btn-gold py-4 px-10 text-lg flex items-center justify-center gap-2 m-0 border border-gold/50 shadow-2xl">
                             Start Trading Now

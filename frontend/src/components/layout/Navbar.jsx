@@ -94,8 +94,8 @@ const Navbar = () => {
 
                     {/* Auth Buttons */}
                     <div className="hidden lg:flex items-center space-x-6">
-                        <Link to="/login" className="text-white/80 hover:text-gold transition-colors font-bold text-xs uppercase tracking-widest">Login</Link>
-                        <Link to="/register" className="btn-gold py-2.5 px-6 block text-center text-xs font-black tracking-widest">Register</Link>
+                        <Link to="/webtrader" className="text-white/80 hover:text-gold transition-colors font-bold text-xs uppercase tracking-widest">Login</Link>
+                        <Link to="/webtrader" className="btn-gold py-2.5 px-6 block text-center text-xs font-black tracking-widest">Register</Link>
                     </div>
 
                     {/* Mobile Menu Button */}

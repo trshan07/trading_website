@@ -110,7 +110,7 @@ const PromotionsPage = () => {
                                 </p>
 
                                 <div className="pt-8 mb-2">
-                                    <Link to="/login">
+                                    <Link to="/webtrader">
                                         <Button variant="gold" className="w-full py-4 group/btn flex items-center justify-center space-x-2 rounded-2xl">
                                             <span>Secure Offer</span>
                                             <HiChevronRight className="w-4 h-4 group-hover/btn:translate-x-1 transition-transform" />
@@ -181,7 +181,7 @@ const PromotionsPage = () => {
                                     ))}
                                 </div>
                                 <div className="mt-12 text-center">
-                                    <Link to="/register">
+                                    <Link to="/webtrader">
                                         <Button variant="gold" className="w-full py-5 rounded-2xl shadow-gold-glow-sm">
                                             Register for Bonuses
                                         </Button>

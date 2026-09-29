@@ -198,7 +198,7 @@ const DashboardPage = () => {
 
   const handleLogout = () => {
     logout();
-    navigate('/login');
+    navigate('/webtrader');
   };
 
   const changeMainTab = (tab) => {

@@ -39,7 +39,7 @@ export const AuthProvider = ({ children }) => {
             console.warn('[AUTH] Session expired event received. Logging out.');
             toast.error('Your session has expired. Please sign in again.');
             logout();
-            window.location.href = '/login';
+            window.location.href = '/admin/login';
         };
 
         window.addEventListener('auth:session-expired', handleSessionExpired);

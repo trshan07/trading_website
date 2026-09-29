@@ -129,7 +129,7 @@ const MarketsSection = () => {
                                 exit={{ opacity: 0, scale: 0.95 }}
                                 transition={{ duration: 0.3, delay: index * 0.1 }}
                             >
-                                <Link to="/login">
+                                <Link to="/webtrader">
                                     <Card className="!bg-navy/40 hover:!bg-navy-light/60 border-gold/10 hover:border-gold/30 group">
                                         <div className="flex justify-between items-start mb-4">
                                             <span className="text-lg font-bold">{item.name}</span>

@@ -64,7 +64,7 @@ const Hero = () => {
                             transition={{ duration: 0.8, delay: 0.5 }}
                             className="flex flex-col sm:flex-row items-center gap-4"
                         >
-                            <Link to="/register" className="w-full sm:w-auto">
+                            <Link to="/webtrader" className="w-full sm:w-auto">
                                 <Button variant="gold" className="w-full px-8 py-3.5 text-base group relative overflow-hidden">
                                     <span className="relative z-10">Start Trading Now</span>
                                     <motion.div

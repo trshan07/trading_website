@@ -68,7 +68,7 @@ const PromotionsSection = () => {
                         <h2 className="text-3xl md:text-5xl font-display font-bold mb-4">Start Trading in Minutes</h2>
                         <p className="font-medium opacity-80">Join over 1M+ traders globally and experience the premium difference.</p>
                     </div>
-                    <Link to="/register">
+                    <Link to="/webtrader">
                         <Button variant="gold" className="!bg-navy !text-white !hover:bg-navy-dark whitespace-nowrap px-12 py-4 text-lg">
                             Create Your Account
                         </Button>
